@@ -33,7 +33,6 @@ FROM concept_manual_staging
     )
 ;
 
---SET INVALID as InvalidReason and null as StConcepts for these codes
 INSERT INTO concept_manual_staging (
                                     concept_name,
                                     domain_id,
@@ -44,7 +43,19 @@ INSERT INTO concept_manual_staging (
                                     valid_start_date,
                                     valid_end_date,
                                     invalid_reason)
-SELECT
+
+                                    SELECT
+                                           concept_name,
+                                           domain_id,
+                                           vocabulary_id,
+                                           concept_class_id,
+                                           standard_concept,
+                                           concept_code,
+                                           valid_start_date,
+                                           valid_end_date,
+                                           invalid_reason
+FROM
+(SELECT
        concept_name,
        domain_id,
        vocabulary_id,
@@ -72,8 +83,9 @@ SELECT
 FROM devv5.concept
 where vocabulary_id='NCIt'
 and invalid_reason  is null
-and standard_concept='S'
-;
+and standard_concept='S' ) as tab
+
+
 
 --CR
 --mapt to ony + is a for responses
@@ -102,7 +114,7 @@ with figo_map as (
     select distinct a.concept_code as concept_code_1,
                     a.vocabulary_id as vocabulary_id_1,
                     a.concept_name as concept_name_1,
-                    'Maps to'    as relationship_id,
+                    'Concept replaced by'    as relationship_id,
                     null         as invalid_reason,
                     '2022-04-18'::date as valid_start_date,
                     '2099-12-31'::date as valid_end_date,
@@ -124,7 +136,7 @@ with figo_map as (
     select distinct a.concept_code,
                     a.vocabulary_id,
                     a.concept_name,
-                    'Maps to'    as relationship_id,
+                    'Concept replaced by'    as relationship_id,
                     null         as invalid_reason,
                     '2022-04-18'::date as valid_start_date,
                     '2099-12-31'::date as valid_end_date,
@@ -147,7 +159,7 @@ with figo_map as (
     select distinct a.concept_code,
                     a.vocabulary_id,
                     a.concept_name,
-                    'Maps to'    as relationship_id,
+                    'Concept replaced by'    as relationship_id,
                     null         as invalid_reason,
                     '2022-04-18'::date as valid_start_date,
                     '2099-12-31'::date as valid_end_date,
@@ -186,7 +198,7 @@ SELECT distinct concept_code_1,
                 vocabulary_id_2
 FROM  figo_map
 where concept_code_1 IN (SELECT distinct concept_code_1 from figo_map group by 1 having count(*)=1)
-and  (concept_code_1,relationship_id,concept_code_2) NOT IN (select concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual_staging )
+and  (concept_code_1,concept_code_2) NOT IN (select concept_code_1,concept_code_2 from concept_relationship_manual_staging )
 
 order by concept_code_1,relationship_id,concept_code_2
 ;
@@ -212,7 +224,7 @@ FROM
     WITH TABs as (SELECT distinct s.concept_code as concept_code_1,
     s.vocabulary_id as vocabulary_id_1,
     s.concept_name as concept_name_1,
-    'Maps to' as relationship_id,
+    'Concept replaced by' as relationship_id,
     null as invalid_reason,
     '2022-04-18' as valid_start_date,
     '2099-12-31' as valid_end_date,
@@ -230,7 +242,7 @@ FROM
     SELECT distinct s.concept_code,
     s.vocabulary_id,
     s.concept_name,
-    'Maps to' as relationship_id,
+    'Concept replaced by' as relationship_id,
     null as invalid_reason,
     '2022-04-18' as valid_start_date,
     '2099-12-31' as valid_end_date,
@@ -271,7 +283,7 @@ FROM (
          WITH TABs as (SELECT distinct s.concept_code  as concept_code_1,
                                        s.vocabulary_id as vocabulary_id_1,
                                        s.concept_name  as concept_name_1,
-                                      'Maps to' as relationship_id,
+                                      'Concept replaced by' as relationship_id,
     null as invalid_reason,
     '2022-04-18' as valid_start_date,
     '2099-12-31' as valid_end_date,
@@ -289,7 +301,7 @@ FROM (
                        SELECT distinct s.concept_code,
                            s.vocabulary_id,
                            s.concept_name,
-                           'Maps to' as relationship_id,
+                           'Concept replaced by' as relationship_id,
                            null as invalid_reason,
                            '2022-04-18' as valid_start_date,
                            '2099-12-31' as valid_end_date,
@@ -332,7 +344,7 @@ FROM (
          SELECT distinct s.concept_code as concept_code_1 ,
                          s.vocabulary_id as vocabulary_id_1,
                          s.concept_name,
-                         'Maps to'    as relationship_id,
+                         'Concept replaced by'    as relationship_id,
                          null         as invalid_reason,
                          '2022-04-18' as valid_start_date,
                          '2099-12-31' as valid_end_date,
@@ -350,6 +362,14 @@ FROM (
      ) as tab
 where (concept_code_1,relationship_id,concept_code_2) NOT IN (select concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual_staging )
 ;
+
+--DELETE UPDATED CONCEPTS
+DELETE
+FROM concept_manual_staging
+where concept_code  IN (select concept_code_1 from concept_relationship_manual_staging where relationship_id ilike 'Concept replaced by%')
+and invalid_reason is not null;
+
+
 ----Hierarchy creation for most attributes
 INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
 SELECT  distinct
@@ -832,7 +852,7 @@ and s.concept_code !~*'^Grade-\d'
        and s.standard_concept='S'
 and ss.concept_code ~*'^Grade-\d')
 
---INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
+INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
 
 SELECT
        concept_code_1,
@@ -881,7 +901,6 @@ select
        reg2
 FRom (
                   SELECT concept_code_1,
-                         concept_name_1,
                          vocabulary_id_1,
                          valid_start_date,
                          valid_end_date,
@@ -903,12 +922,12 @@ FRom (
 where /*concept_code_1 not ilike concept_code_2 || '%'*/
       -- left(reg1::varchar,1) <> reg2
 left(split_part(concept_code_1,'AJCC/UICC-',2),2)<>left(split_part(concept_code_2,'AJCC/UICC-',2),1)
-and relationship_id<>'Maps to'
+and relationship_id<>'Concept replaced by'
 ;
 
 -- Manual table population;
 --CM
---truncate concept_manual;
+truncate concept_manual;
 INSERT INTO concept_manual ( concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 SELECT distinct concept_name,
        domain_id,
@@ -923,7 +942,7 @@ FROM concept_manual_staging
 ;
 
 --CRM
--- truncate concept_relationship_manual;
+ truncate concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT distinct concept_code_1,
               concept_code_2,
@@ -980,3 +999,86 @@ suffix varchar(55),
 postfix varchar(55)
     )
     ;
+
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update);
+
+    END
+$body$;
+
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
+
+    END
+$body$;
+
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_synonym_manual',
+                       'concept_synonym_manual_backup_' || update);
+
+    END
+$body$;
+
+SELECT * FROM qa_tests.check_stage_tables ();
+
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+
+select * from QA_TESTS.GET_CHECKS();
+
+
+--12.1. first clean cache
+select * from qa_tests.purge_cache();
+
+--12.2. summary (table to check, schema to compare)
+select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
+
+--12.3. summary (table to check, schema to compare)
+select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
+
+--12.4. summary (table to check, schema to compare)
+select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
+
+
+
+--13. Statistics QA checks
+--changes in tables between dev-schema (current) and devv5/prodv5/any other schema
+
+--13.1. Domain changes
+select * from qa_tests.get_domain_changes(pCompareWith=>'devv5');
+
+--13.2. Newly added concepts grouped by vocabulary_id and domain
+select * from qa_tests.get_newly_concepts(pCompareWith=>'devv5');
+
+--13.3. Standard concept changes
+select * from qa_tests.get_standard_concept_changes(pCompareWith=>'devv5');
+
+--13.4. Newly added concepts and their standard concept status
+select * from qa_tests.get_newly_concepts_standard_concept_status(pCompareWith=>'devv5');
+
+--13.5. Changes of concept mapping status grouped by target domain
+select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');

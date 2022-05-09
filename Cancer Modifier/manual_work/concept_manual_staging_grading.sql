@@ -867,6 +867,76 @@ FROM tab
 where rating=1
 ;
 
+--Attribute based checks
+--Functions creation to detect overlap/non-overlap
+--Overlap
+CREATE FUNCTION array_intersect(anyarray, anyarray)
+  RETURNS anyarray
+  language sql
+as $FUNCTION$
+    SELECT ARRAY(
+        SELECT UNNEST($1)
+        INTERSECT
+        SELECT UNNEST($2)
+    );
+$FUNCTION$;
+--non-overlap
+create or replace function array_diff(array1 anyarray, array2 anyarray)
+returns anyarray language sql immutable as $$
+    select coalesce(array_agg(elem), '{}')
+    from unnest(array1) elem
+    where elem <> all(array2)
+$$;
+
+--Find codes with no overlap
+with hier_stage as (SELECT distinct
+c.concept_code as code1,c.concept_name as name1,cr.relationship_id,cc.concept_code as code2,cc.concept_name  as name2,
+                                    regexp_split_to_array(c.concept_code,'-') as code1_arr, regexp_split_to_array(cc.concept_code,'-') as code2_arr
+FROM concept_relationship_manual_staging  cr
+JOIN concept_manual_staging c on cr.concept_code_1 = c.concept_code
+and cr.relationship_id ='Is a'
+        AND C.standard_concept='S'
+            AND C.concept_class_id='Staging/Grading'
+JOIN concept_manual_staging cc
+on cr.concept_code_2=cc.concept_code
+        AND cc.standard_concept='S'
+            AND cc.concept_class_id='Staging/Grading'),
+
+hier_stage_arrayed as (
+SELECT  code1, name1, relationship_id,  code2, name2,code1_arr,code2_arr,  array_intersect (code1_arr , code2_arr) AS overlapping,   array_diff (code1_arr , code2_arr) AS non_overlapping
+FROM hier_stage)
+
+SELECT
+       code1,
+       name1,
+       relationship_id,
+
+       code2,
+       name2,
+       code1_arr,
+       code2_arr,
+       overlapping,
+       non_overlapping,
+        array_length(overlapping,1)
+FROM hier_stage_arrayed
+where array_length(overlapping,1) is null;
+
+--CleanUp
+--DELETE
+--Partial response
+DELETE FROM
+concept_relationship_manual_staging
+where concept_code_2 ='PR'
+and concept_code_1 not ilike '%PR'
+;
+--Partial response
+--minimal response
+DELETE
+FROM
+concept_relationship_manual_staging
+where concept_code_2 ='MR'
+and concept_code_1 not ilike '%MR'
+;
 
 --CHeck all the codes exist in CRMstaging
 SELECT distinct *
@@ -884,46 +954,7 @@ where concept_code_2 not in (
     )
 ;
 
---Check the possible Lose of appropriate multiaxial concepts
-select
-       left(split_part(concept_code_1,'AJCC/UICC-',2),2),left(split_part(concept_code_2,'AJCC/UICC-',2),2),
 
-       concept_code_1,
-       concept_name_1,
-       vocabulary_id_1,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason,
-       relationship_id,
-       concept_code_2,
-       concept_name_2,
-       reg1,
-       reg2
-FRom (
-                  SELECT concept_code_1,
-                         vocabulary_id_1,
-                         valid_start_date,
-                         valid_end_date,
-                         invalid_reason,
-                         relationship_id,
-                         concept_code_2,
-                         concept_name_2,
-                         regexp_replace(split_part(concept_code_1, '_', 2), '\D', '', 'gi') as reg1,
-                         regexp_replace(split_part(concept_code_2, '_', 2), '\D', '', 'gi') as reg2
-                  FROM concept_relationship_manual_staging 
-                  where (regexp_replace(split_part(concept_code_1, '_', 2), '\D', '', 'gi') <>
-                         regexp_replace(split_part(concept_code_2, '_', 2), '\D', '', 'gi')
-                      and regexp_replace(split_part(concept_code_1, '_', 2), '\D', '', 'gi') <>
-                          regexp_replace(concept_code_2, '\D', '', 'gi')
-                      )
-           --        and concept_code_1 ~* '[a-z]\d$' -- or concept_code_1 !~*'[a-z]\d$'
-                --    and concept_code_1 ~* '^.*\dth'
-              ) as tab
-where /*concept_code_1 not ilike concept_code_2 || '%'*/
-      -- left(reg1::varchar,1) <> reg2
-left(split_part(concept_code_1,'AJCC/UICC-',2),2)<>left(split_part(concept_code_2,'AJCC/UICC-',2),1)
-and relationship_id<>'Concept replaced by'
-;
 
 -- Manual table population;
 --CM

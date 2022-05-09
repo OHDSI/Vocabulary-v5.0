@@ -938,9 +938,18 @@ where concept_code_2 ='MR'
 and concept_code_1 not ilike '%MR'
 ;
 
+--INGR classificaton
+--numeric NUU-system stage
+DELETE
+FROM
+concept_relationship_manual_staging
+where concept_code_2  ~* 'Stage-\d'
+and concept_code_1  ~* 'INRG-\D'
+;
+
 --CHeck all the codes exist in CRMstaging
 SELECT distinct *
-from concept_relationship_manual_staging 
+from concept_relationship_manual_staging
 where concept_code_1 not in (
     select concept_code from concept_manual_staging
     )

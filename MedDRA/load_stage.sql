@@ -15,7 +15,7 @@
 * limitations under the License.
 * 
 * Authors: Mikita Salavei, Dmitry Dymshyts, Denys Kaduk, Timur Vakhitov, Christian Reich
-* Date: 2019
+* Date: 2022
 **************************************************************************/
 
 -- 1. Update latest_update field to new date
@@ -145,7 +145,7 @@ AS (
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -182,7 +182,7 @@ AS (
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -214,7 +214,7 @@ AS (
 			--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'

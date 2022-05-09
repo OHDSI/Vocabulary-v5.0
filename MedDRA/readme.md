@@ -22,7 +22,7 @@
 4. From "SNOMED CT - MedDRA Mapping Release Package DD MONTH YYYY.zip" extract *.xlsx file and rename to meddra_mappings.xlsx
 5. Run in devv5 (with fresh vocabulary date and version):
 ```sql
-SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA version 19.1')
+SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA version 25.0')
 ```
 ##### Filling stage and basic tables
 6. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/MedDRA/Manual_work/readme.md) file in the 'manual_work' folder.

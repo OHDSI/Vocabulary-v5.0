@@ -38,7 +38,7 @@ SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 
 --6.2.2. Create meddra_mapped table and pre-populate it with the resulting manual table of the previous MedDRA refresh.
 
-DROP TABLE dev_meddra.meddra_mapped;
+--DROP TABLE dev_meddra.meddra_mapped;
 CREATE TABLE dev_meddra.meddra_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -61,7 +61,7 @@ CREATE TABLE dev_meddra.meddra_mapped
 
 
 --6.2.5. Truncate the 'meddra_mapped' table. Save the spreadsheet as the 'meddra_mapped table' and upload it into the working schema.
-TRUNCATE TABLE dev_meddra.meddra_mapped;
+--TRUNCATE TABLE dev_meddra.meddra_mapped;
 
 
 --6.2.8. Deprecate all mappings that differ from the new version of resulting mapping file.

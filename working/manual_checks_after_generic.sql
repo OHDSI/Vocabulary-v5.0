@@ -81,6 +81,7 @@ FROM old_syn o
 
 LEFT JOIN new_syn n
     ON o.concept_code = n.concept_code
+        AND o.vocabulary_id = n.vocabulary_id
         AND o.language_concept_id = n.language_concept_id
 
 WHERE o.old_synonym != n.new_synonym OR n.new_synonym IS NULL

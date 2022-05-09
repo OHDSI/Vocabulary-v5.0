@@ -16,7 +16,7 @@ $body$;
 --restore concept_relationship_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_meddra.concept_relationship_manual;
 INSERT INTO dev_meddra.concept_relationship_manual
-SELECT * FROM dev_meddra.concept_relationship_manual_backup_2022_04_22;*/
+SELECT * FROM dev_meddra.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -34,7 +34,7 @@ $body$;
 --restore concept_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_meddra.concept_manual;
 INSERT INTO dev_meddra.concept_manual
-SELECT * FROM dev_meddra.concept_manual_backup_2022_04_22;*/
+SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 
 --6.2.2. Create meddra_mapped table and pre-populate it with the resulting manual table of the previous MedDRA refresh.
 

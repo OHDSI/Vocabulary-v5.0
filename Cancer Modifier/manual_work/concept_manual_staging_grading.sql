@@ -1,4 +1,4 @@
---DOwnload manua tables as csv https://drive.google.com/drive/u/0/folders/1giqnH9bLsEtVQj_DcI16DXJZd1Xetv4c
+--Download manual tables as csv https://drive.google.com/drive/u/0/folders/1giqnH9bLsEtVQj_DcI16DXJZd1Xetv4c
 --Manual-work table population
 drop table concept_manual_staging;
 CREATE TABLE concept_manual_staging
@@ -22,7 +22,13 @@ CREATE TABLE concept_manual_staging
 --Update of invalid reason
 UPDATE concept_manual_staging SET invalid_reason= null where length(invalid_reason)=0
 ;
-
+--Update of names
+UPDATE concept_manual_staging SET concept_name=  trim(regexp_replace(concept_name, '\s+', ' ', 'g')) ;
+;
+--Update of codes
+UPDATE concept_manual_staging
+    SET concept_code  = trim(concept_code)
+;
 --To check distinct  codes with several names
 SELECT  distinct *
 FROM concept_manual_staging
@@ -32,7 +38,11 @@ FROM concept_manual_staging
     group by 1 having count(*)>1
     )
 ;
+--check name code equvalence
+select * from concept_manual_staging ss
+where  concept_name not ilike '%' || split_part(ss.concept_code,'-',array_length(regexp_split_to_array(ss.concept_code,'-'),1)) || '%'
 
+--Insert concept to be invalidated
 INSERT INTO concept_manual_staging (
                                     concept_name,
                                     domain_id,
@@ -106,6 +116,9 @@ CREATE TABLE concept_relationship_manual_staging
 
 )
 ;
+--Format control
+UPDATE concept_relationship_manual_staging SET invalid_reason= null where length(invalid_reason)=0
+;
 
 --automap
 --autoIsa
@@ -116,7 +129,7 @@ with figo_map as (
                     a.concept_name as concept_name_1,
                     'Concept replaced by'    as relationship_id,
                     null         as invalid_reason,
-                    '2022-04-18'::date as valid_start_date,
+                    '2022-05-09'::date as valid_start_date,
                     '2099-12-31'::date as valid_end_date,
                     c.concept_code as concept_code_2,
                     c.vocabulary_id as vocabulary_id_2,
@@ -138,7 +151,7 @@ with figo_map as (
                     a.concept_name,
                     'Concept replaced by'    as relationship_id,
                     null         as invalid_reason,
-                    '2022-04-18'::date as valid_start_date,
+                    '2022-05-09'::date as valid_start_date,
                     '2099-12-31'::date as valid_end_date,
                     c.concept_code,
                     c.vocabulary_id,
@@ -161,7 +174,7 @@ with figo_map as (
                     a.concept_name,
                     'Concept replaced by'    as relationship_id,
                     null         as invalid_reason,
-                    '2022-04-18'::date as valid_start_date,
+                    '2022-05-09'::date as valid_start_date,
                     '2099-12-31'::date as valid_end_date,
                     c.concept_code,
                     c.vocabulary_id,
@@ -226,7 +239,7 @@ FROM
     s.concept_name as concept_name_1,
     'Concept replaced by' as relationship_id,
     null as invalid_reason,
-    '2022-04-18' as valid_start_date,
+    '2022-05-09' as valid_start_date,
     '2099-12-31' as valid_end_date,
     m.concept_code as concept_code_2,
     m.vocabulary_id as vocabulary_id_2,
@@ -244,7 +257,7 @@ FROM
     s.concept_name,
     'Concept replaced by' as relationship_id,
     null as invalid_reason,
-    '2022-04-18' as valid_start_date,
+    '2022-05-09' as valid_start_date,
     '2099-12-31' as valid_end_date,
     m.concept_code,
     m.vocabulary_id,
@@ -285,7 +298,7 @@ FROM (
                                        s.concept_name  as concept_name_1,
                                       'Concept replaced by' as relationship_id,
     null as invalid_reason,
-    '2022-04-18' as valid_start_date,
+    '2022-05-09' as valid_start_date,
     '2099-12-31' as valid_end_date,
     m.concept_code as concept_code_2,
     m.vocabulary_id as vocabulary_id_2,
@@ -303,7 +316,7 @@ FROM (
                            s.concept_name,
                            'Concept replaced by' as relationship_id,
                            null as invalid_reason,
-                           '2022-04-18' as valid_start_date,
+                           '2022-05-09' as valid_start_date,
                            '2099-12-31' as valid_end_date,
                            m.concept_code,
                            m.vocabulary_id,
@@ -346,7 +359,7 @@ FROM (
                          s.concept_name,
                          'Concept replaced by'    as relationship_id,
                          null         as invalid_reason,
-                         '2022-04-18' as valid_start_date,
+                         '2022-05-09' as valid_start_date,
                          '2099-12-31' as valid_end_date,
                          m.concept_code concept_code_2,
                          m.vocabulary_id as vocabulary_id_2,
@@ -365,6 +378,7 @@ where (concept_code_1,relationship_id,concept_code_2) NOT IN (select concept_cod
 
 --DELETE UPDATED CONCEPTS
 DELETE
+--SELECT *
 FROM concept_manual_staging
 where concept_code  IN (select concept_code_1 from concept_relationship_manual_staging where relationship_id ilike 'Concept replaced by%')
 and invalid_reason is not null;
@@ -752,6 +766,8 @@ and concept_code_2!=concept_code_1
 ;
 --To version 'is a'
 INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
+SELECT distinct *
+FROM (
 SELECT
        concept_code as concept_code_1,
        vocabulary_id as vocabulary_id_1,
@@ -785,13 +801,18 @@ SELECT    concept_code as concept_code_1,
        '6th_AJCC/UICC' as concept_code_2,
             vocabulary_id as vocabulary_id_2
 FROM concept_manual_staging
-            WHERE concept_code ilike '%6th%'
+            WHERE concept_code ilike '%6th%')
+as tablesr
+where concept_code_1 ~*'\d$'
+and (concept_code_1 ~*'\D\D\d$')
+or concept_code_1 ~*'Tis$|Ta$'
 ;
---onetoOne hierarchy reconstruction
+
+--One-to-One hierarchy reconstruction
 INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
 SELECT distinct concept_code_1,
                 'Cancer Modifier' as vocabulary_id_1,
-                         '2022-04-18'::date as valid_start_date,
+                         '2022-05-09'::date as valid_start_date,
                          '2099-12-31'::date as valid_end_date,
                                          null         as invalid_reason,
                                 'Is a'    as relationship_id,
@@ -832,7 +853,7 @@ INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id
 SELECT
        concept_code_1,
           'Cancer Modifier' as vocabulary_id_1,
-                         '2022-04-18'::date as valid_start_date,
+                         '2022-05-09'::date as valid_start_date,
                          '2099-12-31'::date as valid_end_date,
                             null         as invalid_reason,
                                 'Is a'    as relationship_id,
@@ -840,6 +861,10 @@ SELECT
                 'Cancer Modifier' as vocabulary_id_2
 FROM tab
 where rating=1
+and concept_code_1 ~*'\d$'
+and (concept_code_1 ~*'\D\D\d$')
+or concept_code_1 ~*'Tis$|Ta$'
+;
 ;
 --Generic Grade  Is a
 with tab as (
@@ -857,7 +882,7 @@ INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id
 SELECT
        concept_code_1,
           'Cancer Modifier' as vocabulary_id_1,
-                         '2022-04-18'::date as valid_start_date,
+                         '2022-05-09'::date as valid_start_date,
                          '2099-12-31'::date as valid_end_date,
                             null         as invalid_reason,
                                 'Is a'    as relationship_id,
@@ -946,6 +971,15 @@ concept_relationship_manual_staging
 where concept_code_2  ~* 'Stage-\d'
 and concept_code_1  ~* 'INRG-\D'
 ;
+--normalize format
+UPDATE concept_relationship_manual_staging
+    SET concept_code_1 = trim(concept_code_1)
+;
+UPDATE concept_relationship_manual_staging
+    SET concept_code_2 = trim(concept_code_2)
+;
+
+
 
 --CHeck all the codes exist in CRMstaging
 SELECT distinct *
@@ -959,10 +993,9 @@ where concept_code_1 not in (
 SELECT distinct concept_code_2
 from concept_relationship_manual_staging 
 where concept_code_2 not in (
-    select concept_code from concept_manual_staging
+    select  concept_code from concept_manual_staging
     )
 ;
-
 
 
 -- Manual table population;

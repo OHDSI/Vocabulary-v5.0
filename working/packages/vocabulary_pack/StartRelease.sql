@@ -14,11 +14,27 @@ DECLARE
   cRet TEXT;
   cVocabs VARCHAR(4000);
   cVocabsDelim CONSTANT VARCHAR(1000) :=', ';
+  z INT4;
 BEGIN
   perform vocabulary_pack.pConceptAncestor();
   perform DEVV4.v5_to_v4();
-  UPDATE VOCABULARY SET VOCABULARY_VERSION = 'v5.0 '||TO_CHAR(current_date,'DD-MON-YY') WHERE VOCABULARY_ID = 'None';
-  ALTER TABLE vocabulary DROP COLUMN IF EXISTS latest_update, DROP COLUMN IF EXISTS dev_schema_name;
+  UPDATE vocabulary SET vocabulary_version = 'v5.0 '||TO_CHAR(CURRENT_DATE,'DD-MON-YY') WHERE vocabulary_id = 'None';
+  
+  --check for extended columns, drop if any
+  SELECT COUNT(*) 
+  INTO z
+  FROM information_schema.columns tc
+  WHERE tc.table_schema = CURRENT_SCHEMA
+    AND tc.table_name = 'vocabulary'
+    AND tc.column_name IN (
+    'latest_update',
+    'dev_schema_name'
+    );
+  IF z>0
+    THEN
+    ALTER TABLE vocabulary DROP COLUMN latest_update, DROP COLUMN dev_schema_name;
+  END IF;
+  
   perform vocabulary_pack.pCreateBaseDump();
   
   SELECT string_agg(DISTINCT vocabulary_id, cVocabsDelim ORDER BY vocabulary_id)

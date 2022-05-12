@@ -17,6 +17,7 @@ END$$
 -- Additional Biomarkers from diff sources into maunal
 
 truncate concept_stage_manual;
+
 --create table concept_stage_manual as 
 insert into concept_stage_manual
 SELECT DISTINCT NULL::INT as concepT_id ,
@@ -35,7 +36,7 @@ SELECT DISTINCT NULL::INT as concepT_id ,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 from (
-select * FROM dev_dkaduk.CAP_hgvs 
+select * FROM dev_dkaduk.CAP_hgvs
 union  
 select * FROM dev_dkaduk.CAP_add
 union  

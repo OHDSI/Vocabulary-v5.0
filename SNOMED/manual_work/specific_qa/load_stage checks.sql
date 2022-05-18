@@ -79,3 +79,53 @@ LEFT JOIN concept c
         AND c.vocabulary_id = 'SNOMED'
 WHERE c.concept_code IS NULL
 ;
+
+--Domains should not change inside Generic update
+--Hence we can check _stage tables during domain assignment
+--Domain changes for active concepts
+SELECT c1.concept_code || ',',c1.concept_name,
+       CASE WHEN c1.concept_code::bigint IN
+                 --Copy paste concept codes where new domain is correct
+       (
+
+           ) THEN 'correct' END AS flag,
+
+       c1.concept_class_id, c1.invalid_reason, c2.domain_id as old, c1.domain_id AS new
+FROM concept_stage c1
+JOIN devv5.concept c2 ON
+	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) AND
+	c1.domain_id != c2.domain_id AND
+	c1.invalid_reason IS NULL
+WHERE c1.vocabulary_id = 'SNOMED'
+ORDER BY c1.domain_id, c2.domain_id
+;
+
+--check all the descendants for target ancestor (helpful while assigning new peak)
+SELECT c.concept_code, c.concept_name, sa.min_levels_of_separation, c.concept_class_id, c.domain_id
+FROM snomed_ancestor sa
+JOIN dev_snomed.concept c
+    ON c.concept_code = sa.descendant_concept_code::varchar AND c.vocabulary_id = 'SNOMED'
+WHERE ancestor_concept_code = 'peak_code';
+
+--quick workaround to check common ancestor for 2 concepts
+--NB: Snomed ancestor does not have links with 0 levels of separation
+WITH common_ancestors AS
+         (WITH a AS (SELECT ancestor_concept_code FROM snomed_ancestor WHERE descendant_concept_code = 'peak_code'),
+               b AS (SELECT ancestor_concept_code FROM snomed_ancestor WHERE descendant_concept_code = 'peak_code')
+
+          SELECT *
+          FROM a
+
+          INTERSECT
+
+          SELECT *
+          FROM b
+         )
+
+SELECT c.concept_code, c.concept_name, sa.min_levels_of_separation, c.concept_class_id, c.domain_id
+FROM common_ancestors ca
+JOIN dev_snomed.concept c
+    ON c.concept_code = ca.ancestor_concept_code::varchar AND c.vocabulary_id = 'SNOMED'
+JOIN snomed_ancestor sa
+ON sa.ancestor_concept_code = '138875005' AND sa.descendant_concept_code = ca.ancestor_concept_code
+ORDER BY min_levels_of_separation;

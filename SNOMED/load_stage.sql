@@ -975,7 +975,7 @@ WHERE NOT EXISTS (
 		);
 
 
---TODO: Move temp code to the manual changes repository
+--TODO: Move temp code to the manual changes repository / add concepts through the OMOP
 /*
 DO $_$
 BEGIN
@@ -1047,7 +1047,7 @@ BEGIN
 );
 END $_$;
 
-/*
+
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
@@ -1061,7 +1061,7 @@ BEGIN
 	pDefines_ancestry_rev		=>0
 );
 END $_$;
- */
+
 
 DO $_$
 BEGIN
@@ -1486,6 +1486,7 @@ CREATE UNLOGGED TABLE peak (
 	);
 
 --19.2 Fill in the various peak concepts
+--TODO: For debug purposes all new and changed peaks may be found by searching date: 20220504
 INSERT INTO peak
 SELECT a.*, NULL FROM ( VALUES
 --19.2.1 Outdated
@@ -1867,7 +1868,10 @@ SELECT a.*, NULL FROM ( VALUES
 	--2020-Mar-17
 	(365866002,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of HIV status
 	(438508001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Virus present
-	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bacteria present
+	--history:on
+	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20220504', 'YYYYMMDD')), --Bacteria present
+	(710954001,         'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bacteria present
+	--history:off
 	(871000124102,      'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Virus not detected
 	(426000000,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Fever greater than 100.4 Fahrenheit
 	(164304001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
@@ -2068,10 +2072,51 @@ SELECT c.*, NULL FROM (VALUES
 	(863903001,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Allergy to vaccine product
 	(20135006,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Screening procedure
 	(80943009,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Risk factor
-	(58915005,          'Measurement',  TO_DATE('20210215', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Immune status
+	(58915005,          'Measurement',  TO_DATE('20210215', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Immune status
+
+    --2022-May-04
+    --Found during step 19.2.3
+    (163166004,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - tongue examined
+    (164399004,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - skin scar
+    (231466009,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Acute drug intoxication
+    (268935007,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses right leg
+    (268936008,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses left leg
+    (365726006,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information accurately
+    (365737007,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information at normal speed
+    (365748000,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to analyze information
+    (49062001,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Device
+    (59274003,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Intentional drug overdose
+    (401783003,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disposable insulin U100 syringe+needle
+    (401826003,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 0.5ml with 12mm needle 0.33mm/29gauge
+    (401830000,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 1ml with 12mm needle 0.33mm/29gauge
+
+    --Found during manual check after generic stage
+    (91723000,          'Spec Anatomic Site',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical structure
+    (396238001,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumor measureable
+    --(288531002,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding status values
+    (410942007,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Drug or medicament
+    (284648005,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Dietary intake finding
+    (911001000000101,     'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum norclomipramine measurement
+    --(365690003,     'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Presence of organism - finding
+    (288533004, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Change values
+    --Taken from load_stage todo
+
+    --Found during github search and/or Vocabulary team reports
+    (165109007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Basal metabolic rate
+    (7928001,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body oxygen consumption
+    (698834005,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Metabolic equivalent of task
+    (251836004,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Nitrogen balance
+    (16206004,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen delivery
+    (251831009,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen extraction ratio
+    (251832002,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen uptake
+    (74427007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory quotient
+    (251838003,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Total body potassium
+    (409652008,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Population statistic
+
+
 ) as c;
 
---19.2.3 To be reviewed in the fiture
+--19.2.3 To be reviewed in the future
 --TODO: disabled for now to avoid duplication with standard Measurements
 --(445536008,         'Measurement',  TO_DATE('new', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Assessment using assessment scale
 --TODO: sort it out
@@ -2126,6 +2171,7 @@ WHERE ranked IS NULL
 	AND valid_end_date = TO_DATE('20991231', 'YYYYMMDD');--rank only active peaks
 
 --19.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic.
+/* TODO: Temporaly commented to facilitate code run
 --This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
 --this should retrive nothing, otherwise add these peaks manually
 DO $$
@@ -2169,6 +2215,8 @@ BEGIN
 		RAISE EXCEPTION 'critical error';
 	END IF;
 END $$;
+
+ */
 
 --19.5. Build domains, preassign all them with "Not assigned"
 DROP TABLE IF EXISTS domain_snomed;
@@ -2639,7 +2687,7 @@ WHERE cs.concept_code IN (
 	AND cs.standard_concept = 'S';
 
 --22. Clean up
---TODO: commented for test
+--TODO: commented for debug purposes
 --DROP TABLE peak;
 --DROP TABLE domain_snomed;
 --DROP TABLE snomed_ancestor;

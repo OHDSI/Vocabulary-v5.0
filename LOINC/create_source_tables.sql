@@ -328,23 +328,19 @@ RETURNS TABLE (
 $body$
 BEGIN
   return query 
-  select s0.created_on, s0.loinc, s0.long_common_name from (
-    with loinc_table as (
-        select replace(replace(replace(substring(http_content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= '),'<30','&lt;30')::xml xmlfield
-        from vocabulary_download.py_http_get(url=>'https://loinc.org/prerelease',allow_redirects=>true)
-    )
-    select
-      to_date((xpath('./td/text()',sections))[1]::text,'yyyy-mm-dd') as created_on,
-      unnest(xpath('./td/a/text()',sections))::text as loinc,
-      devv5.py_unescape((xpath('./td/text()',sections))[2]::text) as long_common_name,
-      unnest(xpath('./td/i/@title',sections))::text as special_use
-    from loinc_table i,
-    unnest(xpath('/tbody/tr', i.xmlfield)) sections
-  ) as s0 where s0.special_use is not null;
+    select parsed.created_on, parsed.loinc, parsed.long_common_name from (
+      select replace(replace(replace(substring(http_content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= '),'<30','&lt;30')::xml xmlfield
+      from vocabulary_download.py_http_get(url=>'https://loinc.org/prerelease',allow_redirects=>true)
+    ) loinc_table
+    cross join xmltable ('/tbody/tr'  passing loinc_table.xmlfield
+      columns  created_on date path 'td[1]',
+      loinc text path 'td[2]/a',
+      long_common_name text path 'td[3]',
+      special_use text path 'td[4]'
+    ) parsed
+    where special_use<>'';
 END;
 $body$
 LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
 SECURITY DEFINER
 COST 100 ROWS 100;

@@ -328,7 +328,7 @@ RETURNS TABLE (
 $body$
 BEGIN
   return query 
-    select parsed.created_on, parsed.loinc, parsed.long_common_name from (
+    select parsed.created_on, parsed.loinc, devv5.py_unescape(parsed.long_common_name) from (
       select replace(replace(replace(substring(http_content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= '),'<30','&lt;30')::xml xmlfield
       from vocabulary_download.py_http_get(url=>'https://loinc.org/prerelease',allow_redirects=>true)
     ) loinc_table

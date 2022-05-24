@@ -350,10 +350,12 @@ BEGIN
                 ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC LIMIT 1;
             WHEN cVocabularyName = 'OMOP INVEST DRUG'
             THEN
-                SELECT TO_DATE(s0.arr[2],'yyyymmdd'), 'OMOP Invest Drug '||s0.arr[1] INTO cVocabDate, cVocabVer FROM (
-                  SELECT regexp_matches(cVocabHTML,'<td><a href="NCIT_PharmSub_([\d.a-z]+)_([\d]+)\.xlsx">.*?</a></td>','gn') arr
-                ) AS s0
-                ORDER BY TO_DATE(s0.arr[2],'yyyymmdd') DESC LIMIT 1;
+                SELECT TO_DATE(SUBSTRING(i.types->>'text',$$<a href = '.+?-([\d-]+)\..+'><b>Download</b></a>$$), 'yyyy-mm-dd')
+                INTO cVocabDate FROM (SELECT JSON_ARRAY_ELEMENTS(cVocabHTML::json) AS types) i
+                WHERE i.types->>'type'='news'
+                AND i.types->>'title'='Newest GSRS Public Data Released'
+                ORDER BY 1 DESC LIMIT 1;
+                cVocabVer := 'OMOP Invest Drug version '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

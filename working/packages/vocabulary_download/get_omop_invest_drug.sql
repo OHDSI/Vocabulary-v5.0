@@ -64,8 +64,35 @@ BEGIN
   select var_value||pVocabularyID into pVocabulary_load_path from devv5.config$ where var_name='vocabulary_load_path';
     
   if pJumpToOperation='ALL' then
-    --get url
+    --get url for first file (gsrs)
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
+    
+    --getting download link from page
+    select substring(pVocabulary_url,'^(https?://([^/]+))')||s0.arr[1] into pDownloadURL from (
+      select regexp_matches(types->>'text',$$<a href = '\.(.+?-([\d-]+)\..+)'><b>Download</b></a>$$) arr from (select http_content::json as jsonfield from vocabulary_download.py_http_get(url=>pVocabulary_url)) i
+      cross join json_array_elements(i.jsonfield) types
+      where types->>'type'='news'
+      and types->>'title'='Newest GSRS Public Data Released'
+    ) as s0
+    order by s0.arr[2] desc limit 1;
+    
+    --start downloading
+    pVocabularyOperation:='GET_OMOP_INVEST_DRUG dump-public.gsrs downloading';
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>'dump-public.gsrs',
+      iDownloadLink=>pDownloadURL,
+      iParams=>'-4' --use IPv4 instead of IPv6
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_OMOP_INVEST_DRUG dump-public.gsrs downloading complete',
+      iVocabulary_status=>1
+    );
+    
+    --get url for second file (xlsx)
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
     
     --getting download link from page
     select pVocabulary_url||s0.arr[1] into pDownloadURL from (
@@ -87,8 +114,8 @@ BEGIN
       iVocabulary_status=>1
     );
     
-    --get url for second file (txt)
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
+    --get url for 3d file (txt)
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
     
     --getting download link from page (use regexp_matches in case the source wants to version the file)
     select pVocabulary_url||s0.arr[1] into pDownloadURL from (

@@ -811,9 +811,10 @@ begin
       ALTER TABLE sources.cim10 ALTER COLUMN xmlfield SET DATA TYPE xml USING xmlfield::xml;
       update sources.cim10 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'OMOP INVEST DRUG' then
-      truncate table sources.ncit_antineopl, sources.ncit_pharmsub;
-      execute 'COPY sources.ncit_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
-      insert into sources.ncit_pharmsub select concept_id, trim(pt), trim(sy), trim(cas_registry), trim(fda_unii_code), COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from sources.py_xlsparse_ncit(pVocabularyPath||'/ncit_pharmsub.xlsx');
+      truncate table sources.invdrug_antineopl, sources.invdrug_pharmsub, sources.invdrug_inxight;
+      execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      insert into sources.invdrug_pharmsub select concept_id, trim(pt), trim(sy), trim(cas_registry), trim(fda_unii_code), COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from sources.py_xlsparse_ncit(pVocabularyPath||'/ncit_pharmsub.xlsx');
+      execute 'COPY sources.invdrug_inxight FROM '''||pVocabularyPath||'dump-public.gsrs'' delimiter E''\b'' csv quote E''\f''';
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

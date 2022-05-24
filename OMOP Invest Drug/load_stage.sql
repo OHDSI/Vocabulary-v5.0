@@ -50,12 +50,14 @@ from dev_mkallfelz.inxight i
 cross join json_array_elements(i.jsonfield#>'{names}') names
 cross join json_array_elements(i.jsonfield#>'{relationships}') rel_json
 where   names->>'displayName'  = 'true'
+and not (
+i.jsonfield->>'uuid' ='c066f70b-2f7f-9cc2-fe50-66c963eaea68' and rel_json->>'type' ='ACTIVE MOIETY' and rel_json->'relatedSubstance'->>'refuuid' = '8994b13a-6254-4966-a14f-453d9b3c8254' -- mistakenly built relationship
+)
 ;
 --2.2 synonyms AND names, display_name = 'true' considered to be concept_name, display_name = 'false' - synonym_name
 create table inxight_syn as
 select
   i.jsonfield->>'uuid' root_uuid,
- -- names->>'uuid' name_uuid,
   names->>'name' nm,
   names->>'type' tp,
   names->>'displayName' display_name
@@ -108,7 +110,6 @@ WHERE relationship_type = 'ACTIVE MOIETY'
 and root_uuid not in ( -- can't identify the active substance if it has several 
 select   root_uuid   from inxight_rel where relationship_type = 'ACTIVE MOIETY'
 group by root_uuid having count(1)>1 )
-and root_uuid !='c066f70b-2f7f-9cc2-fe50-66c963eaea68' --CIMDELIRSEN, has mistakenly built relationship to precise ingredient, so it's excluded from the left side, but will appear in the right side 
 order by root_uuid
 ;
 --right side
@@ -228,11 +229,7 @@ coalesce (r2.target_id, r.target_id) as concept_code_2, -- in case target ingred
  from  inxight_rel r
  -- in case target ingredient is still a precise ingredient, we add one more step of mapping
  left join  inxight_rel r2 on r2.root_uuid = r.target_id and r2.relationship_type = 'ACTIVE MOIETY' and r2.root_uuid != r2.target_id
---mistakenly built relationship from Inredient to PI (other way around) 
- and r2.root_uuid !='c066f70b-2f7f-9cc2-fe50-66c963eaea68'
  where r.root_uuid in (select concept_code from concept_stage)
---mistakenly built relationship from Inredient to PI (other way around) 
- and r.root_uuid !='c066f70b-2f7f-9cc2-fe50-66c963eaea68'
 and r.relationship_type = 'ACTIVE MOIETY' and r.root_uuid != r.target_id 
 ;
 --7. Add mappings to new RxE
@@ -394,10 +391,10 @@ WHERE c.concept_code IS NULL
 	AND crs.invalid_reason IS NULL
 	;
 	--11. clean up
-drop table if exists inxight_rel;
+drop table inxight_rel;
 drop table inxight_syn;
 drop table inxight_codes;
-drop table if exists inx_to_rx;
+drop table inx_to_rx;
 drop table inx_to_ncidb;
 
 --At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

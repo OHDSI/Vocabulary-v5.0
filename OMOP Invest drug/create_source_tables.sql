@@ -33,6 +33,8 @@ CREATE TABLE SOURCES.NCIT_PHARMSUB
    CONCEPT_ID         TEXT,
    PT                 TEXT,
    SY                 TEXT,
+   CAS_REGISTRY       TEXT,
+   FDA_UNII_CODE      TEXT,
    VOCABULARY_DATE    DATE,
    VOCABULARY_VERSION VARCHAR (200)
 );
@@ -42,7 +44,9 @@ RETURNS
 TABLE (
     concept_id text,
     pt text,
-    sy text
+    sy text,
+    cas_registry text,
+    fda_unii_code text
 )
 AS
 $BODY$
@@ -55,7 +59,9 @@ for rowid in range(1,sheet.nrows):
   concept_id=row[1] if row[1] else None
   pt=row[2] if row[2] else None
   sy=row[3] if row[3] else None
-  res.append((concept_id,pt,sy))
+  cas_registry=row[5] if row[5] else None
+  fda_unii_code=row[6] if row[6] else None
+  res.append((concept_id,pt,sy,cas_registry,fda_unii_code))
 return res
 $BODY$
 LANGUAGE 'plpythonu'

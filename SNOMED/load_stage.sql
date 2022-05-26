@@ -2229,56 +2229,39 @@ WHERE vocabulary_id = 'SNOMED';
 --20. Pass out domain_ids
 --Method 1: Assign domains to children of peak concepts in the order rank, and within rank by order of precedence
 --Do that for all peaks by order of ranks. The highest first, the lower ones second, etc.
-DO $_$
-DECLARE
-a INT;
-BEGIN
-	FOR a IN (
-			SELECT DISTINCT ranked
-			FROM peak
-			WHERE ranked IS NOT NULL --consider active peaks only
-			ORDER BY ranked
-			)
-	LOOP
-		UPDATE domain_snomed d
-		SET domain_id = child.peak_domain_id
-		FROM (
-			SELECT DISTINCT
-				-- if there are two conflicting domains in the rank (both equally distant from the ancestor) then use precedence
-				FIRST_VALUE(p.peak_domain_id) OVER (
-					PARTITION BY sa.descendant_concept_code ORDER BY CASE peak_domain_id
-							WHEN 'Condition'
-								THEN 1
-							WHEN 'Measurement'
-								THEN 2
-							WHEN 'Procedure'
-								THEN 3
-							WHEN 'Device'
-								THEN 4
-							WHEN 'Provider'
-								THEN 5
-							WHEN 'Drug'
-								THEN 6
-							WHEN 'Gender'
-								THEN 7
-							WHEN 'Race'
-								THEN 8
-							ELSE 10
-							END -- everything else is Observation
-					) AS peak_domain_id,
-				sa.descendant_concept_code AS concept_code
-			FROM peak p,
-				snomed_ancestor sa
-			WHERE sa.ancestor_concept_code = p.peak_code
-				AND (
-					p.levels_down >= sa.min_levels_of_separation
-					OR p.levels_down IS NULL
-					)
-				AND p.ranked = a
-			) child
-		WHERE child.concept_code = d.concept_code;
-	END LOOP;
-END $_$;
+UPDATE domain_snomed d
+SET domain_id = i.peak_domain_id
+FROM (
+	SELECT DISTINCT ON (sa.descendant_concept_code) p.peak_domain_id,
+		sa.descendant_concept_code
+	FROM snomed_ancestor sa
+	JOIN peak p ON p.peak_code = sa.ancestor_concept_code
+		AND p.ranked IS NOT NULL
+	WHERE p.levels_down >= sa.min_levels_of_separation
+		OR p.levels_down IS NULL
+	ORDER BY sa.descendant_concept_code,
+		p.ranked DESC,
+		-- if there are two conflicting domains in the rank (both equally distant from the ancestor) then use precedence
+		CASE peak_domain_id WHEN 'Condition'
+		    THEN 1
+		WHEN 'Measurement'
+		    THEN 2
+		WHEN 'Procedure'
+		    THEN 3
+		WHEN 'Device'
+		    THEN 4
+		WHEN 'Provider'
+		    THEN 5
+		WHEN 'Drug'
+		    THEN 6
+		WHEN 'Gender'
+		    THEN 7
+		WHEN 'Race'
+		    THEN 8
+		    ELSE 10 END, -- everything else is Observation
+		p.peak_domain_id
+	) i
+WHERE d.concept_code = i.descendant_concept_code;
 
 --Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
 UPDATE domain_snomed d

@@ -8,7 +8,8 @@ BEGIN
     $BODY$#!/bin/bash
     #set permissions=775 by default
     umask 002 && \
-    cd "$1/work"
+    cd "$1/work" && \
+    gunzip -dq "dump-public.gsrs.gz"
     
     #move result to original folder
     cd "$1"

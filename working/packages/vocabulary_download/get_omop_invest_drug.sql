@@ -80,7 +80,7 @@ BEGIN
     pVocabularyOperation:='GET_OMOP_INVEST_DRUG dump-public.gsrs downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
-      iFilename=>'dump-public.gsrs',
+      iFilename=>'dump-public.gsrs.gz',
       iDownloadLink=>pDownloadURL,
       iParams=>'-4' --use IPv4 instead of IPv6
     );
@@ -105,6 +105,7 @@ BEGIN
       iPath=>pVocabulary_load_path,
       iFilename=>'ncit_pharmsub.xlsx',
       iDownloadLink=>pDownloadURL,
+      iDeleteAll=>0,
       iParams=>'-4' --use IPv4 instead of IPv6
     );
     perform write_log (

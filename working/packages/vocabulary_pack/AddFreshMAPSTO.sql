@@ -66,8 +66,6 @@ BEGIN
 									THEN 2
 								WHEN crs.relationship_id = 'Concept alt_to to'
 									THEN 3
-								WHEN crs.relationship_id = 'Concept poss_eq to'
-									THEN 4
 								WHEN crs.relationship_id = 'Concept was_a to'
 									THEN 5
 								WHEN crs.relationship_id = 'Maps to'
@@ -79,7 +77,6 @@ BEGIN
 								'Concept replaced by',
 								'Concept same_as to',
 								'Concept alt_to to',
-								'Concept poss_eq to',
 								'Concept was_a to',
 								'Maps to'
 								)

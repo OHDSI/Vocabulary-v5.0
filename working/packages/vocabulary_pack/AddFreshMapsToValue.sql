@@ -37,8 +37,6 @@ BEGIN
 									THEN 2
 								WHEN r.relationship_id = 'Concept alt_to to'
 									THEN 3
-								WHEN r.relationship_id = 'Concept poss_eq to'
-									THEN 4
 								WHEN r.relationship_id = 'Concept was_a to'
 									THEN 5
 								END ROWS BETWEEN UNBOUNDED PRECEDING
@@ -51,7 +49,6 @@ BEGIN
 						'Concept replaced by',
 						'Concept same_as to',
 						'Concept alt_to to',
-						'Concept poss_eq to',
 						'Concept was_a to'
 						)
 					AND r.invalid_reason IS NULL

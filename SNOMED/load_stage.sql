@@ -2076,8 +2076,8 @@ SELECT c.*, NULL FROM (VALUES
 
     --2022-May-04
     --Found during step 19.2.3
-    (163166004,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - tongue examined
-    (164399004,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - skin scar
+    (163166004,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - tongue examined
+    (164399004,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - skin scar
     (231466009,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Acute drug intoxication
     (268935007,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses right leg
     (268936008,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses left leg
@@ -2092,14 +2092,47 @@ SELECT c.*, NULL FROM (VALUES
 
     --Found during manual check after generic stage
     (91723000,          'Spec Anatomic Site',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical structure
-    (396238001,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumor measureable
-    --(288531002,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding status values
     (410942007,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Drug or medicament
     (284648005,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Dietary intake finding
     (911001000000101,     'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum norclomipramine measurement
-    --(365690003,     'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Presence of organism - finding
     (288533004, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Change values
-    --Taken from load_stage todo
+    (782964007, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Genetic disease
+    (237834000, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disorder of stature
+    (400038003, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Congenital malformation syndrome
+    (407674008, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Aspirin-induced asthma
+    (263605001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Length dimension of neoplasm
+    (4370001000004107, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Length of excised tissue specimen
+    (443527007, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of lymph nodes containing metastatic neoplasm in excised specimen
+    (396236002, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Depth of invasion by tumour
+    (396239009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Horizontal extent of stromal invasion by tumour
+    (371490004, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of tumour from anal verge
+    (258261001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour volume
+    (371503009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour weight
+    (444916005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Percentage of carcinoma in situ in neoplasm
+    (444901007, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Proportion score of neoplastic cells positive for hormone receptors using immunohistochemistry
+    (444775005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Average intensity of positive staining neoplastic cells
+    (385404000, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour quantitation
+    (405930005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of tumour nodules
+    (385300008, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Linear extent of involvement of carcinoma
+    (444025001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of lymph nodes examined by microscopy in excised specimen
+    (444644009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number fraction of oestrogen receptors in neoplasm using immune stain
+    (445104009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Allred score for neoplasm
+    (445366002, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number fraction of progesterone receptors in neoplasm using immune stain
+    (399514000, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of anterior margin of tumour base from limbus of cornea at cut edge, after sectioning
+    (396988001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of posterior margin of tumour base from edge of optic disc, after sectioning
+    (405921002, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Percentage of tumour involved by necrosis
+    (396987006, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance from anterior edge of tumour to limbus of cornea at cut edge, after sectioning
+    (786458005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Self reported usual body weight
+    (162300006, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Unilateral headache
+    (428264009, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Painful gait
+    (905231000000103, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Imbalanced intake of fibre
+    (896531000000104, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Imbalanced dietary intake of fat
+    (735643002, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Short stature of childhood
+    (948391000000106, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - antalgic gait
+    (43528001, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distomolar supernumerary tooth
+    (371234007, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Colour modifier
+    (442083009, 'Spec Anatomic Site', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical or acquired body structure
+    (245849007, 'Spec Anatomic Site', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Postoperative anatomy
 
     --Found during github search and/or Vocabulary team reports
     (165109007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Basal metabolic rate

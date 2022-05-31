@@ -1,3 +1,85 @@
+--Sources May 2022
+DROP TABLE IF EXISTS SOURCES.lpd_aus_fo_product_4;
+CREATE TABLE lpd_aus_fo_product_4
+(
+    fo_prd_id             text,
+    prd_eid               text,
+    prd_name              text,
+    mast_prd_name         text,
+    int_brand_name        text,
+    dosage                text,
+    unit                  text,
+    dosage2               text,
+    unit2                 text,
+    dosage3               text,
+    unit3                 text,
+    nbdose                text,
+    galenic               text,
+    nbdose2               text,
+    galenic2              text,
+    is_prd_refundable     text,
+    prd_refundable_rate   text,
+    prd_price             text,
+    canceled_dat          date,
+    creation_dat          date,
+    manufacturer_name     text,
+    is_generic            text,
+    is_hosp               text,
+    prd_start_dat         date,
+    prd_end_dat           date,
+    regrouping_code       text,
+    eph_code              text,
+    eph_name              text,
+    eph_type              text,
+    eph_state             text,
+    mol_eid               text,
+    mol_name              text,
+    atccode               text,
+    atc_name              text,
+    atc_mol               text,
+    atc_type              text,
+    atc_state             text,
+    bnf_eid               text,
+    bnf_name              text,
+    version               text,
+    updated               date,
+    min_dosage_by_day_ref text,
+    max_dosage_by_day_ref text,
+    gal_id                text,
+    gal_id2               text,
+    first_prd_date        date,
+    first_pre_tra_id      text,
+    first_tra_date        date,
+    ddl_id                text,
+    ddl_lbl               text,
+    prd_vat               text,
+    regrouping_code_2     text,
+    gmp_id                text,
+    prd_id_dc             text
+);
+
+DROP TABLE IF EXISTS SOURCES.lpd_aus_drug_mapping_4;
+CREATE TABLE lpd_aus_drug_mapping_4
+(
+    prd_eid         text,
+    lpdoriginalname text,
+    fcc             text,
+    description     text,
+    manufacturer    text,
+    ephmra_atc_code text,
+    nfc_code        text,
+    prd_name        text,
+    mast_prd_name   text,
+    who_atc_eid     text,
+    prd_dosage      text,
+    unit            text,
+    prd_dosage2     text,
+    unit_id2        text,
+    mol_name        text,
+    oot             text
+);
+
+/*
 DROP TABLE IF EXISTS SOURCES.AUS_FO_PRODUCT;
 CREATE TABLE SOURCES.AUS_FO_PRODUCT
 (
@@ -252,3 +334,4 @@ CREATE TABLE SOURCES.AUS_FO_PRODUCT_3
    GMP_ID                 VARCHAR(255),
    PRD_ID_DC              VARCHAR(255)
 );
+ */

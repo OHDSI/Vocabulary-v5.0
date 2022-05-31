@@ -1,3 +1,7 @@
+/*
+
+OUTDATED
+
 DROP TABLE IF EXISTS fo_product_1_vs_2;
 CREATE TABLE fo_product_1_vs_2 AS
 SELECT *
@@ -85,3 +89,4 @@ SELECT prd_eid,
 	unit_id2,
 	mol_name
 FROM SOURCES.AUS_DRUG_MAPPING_p2;
+ */

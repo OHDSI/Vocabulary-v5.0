@@ -379,7 +379,6 @@ BEGIN
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to']) AS relationship_id
 		),
@@ -482,7 +481,6 @@ BEGIN
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
@@ -532,7 +530,6 @@ BEGIN
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
@@ -610,7 +607,6 @@ BEGIN
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to'
 			)
 		AND v.latest_update IS NOT NULL -- only for current vocabularies
@@ -634,7 +630,6 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 			)
@@ -738,7 +733,6 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 				)
 				AND r.invalid_reason IS NULL
@@ -770,7 +764,6 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 			)
@@ -825,7 +818,6 @@ BEGIN
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to'
 			)

@@ -567,7 +567,6 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 			

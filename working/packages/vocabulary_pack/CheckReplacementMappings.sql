@@ -25,7 +25,6 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				AND invalid_reason IS NULL
@@ -51,14 +50,12 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				AND cs2.relationship_id IN (
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				AND crs.concept_code_1 = cs1.concept_code_1
@@ -85,7 +82,6 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 			)
@@ -144,7 +140,6 @@ BEGIN
 						'Concept replaced by',
 						'Concept same_as to',
 						'Concept alt_to to',
-						'Concept poss_eq to',
 						'Concept was_a to'
 						)
 					AND crs.concept_code_1 <> crs.concept_code_2
@@ -193,7 +188,6 @@ BEGIN
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 			)

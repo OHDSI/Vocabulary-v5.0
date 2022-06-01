@@ -1166,7 +1166,6 @@ WHERE c.concept_id = r.concept_id_1
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
-		'Concept poss_eq to',
 		'Concept was_a to'
 		)
 	AND r.invalid_reason IS NULL
@@ -1216,7 +1215,6 @@ WHERE NOT EXISTS (
 				'Concept replaced by',
 				'Concept same_as to',
 				'Concept alt_to to',
-				'Concept poss_eq to',
 				'Concept was_a to'
 				)
 			AND crs_int.invalid_reason IS NULL

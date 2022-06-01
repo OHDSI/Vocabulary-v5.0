@@ -395,7 +395,6 @@ AS $BODY$
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				)
@@ -599,7 +598,6 @@ AS $BODY$
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				AND r_int.invalid_reason IS NULL

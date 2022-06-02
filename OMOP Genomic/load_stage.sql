@@ -84,14 +84,14 @@ create table genom as
 with snp as (
 -- ClinVar 
   select distinct f_name as concept_name, 'ClinVar' as vocabulary_id, cast(alleleid as varchar(6)) as concept_code, genesymbol as gene,  hgvs
-  from sources.clinvar
+  from sources.genomic_clinvar
   where hgvs ~ '^NM|^NP|^NC|^LRG|^NG|^NR'
  
   
 -- civic
 union
   select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, gene, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-  from sources.civic_variantsummaries
+  from sources.genomic_civic_variantsummaries
   where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
 
 
@@ -99,7 +99,7 @@ union
 union
   select concept_name, vocabulary_id, concept_code, ( regexp_matches(display_name, '(\w+) '))[1] as gene, ( regexp_matches(display_name, '\w+ (.+)'))[1] as hgvs from (
     select definition as concept_name, 'NCIt' as vocabulary_id, code as concept_code, display_name
-    from sources.nci_thesaurus 
+    from sources.genomic_nci_thesaurus
     where coalesce(concept_status, '') not in ('Retired_Concept', 'Obsolete_Concept') and semantic_type in ('Cell or Molecular Dysfunction')
       and display_name ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
   ) a
@@ -124,7 +124,9 @@ union
 
 
 union 
-select concept_name, 'CAP' vocabulary_id, concept_name as concept_code, substring(concept_name, '^(\w+\-?\w+?)\:')gene, concept_name as hgvs from dev_dkaduk.CAP_variant
+select concept_name, 'CAP' vocabulary_id, concept_name as concept_code, substring(concept_name, '^(\w+\-?\w+?)\:')gene, concept_name as hgvs
+--manual extraction from CAP of HGVS expression
+from dev_dkaduk.CAP_variant
 
 -- LOINC
 union
@@ -136,11 +138,11 @@ union
 union
 (
 select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, gdna as hgvs
-from sources.cgi_genomic
+from sources.genomic_cgi
 where gdna != '' 
 union 
 select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, ( regexp_matches(biomarker, '(\w+) '))[1]||':'||cdna as hgvs
-from sources.cgi_genomic
+from sources.genomic_cgi
 where cdna != '' 
 )
 
@@ -148,30 +150,30 @@ where cdna != ''
 union 
 (
 select distinct gene_symbol||':'||variant  as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, g_dna
-from sources.jax_variant 
+from sources.genomic_jax_variant
 union 
 select distinct gene_symbol||':'||variant  as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, gene_symbol||':'||c_dna
-from sources.jax_variant 
+from sources.genomic_jax_variant
 union 
 select distinct gene_symbol||':'||variant as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, gene_symbol||':'||protein
-from sources.jax_variant 
+from sources.genomic_jax_variant
 )
 
 -- file from Korean's
 union
 (
 select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_c as hgvs
-from sources.korean_varaints
+from sources.genomic_korean_varaints
 union
 select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_p as hgvs
-from sources.korean_variants
+from sources.genomic_korean_variants
 where hgvs_p != 'NULL'
 )
 
 union
 (
 select hugo_symbol||':'||variant as concept_name, 'OncoKB' as vocabulary_id, hugo_symbol||':'||variant as concept_code, hugo_symbol as gene, hugo_symbol||':p.'||variant as hgvs
-from sources.oncokb
+from sources.genomic_oncokb
 )
 
 ),
@@ -326,7 +328,7 @@ SELECT DISTINCT NULL::INT,
        -- what use as valid_start_date (date_approved_reserved|date_modified)
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
-FROM sources.hgnc
+FROM sources.genomic_hgnc
 ;
 
 -- Synonyms for HGNC Variants 
@@ -355,7 +357,7 @@ trim(symbol) AS synonym_name,
 TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as synonym_concept_code,
 'OMOP Genomic' AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from   sources.hgnc 
+from   sources.genomic_hgnc
 )a
 ;
 
@@ -484,14 +486,14 @@ end||' measurement') AS concept_name,--var_name,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 FROM g_can a 
-join sources.hgnc ON symbol = a.gene
+join sources.genomic_hgnc ON symbol = a.gene
 left join 
   (
-  select distinct assembly, chromosomeaccession from sources.clinvar
+  select distinct assembly, chromosomeaccession from sources.genomic_clinvar
   union
   select distinct reference_build,substring(hgvs,'\w+\_\d+\.\d+') from ( 
   select civic_start, reference_build,(regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-  from sources.civic_variantsummaries
+  from sources.genomic_civic_variantsummaries
   ) ref 
   where hgvs like '%'||civic_start||'%'
   ) ref_build on chromosomeaccession = refseq||version

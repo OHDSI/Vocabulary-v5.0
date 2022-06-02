@@ -36,11 +36,17 @@ SELECT DISTINCT NULL::INT as concepT_id ,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 from (
+--from Christian
+--CAP genomic names => OMOP Genomic (probably most popular, with presence somewhere, or with the key words Mutation, Gene, etc.)
 select * FROM dev_dkaduk.CAP_hgvs
-union  
+union
+--the same, but some other portion that intersects with Stagisg/Grading
 select * FROM dev_dkaduk.CAP_add
-union  
+union
+
+--OCDO3, SNOMED by patterns "protein/karyotype"
 select * FROM dev_dkaduk.snomed_vs_icdo
+
 ) r 
 left join devv5.concept c on r.concept_name = c.concepT_name
 and vocabulary_id = 'OMOP Extension'
@@ -61,6 +67,7 @@ select distinct
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 from concept_stage_manual cs
+--HGNC initial source. To be replaced to the sources schema.
 join dev_christian.protein_coding_gene ON symbol = substring (concept_name, '^\w+') or symbol = substring (concept_name, '^\w+\-(\w+)')
   JOIN concept_stage cs1
     ON TRIM ( REPLACE (hgnc_id,'HGNC:','')) = cs1.concept_code
@@ -74,7 +81,7 @@ left join concept_relationship_manual crm on csm.concept_code = crm.concept_code
 left join concept_stage cs on cs.concept_code = crm.concept_code_1 and cs.vocabulary_id = crm.vocabulary_id_2;
 */
 
-insert into concept_relationship_manual
+/*insert into concept_relationship_manual
 select distinct 
        csm1.concept_code AS concept_code_1,
        csm.concept_code AS concept_code_2,
@@ -83,11 +90,13 @@ select distinct
        relationship_id,
        CURRENT_DATE -1 AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-       NULL AS invalid_reason 
-from dev_dkaduk.crm_review
+       NULL AS invalid_reason
+--manual table that is already in the crm
+from c
 join concept_stage_manual csm on source_name = csm.concept_name
 join concept_stage_manual csm1 on csm1.concept_code = concept_code_1
-;
+;*/
+
 
 update concept_stage_manual
 set standard_concept = NULL
@@ -108,6 +117,7 @@ select distinct
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason 
 from concept_stage_manual csm
+--manual table created by substringing from concept_name to variant_name
 join dev_dkaduk.snomed_vs_icdo_mapping on trim(csm.concept_name) = trim(variant_name||' measurement') and csm.standard_concept = 'S'
 join devv5.concept c on icdo_id = c.concept_id
 union

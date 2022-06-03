@@ -89,15 +89,24 @@ where c.invalid_reason is null
 ;
 
 --New covid concepts and their mappings (All UK -- US changes were already managed by SNOMED US)
-SELECT c.concept_code AS source_concept_code,
+SELECT DISTINCT c.concept_code AS source_concept_code,
        c.concept_name AS source_concept_name,
-       c.standard_concept AS source_standard_concept,
+       c.concept_class_id AS source_concept_class_id,
+       c.domain_id AS source_domain,
        r.relationship_id,
        CASE WHEN c3.concept_id IS NOT NULL THEN 'old' ELSE 'new' END AS flag,
-       c2.concept_code AS target_concept_code,
-       c2.vocabulary_id AS target_vocabulary_id,
-       c2.concept_name AS target_concept_name,
-       c2.standard_concept AS target_standard_concept,
+
+       CASE WHEN c2.concept_id = c.concept_id THEN '<Mapped to itself>' ELSE c2.concept_id::varchar END AS target_concept_id,
+       CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.concept_code END AS target_concept_code,
+       CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.vocabulary_id END AS target_vocabulary_id,
+       CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.concept_name END AS target_concept_name,
+       CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.standard_concept END AS target_standard_concept,
+
+--       c2.concept_code AS target_concept_code,
+--       c2.vocabulary_id AS target_vocabulary_id,
+--       c2.concept_name AS target_concept_name,
+--       c2.standard_concept AS target_standard_concept,
+
        r.valid_start_date AS relationship_valid_start_date
 FROM concept c
 JOIN concept_relationship r

@@ -1310,12 +1310,23 @@ WHERE crs.concept_code_1 = cs.concept_code
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
-		'Concept poss_eq to',
 		'Concept was_a to'
 		)
 	AND crs.invalid_reason IS NULL;
 
---10.3. Update valid_end_date to latest_update if there is a discrepancy after last point
+--10.3. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
+UPDATE concept_stage cs
+SET invalid_reason = 'D'
+FROM concept_relationship_stage crs
+WHERE crs.concept_code_1 = cs.concept_code
+	AND crs.relationship_id IN (
+		'Concept poss_eq to'
+		)
+	AND crs.invalid_reason IS NULL
+    AND cs.invalid_reason != 'U'
+;
+
+--10.4. Update valid_end_date to latest_update if there is a discrepancy after last point
 UPDATE concept_stage cs
 SET valid_end_date = (
 		SELECT latest_update - 1
@@ -2144,7 +2155,10 @@ SELECT c.*, NULL FROM (VALUES
     (251832002,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen uptake
     (74427007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory quotient
     (251838003,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Total body potassium
-    (409652008,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Population statistic
+    (409652008,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Population statistic
+    (165815009,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --HIV negative
+    (59000001,          'Procedure',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Surgical pathology consultation and report on referred slides prepared elsewhere
+    (365956009,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Finding of sexual orientation
 
 
 ) as c;

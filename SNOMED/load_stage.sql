@@ -592,7 +592,10 @@ WITH tmp_rel AS (
 		WHERE moduleid IN (
 		900000000000207008, --Core (international) module
 		999000011000000103, --UK edition
-		731000124108 --US edition
+		731000124108, --US edition
+        999000011000001104, --SNOMED CT United Kingdom drug extension module
+		900000000000012004, --SNOMED CT model component
+        999000021000001108  --SNOMED CT United Kingdom drug extension reference set module
 		)
 
     UNION
@@ -973,127 +976,6 @@ WHERE NOT EXISTS (
 			AND crs.concept_code_2 = sn.concept_code_2
 			AND crs.relationship_id = sn.relationship_id
 		);
-
-
---TODO: Move temp code to the manual changes repository / add concepts through the OMOP
-/*
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has coating material (SNOMED)',
-	pRelationship_id			=>'Has coating material',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Coating material of (SNOMED)',
-	pReverse_relationship_id		=>'Coating material of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has absorbability (SNOMED)',
-	pRelationship_id			=>'Has absorbability',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Absorbability of (SNOMED)',
-	pReverse_relationship_id		=>'Absorbability of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Process extends to (SNOMED)',
-	pRelationship_id			=>'Process extends to',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Process extends from (SNOMED)',
-	pReverse_relationship_id		=>'Process extends from',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has ingredient qualitative strength (SNOMED)',
-	pRelationship_id			=>'Has strength',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Ingredient qualitative strength of (SNOMED)',
-	pReverse_relationship_id		=>'Strength of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has surface texture (SNOMED)',
-	pRelationship_id			=>'Has surface texture',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Surface texture of (SNOMED)',
-	pReverse_relationship_id		=>'Surface texture of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Is sterile (SNOMED)',
-	pRelationship_id			=>'Is sterile',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Is sterile of (SNOMED)',
-	pReverse_relationship_id		=>'Is sterile of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has target population (SNOMED)',
-	pRelationship_id			=>'Has targ population',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Target population of (SNOMED)',
-	pReverse_relationship_id		=>'Targ population of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has status',
-	pRelationship_id			=>'Has status',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Status of',
-	pReverse_relationship_id		=>'Status of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
-
- */
-
-
 
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);

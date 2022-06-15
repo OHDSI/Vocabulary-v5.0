@@ -62,14 +62,14 @@ FROM (
 WHERE NOT (
 		s0.root_uuid = 'c066f70b-2f7f-9cc2-fe50-66c963eaea68'
 		AND s0.relationship_type = 'ACTIVE MOIETY'
-		AND s0.target_id = '8994b13a-6254-4966-a14f-453d9b3c8254' 
+		AND s0.target_id = '8994b13a-6254-4966-a14f-453d9b3c8254'
 		)
-		and not (
+	AND NOT (
 		s0.root_uuid = 'b6adc3b7-584a-473c-bd07-12ae2b4741e2'
 		AND s0.relationship_type = 'ACTIVE MOIETY'
-		AND s0.target_id = 'ae4c767e-7f8e-43bc-a5d8-f339733d7567' --mistakenly built relationship
-		)
-		;
+		AND s0.target_id = 'ae4c767e-7f8e-43bc-a5d8-f339733d7567'
+		);
+
 --3.2 synonyms AND names, display_name = 'true' considered to be concept_name, display_name = 'false' - synonym_name
 CREATE UNLOGGED TABLE inxight_syn AS
 SELECT i.jsonfield->>'uuid' root_uuid,
@@ -88,12 +88,15 @@ CROSS JOIN json_array_elements(i.jsonfield#>'{codes}') codes
 WHERE codes->>'type' = 'PRIMARY';
 
 --3.4 UNII code
-create table ap_id as
-	SELECT DISTINCT i.jsonfield->>'uuid' root_uuid,
-i.jsonfield->>'approvalID' code
-	FROM sources.invdrug_inxight i
-	where i.jsonfield->>'approvalID'  is not null
-;
+CREATE UNLOGGED TABLE ap_id AS
+SELECT i.jsonfield->> 'uuid' root_uuid,
+	i.jsonfield->> 'approvalID' code
+FROM sources.invdrug_inxight i
+WHERE i.jsonfield->> 'approvalID' IS NOT NULL;
+
+CREATE INDEX idx_ap_id ON ap_id (root_uuid);
+ANALYZE ap_id;
+
 --4. Fill concept_stage with OMOP Invest drugs (INXIGHT only in this case)
 --only those having display_name = true and relationship_id ='ACTIVE MOIETY' on the left OR on the right side in inxight rel are considered as drugs
 --4.1 left side
@@ -107,19 +110,17 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT
-distinct
- nm AS concept_name,
+SELECT nm AS concept_name,
 	'Drug' AS domain_id,
 	'OMOP Invest Drug' AS vocabulary_id,
-	CASE WHEN r.root_uuid = target_id THEN 'Ingredient' ELSE 'Precise Ingredient' END AS concept_class_id,
+	CASE WHEN r.root_uuid = r.target_id THEN 'Ingredient' ELSE 'Precise Ingredient' END AS concept_class_id,
 	NULL AS standard_concept,
 	c.code AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM inxight_rel r
 --include only concepts that have UNII_codes, and use unii_codes as concept codes
-join ap_id c on c.root_uuid =r.root_uuid 
+JOIN ap_id c ON c.root_uuid = r.root_uuid
 WHERE relationship_type = 'ACTIVE MOIETY'
 	AND r.root_uuid NOT IN (
 		--can't identify the active substance if it has several
@@ -150,7 +151,7 @@ SELECT DISTINCT COALESCE(s.nm, r.target_name) AS concept_name, --if name absent 
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM inxight_rel r
-join ap_id c on c.root_uuid =r.target_Id 
+JOIN ap_id c ON c.root_uuid = r.target_Id
 LEFT JOIN inxight_syn s ON s.root_uuid = r.target_id
 	AND s.display_name = 'true'
 LEFT JOIN concept_stage cs ON cs.concept_code = c.code
@@ -167,7 +168,7 @@ SELECT DISTINCT i2.code,
 	c2.vocabulary_id AS vocabulary_id_2
 FROM inxight_codes i
 JOIN concept c ON c.concept_code = i.code
-join ap_id i2 on i.root_uuid = i2.root_uuid 
+JOIN ap_id i2 ON i2.root_uuid = i.root_uuid
 	AND c.vocabulary_id = 'RxNorm'
 --precise ingredients and updated concepts to be mapped to standard
 JOIN concept_relationship r ON c.concept_id = r.concept_id_1
@@ -221,7 +222,7 @@ SELECT DISTINCT cs.concept_code,
 	n.concept_code AS concept_code_2,
 	n.vocabulary_id AS vocabulary_id_2
 FROM inxight_syn s
-join ap_id i2 on s.root_uuid = i2.root_uuid 
+JOIN ap_id i2 ON i2.root_uuid = s.root_uuid
 JOIN rx_names n ON REPLACE(s.nm, ' CATION', '') = UPPER(n.concept_name)
 --to get the drugs only
 JOIN concept_stage cs ON cs.concept_code = i2.code
@@ -231,7 +232,7 @@ WHERE i2.code NOT IN (
 		FROM inx_to_rx a
 		);
 
---5.3 add mappings to  RxNOrm or existing RxNorm Extension to concept_relationship_stage
+--5.3 add mappings to RxNorm or existing RxNorm Extension to concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -241,13 +242,11 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT 
-distinct
-i.code AS concept_code_1,
 --assign one of the concepts when mapping to several concepts present (just chose the one first alphabetical order, when it will be fixed in RxNorm(E) this workardound should be removed)
-first_value	(i.concept_code_2) over (partition by i.code order by i.concept_code_2) as concept_code_2,
+SELECT DISTINCT ON (i.code) i.code AS concept_code_1,
+	i.concept_code_2 AS concept_code_2,
 	'OMOP Invest Drug' AS vocabulary_id_1,
-first_value (i.vocabulary_id_2) over (partition by i.code order by i.concept_Code_2) as vocabulary_Id_2,
+	i.vocabulary_id_2 AS vocabulary_Id_2,
 	'Maps to' AS relationship_id,
 	TO_DATE('20220208', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
@@ -256,7 +255,9 @@ WHERE EXISTS (
 		SELECT 1
 		FROM concept_stage cs
 		WHERE cs.concept_code = i.code
-		);
+		)
+ORDER BY i.code,
+	i.concept_code_2;
 
 --6. Build relationships from precise ingredients to INX ingredients
 INSERT INTO concept_relationship_stage (
@@ -268,9 +269,7 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT 
-distinct
-ic.code AS concept_code_1,
+SELECT DISTINCT ic.code AS concept_code_1,
 	COALESCE(ic2.code, ict.code) AS concept_code_2, --in case target ingredient is still a precise ingredient, we add one more step of mapping
 	'OMOP Invest Drug' AS vocabulary_id_1,
 	'OMOP Invest Drug' AS vocabulary_id_2,
@@ -278,11 +277,11 @@ ic.code AS concept_code_1,
 	TO_DATE('20220208', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM inxight_rel r
-join ap_id ic on ic.root_uuid = r.root_uuid  
-join ap_id ict on ict.root_uuid = r.target_id  
+JOIN ap_id ic ON ic.root_uuid = r.root_uuid
+JOIN ap_id ict ON ict.root_uuid = r.target_id
 --in case target ingredient is still a precise ingredient, we add one more step of mapping
 LEFT JOIN inxight_rel r2 ON r2.root_uuid = r.target_id
-left join ap_id ic2 on ic2.root_uuid = r2.target_id  
+LEFT JOIN ap_id ic2 ON ic2.root_uuid = r2.target_id
 	AND r2.relationship_type = 'ACTIVE MOIETY'
 	AND r2.root_uuid <> r2.target_id
 WHERE EXISTS (
@@ -395,7 +394,7 @@ SELECT DISTINCT c.code AS synonym_concept_code,
 	cs.vocabulary_id AS synonym_vocabulary_id,
 	4180186 AS language_concept_id --English language
 FROM inxight_syn i
-join ap_id c on c.root_uuid =i.root_uuid 
+JOIN ap_id c ON c.root_uuid = i.root_uuid
 JOIN concept_stage cs ON cs.concept_code = c.code
 WHERE i.display_name <> 'true';
 
@@ -446,7 +445,8 @@ WITH inx_to_ncidb AS (
 		FROM inxight_codes c
 		JOIN sources.invdrug_pharmsub p ON p.concept_id = c.code
 		WHERE c.codesystem = 'NCI_THESAURUS'
-	UNION
+		
+		UNION
 		
 		--match by name or synonym (in invdrug_pharmsub table PT is present in SY)
 		SELECT c.root_uuid,
@@ -466,7 +466,7 @@ FROM concept_relationship_stage crs
 --exclude already existing RxEs
 LEFT JOIN concept c ON c.concept_code = crs.concept_code_2
 	AND c.vocabulary_id = 'RxNorm Extension'
-join ap_id ic on ic.code = crs.concept_code_1
+JOIN ap_id ic ON ic.code = crs.concept_code_1
 JOIN inx_to_ncidb i ON i.root_uuid = ic.root_uuid
 JOIN sources.invdrug_antineopl n ON n.code = i.inv_code
 WHERE c.concept_code IS NULL
@@ -476,11 +476,10 @@ WHERE c.concept_code IS NULL
 	AND crs.invalid_reason IS NULL;
 
 --11. Clean up
-
 DROP TABLE inxight_rel,
 	inxight_syn,
 	inxight_codes,
-  inx_to_rx,
-  ap_id
-;
+	inx_to_rx,
+	ap_id;
+
 --At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

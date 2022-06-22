@@ -386,3 +386,12 @@ where c.vocabulary_id IN (:your_vocabs)
         or
         (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
 ;
+
+--03. Check we don't add duplicative concepts
+SELECT concept_name
+FROM concept c
+WHERE c.vocabulary_id IN (:your_vocabs)
+    AND c.invalid_reason IS NULL
+GROUP BY concept_name
+HAVING COUNT (*) >1
+;

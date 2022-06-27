@@ -30,7 +30,7 @@ mod_export_file =  'mod_' + sys.argv[2]
 # mod_export_file = 'mod_ops2020_tst.csv'
 
 
-print(import_file)
+#print(import_file)
 
 def to_string(nodes): # get the text node
     """
@@ -59,7 +59,7 @@ def parse_file(import_file: str) -> ClaML: # main logic section
     Parse a ClaML file and write one line per Class read
     :param import_file: the input file name
     """
-    with open(import_file, 'r') as input_file:
+    with open(import_file, 'r', encoding=("utf-8")) as input_file:
         print('Reading file contents from {} ...'.format(import_file), file=sys.stderr)
         start = time.perf_counter()
         contents = input_file.read()
@@ -75,8 +75,8 @@ def parse_file(import_file: str) -> ClaML: # main logic section
         ), file=sys.stderr)
         
         start = time.perf_counter()
-        
-        f = open(export_file, "w") #open codes-file in overwrite mode
+        print('Writing export document {} ...'.format(export_file), file=sys.stderr)
+        f = open(export_file, "w", encoding=("utf-8")) #open codes-file in overwrite mode
         print('{}|{}|{}|{}'.format(
            'Code',
            'Label DE',
@@ -85,7 +85,7 @@ def parse_file(import_file: str) -> ClaML: # main logic section
         ), file=f) 
         f.close()
         
-        f = open(export_file, "a") #open in append mode
+        f = open(export_file, "a", encoding=("utf-8")) #open in append mode
 
         """
         get all the codes
@@ -112,7 +112,7 @@ def parse_file(import_file: str) -> ClaML: # main logic section
 
         f.close()
 
-        f = open(mod_export_file, "w") #open mod-file in overwrite mode
+        f = open(mod_export_file, "w", encoding=("utf-8")) #open mod-file in overwrite mode
         print('{}|{}|{}|{}'.format(
            'modifier',
            'Code',
@@ -120,8 +120,8 @@ def parse_file(import_file: str) -> ClaML: # main logic section
            'SuperClass'
         ), file=f) 
         f.close()
-        
-        f = open(mod_export_file, "a") #open in append mode
+        print('Writing modifier export document {} ...'.format(mod_export_file), file=sys.stderr)
+        f = open(mod_export_file, "a", encoding=("utf-8")) #open in append mode
 
         """
         get all the modifiers

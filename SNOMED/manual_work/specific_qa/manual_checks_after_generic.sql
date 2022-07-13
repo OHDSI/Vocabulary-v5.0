@@ -6,7 +6,10 @@
 ;
 
 --Validity dates changes
-select c.concept_code, c.concept_name, c2.valid_start_date as old_start, c2.valid_end_date as old_end, c.valid_start_date as new_start, c.valid_end_date as new_end
+select c.concept_code, c.concept_name, c2.valid_start_date as old_start, c2.valid_end_date as old_end, c.valid_start_date as new_start, c.valid_end_date as new_end,
+       c2.valid_start_date - c.valid_start_date as start_diff,
+       c2.valid_end_date - c.valid_end_date as end_diff
+
 from concept c
 join devv5.concept c2 using (concept_id)
 where 
@@ -172,4 +175,21 @@ join snomed_ancestor a on
 	p.concept_code = a.ancestor_concept_code::varchar and
 	c2.concept_code = a.descendant_concept_code::varchar
 order by p.concept_name, c1.domain_id, c2.domain_id
+;
+
+--Check that all Undefined concepts are non-Standard
+SELECT *
+FROM concept c
+WHERE c.vocabulary_id = 'SNOMED'
+    AND c.concept_class_id = 'Undefined'
+    AND c.standard_concept IN ('S', 'C')
+;
+
+
+
+SELECT *
+FROM concept c
+WHERE c.vocabulary_id = 'SNOMED'
+    AND c.concept_class_id = 'Undefined'
+;
 ;

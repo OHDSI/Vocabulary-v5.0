@@ -99,7 +99,7 @@ SELECT DISTINCT c.concept_code AS source_concept_code,
        CASE WHEN c2.concept_id = c.concept_id THEN '<Mapped to itself>' ELSE c2.concept_id::varchar END AS target_concept_id,
        CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.concept_code END AS target_concept_code,
        CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.vocabulary_id END AS target_vocabulary_id,
-       CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.concept_name END AS target_concept_name,
+       CASE WHEN c2.concept_id = c.concept_id THEN '<Mapped to itself>' ELSE c2.concept_name END AS target_concept_name,
        CASE WHEN c2.concept_id = c.concept_id THEN NULL ELSE c2.standard_concept END AS target_standard_concept,
 
 --       c2.concept_code AS target_concept_code,
@@ -114,7 +114,7 @@ JOIN concept_relationship r
 JOIN concept c2
     ON c2.concept_id = r.concept_id_2
 LEFT JOIN devv5.concept c3
-    ON c3.concept_id = c.concept_id
+    ON c3.concept_code = c.concept_code AND c3.vocabulary_id = c.vocabulary_id
 WHERE
 	c.vocabulary_id = 'SNOMED' AND (
 	c.concept_code IN

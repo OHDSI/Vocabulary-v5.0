@@ -1265,7 +1265,7 @@ WHERE r.concept_code_1 = cs.concept_code
 	AND r.concept_code_2 = x.concept_code
 	AND cs.concept_class_id = 'Undefined';
 
---18. Start building the hierarchy for progagating domain_ids from top to bottom
+--18. Start building the hierarchy for propagating domain_ids from top to bottom
 DROP TABLE IF EXISTS snomed_ancestor;
 CREATE UNLOGGED TABLE snomed_ancestor AS
 	WITH RECURSIVE hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, levels_of_separation, full_path) AS (
@@ -1977,7 +1977,6 @@ SELECT c.*, NULL FROM (VALUES
     (365726006,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information accurately
     (365737007,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information at normal speed
     (365748000,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to analyze information
-    (49062001,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Device
     (59274003,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Intentional drug overdose
     (401783003,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disposable insulin U100 syringe+needle
     (401826003,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 0.5ml with 12mm needle 0.33mm/29gauge
@@ -1985,7 +1984,6 @@ SELECT c.*, NULL FROM (VALUES
 
     --Found during manual check after generic stage
     (91723000,          'Spec Anatomic Site',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical structure
-    (410942007,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Drug or medicament
     (284648005,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Dietary intake finding
     (911001000000101,     'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum norclomipramine measurement
     (288533004, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Change values
@@ -2024,8 +2022,6 @@ SELECT c.*, NULL FROM (VALUES
     (948391000000106, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - antalgic gait
     (43528001, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distomolar supernumerary tooth
     (371234007, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Colour modifier
-    (442083009, 'Spec Anatomic Site', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical or acquired body structure
-    (245849007, 'Spec Anatomic Site', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Postoperative anatomy
 
     --Found during github search and/or Vocabulary team reports
     (165109007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Basal metabolic rate
@@ -2040,7 +2036,8 @@ SELECT c.*, NULL FROM (VALUES
     (409652008,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Population statistic
     (165815009,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --HIV negative
     (59000001,          'Procedure',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Surgical pathology consultation and report on referred slides prepared elsewhere
-    (365956009,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Finding of sexual orientation
+    (365956009,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of sexual orientation
+    (443938003,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Procedure carried out on subject
 
 
 ) as c;

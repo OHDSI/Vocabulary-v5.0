@@ -36,6 +36,7 @@ INSERT INTO dev_snomed.concept_manual
 SELECT * FROM dev_snomed.concept_manual_backup_YYYY_MM_DD;*/
 
 --3.2. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous SNOMED refresh.
+--cr_invalid_reason was added for the possibility to deprecate relationships in concept_relationship table
 --DROP TABLE dev_snomed.snomed_mapped;
 CREATE TABLE dev_snomed.snomed_mapped
 (
@@ -46,6 +47,7 @@ CREATE TABLE dev_snomed.snomed_mapped
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),
     to_value varchar(50),
+    cr_invalid_reason varchar(20),
     source varchar(50),
     target_concept_id int,
     target_concept_code varchar(50),
@@ -110,10 +112,12 @@ with mapping AS
                     WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END AS relationship_id,
                current_date AS valid_start_date,
-               to_date('20991231','yyyymmdd') AS valid_end_date,
-               NULL AS invalid_reason
+               CASE WHEN (cr_invalid_reason NOT IN ('U', 'D') OR cr_invalid_reason IS NULL) THEN to_date('20991231','yyyymmdd')
+                   ELSE current_date END AS valid_end_date,
+               CASE WHEN (cr_invalid_reason NOT IN ('U', 'D') OR cr_invalid_reason IS NULL) THEN NULL
+                ELSE cr_invalid_reason END AS invalid_reason
         FROM dev_snomed.snomed_mapped
-        WHERE target_concept_id != 0
+        WHERE (target_concept_id != 0 OR target_concept_id IS NULL)
     )
 
 INSERT INTO dev_snomed.concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)

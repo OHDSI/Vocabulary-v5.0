@@ -55,7 +55,7 @@ ORDER BY level DESC,
 
 --check whether the peak manual table contains several records for the same peak (make sure they're placed together in a group)
 --run after the following part of the load_stage: Fill in the various peak concepts
---26 were found and placed correctly
+--27 were found and placed correctly
 SELECT peak_code
 FROM peak p1
 GROUP BY peak_code

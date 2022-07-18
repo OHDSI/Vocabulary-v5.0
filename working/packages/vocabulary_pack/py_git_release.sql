@@ -1,11 +1,11 @@
---A small script for publishing a release on GitHub
---Returns the release_id if success
 CREATE OR REPLACE FUNCTION vocabulary_pack.py_git_release(git_repo text, release_title text, release_body text, release_tag text, git_token text)
 RETURNS text AS
 $BODY$
+  #A small script for publishing a release on GitHub
+  #Returns the release_id if success
   import json
-  from urllib2 import urlopen, Request
-
+  from urllib.request import urlopen, Request
+  
   url_template = 'https://{}.github.com/repos/' + git_repo + '/releases'
   
   try:
@@ -23,9 +23,8 @@ $BODY$
     ),
     timeout=30).read().decode())
     release_id = _json['id']
-  except Exception, e:
-    release_id = str(e)
+  except Exception as ex:
+    release_id = ex
   return release_id
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY INVOKER;
+LANGUAGE 'plpython3u' STRICT;

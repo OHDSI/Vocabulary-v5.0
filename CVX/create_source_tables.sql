@@ -67,21 +67,18 @@ TABLE (
 )
 AS
 $BODY$
-import xlrd
+from openpyxl import load_workbook
 res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_index(0)
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid)
-  CVX_CODE=row[0] if row[0] else None
-  SHORT_DESCRIPTION=row[1] if row[1] else None
-  FULL_VACCINE_NAME=row[2] if row[2] else None
-  LAST_UPDATED_DATE=xlrd.xldate.xldate_as_datetime(row[7],wb.datemode) if row[7] else None
-  res.append((CVX_CODE,SHORT_DESCRIPTION,FULL_VACCINE_NAME,LAST_UPDATED_DATE))
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[0]
+for row in sheet.iter_rows(min_row=2):
+  CVX_CODE=row[0].value if row[0].value else None
+  SHORT_DESCRIPTION=row[1].value if row[1].value else None
+  FULL_VACCINE_NAME=row[2].value if row[2].value else None
+  LAST_UPDATED_DATE=row[7].value if row[7].value else None
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;
 
 CREATE OR REPLACE FUNCTION sources.py_xlsparse_cvx_dates(xls_path varchar)
 RETURNS
@@ -100,8 +97,7 @@ for rowid in range(1,sheet.nrows):
   res.append((CVX_CODE))
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;
 
 CREATE OR REPLACE FUNCTION sources.py_xlsparse_cvx_cpt(xls_path varchar)
 RETURNS
@@ -116,24 +112,22 @@ TABLE (
 )
 AS
 $BODY$
-import xlrd
+from openpyxl import load_workbook
 res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_index(0)
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid)
-  CPT_CODE=row[0] if row[0] else None
-  CPT_DESCRIPTION=row[1] if row[1] else None
-  CVX_SHORT_DESCRIPTION=row[2] if row[2] else None
-  CVX_CODE=row[3] if row[3] else None
-  MAP_COMMENT=row[4] if row[4] else None
-  LAST_UPDATED_DATE=xlrd.xldate.xldate_as_datetime(row[5],wb.datemode) if row[5] else None
-  CPT_CODE_ID=row[6] if row[6] else None
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[0]
+for row in sheet.iter_rows(min_row=2):
+  CPT_CODE=row[0].value if row[0].value else None
+  CPT_DESCRIPTION=row[1].value if row[1].value else None
+  CVX_SHORT_DESCRIPTION=row[2].value if row[2].value else None
+  CVX_CODE=row[3].value if row[3].value else None
+  MAP_COMMENT=row[4].value if row[4].value else None
+  LAST_UPDATED_DATE=row[5].value if row[5].value else None
+  CPT_CODE_ID=row[6].value if row[6].value else None
   res.append((CPT_CODE,CPT_DESCRIPTION,CVX_SHORT_DESCRIPTION,CVX_CODE,MAP_COMMENT,LAST_UPDATED_DATE,CPT_CODE_ID))
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;
 
 CREATE OR REPLACE FUNCTION sources.py_xlsparse_cvx_vaccine(xls_path varchar)
 RETURNS
@@ -146,19 +140,17 @@ TABLE (
 )
 AS
 $BODY$
-import xlrd
+from openpyxl import load_workbook
 res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_index(0)
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid)
-  CVX_SHORT_DESCRIPTION=row[0] if row[0] else None
-  CVX_CODE=row[1] if row[1] else None
-  VACCINE_STATUS=row[2] if row[2] else None
-  VG_NAME=row[3] if row[3] else None
-  CVX_VACCINE_GROUP=row[4] if row[4] else None
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[0]
+for row in sheet.iter_rows(min_row=2):
+  CVX_SHORT_DESCRIPTION=row[0].value if row[0].value else None
+  CVX_CODE=row[1].value if row[1].value else None
+  VACCINE_STATUS=row[2].value if row[2].value else None
+  VG_NAME=row[3].value if row[3].value else None
+  CVX_VACCINE_GROUP=row[4].value if row[4].value else None
   res.append((CVX_SHORT_DESCRIPTION,CVX_CODE,VACCINE_STATUS,VG_NAME,CVX_VACCINE_GROUP))
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;

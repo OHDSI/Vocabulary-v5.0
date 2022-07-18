@@ -133,15 +133,14 @@ $BODY$
 	p = XMLParser(huge_tree=True) #to prevent XML_PARSE_HUGE error
 	res = []
 	xmlns_uris = {'x': 'urn:hl7-org:v3'}
-	xml = fromstring(xml_string, parser=p)
+	xml = fromstring(bytes(xml_string, encoding='utf-8'), parser=p)
 	concept_code = xml.xpath('/x:document/x:setId/@root',namespaces=xmlns_uris)[0]
 	ndc_codes = xml.xpath('//x:containerPackagedProduct/x:code/@code|//x:containerPackagedMedicine/x:code/@code',namespaces=xmlns_uris)
 	for ndc_code in ndc_codes:
 		res.append((concept_code,ndc_code))
 	return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;
 
 CREATE OR REPLACE FUNCTION sources.py_xmlparse_spl (
 	xml_string text
@@ -175,7 +174,7 @@ $BODY$
 	ndc_root_code_prev = None
 	ndc_root_name_prev = None
 	xmlns_uris = {'x': 'urn:hl7-org:v3'}
-	xml = fromstring(xml_string, parser=p)
+	xml = fromstring(bytes(xml_string, encoding='utf-8'), parser=p)
 	concept_code = xml.xpath('/x:document/x:setId/@root',namespaces=xmlns_uris)[0]
 	concept_name_part = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris)
 	concept_name_part=concept_name_part[0] if concept_name_part else ''
@@ -218,5 +217,4 @@ $BODY$
 		res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,'','','','',''))
 	return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;

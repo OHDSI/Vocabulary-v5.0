@@ -8,8 +8,7 @@ $BODY$
   http=requests.get(url,headers=headers,cookies=c,timeout=10,allow_redirects=allow_redirects,verify=False)
   return json.dumps(dict(http.headers)), http.text
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' PARALLEL SAFE;
 
 CREATE OR REPLACE FUNCTION vocabulary_download.py_http_post(url text, params text, cookies text default null, allow_redirects boolean default false, content_type text default 'application/x-www-form-urlencoded', out http_headers json, out http_content text)
 AS
@@ -20,5 +19,4 @@ $BODY$
   http=requests.post(url,headers=headers,cookies=c,data=params,timeout=10,allow_redirects=allow_redirects,verify=False)
   return json.dumps(dict(http.headers)), http.text
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' PARALLEL SAFE;

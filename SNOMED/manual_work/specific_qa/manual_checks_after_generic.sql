@@ -112,9 +112,9 @@ SELECT DISTINCT c.concept_code AS source_concept_code,
 
        r.valid_start_date AS relationship_valid_start_date
 FROM concept c
-JOIN concept_relationship r
+LEFT JOIN concept_relationship r
     ON r.concept_id_1 = c.concept_id AND r.relationship_id IN ('Maps to', 'Maps to value', 'Is a') AND r.invalid_reason IS NULL
-JOIN concept c2
+LEFT JOIN concept c2
     ON c2.concept_id = r.concept_id_2
 LEFT JOIN devv5.concept c3
     ON c3.concept_code = c.concept_code AND c3.vocabulary_id = c.vocabulary_id

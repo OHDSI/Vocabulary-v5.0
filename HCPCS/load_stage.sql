@@ -119,7 +119,6 @@ AS (
 					'A4248',
 					'A4802',
 					'A9152',
-					'A9153',
 					'A9180',
 					'A9155'
 					)
@@ -137,7 +136,7 @@ AS (
 					'A9152',
 					'A9153'
 					)
-				THEN 'Observation'
+				THEN 'Drug' --Vitamin preparations
 			WHEN concept_code = 'A9155'
 				THEN 'Drug' --Artificial saliva, 30 ml
 					-- B codes
@@ -1007,7 +1006,7 @@ END $_$;
 
 --6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
 DO $_$
-BEGIN
+ BEGIN
 	PERFORM dev_hcpcs.ProcedureDrug();
 END $_$;
 

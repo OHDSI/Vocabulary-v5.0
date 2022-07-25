@@ -162,9 +162,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -180,9 +180,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as name_agg
 from devv5.concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2
@@ -216,9 +216,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -233,9 +233,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.b.concept_code, b.concept_name, r.relationship_id DESC) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code, b.concept_name, r.relationship_id DESC) as name_agg
 from devv5. concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2

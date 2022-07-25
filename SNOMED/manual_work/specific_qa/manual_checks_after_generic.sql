@@ -177,19 +177,18 @@ join snomed_ancestor a on
 order by p.concept_name, c1.domain_id, c2.domain_id
 ;
 
---Check that all Undefined and navigational concepts are non-Standard
+--Check that all service concepts are non-Standard
 SELECT *
 FROM concept c
 WHERE c.vocabulary_id = 'SNOMED'
-    AND c.concept_class_id IN ('Undefined', 'Navi Concept')
+    AND c.concept_class_id IN ('Undefined', 'Navi Concept', 'Admin Concept', 'Model Comp', 'Record Artifact', 'Model Comp')
     AND c.standard_concept IN ('S', 'C')
 ;
 
-
-
+--Check that all service concepts are non-Standard (the list)
 SELECT *
 FROM concept c
 WHERE c.vocabulary_id = 'SNOMED'
-    AND c.concept_class_id IN ('Undefined', 'Navi Concept')
+    AND c.concept_class_id IN ('Undefined', 'Navi Concept', 'Admin Concept', 'Model Comp', 'Record Artifact', 'Model Comp')
 ;
 ;

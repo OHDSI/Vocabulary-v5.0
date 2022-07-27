@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov, Christian Reich
-* Date: 2021
+* Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov, Christian Reich, Oleg Zhuk
+* Date: 2022
 **************************************************************************/
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
@@ -581,7 +581,7 @@ WITH tmp_rel AS (
 			AND destinationid IS NOT NULL
 			AND term <> 'PBCL flag true'
 
-    UNION
+    UNION ALL
 --add relationships from concept to module
 		SELECT cs.concept_code::TEXT,
 		       moduleid::TEXT,
@@ -598,7 +598,7 @@ WITH tmp_rel AS (
         999000021000001108  --SNOMED CT United Kingdom drug extension reference set module
 		)
 
-    UNION
+    UNION ALL
 --add relationship from concept to status
 		SELECT st.concept_code::TEXT,
 		       st.statusid::TEXT,
@@ -1098,7 +1098,7 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 		)
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 WHERE cs.invalid_reason IS NULL
-	AND c1.invalid_reason = 'U'
+	AND (c1.invalid_reason = 'U' OR c1.invalid_reason = 'D')
 	AND cs.vocabulary_id = 'SNOMED'
 	AND crs.concept_code_1 IS NULL;
 
@@ -1180,7 +1180,6 @@ WHERE EXISTS (
 			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_2
 		);
 
-ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
 --10.2. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
@@ -1205,7 +1204,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 		'Concept poss_eq to'
 		)
 	AND crs.invalid_reason IS NULL
-    AND cs.invalid_reason != 'U'
+    AND cs.invalid_reason IS NULL
 ;
 
 --10.4. Update valid_end_date to latest_update if there is a discrepancy after last point
@@ -1379,7 +1378,6 @@ CREATE UNLOGGED TABLE peak (
 	);
 
 --19.2 Fill in the various peak concepts
---TODO: For debug purposes all new and changed peaks may be found by searching date: 20220504
 INSERT INTO peak
 SELECT a.*, NULL FROM ( VALUES
 --19.2.1 Outdated
@@ -2097,7 +2095,6 @@ WHERE ranked IS NULL
 	AND valid_end_date = TO_DATE('20991231', 'YYYYMMDD');--rank only active peaks
 
 --19.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic.
-/* TODO: Temporaly commented to facilitate code run
 --This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
 --this should retrive nothing, otherwise add these peaks manually
 DO $$
@@ -2121,7 +2118,7 @@ BEGIN
 			ELSE 'Observation'
 			END AS peak_domain_id,
 		NULL::INT AS ranked
---	INTO r --remove "into r" to run as generic query
+	INTO r --remove "into r" to run as generic query
 	FROM snomed_ancestor a,
 		concept_stage c
 	WHERE c.concept_code::BIGINT = a.ancestor_concept_code
@@ -2141,8 +2138,6 @@ BEGIN
 		RAISE EXCEPTION 'critical error';
 	END IF;
 END $$;
-
- */
 
 --19.5. Build domains, preassign all them with "Not assigned"
 DROP TABLE IF EXISTS domain_snomed;
@@ -2468,21 +2463,21 @@ with hist_of_value AS
                  c.vocabulary_id,
                  cc.vocabulary_id AS target_vocabulary,
                  cc.concept_code AS target_concept_code
- FROM dev_snomed.snomed_ancestor sa
-JOIN dev_snomed.concept_stage c
+FROM snomed_ancestor sa
+JOIN concept_stage c
     ON sa.descendant_concept_code::varchar = c.concept_code AND c.vocabulary_id = 'SNOMED'
-LEFT JOIN dev_snomed.concept_relationship_stage cr
+LEFT JOIN concept_relationship_stage cr
     ON c.concept_code = cr.concept_code_1 AND cr.relationship_id IN ('Has asso finding', 'Has asso proc') AND cr.invalid_reason IS NULL
-LEFT JOIN dev_snomed.concept_stage cc
+LEFT JOIN concept_stage cc
     ON cr.concept_code_2 = cc.concept_code AND cc.vocabulary_id = 'SNOMED'
 
 WHERE ancestor_concept_code IN (417662000, 416940007)   --History of clinical finding in subject / Past history of procedure
   AND c.invalid_reason IS NULL
-  AND EXISTS(SELECT * FROM dev_snomed.concept_relationship_stage crs
+  AND EXISTS(SELECT * FROM concept_relationship_stage crs
             WHERE crs.concept_code_1 = c.concept_code AND crs.concept_code_2 = '900000000000073002' --All concepts are defined
                 AND crs.relationship_id = 'Has status' AND crs.invalid_reason IS NULL)
-  AND NOT EXISTS(SELECT * FROM dev_snomed.snomed_ancestor saa
-        JOIN dev_snomed.concept_relationship_stage crr
+  AND NOT EXISTS(SELECT * FROM snomed_ancestor saa
+        JOIN concept_relationship_stage crr
         ON crr.concept_code_1 = saa.ancestor_concept_code::varchar AND crr.concept_code_2 = '900000000000074008' --All concepts are defined (not exists primitive concepts)
       WHERE saa.descendant_concept_code::varchar = c.concept_code
         AND saa.min_levels_of_separation < sa.min_levels_of_separation --All concepts between 'Personal history'/'History of procedure' and target concept
@@ -2490,7 +2485,7 @@ WHERE ancestor_concept_code IN (417662000, 416940007)   --History of clinical fi
 
     AND cc.standard_concept = 'S' AND cc.invalid_reason IS NULL --Maps to value leads to standard valid concept
 
-    AND NOT EXISTS(SELECT * FROM dev_snomed.concept_relationship_stage crs --Not mapped manually
+    AND NOT EXISTS(SELECT * FROM concept_relationship_stage crs --Not mapped manually
         WHERE crs.concept_code_1 = c.concept_code AND crs.relationship_id = 'Maps to' AND crs.invalid_reason IS NULL)
 ORDER BY c.concept_code)
 
@@ -2518,8 +2513,6 @@ SELECT hist_of_value.concept_code AS concept_code_1,
        NULL AS invalid_reason
 
 FROM hist_of_value
-
-ORDER BY concept_code_1, relationship_id
 ;
 
 --21.2. De-standardize navigational concepts
@@ -2662,11 +2655,10 @@ WHERE cs.concept_code IN (
 	AND cs.standard_concept = 'S';
 
 --22. Clean up
---TODO: commented for debug purposes
---DROP TABLE peak;
---DROP TABLE domain_snomed;
---DROP TABLE snomed_ancestor;
---DROP VIEW module_date;
+DROP TABLE peak;
+DROP TABLE domain_snomed;
+DROP TABLE snomed_ancestor;
+DROP VIEW module_date;
 
 --22. Need to check domains before runnig the generic_update
 /*temporary disabled for later use

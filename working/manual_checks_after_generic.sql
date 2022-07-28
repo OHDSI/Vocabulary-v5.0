@@ -388,10 +388,15 @@ where c.vocabulary_id IN (:your_vocabs)
 ;
 
 --03. Check we don't add duplicative concepts
-SELECT concept_name
+SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END as when_added,
+       c.concept_name,
+       string_agg (DISTINCT c2.concept_id::text, '-') as concept_id
 FROM concept c
+LEFT JOIN devv5.concept c2
+    ON c.concept_id = c2.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
     AND c.invalid_reason IS NULL
-GROUP BY concept_name
+GROUP BY c.concept_name
 HAVING COUNT (*) >1
+ORDER BY when_added, concept_name
 ;

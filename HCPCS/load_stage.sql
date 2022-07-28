@@ -100,8 +100,7 @@ AS (
 					'A9600',
 					'A9604',
 					'A9605',
-					'A9606'
-					)
+					'A9606')
 				THEN 'Drug'
 			WHEN l1.str = 'A Codes'
 				AND concept_code NOT IN (
@@ -119,6 +118,7 @@ AS (
 					'A4248',
 					'A4802',
 					'A9152',
+				    'A9153',
 					'A9180',
 					'A9155'
 					)
@@ -132,13 +132,13 @@ AS (
 					'A9180'
 					)
 				THEN 'Procedure'
-			WHEN concept_code IN (
+		    WHEN concept_code IN (
 					'A9152',
 					'A9153'
 					)
 				THEN 'Drug' --Vitamin preparations
-			WHEN concept_code = 'A9155'
-				THEN 'Drug' --Artificial saliva, 30 ml
+			-- WHEN concept_code = 'A9155'
+				-- THEN 'Device' --Artificial saliva, 30 ml
 					-- B codes
 			WHEN l2.str = 'Enteral and Parenteral Therapy Supplies'
 				THEN 'Device' -- all of them Level 1: B4000-B9999
@@ -1183,15 +1183,15 @@ WHERE c.concept_id = r.concept_id_1
 			AND crs.relationship_id = r.relationship_id
 		);
 
---11. These 3 concepts (Buprenorphine/naloxone) are mapped incorrectly by map_drug but correctly in concept_relationship_manual
+--11. These concepts (Buprenorphine/naloxone, Hydroxyzine pamoate) are mapped incorrectly by map_drug but correctly in concept_relationship_manual
 --will be removed after procedure_drug be fixed
 DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 IN (
 		'J0572',
 		'J0573',
-		'J0574'
-		);
+		'J0574',
+		'Q0178');
 
 --12. Append manual relationships
 DO $_$
@@ -1258,7 +1258,67 @@ WHERE EXISTS (
 		)
 	AND cs.domain_id <> 'Drug';
 
---19. All (not only the drugs) concepts having mappings should be NON-standard
+--19. Update domain_id for Visit, Provider, Device domains:
+UPDATE concept_stage cs
+SET domain_id = i.domain_id
+FROM (
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Visit'
+						THEN 1
+					WHEN 'Provider'
+						THEN 2
+			        WHEN 'Device'
+			            THEN 3
+					ELSE 4
+					END
+			) AS domain_id
+	FROM concept_relationship_stage crs
+	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+		AND cs1.vocabulary_id = crs.vocabulary_id_1
+		AND cs1.vocabulary_id = 'HCPCS'
+	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+		AND c2.vocabulary_id = crs.vocabulary_id_2
+		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
+
+	UNION ALL
+
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Visit'
+						THEN 1
+					WHEN 'Provider'
+						THEN 2
+					WHEN 'Device'
+			            THEN 3
+					ELSE 4
+					END
+			)
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+		AND c1.vocabulary_id = 'HCPCS'
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
+	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
+		AND cs1.vocabulary_id = c1.vocabulary_id
+	WHERE cr.relationship_id = 'Maps to'
+		AND cr.invalid_reason IS NULL
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_relationship_stage crs_int
+			WHERE crs_int.concept_code_1 = cs1.concept_code
+				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
+				AND crs_int.relationship_id = cr.relationship_id
+			)
+	) i
+WHERE i.concept_code = cs.concept_code
+	AND cs.vocabulary_id = 'HCPCS';
+
+--20. All (not only the drugs) concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

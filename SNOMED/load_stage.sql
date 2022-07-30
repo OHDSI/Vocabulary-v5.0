@@ -84,8 +84,8 @@ FROM (
 	SELECT vocabulary_pack.CutConceptName(d.term) AS concept_name,
 		d.conceptid::TEXT AS concept_code,
 		c.active,
-		MIN(c.effectivetime) OVER (
-			PARTITION BY c.id ORDER BY c.active DESC --if there ever were active versions of the concept, take the earliest one
+		FIRST_VALUE(c.effectivetime) OVER (
+			PARTITION BY c.id ORDER BY c.active DESC, c.effectivetime --if there ever were active versions of the concept, take the earliest one
 			) AS effectivestart,
 		ROW_NUMBER() OVER (
 			PARTITION BY d.conceptid
@@ -126,7 +126,8 @@ FROM (
 						THEN 4 -- SNOMED UK
 					ELSE 99
 					END ASC,
-				l.effectivetime DESC
+				l.effectivetime DESC,
+			    d.term
 			) AS rn
 	FROM sources.sct2_concept_full_merged c
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
@@ -2456,7 +2457,7 @@ WHERE cs.invalid_reason IS NULL
 --Definition status id of the concept is “Fully defined”
 --All concepts that sit in hierarchy between the concept and HoCFS/PHoP are “Fully defined”
 --Attributes that define concept are limited to “has associated finding” & standard definitions
---! Check these concepts manually
+--! Check these concepts manually before insertion
 with hist_of_value AS
 (SELECT DISTINCT c.concept_code,
                  c.valid_start_date,
@@ -2660,7 +2661,7 @@ DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
---22. Need to check domains before runnig the generic_update
+--22. Need to check domains before running the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

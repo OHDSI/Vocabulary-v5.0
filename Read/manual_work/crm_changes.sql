@@ -14,7 +14,7 @@
 * limitations under the License.
 *
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
-* Date: 2021
+* Date: 2022
 **************************************************************************/
 -- create current date backup of concept_relationship_manual table
 DO

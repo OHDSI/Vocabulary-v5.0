@@ -30,6 +30,10 @@ $body$
         END
 $body$;
 
+TRUNCATE TABLE dev_icd10.concept_relationship_manual;
+INSERT INTO dev_icd10.concept_relationship_manual
+SELECT*FROM dev_icd10.concept_relationship_manual_backup_2022_04_25;
+
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
@@ -88,3 +92,5 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
+
+SELECT * FROM concept_relationship_manual;

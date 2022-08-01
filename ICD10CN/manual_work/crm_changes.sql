@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
@@ -30,28 +30,9 @@ $body$
     END
 $body$;
 
---restore concept_relationship_manual table (run it only if something went wrong)
-TRUNCATE TABLE dev_icd10cm.concept_relationship_manual;
-INSERT INTO dev_icd10cm.concept_relationship_manual
-SELECT * FROM dev_icd10cm.concept_relationship_manual_backup_2022_04_21;
-
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_manual',
-                       'concept_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_icd10cm.concept_manual;
-INSERT INTO dev_icd10cm.concept_manual
-SELECT * FROM dev_icd10cm.concept_manual_backup_2022_06_01;*/
+TRUNCATE TABLE dev_icd10cn.concept_relationship_manual;
+INSERT INTO dev_icd10cn.concept_relationship_manual
+SELECT*FROM dev_icd10cn.concept_relationship_manual_backup_2022_05_16;
 
 
 -- deprecate previous inaccurate mapping
@@ -78,7 +59,7 @@ with mapping AS -- select all new codes with their mappings from manual file
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'ICD10CM' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
+               'ICD10CN' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
                current_date AS valid_start_date, -- set the date of the refresh as valid_start_date

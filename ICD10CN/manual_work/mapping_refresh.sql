@@ -12,12 +12,12 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Dmitry Dymshyts, Polina Talapova, Daryna Ivakhnenko
 * Date: 2021
 **************************************************************************/
 DROP TABLE IF EXISTS refresh_lookup;
-CREATE TABLE refresh_lookup AS WITH miss_map 
+CREATE TABLE refresh_lookup AS WITH miss_map
 AS
 (
 	-- 'deprecated mapping'
@@ -37,7 +37,7 @@ FROM concept_relationship_stage a
    AND a.relationship_id IN ('Maps to', 'Maps to value')
    AND b.invalid_reason IN ('D', 'U')
   JOIN concept_stage c
-    ON a.concept_code_1 = c.concept_code 
+    ON a.concept_code_1 = c.concept_code
     AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
 AND a.invalid_reason IS NULL
 UNION
@@ -75,12 +75,12 @@ SELECT a.concept_code,
 FROM concept_stage a
   LEFT JOIN concept_relationship_stage r
          ON a.concept_code = concept_code_1
-        AND r.relationship_id IN ('Maps to') 
+        AND r.relationship_id IN ('Maps to')
         AND r.invalid_reason IS NULL
   LEFT JOIN concept b
          ON b.concept_code = concept_code_2
         AND b.vocabulary_id = vocabulary_id_2
-WHERE a.vocabulary_id = 'ICD10CM'
+WHERE a.vocabulary_id = 'ICD10CN'
 AND   a.invalid_reason IS NULL
 AND   b.concept_id IS NULL
 AND a.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')),
@@ -128,7 +128,7 @@ t1 AS (SELECT d.concept_code AS icd_code,
          JOIN concept_relationship r2 ON b.concept_id = r2.concept_id_1
          JOIN concept j
            ON j.concept_id = r2.concept_id_2
-          AND j.vocabulary_id = 'SNOMED'-- place for target vocabulary       
+          AND j.vocabulary_id = 'SNOMED'-- place for target vocabulary
           AND j.standard_concept = 'S'
           AND r2.relationship_id = 'Maps to'
        WHERE a.concept_code_1 IN (SELECT icd_code FROM miss_map)),
@@ -153,7 +153,7 @@ t2 AS (SELECT d.concept_code AS icd_code,
          JOIN concept_relationship r2 ON b.concept_id = r2.concept_id_1
          JOIN concept j
            ON j.concept_id = r2.concept_id_2
-          AND j.vocabulary_id = 'SNOMED' -- place for target vocabulary      
+          AND j.vocabulary_id = 'SNOMED' -- place for target vocabulary
           AND j.standard_concept = 'S'
           AND r2.relationship_id = 'Concept replaced by'
        WHERE a.concept_code_1 IN (SELECT icd_code FROM miss_map)),
@@ -197,7 +197,7 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship r ON r.concept_id_1 = a.concept_id AND a.vocabulary_id = 'ICD10CM' 
+JOIN concept_relationship r ON r.concept_id_1 = a.concept_id AND a.vocabulary_id = 'ICD10CN'
 JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
   JOIN sources.mrconso
     ON lower (a.concept_name) = lower (str)
@@ -215,9 +215,9 @@ WHERE icd_code IN (SELECT icd_code
                    FROM improve_map
                    WHERE repl_by_code != current_code)
 AND icd_code NOT IN (SELECT icd_code FROM improve_map WHERE icd_name ~ '\s+and\s+' GROUP BY icd_code HAVING COUNT(icd_code)=1)
-                   ), 
+                   ),
 t6 AS (
-SELECT DISTINCT 
+SELECT DISTINCT
 a.concept_code AS icd_code,
        a.concept_name AS icd_name,
        r.relationship_id AS current_relationship,
@@ -233,24 +233,22 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship r ON r.concept_id_1 = a.concept_id and a.vocabulary_id = 'ICD10CM' 
+JOIN concept_relationship r ON r.concept_id_1 = a.concept_id and a.vocabulary_id = 'ICD10CN'
 JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
-  JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10CM'
+  JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10CN'
   JOIN concept c
     ON cs.concept_id = c.concept_id
    AND c.vocabulary_id = 'SNOMED'
    AND c.standard_concept = 'S'
    AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')
 AND c.concept_id NOT IN (SELECT descendant_concept_id FROM devv5.concept_ancestor WHERE ancestor_concept_id = 40485423 )), -- concept Unilateral clinical finding has weak hierarchy
-p_map AS (    
+p_map AS (
     SELECT * FROM t5
   UNION
---exclude the cases 1 to 1 mapping with the current_id = repl_by_id, if there's multiple mapping and current_id = repl_by_id, the additional mapping serves as a hiearchy connector, so these are included into the comparison	
+--exclude the cases 1 to 1 mapping with the current_id = repl_by_id, if there's multiple mapping and current_id = repl_by_id, the additional mapping serves as a hiearchy connector, so these are included into the comparison
     SELECT * FROM t6 WHERE icd_code NOT IN (SELECT icd_code FROM (
 SELECT *, COUNT(1) over (partition BY icd_code) AS cnt FROM t6) a WHERE a.cnt =1 AND current_id = repl_by_id))
-SELECT * FROM p_map 
-UNION 
+SELECT * FROM p_map
+UNION
 SELECT * FROM t4
 ORDER BY icd_code;
-
-SELECT*FROM refresh_lookup;

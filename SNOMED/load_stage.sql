@@ -163,8 +163,9 @@ WHERE valid_start_date = valid_end_date;
 --4.3 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
 UPDATE concept_stage
 SET concept_name = vocabulary_pack.CutConceptName(translate(concept_name, '>,<,^', '-'))
-WHERE (concept_name LIKE '%>%' AND concept_name LIKE '%<%')
-OR (concept_name LIKE '%^%^%')
+WHERE ((concept_name LIKE '%>%' AND concept_name LIKE '%<%')
+OR (concept_name LIKE '%^%^%'))
+AND length(concept_name) > 5
 ;
 
 --5. Update concept_class_id from extracted hierarchy tag information and terms ordered by description table precedence
@@ -2409,7 +2410,7 @@ SET domain_id = CASE concept_class_id
 		END
 WHERE vocabulary_id = 'SNOMED'
 	AND concept_code IN (
-		SELECT descendant_concept_code::TEXT
+		SELECT  descendant_concept_code::TEXT
 		FROM snomed_ancestor
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
 		);
@@ -2452,71 +2453,7 @@ WHERE cs.invalid_reason IS NULL
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---21.1. Split and destandardise History of concepts according to the following rules:
---Descendants of SNOMED’s History of clinical finding in subject (HoCFS)/Past history of procedure (PHoP) -> Other concepts may be added in future
---Definition status id of the concept is “Fully defined”
---All concepts that sit in hierarchy between the concept and HoCFS/PHoP are “Fully defined”
---Attributes that define concept are limited to “has associated finding” & standard definitions
---! Check these concepts manually before insertion
-with hist_of_value AS
-(SELECT DISTINCT c.concept_code,
-                 c.valid_start_date,
-                 c.vocabulary_id,
-                 cc.vocabulary_id AS target_vocabulary,
-                 cc.concept_code AS target_concept_code
-FROM snomed_ancestor sa
-JOIN concept_stage c
-    ON sa.descendant_concept_code::varchar = c.concept_code AND c.vocabulary_id = 'SNOMED'
-LEFT JOIN concept_relationship_stage cr
-    ON c.concept_code = cr.concept_code_1 AND cr.relationship_id IN ('Has asso finding', 'Has asso proc') AND cr.invalid_reason IS NULL
-LEFT JOIN concept_stage cc
-    ON cr.concept_code_2 = cc.concept_code AND cc.vocabulary_id = 'SNOMED'
-
-WHERE ancestor_concept_code IN (417662000, 416940007)   --History of clinical finding in subject / Past history of procedure
-  AND c.invalid_reason IS NULL
-  AND EXISTS(SELECT * FROM concept_relationship_stage crs
-            WHERE crs.concept_code_1 = c.concept_code AND crs.concept_code_2 = '900000000000073002' --All concepts are defined
-                AND crs.relationship_id = 'Has status' AND crs.invalid_reason IS NULL)
-  AND NOT EXISTS(SELECT * FROM snomed_ancestor saa
-        JOIN concept_relationship_stage crr
-        ON crr.concept_code_1 = saa.ancestor_concept_code::varchar AND crr.concept_code_2 = '900000000000074008' --All concepts are defined (not exists primitive concepts)
-      WHERE saa.descendant_concept_code::varchar = c.concept_code
-        AND saa.min_levels_of_separation < sa.min_levels_of_separation --All concepts between 'Personal history'/'History of procedure' and target concept
-      )
-
-    AND cc.standard_concept = 'S' AND cc.invalid_reason IS NULL --Maps to value leads to standard valid concept
-
-    AND NOT EXISTS(SELECT * FROM concept_relationship_stage crs --Not mapped manually
-        WHERE crs.concept_code_1 = c.concept_code AND crs.relationship_id = 'Maps to' AND crs.invalid_reason IS NULL)
-ORDER BY c.concept_code)
-
-INSERT INTO concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-SELECT hist_of_value.concept_code AS concept_code_1,
-       hist_of_value.target_concept_code AS concept_code_2,
-       hist_of_value.vocabulary_id AS vocabulary_id_1,
-       hist_of_value.target_vocabulary AS vocabulary_id_2,
-       'Maps to value' AS relationship_id,
-       valid_start_date,
-       TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-       NULL AS invalid_reason
-
-FROM hist_of_value
-
-UNION
-
-SELECT hist_of_value.concept_code AS concept_code_1,
-       'OMOP5165859' AS concept_code_2,     --History of event
-       hist_of_value.vocabulary_id AS vocabulary_id_1,
-       'OMOP Extension' AS vocabulary_id_2,
-       'Maps to' AS relationship_id,
-       hist_of_value.valid_start_date,
-       TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-       NULL AS invalid_reason
-
-FROM hist_of_value
-;
-
---21.2. De-standardize navigational concepts
+--21.1. De-standardize navigational concepts
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE vocabulary_id = 'SNOMED'
@@ -2526,13 +2463,13 @@ WHERE vocabulary_id = 'SNOMED'
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept
 		);
 
---21.3. Make those Obsolete routes non-standard
+--21.2. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---21.4. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--21.3. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -2628,7 +2565,7 @@ AND NOT EXISTS (
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---21.5. Make concepts non standard if they have a 'Maps to' relationship
+--21.4. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -2641,7 +2578,7 @@ WHERE EXISTS (
 		)
 	AND cs.standard_concept = 'S';
 
---21.6. Make concepts non standard if they represent no information
+--21.5. Make concepts non standard if they represent no information
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE cs.concept_code IN (

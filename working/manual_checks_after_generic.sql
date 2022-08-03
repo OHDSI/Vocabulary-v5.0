@@ -162,9 +162,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -180,9 +180,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from devv5.concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2
@@ -216,9 +216,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -233,9 +233,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from devv5. concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2
@@ -388,10 +388,15 @@ where c.vocabulary_id IN (:your_vocabs)
 ;
 
 --03. Check we don't add duplicative concepts
-SELECT concept_name
+SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END as when_added,
+       c.concept_name,
+       string_agg (DISTINCT c2.concept_id::text, '-') as concept_id
 FROM concept c
+LEFT JOIN devv5.concept c2
+    ON c.concept_id = c2.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
     AND c.invalid_reason IS NULL
-GROUP BY concept_name
+GROUP BY c.concept_name
 HAVING COUNT (*) >1
+ORDER BY when_added, concept_name
 ;

@@ -137,8 +137,8 @@ AS (
 					'A9153'
 					)
 				THEN 'Drug' --Vitamin preparations
-			-- WHEN concept_code = 'A9155'
-				-- THEN 'Device' --Artificial saliva, 30 ml
+			WHEN concept_code = 'A9155'
+				THEN 'Device' --Artificial saliva, 30 ml
 					-- B codes
 			WHEN l2.str = 'Enteral and Parenteral Therapy Supplies'
 				THEN 'Device' -- all of them Level 1: B4000-B9999
@@ -237,9 +237,33 @@ AS (
 					-- G codes
 			WHEN l2.str = 'Vaccine Administration' -- hard to say why it was Procedure but not a drug?
 				THEN 'Drug' -- Level 2: G0008-G0010
-			WHEN l2.str = 'Semen Analysis'
+			WHEN concept_code = 'G0027'
 				THEN 'Measurement' -- Level 2: G0027-G0027
 			WHEN concept_code IN (
+			                'G0048',
+			                'G0049',
+			                'G0050',
+			                'G0051',
+			                'G0052',
+			                'G0053',
+			                'G0054',
+			                'G0055',
+			                'G0056',
+			                'G0057',
+			                'G0058',
+			                'G0058',
+			                'G0059',
+			                'G0060',
+			                'G0061',
+			                'G0062',
+			                'G0063',
+			                'G0064',
+			                'G0065',
+			                'G0066',
+			                'G0067'
+			                 )
+		        THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
+		    WHEN concept_code IN (
 					'G0101',
 					'G0102'
 					)
@@ -399,11 +423,53 @@ AS (
 					'G0919',
 					'G0920',
 					'G0921',
-					'G0922'
+					'G0922',
+			        'G2184'
 					)
 				THEN 'Observation' -- various documented levels AND assessments
 			WHEN concept_code = 'G3001'
 				THEN 'Drug' -- Administration and supply of tositumomab, 450 mg
+		    WHEN concept_code IN (
+		                       'G4000',
+		                       'G4001',
+		                       'G4002',
+		                       'G4003',
+		                       'G4004',
+		                       'G4005',
+		                       'G4006',
+		                       'G4007',
+		                       'G4008',
+		                       'G4009',
+		                       'G4010',
+		                       'G4011',
+		                       'G4012',
+		                       'G4013',
+		                       'G4014',
+		                       'G4015',
+		                       'G4016',
+		                       'G4017',
+		                       'G4018',
+		                       'G4019',
+		                       'G4020',
+		                       'G4021',
+		                       'G4022',
+		                       'G4023',
+		                       'G4024',
+		                       'G4025',
+		                       'G4026',
+		                       'G4027',
+		                       'G4028',
+		                       'G4029',
+		                       'G4030',
+		                       'G4031',
+		                       'G4032',
+		                       'G4033',
+		                       'G4034',
+		                       'G4035',
+		                       'G4036',
+		                       'G4037',
+		                       'G4038')
+		        THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
 			WHEN concept_code IN (
 					'G6001',
 					'G6002',
@@ -573,6 +639,36 @@ AS (
 					-- K codes
 			WHEN l1.str = 'Temporary Codes Assigned to Durable Medical Equipment Regional Carriers'
 				THEN 'Device' -- Level 1: K0000-K9999
+			WHEN concept_code IN ('K1006',
+			                      'K1007',
+			                      'K1009',
+			                      'K1010',
+			                      'K1011',
+			                      'K1012',
+			                      'K1013',
+			                      'K1014',
+			                      'K1015',
+			                      'K1016',
+			                      'K1017',
+			                      'K1018',
+			                      'K1019',
+			                      'K1020',
+			                      'K1021',
+			                      'K1022',
+			                      'K1023',
+			                      'K1024',
+			                      'K1025',
+			                      'K1026',
+			                      'K1027',
+			                      'K1028',
+			                      'K1029',
+			                      'K1030',
+			                      'K1031',
+			                      'K1032',
+			                      'K1033',
+			                      'K1034'
+                )
+		        THEN 'Device'
 					-- L codes
 			WHEN l1.str = 'L Codes'
 				THEN 'Device' -- Level 1: L0000-L9999

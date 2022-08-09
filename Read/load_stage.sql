@@ -260,7 +260,9 @@ FROM (
 					    'Medicare Specialty',
 				        'NUCC',
 					    'Type Concept',
-					    'Visit'
+					    'Visit',
+				        'CMS Place of Service',
+				        'Provider'
 						)
 					AND r.invalid_reason IS NULL
 				)
@@ -303,7 +305,10 @@ FROM (
 					    'Medicare Specialty',
 				        'NUCC',
 					    'Type Concept',
-					    'Visit'
+					    'Visit',
+				        'CMS Place of Service',
+				        'Provider'
+
 					)
 			) r1 ON r1.concept_code_1 = c1.concept_code
 			AND r1.vocabulary_id_1 = c1.vocabulary_id

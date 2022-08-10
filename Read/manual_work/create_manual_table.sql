@@ -19,9 +19,11 @@
 DROP TABLE IF EXISTS refresh_lookup_done;
 TRUNCATE TABLE refresh_lookup_done;
 CREATE TABLE refresh_lookup_done (
+id serial primary key,
 read_code VARCHAR,
 read_name VARCHAR,
 repl_by_relationship VARCHAR,
+to_value varchar,
 repl_by_id INT,
 repl_by_code VARCHAR,
 repl_by_name VARCHAR,

@@ -32,7 +32,7 @@ $body$;
 
 TRUNCATE TABLE dev_cim10.concept_relationship_manual;
 INSERT INTO dev_cim10.concept_relationship_manual
-SELECT*FROM dev_cim10.concept_relationship_manual_backup_2022_04_25;
+SELECT*FROM dev_cim10.concept_relationship_manual_backup_2022_05_18;
 
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
@@ -77,7 +77,7 @@ with mapping AS -- select all new codes with their mappings from manual file
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'cim10' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
+               'CIM10' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
                current_date AS valid_start_date, -- set the date of the refresh as valid_start_date
@@ -111,10 +111,5 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
-
-SELECT * FROM concept_relationship_manual;
-
-
-SELECT * FROM concept_relationship_manual;
 
 SELECT * FROM concept_relationship_manual;

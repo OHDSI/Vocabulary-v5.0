@@ -19,6 +19,7 @@
 DROP TABLE IF EXISTS refresh_lookup_done;
 TRUNCATE TABLE refresh_lookup_done;
 CREATE TABLE refresh_lookup_done (
+id serial primary key,
 icd_code VARCHAR,
 icd_name VARCHAR,
 repl_by_relationship VARCHAR,

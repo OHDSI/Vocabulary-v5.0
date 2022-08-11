@@ -210,7 +210,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---6. update domain_id for Read from target concepts (currently, limited to following vocabs: SNOMED, OMOP Extension, Race)
+--6. update domain_id for Read from target concepts
 --create temporary table read_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 DROP TABLE IF EXISTS read_domain;
@@ -254,9 +254,18 @@ FROM (
 					AND r.vocabulary_id_2 IN (
 						'SNOMED',
 						'OMOP Extension',
-						'Race'
-						)
+						'Race',
+					    	'CVX',
+			            		'Gender',
+					    	'Medicare Specialty',
+				        	'NUCC',
+					    	'Type Concept',
+					    	'Visit',
+				        	'CMS Place of Service',
+				        	'Provider'
+					)
 					AND r.invalid_reason IS NULL
+		            AND r.relationship_id = 'Maps to'       --Take only Maps to relationships
 				)
 		SELECT DISTINCT c1.concept_code,
 			r1.domain_id,
@@ -288,10 +297,19 @@ FROM (
 				concept c2
 			WHERE c2.concept_code = r.concept_code_2
 				AND r.vocabulary_id_2 = c2.vocabulary_id
+			    AND r.relationship_id = 'Maps to'       --Take only Maps to relationships
 				AND c2.vocabulary_id IN (
-					'SNOMED',
-					'OMOP Extension',
-					'Race'
+						'SNOMED',
+						'OMOP Extension',
+						'Race',
+					    	'CVX',
+			            		'Gender',
+					    	'Medicare Specialty',
+				        	'NUCC',
+					    	'Type Concept',
+					    	'Visit',
+				        	'CMS Place of Service',
+				        	'Provider'
 					)
 			) r1 ON r1.concept_code_1 = c1.concept_code
 			AND r1.vocabulary_id_1 = c1.vocabulary_id
@@ -338,6 +356,38 @@ WHERE domain_id = 'Measurement/Specimen';
 UPDATE read_domain
 SET domain_id = 'Measurement'
 WHERE domain_id = 'Measurement/Meas Value';
+
+UPDATE read_domain
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Measurement/Spec Disease Status';
+
+UPDATE read_domain
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Spec Disease Status';
+
+UPDATE read_domain
+SET domain_id = 'Measurement'
+WHERE domain_id = 'Measurement/Spec Disease Status';
+
+UPDATE read_domain
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Race';
+
+UPDATE read_domain
+SET domain_id = 'Procedure'
+WHERE domain_id = 'Procedure/Visit';
+
+UPDATE read_domain
+SET domain_id = 'Procedure'
+WHERE domain_id = 'Condition/Procedure';
+
+UPDATE read_domain
+SET domain_id = 'Observation'
+WHERE domain_id = 'Metadata';
+
+UPDATE read_domain
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Drug/Procedure';
 
 -- Check that all domain_id are exists in domain table
 ALTER TABLE read_domain ADD CONSTRAINT fk_read_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);

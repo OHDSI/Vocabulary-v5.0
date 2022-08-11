@@ -255,15 +255,15 @@ FROM (
 						'SNOMED',
 						'OMOP Extension',
 						'Race',
-					    'CVX',
-			            'Gender',
-					    'Medicare Specialty',
-				        'NUCC',
-					    'Type Concept',
-					    'Visit',
-				        'CMS Place of Service',
-				        'Provider'
-						)
+					    	'CVX',
+			            		'Gender',
+					    	'Medicare Specialty',
+				        	'NUCC',
+					    	'Type Concept',
+					    	'Visit',
+				        	'CMS Place of Service',
+				        	'Provider'
+					)
 					AND r.invalid_reason IS NULL
 		            AND r.relationship_id = 'Maps to'       --Take only Maps to relationships
 				)
@@ -299,18 +299,17 @@ FROM (
 				AND r.vocabulary_id_2 = c2.vocabulary_id
 			    AND r.relationship_id = 'Maps to'       --Take only Maps to relationships
 				AND c2.vocabulary_id IN (
-					'SNOMED',
+						'SNOMED',
 						'OMOP Extension',
 						'Race',
-					    'CVX',
-			            'Gender',
-					    'Medicare Specialty',
-				        'NUCC',
-					    'Type Concept',
-					    'Visit',
-				        'CMS Place of Service',
-				        'Provider'
-
+					    	'CVX',
+			            		'Gender',
+					    	'Medicare Specialty',
+				        	'NUCC',
+					    	'Type Concept',
+					    	'Visit',
+				        	'CMS Place of Service',
+				        	'Provider'
 					)
 			) r1 ON r1.concept_code_1 = c1.concept_code
 			AND r1.vocabulary_id_1 = c1.vocabulary_id

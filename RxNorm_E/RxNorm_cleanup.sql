@@ -141,8 +141,6 @@ FROM (
 							THEN 2
 						WHEN r.relationship_id = 'Concept alt_to to'
 							THEN 3
-						WHEN r.relationship_id = 'Concept poss_eq to'
-							THEN 4
 						WHEN r.relationship_id = 'Concept was_a to'
 							THEN 5
 						WHEN r.relationship_id = 'Maps to'
@@ -156,7 +154,6 @@ FROM (
 							'Concept replaced by',
 							'Concept same_as to',
 							'Concept alt_to to',
-							'Concept poss_eq to',
 							'Concept was_a to'
 							)
 						OR (
@@ -320,7 +317,6 @@ FROM (
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				AND r.invalid_reason IS NULL
@@ -353,7 +349,6 @@ WHERE NOT EXISTS (
 				'Concept replaced by',
 				'Concept same_as to',
 				'Concept alt_to to',
-				'Concept poss_eq to',
 				'Concept was_a to'
 				)
 		)
@@ -388,7 +383,6 @@ FROM (
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to'
 			)
@@ -425,7 +419,6 @@ FROM (
 			'Concept replaced by',
 			'Concept same_as to',
 			'Concept alt_to to',
-			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to'
 			)

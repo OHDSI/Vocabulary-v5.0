@@ -51,7 +51,7 @@ $BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
 
 
 CREATE OR REPLACE FUNCTION qa_tests.get_summary (
-  table_name varchar, pCompareWith VARCHAR DEFAULT 'PRODV5'
+  table_name varchar, pCompareWith VARCHAR DEFAULT 'prodv5'
 )
 RETURNS TABLE (
   vocabulary_id_1 varchar,
@@ -78,10 +78,10 @@ BEGIN
 	--fill the table if it empty (caching)
 	IF z = 0 THEN
 		--summary for 'concept'
-		EXECUTE '
+		EXECUTE FORMAT ($$
 		INSERT INTO DEV_SUMMARY
 		SELECT 
-			''concept'' AS table_name,
+			'concept' AS table_name,
 			c.vocabulary_id,
 			NULL,
 			c.domain_id,
@@ -90,8 +90,8 @@ BEGIN
 			c.invalid_reason,
 			COUNT (*) AS cnt,
 			NULL AS cnt_delta
-		FROM '||pCompareWith||'.concept c
-		GROUP BY c.vocabulary_id, c.domain_id, c.concept_class_id, c.invalid_reason';
+		FROM %I.concept c
+		GROUP BY c.vocabulary_id, c.domain_id, c.concept_class_id, c.invalid_reason$$, LOWER(pCompareWith));
 				
 		WITH to_be_upserted as (
 			SELECT 
@@ -125,10 +125,10 @@ BEGIN
 			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.domain_id, up.concept_class_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
 		
 		--summary for concept_relationship
-		EXECUTE '
+		EXECUTE FORMAT ($$
 		INSERT INTO DEV_SUMMARY
 		SELECT 
-			''concept_relationship'' AS table_name,
+			'concept_relationship' AS table_name,
 			c1.vocabulary_id,
 			c2.vocabulary_id,
 			NULL as domain_id,
@@ -137,9 +137,9 @@ BEGIN
 			r.invalid_reason,
 			COUNT (*) AS cnt,
 			NULL AS cnt_delta
-		FROM '||pCompareWith||'.concept c1, '||pCompareWith||'.concept c2, '||pCompareWith||'.concept_relationship r
+		FROM %1$I.concept c1, %1$I.concept c2, %1$I.concept_relationship r
 		WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2
-		GROUP BY c1.vocabulary_id, c2.vocabulary_id, r.relationship_id, r.invalid_reason';
+		GROUP BY c1.vocabulary_id, c2.vocabulary_id, r.relationship_id, r.invalid_reason$$, LOWER(pCompareWith));
 
 		WITH to_be_upserted as (
 			SELECT 
@@ -174,10 +174,10 @@ BEGIN
 			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.vocabulary_id_2, up.relationship_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
 
 		--summary for concept_ancestor
-		EXECUTE '
+		EXECUTE FORMAT ($$
 		INSERT INTO DEV_SUMMARY
 		SELECT 
-			''concept_ancestor'' AS table_name,
+			'concept_ancestor' AS table_name,
 			c.vocabulary_id,
 			NULL,
 			NULL AS concept_class_id,
@@ -186,9 +186,9 @@ BEGIN
 			NULL AS invalid_reason,
 			COUNT (*) AS cnt,
 			NULL AS cnt_delta
-		FROM '||pCompareWith||'.concept c, '||pCompareWith||'.concept_ancestor ca
+		FROM %1$I.concept c, %1$I.concept_ancestor ca
 		WHERE c.concept_id = ca.ancestor_concept_id
-		GROUP BY c.vocabulary_id';
+		GROUP BY c.vocabulary_id$$, LOWER(pCompareWith));
 
 		WITH to_be_upserted as (
 			SELECT 
@@ -395,7 +395,6 @@ AS $BODY$
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				)
@@ -599,7 +598,6 @@ AS $BODY$
 					'Concept replaced by',
 					'Concept same_as to',
 					'Concept alt_to to',
-					'Concept poss_eq to',
 					'Concept was_a to'
 					)
 				AND r_int.invalid_reason IS NULL

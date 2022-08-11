@@ -1,4 +1,9 @@
-﻿create table pack_drug_product 
+﻿/*
+
+OUTDATED
+
+
+create table pack_drug_product
 (fo_prd_id varchar(255),
 pack_name varchar(255),
 PRD_name varchar(255),
@@ -317,3 +322,4 @@ WbImport -file=C:/Users/eallakhverdiiev/Desktop/projects/vocabularies/Australia/
          -continueOnError=false
          -batchSize=100;
 
+ */

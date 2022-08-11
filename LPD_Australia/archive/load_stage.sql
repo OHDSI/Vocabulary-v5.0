@@ -1,4 +1,6 @@
-﻿DROP TABLE IF EXISTS drugs;
+﻿--! OUTDATED!
+
+DROP TABLE IF EXISTS drugs;
 CREATE TABLE drugs AS
 SELECT DISTINCT fo_prd_id,
 	a.prd_name,

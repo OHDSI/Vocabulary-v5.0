@@ -91,3 +91,5 @@ WHERE vocabulary_id_1 = vocabulary_id_2
 ;
 
 --13. "History of" / replacement mapping fix
+
+--At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

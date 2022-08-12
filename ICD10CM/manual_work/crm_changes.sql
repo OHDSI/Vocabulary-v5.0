@@ -133,8 +133,3 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
             )
     )
 ;
-
-
-
-SELECT * FROm concept_relationship_manual
-where concept_code_1 IN ()

@@ -33,7 +33,7 @@ $body$;
 --restore concept_relationship_manual table (run it only if something went wrong)
 TRUNCATE TABLE dev_icd10cm.concept_relationship_manual;
 INSERT INTO dev_icd10cm.concept_relationship_manual
-SELECT * FROM dev_icd10cm.concept_relationship_manual_backup_2022_04_21 where concept_code_1='U07';
+SELECT * FROM dev_icd10cm.concept_relationship_manual_backup_2022_04_21;
 
 DO
 $body$
@@ -136,3 +136,5 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 
 
 
+SELECT * FROm concept_relationship_manual
+where concept_code_1 IN ()

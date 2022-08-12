@@ -1,4 +1,4 @@
---6.1. Backup concept_relationship_manual table and concept_manual table.
+--9.2.1. Backup concept_relationship_manual table and concept_manual table.
 DO
 $body$
     DECLARE
@@ -36,7 +36,7 @@ $body$;
 INSERT INTO dev_meddra.concept_manual
 SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 
---6.2.1 Create cpt4_mapped table and pre-populate it with the resulting manual table of the previous CPT4 refresh.
+--9.2.2 Create cpt4_mapped table and pre-populate it with the resulting manual table of the previous CPT4 refresh.
 
 --DROP TABLE dev_cpt4.cpt4_mapped;
 /* CREATE TABLE dev_cpt4.cpt4_mapped
@@ -60,11 +60,11 @@ SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 ); */
 
 
---6.2.5 Truncate the 'cpt4_mapped' table. Save the spreadsheet as the 'cpt4_mapped table' and upload it into the working schema.
+--9.2.5 Truncate the 'cpt4_mapped' table. Save the spreadsheet as the 'cpt4_mapped table' and upload it into the working schema.
 --TRUNCATE TABLE dev_cpt4.cpt4_mapped;
 
 
---6.2.8 Insert new and corrected mappings into the concept_relationship_manual table.
+--9.2.8 Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -97,7 +97,7 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
---6.2.9 Deprecate cyclic relationships in concept_relationship_manual table (once)
+--9.2.9 Deprecate cyclic relationships in concept_relationship_manual table (once)
 UPDATE dev_cpt4.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date

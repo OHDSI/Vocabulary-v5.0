@@ -57,12 +57,11 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
 -- activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
-    valid_end_date = to_date('20991231','yyyymmdd')
+    valid_end_date = to_date('20991231','yyyymmdd'),
+    valid_start_date =current_date
 
 --SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
 WHERE invalid_reason = 'D' -- activate only deprecated mappings
-
-    AND concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh
 
     AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
                     FROM refresh_lookup_done rl

@@ -81,8 +81,6 @@ SET invalid_reason = null,
 --SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
 WHERE invalid_reason = 'D' -- activate only deprecated mappings
 
-    AND concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh
-
     AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
                     FROM refresh_lookup_done rl
                     WHERE rl.icd_code = crm.concept_code_1 --the same source_code is mapped

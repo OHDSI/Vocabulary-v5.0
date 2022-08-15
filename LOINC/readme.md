@@ -14,7 +14,7 @@
 \LoincTable\Loinc.csv and rename to loinc.csv  
 \LoincTable\Mapto.csv and rename to mapto.csv  
 \LoincTable\SourceOrganization.csv and rename to sourceorganization.csv  
-\AccessoryFiles\MultiAxialHierarchy\MultiAxialHierarchy.csv and rename to multiaxialhierarchy.csv  
+\AccessoryFiles\ComponentHierarchyBySystem\ComponentHierarchyBySystem.csv and rename to componenthierarchybysystem.csv  
 \AccessoryFiles\PanelsAndForms\PanelsAndForms.csv and rename to panelsandforms.csv  
 \AccessoryFiles\PanelsAndForms\AnswerList.csv and rename to answerlist.csv  
 \AccessoryFiles\PanelsAndForms\LoincAnswerListLink.csv and rename to loincanswerlistlink.csv  

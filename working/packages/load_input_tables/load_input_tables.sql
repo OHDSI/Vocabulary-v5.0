@@ -398,8 +398,8 @@ begin
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_date;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_version;
       execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER FORCE NULL loinc_num, component, property, time_aspct, system, scale_typ, method_typ, class, versionlastchanged, 
-         chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, submitted_units, relatednames2, shortname, 
-         order_obs, cdisc_common_tests, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, unitsandrange, example_ucum_units, example_si_ucum_units, status_reason, 
+         chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, relatednames2, shortname, 
+         order_obs, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, example_ucum_units, status_reason, 
          status_text, change_reason_public, common_test_rank, common_order_rank, common_si_test_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
          versionfirstreleased, validhl7attachmentrequest, displayname';
       alter table sources.loinc ADD COLUMN vocabulary_date date;
@@ -407,7 +407,7 @@ begin
       update sources.loinc set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       execute 'COPY sources.map_to FROM '''||pVocabularyPath||'mapto.csv'' delimiter '','' csv HEADER';
       execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'sourceorganization.csv'' delimiter '','' csv HEADER';
-      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'multiaxialhierarchy.csv'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
+      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'componenthierarchybysystem.csv'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
       truncate table sources.loinc_answerslist, sources.loinc_answerslistlink, sources.loinc_forms;
       execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'answerlist.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
          extdefinedanswerlistcodesystem, extdefinedanswerlistlink, answerstringid, localanswercode, localanswercodesystem, sequencenumber, displaytext, extcodeid, extcodedisplayname, extcodesystem, 

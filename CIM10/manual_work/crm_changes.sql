@@ -30,6 +30,26 @@ $body$
         END
 $body$;
 
+--create current date backup of concept_manual table
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
+
+    END
+$body$;
+--Backup without new NON-translated codes - concept_manual_backup_2022_08_16
+--SELECT*FROM concept_manual_backup_2022_08_16;
+SELECT distinct *
+FROM concept_manual;
+
+
+
 TRUNCATE TABLE dev_cim10.concept_relationship_manual;
 INSERT INTO dev_cim10.concept_relationship_manual
 SELECT*FROM dev_cim10.concept_relationship_manual_backup_2022_05_18;

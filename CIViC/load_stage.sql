@@ -89,5 +89,3 @@ join devv5.concept dc on dc.concept_id = dcs.concept_id
 where dc.vocabulary_id = 'OMOP Genomic'
 ;
 
-
-

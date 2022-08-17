@@ -32,8 +32,9 @@ $body$;
 
 TRUNCATE TABLE dev_kcd7.concept_relationship_manual;
 INSERT INTO dev_kcd7.concept_relationship_manual
-SELECT*FROM dev_kcd7.concept_relationship_manual_backup_2022_;
-
+SELECT *
+FROM dev_kcd7.concept_relationship_manual_backup_2022_05_18
+    ;
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
@@ -56,7 +57,8 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
 -- activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
-    valid_end_date = to_date('20991231','yyyymmdd')
+    valid_end_date = to_date('20991231','yyyymmdd'),
+    valid_start_date =current_date
 
 --SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
 WHERE invalid_reason = 'D' -- activate only deprecated mappings

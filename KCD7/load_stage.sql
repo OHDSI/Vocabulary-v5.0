@@ -216,8 +216,8 @@ FROM (
 						AND next_domain IS NOT NULL
 						THEN CASE 
 								WHEN prev_domain < next_domain
-									THEN prev_domain || '/' || next_domain
-								ELSE next_domain || '/' || prev_domain
+									THEN substring((prev_domain || '/' || next_domain),1,20) -- essential due to length constraints
+								ELSE substring((next_domain || '/' || prev_domain),1,20) -- essential due to length constraints
 								END -- prev and next domain are not same and not null both, with order by name
 					ELSE coalesce(prev_domain, next_domain, 'Condition')
 					END
@@ -237,6 +237,14 @@ FROM (
 WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7'
 	AND c.domain_id IS NULL;
+
+
+--11.1 Detect and Update misclassified domains to Condition
+UPDATE concept_stage c
+SET domain_id = 'Condition'
+where domain_id ='Condition/Observatio'
+;
+
 
 --12. Manual name fix
 UPDATE concept_stage

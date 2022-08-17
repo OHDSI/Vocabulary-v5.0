@@ -16,9 +16,9 @@ nhs_datamigration_VV.0.0_YYYYMMDD000001.zip from https://isd.digital.nhs.uk/trud
 - Extract nhs_datamigration_xxxxx\Mapping Tables\Updated\Clinically Assured\rcsctmap2_uk_YYYYMMDD000001.txt and rename to rcsctmap2_uk.txt
 
 4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('READ',TO_DATE('20180403','YYYYMMDD'),'NHS READV2 21.0.0 20160401000001 + DATAMIGRATION_25.0.0_20180403000001'); 
-5. Run FULL FastRecreate:
+5. Run FULL FastRecreate (but without filling concept_ancestor):
 ```sql
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 ```
 6. As described in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables, which exist by default in the dev schema after the FastRecreate.
    If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)

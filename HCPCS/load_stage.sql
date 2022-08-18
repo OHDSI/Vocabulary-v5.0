@@ -1354,7 +1354,7 @@ WHERE EXISTS (
 		)
 	AND cs.domain_id <> 'Drug';
 
---19. Update domain_id for Visit, Provider, Device domains:
+--19. All concepts mapped to Visit, Provider, Device domains should get the respective domain_id:
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (

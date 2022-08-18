@@ -18,6 +18,11 @@ END$$
 
 truncate concept_stage_manual;
 
+-- create table concept_stage_manual_backup220721 as (
+--     select * from concept_stage_manual
+-- );
+
+
 --create table concept_stage_manual as 
 insert into concept_stage_manual
 SELECT DISTINCT NULL::INT as concepT_id ,

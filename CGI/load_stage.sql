@@ -20,10 +20,11 @@
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'CIViC',
-	pVocabularyDate			=> TO_DATE('20170425','YYYYMMDD'),
-	pVocabularyVersion		=> 'CIViC v20170425',
-	pVocabularyDevSchema	=> 'dev_civic'
+	pVocabularyName			=> 'CGI',
+	pVocabularyDate			=> TO_DATE('20180117','YYYYMMDD'),
+	pVocabularyVersion		=> 'CGI v20180117',
+	pVocabularyDevSchema	=> 'dev_cgi',
+	pAppendVocabulary		=> TRUE
 );
 END $_$;
 
@@ -32,10 +33,15 @@ truncate concept_stage;
 truncate concept_relationship_stage;
 truncate concept_synonym_stage;
 
-create table civic_source as (
-select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-from sources.genomic_civic_variantsummaries
-where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.');
+
+create table cgi_source as (
+select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code,gdna as hgvs
+from sources.genomic_cgi
+where gdna != ''
+union
+select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1]||':'||cdna as hgvs
+from sources.genomic_cgi
+where cdna != '');
 
 
 -- put source variants into concept stage
@@ -50,7 +56,7 @@ SELECT DISTINCT NULL::INT,
        CURRENT_DATE -1 AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
-FROM civic_source
+FROM cgi_source
 ;
 
 
@@ -59,7 +65,7 @@ select DISTINCT NULL::INTEGER AS concept_id_1,
        NULL::INTEGER AS concept_id_2,
        cs.concept_code AS concept_code_1,
        cc.concept_code AS concept_code_2,
-       'CIViC' AS vocabulary_id_1,
+       'CGI' AS vocabulary_id_1,
        'OMOP Genomic' AS vocabulary_id_2,
        'Maps to' AS relationship_id,
        CURRENT_DATE -1 AS valid_start_date,
@@ -70,7 +76,8 @@ join devv5.concept s on cs.concept_code = s.concept_code
 join devv5.concept_relationship dcs on dcs.concept_id_1 = s.concept_id
 join devv5.concept cc on cc.concept_id = dcs.concept_id_2
 where cc.vocabulary_id = 'OMOP Genomic'
-and s.vocabulary_id = 'CIViC';
+and s.vocabulary_id = 'CGI';
+
 
 
 -- insert synonyms
@@ -83,8 +90,9 @@ hgvs AS synonym_name,
 cs.concept_code as synonym_concept_code,
 cs.vocabulary_id AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from civic_source a
+from cgi_source a
 join concept_stage cs on cs.concept_code = a.concept_code
 ) r
 where synonym_name is not null
 ;
+

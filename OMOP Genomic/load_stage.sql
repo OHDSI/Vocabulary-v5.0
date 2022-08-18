@@ -77,106 +77,132 @@ truncate concept_relationship_stage;
 truncate drug_concept_stage;
 
 
+-- create table concept_synonym_stage_backup220721 as (
+--     select * from concept_synonym_stage
+-- );
+--
+-- create table concept_stage_backup220721 as (
+--     select * from concept_stage
+-- );
+--
+-- create table concept_relationship_stage_backup220721 as (
+--     select * from concept_relationship_stage
+-- );
+--
+-- create table drug_concept_stage_backup220721 as (
+--     select * from drug_concept_stage
+-- );
+
+
 ------ SOURCE Processing ------
 -- extract position for canonical variant from hgvs expressions  
 drop table if exists genom;
 create table genom as
 with snp as (
--- ClinVar 
-  select distinct f_name as concept_name, 'ClinVar' as vocabulary_id, cast(alleleid as varchar(6)) as concept_code, genesymbol as gene,  hgvs
-  from sources.genomic_clinvar
-  where hgvs ~ '^NM|^NP|^NC|^LRG|^NG|^NR'
- 
-  
--- civic
-union
+-- --ClinVar
+--   select distinct f_name as concept_name, 'ClinVar' as vocabulary_id, cast(alleleid as varchar(6)) as concept_code, genesymbol as gene,  hgvs
+--   from sources.genomic_clinvar c
+--     left join
+--     dev_dkaduk.clinvar_clean n on c.f_name = n.clin_name
+--   where hgvs ~ '^NM|^NP|^NC|^LRG|^NG|^NR'
+--
+--
+-- -- civic
+-- union
   select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, gene, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
   from sources.genomic_civic_variantsummaries
   where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
-
+--
 
 -- NCI
-union
-  select concept_name, vocabulary_id, concept_code, ( regexp_matches(display_name, '(\w+) '))[1] as gene, ( regexp_matches(display_name, '\w+ (.+)'))[1] as hgvs from (
-    select definition as concept_name, 'NCIt' as vocabulary_id, code as concept_code, display_name
-    from sources.genomic_nci_thesaurus
-    where coalesce(concept_status, '') not in ('Retired_Concept', 'Obsolete_Concept') and semantic_type in ('Cell or Molecular Dysfunction')
-      and display_name ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
-  ) a
-  
--- CAP
-union  
-  select concept_name, vocabulary_id, concept_code, gene, gene||':'||hgvs_half as hgvs from (
-    select concept_name, vocabulary_id, concept_code, coalesce(m1, m2) as gene, ( regexp_matches(concept_name, '[cCpP]\.[\w\_\+\-\*>=]+', 'g'))[1] as hgvs_half from (
-     select vl.concept_name, vl.vocabulary_id, vl.concept_code, 
-        ( regexp_matches(vl.concept_name, '^\w{3,8}'))[1] as m1, ( regexp_matches(vr.concept_name, '^\w{3,8}'))[1] as m2
-      from concept vl 
-      left join (
-        select concept_id_1, concept_name
-        from concept_relationship r join devv5.concept on concept_id=r.concept_id_2
-        where r.invalid_reason is null and r.relationship_id='CAP value of'  
-      ) vr on vr.concept_id_1=vl.concept_id  
-      where vl.vocabulary_id= 'CAP' -- and lower(vr.concept_name) like '%mutatat%' 
-      and vl.concept_name ~ '([cCgGoOmMnNrRpP])\.([\w\_\+\-\*>=]+)'
-    ) a
-  ) b
-  
+--union
+--   select concept_name, vocabulary_id, concept_code, ( regexp_matches(display_name, '(\w+) '))[1] as gene, ( regexp_matches(display_name, '\w+ (.+)'))[1] as hgvs from (
+--     select definition as concept_name, 'NCIt' as vocabulary_id, code as concept_code, display_name
+--     from sources.genomic_nci_thesaurus
+--     where coalesce(concept_status, '') not in ('Retired_Concept', 'Obsolete_Concept') and semantic_type in ('Cell or Molecular Dysfunction')
+--       and display_name ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
+--   ) a
+
+-- -- CAP
+-- union
+--   select concept_name, vocabulary_id, concept_code, gene, gene||':'||hgvs_half as hgvs from (
+--     select concept_name, vocabulary_id, concept_code, coalesce(m1, m2) as gene, ( regexp_matches(concept_name, '[cCpP]\.[\w\_\+\-\*>=]+', 'g'))[1] as hgvs_half from (
+--      select vl.concept_name, vl.vocabulary_id, vl.concept_code,
+--         ( regexp_matches(vl.concept_name, '^\w{3,8}'))[1] as m1, ( regexp_matches(vr.concept_name, '^\w{3,8}'))[1] as m2
+--       from concept vl
+--       left join (
+--         select concept_id_1, concept_name
+--         from concept_relationship r join devv5.concept on concept_id=r.concept_id_2
+--         where r.invalid_reason is null and r.relationship_id='CAP value of'
+--       ) vr on vr.concept_id_1=vl.concept_id
+--       where vl.vocabulary_id= 'CAP' -- and lower(vr.concept_name) like '%mutatat%'
+--       and vl.concept_name ~ '([cCgGoOmMnNrRpP])\.([\w\_\+\-\*>=]+)'
+--     ) a
+--   ) b
+--
+--
+--
+-- union
+-- select concept_name, 'CAP' vocabulary_id, concept_name as concept_code, substring(concept_name, '^(\w+\-?\w+?)\:')gene, concept_name as hgvs
+-- --manual extraction from CAP of HGVS expression
+-- from dev_dkaduk.CAP_variant
 
 
-union 
-select concept_name, 'CAP' vocabulary_id, concept_name as concept_code, substring(concept_name, '^(\w+\-?\w+?)\:')gene, concept_name as hgvs
---manual extraction from CAP of HGVS expression
-from dev_dkaduk.CAP_variant
+select * from
+dev_dkaduk.CAP_variant
+limit 500;
 
--- LOINC
-union
-  select concept_name, vocabulary_id, concept_code, m[1] as gene, m[1]||':'||m[2] as hgvs from ( 
+
+-- -- LOINC
+-- union
+  select concept_name, vocabulary_id, concept_code, m[1] as gene, m[1]||':'||m[2] as hgvs from (
     select concept_name, vocabulary_id, concept_code,  regexp_matches(concept_name, '(\w{3,8}) gene ([cCgGoOmMnNrRpP]\.[\w\_\+\-\*>=]+)') as m from devv5.concept where vocabulary_id='LOINC'
   ) a
-
--- CGI vocab
-union
-(
+--
+-- -- CGI vocab
+-- union
+-- (
 select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, gdna as hgvs
 from sources.genomic_cgi
-where gdna != '' 
-union 
-select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, ( regexp_matches(biomarker, '(\w+) '))[1]||':'||cdna as hgvs
-from sources.genomic_cgi
-where cdna != '' 
-)
-
--- JAX vocab
-union 
-(
+where gdna != ''
+-- union
+-- select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, ( regexp_matches(biomarker, '(\w+) '))[1]||':'||cdna as hgvs
+-- from sources.genomic_cgi
+-- where cdna != ''
+-- )
+--
+-- -- JAX vocab
+-- union
+-- (
 select distinct gene_symbol||':'||variant  as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, g_dna
 from sources.genomic_jax_variant
-union 
+union
 select distinct gene_symbol||':'||variant  as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, gene_symbol||':'||c_dna
 from sources.genomic_jax_variant
-union 
+union
 select distinct gene_symbol||':'||variant as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, gene_symbol||':'||protein
 from sources.genomic_jax_variant
+-- )
+--
+-- -- file from Korean's
+-- union
+-- (
+-- select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_c as hgvs
+-- from sources.genomic_korean_variants
+-- union
+-- select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_p as hgvs
+-- from sources.genomic_korean_variants
+-- where hgvs_p != 'NULL'
+-- )
+--
+-- union
+-- (
+-- select hugo_symbol||':'||variant as concept_name, 'OncoKB' as vocabulary_id, hugo_symbol||':'||variant as concept_code, hugo_symbol as gene, hugo_symbol||':p.'||variant as hgvs
+-- from sources.genomic_oncokb
+-- )
+--
 )
-
--- file from Korean's
-union
-(
-select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_c as hgvs
-from sources.genomic_korean_varaints
-union
-select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_p as hgvs
-from sources.genomic_korean_variants
-where hgvs_p != 'NULL'
-)
-
-union
-(
-select hugo_symbol||':'||variant as concept_name, 'OncoKB' as vocabulary_id, hugo_symbol||':'||variant as concept_code, hugo_symbol as gene, hugo_symbol||':p.'||variant as hgvs
-from sources.genomic_oncokb
-)
-
-),
+,
 
 
 matched_snp as (
@@ -223,7 +249,12 @@ update genom set variant=replace(variant, 'Glx', 'Z'),var_name=replace(var_name,
 update genom set variant=replace(variant, 'Ter', '*'),var_name=replace(var_name, 'Ter', 'Ter ') where seqtype='p'; 
 
 
--- update for proper naming protein variatns
+-- create table g_adj_backup220721 as (
+--     select * from g_adj
+-- );
+
+
+-- update for proper naming protein variants
 drop table if exists g_adj;
 create table g_adj as 
 select distinct concept_code,vocabulary_id,gene,refseq,seqtype,variant
@@ -264,6 +295,11 @@ update genom set variant= replace(variant, 'del([GATCU][GATCU]?[GATCU]?[GATCU]?[
 ;
 
 
+-- create table canonical_variant_backup220721 as (
+--     select * from canonical_variant
+-- );
+
+
 -- intersection of vocabularies
 drop table if exists canonical_variant;
 create table canonical_variant as 
@@ -289,6 +325,12 @@ BEGIN
 END$$
 ;
 
+
+-- create table omop_variants_backup220721 as (
+--     select * from omop_variants
+-- );
+
+
 --add OMOP codes to canonical variants
 drop table if exists omop_variants;
 create table omop_variants as 
@@ -303,6 +345,12 @@ where vocabs not in ('ClinVar','JAX')
 )
 )a
 ;
+
+
+-- create table g_can_backup220721 as (
+--     select * from g_can
+-- );
+
 
 drop table if exists g_can;
 create table g_can as 

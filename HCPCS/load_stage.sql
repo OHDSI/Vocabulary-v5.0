@@ -174,7 +174,8 @@ AS (
 					)
 				THEN 'Drug'
 			WHEN concept_code IN (
-					'C9200',
+					'C9067',
+			        'C9200',
 					'C9201',
 					'C9123',
 					'C9102'
@@ -1279,15 +1280,22 @@ WHERE c.concept_id = r.concept_id_1
 			AND crs.relationship_id = r.relationship_id
 		);
 
---11. These concepts (Buprenorphine/naloxone, Hydroxyzine pamoate) are mapped incorrectly by map_drug but correctly in concept_relationship_manual
+--11. The following codes are mapped incorrectly by map_drug but correctly in concept_relationship_manual
 --will be removed after procedure_drug be fixed
 DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 IN (
-		'J0572',
+        'C9275',
+		'G0010',
+        'J0572',
 		'J0573',
+        'J7042',
+        'J7340',
 		'J0574',
-		'Q0178');
+		'J9175',
+		'Q0178',
+        'Q0172',
+        'Q3022');
 
 --12. Append manual relationships
 DO $_$

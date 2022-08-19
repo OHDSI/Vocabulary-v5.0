@@ -174,7 +174,9 @@ AS (
 					)
 				THEN 'Drug'
 			WHEN concept_code IN (
-					'C9067',
+					'C9060',
+			        'C9067',
+			        'C9068',
 			        'C9200',
 					'C9201',
 					'C9123',

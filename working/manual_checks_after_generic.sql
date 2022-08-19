@@ -17,6 +17,7 @@ where old.domain_id != new.domain_id
 SELECT c1.concept_code,
        c1.concept_name,
        c1.concept_class_id,
+       c1.vocabulary_id,
        c1.standard_concept,
        c1.domain_id as new_domain
 FROM concept c1

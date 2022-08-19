@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'OPS',
-	pVocabularyDate			=> TO_DATE ('20200101', 'yyyymmdd'),
-	pVocabularyVersion		=> 'OPS Version 2020',
+	pVocabularyDate			=> TO_DATE ('20220101', 'yyyymmdd'),
+	pVocabularyVersion		=> 'OPS Version 2022',
 	pVocabularyDevSchema	=> 'DEV_OPS'
 );
 END $_$

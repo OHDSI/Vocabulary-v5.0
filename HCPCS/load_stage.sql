@@ -785,6 +785,15 @@ AS (
 				THEN 'Drug'
 			WHEN l2.str = 'Skin Substitutes (CMS Temporary Codes)'
 				THEN 'Device' -- Level 2: Q4100-Q4226
+		    WHEN concept_code IN (
+		            'Q4261',
+		            'Q4260',
+		            'Q4259',
+		            'Q4258',
+		            'Q4257',
+		            'Q4256'
+		                         )
+		        THEN 'Device' -- Allograft amniotic membrane
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
 			WHEN l2.str = 'Contrast Agents'

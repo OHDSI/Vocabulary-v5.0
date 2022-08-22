@@ -24,7 +24,7 @@ BEGIN
 	pVocabularyDate			=> TO_DATE('20210502','YYYYMMDD'),
 	pVocabularyVersion		=> 'OncoKB v20210502',
 	pVocabularyDevSchema	=> 'dev_oncokb',
-	pAppendVocabulary		=> TRUE
+	pAppendVocabulary		=> FALSE
 );
 END $_$;
 
@@ -47,7 +47,7 @@ SELECT DISTINCT NULL::INT,
        vocabulary_id AS vocabulary_id,
        'Variant' AS concept_class_id,
        NULL AS standard_concept,
-       concept_code AS concept_code,
+       trim(substr(concept_code, 1, 50)) AS concept_code,
        CURRENT_DATE -1 AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
@@ -83,7 +83,7 @@ hgvs AS synonym_name,
 cs.concept_code as synonym_concept_code,
 cs.vocabulary_id AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from onkokb_source a
+from oncokb_source a
 join concept_stage cs on cs.concept_code = a.concept_code
 ) r
 where synonym_name is not null

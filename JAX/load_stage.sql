@@ -24,7 +24,7 @@ BEGIN
 	pVocabularyDate			=> TO_DATE('20200824','YYYYMMDD'),
 	pVocabularyVersion		=> 'JAX v20200824',
 	pVocabularyDevSchema	=> 'dev_jax',
-	pAppendVocabulary		=> TRUE
+	pAppendVocabulary		=> FALSE
 );
 END $_$;
 

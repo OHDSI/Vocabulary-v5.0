@@ -24,7 +24,7 @@ BEGIN
 	pVocabularyDate			=> TO_DATE('20180117','YYYYMMDD'),
 	pVocabularyVersion		=> 'CGI v20180117',
 	pVocabularyDevSchema	=> 'dev_cgi',
-	pAppendVocabulary		=> TRUE
+	pAppendVocabulary		=> FALSE
 );
 END $_$;
 

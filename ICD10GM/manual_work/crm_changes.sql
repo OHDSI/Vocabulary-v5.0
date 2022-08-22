@@ -29,6 +29,10 @@ $body$
         END
 $body$;
 
+TRUNCATE TABLE concept_relationship_manual;
+INSERT INTO concept_relationship_manual
+SELECT*FROM concept_relationship_manual_backup_2022_05_21;
+
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',

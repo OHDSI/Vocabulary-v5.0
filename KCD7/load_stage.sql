@@ -195,12 +195,13 @@ FROM (
 		AND cs1.vocabulary_id = 'KCD7'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		--AND c2.vocabulary_id = 'SNOMED'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'KCD7';
+
 
 --11. If domain_id is empty we use previous and next domain_id
 UPDATE concept_stage c
@@ -239,7 +240,7 @@ WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7'
 	AND c.domain_id IS NULL;
 
-
+;
 --11.1 Detect and Update misclassified domains to Condition
 UPDATE concept_stage c
 SET domain_id = 'Condition'

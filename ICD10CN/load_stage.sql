@@ -493,10 +493,10 @@ BEGIN
 END $_$;
 
 --14.1 BRAND NEW Add mapping from deprecated to fresh concepts (value level)
-/*DO $_$
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;*/
+END $_$;
 
 --15. Deprecate
 -- 'Maps to' mappings to deprecated and upgraded concepts

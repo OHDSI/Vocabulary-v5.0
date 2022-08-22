@@ -19,7 +19,7 @@ ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_en
 DELETE FROM concept_manual
 WHERE concept_code NOT IN (SELECT concept_code FROM sources.icd10gm);
 ```
-6.3.Extract the [respective csv file](https://drive.google.com/file/d/1oPJtaUuhhU7uDSQ6y2QwwFwmps_rRm5x/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
+6.3.Extract the [respective csv file](https://drive.google.com/file/d/1UaM9OEGXj7D5xvJHKj-JHiG1cGxX3Jm6/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
 ```sql
 SELECT concept_code_1,
        concept_code_2,

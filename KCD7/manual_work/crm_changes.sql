@@ -114,4 +114,56 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
-SELECT * FROM concept_relationship_manual;
+-- 23/08/2022 patch  used after generic to detect Values to be invalidated
+INSERT INTO concept_relationship_manual(vocabulary_id_1, concept_code_1, relationship_id, valid_start_date, invalid_reason, valid_end_date, vocabulary_id_2, concept_code_2)
+SELECT
+distinct
+       con.vocabulary_id as vocabulary_id_1,
+       con.concept_code as concept_code_1,
+       crm.relationship_id,
+       crm.valid_start_date,
+   'D' as invalid_reason,
+    current_date as valid_end_date,
+       con2.vocabulary_id  as vocabulary_id_2,
+       con2.concept_code   as concept_code_2
+FROM concept_relationship  crm
+JOIN concept con
+on con.concept_id=crm.concept_id_1
+and con.vocabulary_id='KCD7'
+and crm.invalid_reason is null
+    and crm.relationship_id ilike 'Maps%'
+JOIN concept con2
+on crm.concept_id_2=con2.concept_id
+where exists(SELECT 1
+             from concept c
+                      JOIN concept_relationship cr
+                           on cr.concept_id_1 = c.concept_id
+                                  and cr.relationship_id = 'Maps to value'
+                               and cr.invalid_reason is null
+    and crm.concept_id_1=c.concept_id
+    and c.vocabulary_id='KCD7'
+    )
+and   not exists(SELECT 1
+             from devv5.concept c1
+                      JOIN devv5.concept_relationship cr1
+                           on cr1.concept_id_1 = c1.concept_id
+                                  and cr1.relationship_id = 'Maps to value'
+                                  and cr1.invalid_reason is null
+    and con.concept_code=c1.concept_code
+    and 'ICD10'=c1.vocabulary_id
+    )
+and crm.relationship_id ='Maps to value'
+ and (con.concept_code, --the same source_code is mapped
+               con2.concept_code, --to the same concept_code
+               con.vocabulary_id,
+                 con2.vocabulary_id, --of the same vocabulary
+               crm.relationship_id) --with the same relationship
+        NOT IN (SELECT concept_code_1,
+                       concept_code_2,
+                       vocabulary_id_1,
+                       vocabulary_id_2,
+                       relationship_id FROM concept_relationship_manual)
+;
+
+
+

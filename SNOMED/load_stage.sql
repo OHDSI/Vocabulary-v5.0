@@ -18,30 +18,20 @@
 **************************************************************************/
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
-DROP VIEW IF EXISTS module_date;
-CREATE VIEW module_date
-AS
-WITH maxdate
-AS
-	--Module content is at most as old as latest available module version
-	(
-	SELECT id,
-		MAX(effectivetime) AS effectivetime
-	FROM sources.der2_ssrefset_moduledependency_merged
-	GROUP BY id
-	)
-SELECT DISTINCT m1.moduleid,
-	TO_CHAR(m1.sourceeffectivetime, 'yyyy-mm-dd') AS version
-FROM sources.der2_ssrefset_moduledependency_merged m1
-JOIN maxdate m2 USING (id,effectivetime)
-WHERE m1.active = 1
-	AND m1.referencedcomponentid = 900000000000012004
+CREATE OR REPLACE VIEW module_date AS
+SELECT DISTINCT ON (m.id) m.moduleid,
+	TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS version
+FROM sources.der2_ssrefset_moduledependency_merged m
+WHERE m.active = 1
+	AND m.referencedcomponentid = 900000000000012004
 	AND --Model component module; Synthetic target, contains source version in each row
-	m1.moduleid IN (
+	m.moduleid IN (
 		900000000000207008, --Core (international) module
 		999000011000000103, --UK edition
 		731000124108 --US edition
-		);
+		)
+ORDER BY m.id,
+	m.effectivetime DESC;
 
 --2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.
@@ -127,7 +117,7 @@ FROM (
 					ELSE 99
 					END ASC,
 				l.effectivetime DESC,
-			    d.term
+				d.term
 			) AS rn
 	FROM sources.sct2_concept_full_merged c
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
@@ -162,11 +152,15 @@ WHERE valid_start_date = valid_end_date;
 
 --4.3 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
 UPDATE concept_stage
-SET concept_name = vocabulary_pack.CutConceptName(translate(concept_name, '>,<,^', '-'))
-WHERE ((concept_name LIKE '%>%' AND concept_name LIKE '%<%')
-OR (concept_name LIKE '%^%^%'))
-AND length(concept_name) > 5
-;
+SET concept_name = vocabulary_pack.CutConceptName(TRANSLATE(concept_name, '>,<,^', '-'))
+WHERE (
+		(
+			concept_name LIKE '%>%'
+			AND concept_name LIKE '%<%'
+			)
+		OR (concept_name LIKE '%^%^%')
+		)
+	AND LENGTH(concept_name) > 5;
 
 --5. Update concept_class_id from extracted hierarchy tag information and terms ordered by description table precedence
 UPDATE concept_stage cs
@@ -182,7 +176,7 @@ FROM (
 						-- order of precedence: active, by class relevance
 						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
 						ORDER BY active DESC,
-						    rnb,
+							rnb,
 							CASE f7
 								WHEN 'disorder'
 									THEN 1
@@ -564,7 +558,7 @@ WITH tmp_rel AS (
 		-- get relationships from latest records that are active
 		SELECT sourceid::TEXT,
 			destinationid::TEXT,
-			REPLACE(term, ' (attribute)', '') term
+			REPLACE(term, ' (attribute)', '') AS term
 		FROM (
 			SELECT r.sourceid,
 				r.destinationid,
@@ -583,43 +577,45 @@ WITH tmp_rel AS (
 			AND destinationid IS NOT NULL
 			AND term <> 'PBCL flag true'
 
-    UNION ALL
---add relationships from concept to module
+		UNION ALL
+
+		--add relationships from concept to module
 		SELECT cs.concept_code::TEXT,
-		       moduleid::TEXT,
-		       'Has Module' AS term
+			moduleid::TEXT,
+			'Has Module' AS term
 		FROM sources.sct2_concept_full_merged c
-		JOIN concept_stage cs ON c.id::TEXT = cs.concept_code
-		    AND cs.vocabulary_id = 'SNOMED'
-		WHERE moduleid IN (
-		900000000000207008, --Core (international) module
-		999000011000000103, --UK edition
-		731000124108, --US edition
-        999000011000001104, --SNOMED CT United Kingdom drug extension module
-		900000000000012004, --SNOMED CT model component
-        999000021000001108  --SNOMED CT United Kingdom drug extension reference set module
-		)
+		JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
+			AND cs.vocabulary_id = 'SNOMED'
+		WHERE c.moduleid IN (
+				900000000000207008, --Core (international) module
+				999000011000000103, --UK edition
+				731000124108, --US edition
+				999000011000001104, --SNOMED CT United Kingdom drug extension module
+				900000000000012004, --SNOMED CT model component
+				999000021000001108 --SNOMED CT United Kingdom drug extension reference set module
+				)
 
-    UNION ALL
---add relationship from concept to status
+		UNION ALL
+
+		--add relationship from concept to status
 		SELECT st.concept_code::TEXT,
-		       st.statusid::TEXT,
-		       'Has status'
-		FROM
-        (SELECT cs.concept_code,
-               statusid::TEXT,
-       		ROW_NUMBER() OVER (
-			PARTITION BY id ORDER BY TO_DATE(effectivetime, 'YYYYMMDD') DESC
-			) rn
-        FROM SOURCES.SCT2_CONCEPT_FULL_MERGED c
-        JOIN concept_stage cs ON c.id::TEXT = cs.concept_code
-            AND cs.vocabulary_id = 'SNOMED'
-        WHERE statusid IN (
-		900000000000073002, --Defined
-		900000000000074008  --Primitive
-		)) st
-    WHERE st.rn = 1
-
+			st.statusid::TEXT,
+			'Has status'
+		FROM (
+			SELECT cs.concept_code,
+				statusid::TEXT,
+				ROW_NUMBER() OVER (
+					PARTITION BY id ORDER BY TO_DATE(effectivetime, 'YYYYMMDD') DESC
+					) rn
+			FROM sources.sct2_concept_full_merged c
+			JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
+				AND cs.vocabulary_id = 'SNOMED'
+			WHERE c.statusid IN (
+					900000000000073002, --Defined
+					900000000000074008 --Primitive
+					)
+			) st
+		WHERE st.rn = 1
 		)
 SELECT concept_code_1,
 	concept_code_2,
@@ -941,25 +937,25 @@ FROM (
 				THEN 'Has comp material'
 			WHEN term = 'Has filling'
 				THEN 'Has filling'
-		    --January 2022
-		    WHEN term = 'Has coating material'
-		        THEN 'Has coating material'
-		    WHEN term = 'Has absorbability'
-		        THEN 'Has absorbability'
-		    WHEN term = 'Process extends to'
-		        THEN 'Process extends to'
-		    WHEN term = 'Has ingredient qualitative strength'
-		        THEN 'Has strength'
-		    WHEN term = 'Has surface texture'
-		        THEN 'Has surface texture'
-		    WHEN term = 'Is sterile'
-		        THEN 'Is sterile'
-		    WHEN term = 'Has target population'
-		        THEN 'Has targ population'
-		    WHEN term = 'Has Module'
-		        THEN 'Has Module'
-		    WHEN term = 'Has status'
-		        THEN 'Has status'
+					--January 2022
+			WHEN term = 'Has coating material'
+				THEN 'Has coating material'
+			WHEN term = 'Has absorbability'
+				THEN 'Has absorbability'
+			WHEN term = 'Process extends to'
+				THEN 'Process extends to'
+			WHEN term = 'Has ingredient qualitative strength'
+				THEN 'Has strength'
+			WHEN term = 'Has surface texture'
+				THEN 'Has surface texture'
+			WHEN term = 'Is sterile'
+				THEN 'Is sterile'
+			WHEN term = 'Has target population'
+				THEN 'Has targ population'
+			WHEN term = 'Has Module'
+				THEN 'Has Module'
+			WHEN term = 'Has status'
+				THEN 'Has status'
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -1022,13 +1018,13 @@ FROM (
 			WHEN 900000000000530003
 				THEN 'Concept alt_to to'
 			END AS relationship_id,
-	       refsetid,
+		refsetid,
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC,
 				sc.id DESC --same as of AVOF-650
 			) rn,
-	       	    ROW_NUMBER() OVER (
-	        PARTITION BY sc.referencedcomponentid, sc.targetcomponent, sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC) AS recent_status,   --recent status of the relationship. To be used with 'active' field
+		ROW_NUMBER() OVER (
+			PARTITION BY sc.referencedcomponentid, sc.targetcomponent, sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
 	FROM sources.der2_crefset_assreffull_merged sc
 	WHERE sc.refsetid IN (
@@ -1042,10 +1038,16 @@ FROM (
 LEFT JOIN concept_stage cs ON -- for valid_end_date
 	cs.concept_code = sn.concept_code_1
 	AND cs.invalid_reason IS NOT NULL
-WHERE CASE WHEN sn.refsetid = '900000000000523009' THEN sn.rn >= 1     --Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
-            ELSE sn.rn = 1 END
+WHERE (
+		(
+			--Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
+			sn.refsetid = '900000000000523009'
+			AND sn.rn >= 1
+			)
+		OR sn.rn = 1
+		)
 	AND sn.active = 1
-    AND sn.recent_status = 1    --no row with the same target concept, but more recent relationship with active = 0
+	AND sn.recent_status = 1    --no row with the same target concept, but more recent relationship with active = 0
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs
@@ -1100,7 +1102,10 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 		)
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 WHERE cs.invalid_reason IS NULL
-	AND (c1.invalid_reason = 'U' OR c1.invalid_reason = 'D')
+	AND (
+		c1.invalid_reason = 'U'
+		OR c1.invalid_reason = 'D'
+		)
 	AND cs.vocabulary_id = 'SNOMED'
 	AND crs.concept_code_1 IS NULL;
 
@@ -1202,12 +1207,9 @@ UPDATE concept_stage cs
 SET invalid_reason = 'D'
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
-	AND crs.relationship_id IN (
-		'Concept poss_eq to'
-		)
+	AND crs.relationship_id = 'Concept poss_eq to'
 	AND crs.invalid_reason IS NULL
-    AND cs.invalid_reason IS NULL
-;
+	AND cs.invalid_reason IS NULL;
 
 --10.4. Update valid_end_date to latest_update if there is a discrepancy after last point
 UPDATE concept_stage cs
@@ -1763,7 +1765,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(438508001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Virus present
 	--history:on
 	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20220504', 'YYYYMMDD')), --Bacteria present
-	(710954001,         'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bacteria present
+	(710954001,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bacteria present
 	--history:off
 	(871000124102,      'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Virus not detected
 	(426000000,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Fever greater than 100.4 Fahrenheit
@@ -1967,79 +1969,77 @@ SELECT c.*, NULL FROM (VALUES
 	(80943009,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Risk factor
 	(58915005,          'Measurement',  TO_DATE('20210215', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Immune status
 
-    --2022-May-04
-    --Found during step 19.2.3
-    (163166004,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - tongue examined
-    (164399004,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - skin scar
-    (231466009,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Acute drug intoxication
-    (268935007,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses right leg
-    (268936008,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses left leg
-    (365726006,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information accurately
-    (365737007,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information at normal speed
-    (365748000,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to analyze information
-    (59274003,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Intentional drug overdose
-    (401783003,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disposable insulin U100 syringe+needle
-    (401826003,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 0.5ml with 12mm needle 0.33mm/29gauge
-    (401830000,          'Device',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 1ml with 12mm needle 0.33mm/29gauge
+	--2022-May-04
+	--Found during step 19.2.3
+	(163166004,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - tongue examined
+	(164399004,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - skin scar
+	(231466009,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Acute drug intoxication
+	(268935007,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses right leg
+	(268936008,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --On examination - peripheral pulses left leg
+	(365726006,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information accurately
+	(365737007,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to process information at normal speed
+	(365748000,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to analyze information
+	(59274003,          'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Intentional drug overdose
+	(401783003,         'Device',       TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disposable insulin U100 syringe+needle
+	(401826003,         'Device',       TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 0.5ml with 12mm needle 0.33mm/29gauge
+	(401830000,         'Device',       TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hypodermic U100 insulin syringe sterile single use / single patient use 1ml with 12mm needle 0.33mm/29gauge
 
-    --Found during manual check after generic stage
-    (91723000,          'Spec Anatomic Site',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical structure
-    (284648005,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Dietary intake finding
-    (911001000000101,     'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum norclomipramine measurement
-    (288533004, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Change values
-    (782964007, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Genetic disease
-    (237834000, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disorder of stature
-    (400038003, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Congenital malformation syndrome
-    (407674008, 'Condition', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Aspirin-induced asthma
-    (263605001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Length dimension of neoplasm
-    (4370001000004107, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Length of excised tissue specimen
-    (443527007, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of lymph nodes containing metastatic neoplasm in excised specimen
-    (396236002, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Depth of invasion by tumour
-    (396239009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Horizontal extent of stromal invasion by tumour
-    (371490004, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of tumour from anal verge
-    (258261001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour volume
-    (371503009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour weight
-    (444916005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Percentage of carcinoma in situ in neoplasm
-    (444901007, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Proportion score of neoplastic cells positive for hormone receptors using immunohistochemistry
-    (444775005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Average intensity of positive staining neoplastic cells
-    (385404000, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour quantitation
-    (405930005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of tumour nodules
-    (385300008, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Linear extent of involvement of carcinoma
-    (444025001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of lymph nodes examined by microscopy in excised specimen
-    (444644009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number fraction of oestrogen receptors in neoplasm using immune stain
-    (445104009, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Allred score for neoplasm
-    (445366002, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number fraction of progesterone receptors in neoplasm using immune stain
-    (399514000, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of anterior margin of tumour base from limbus of cornea at cut edge, after sectioning
-    (396988001, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of posterior margin of tumour base from edge of optic disc, after sectioning
-    (405921002, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Percentage of tumour involved by necrosis
-    (396987006, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance from anterior edge of tumour to limbus of cornea at cut edge, after sectioning
-    (786458005, 'Measurement', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Self reported usual body weight
-    (162300006, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Unilateral headache
-    (428264009, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Painful gait
-    (905231000000103, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Imbalanced intake of fibre
-    (896531000000104, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Imbalanced dietary intake of fat
-    (735643002, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Short stature of childhood
-    (948391000000106, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - antalgic gait
-    (43528001, 'Observation', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distomolar supernumerary tooth
-    (371234007, 'Meas Value', TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Colour modifier
+	--Found during manual check after generic stage
+	(91723000,          'Spec Anatomic Site',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anatomical structure
+	(284648005,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Dietary intake finding
+	(911001000000101,   'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum norclomipramine measurement
+	(288533004,         'Meas Value',   TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Change values
+	(782964007,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Genetic disease
+	(237834000,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disorder of stature
+	(400038003,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Congenital malformation syndrome
+	(407674008,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Aspirin-induced asthma
+	(263605001,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Length dimension of neoplasm
+	(4370001000004107,  'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Length of excised tissue specimen
+	(443527007,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of lymph nodes containing metastatic neoplasm in excised specimen
+	(396236002,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Depth of invasion by tumour
+	(396239009,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Horizontal extent of stromal invasion by tumour
+	(371490004,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of tumour from anal verge
+	(258261001,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour volume
+	(371503009,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour weight
+	(444916005,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Percentage of carcinoma in situ in neoplasm
+	(444901007,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Proportion score of neoplastic cells positive for hormone receptors using immunohistochemistry
+	(444775005,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Average intensity of positive staining neoplastic cells
+	(385404000,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour quantitation
+	(405930005,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of tumour nodules
+	(385300008,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Linear extent of involvement of carcinoma
+	(444025001,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of lymph nodes examined by microscopy in excised specimen
+	(444644009,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number fraction of oestrogen receptors in neoplasm using immune stain
+	(445104009,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Allred score for neoplasm
+	(445366002,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number fraction of progesterone receptors in neoplasm using immune stain
+	(399514000,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of anterior margin of tumour base from limbus of cornea at cut edge, after sectioning
+	(396988001,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance of posterior margin of tumour base from edge of optic disc, after sectioning
+	(405921002,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Percentage of tumour involved by necrosis
+	(396987006,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distance from anterior edge of tumour to limbus of cornea at cut edge, after sectioning
+	(786458005,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Self reported usual body weight
+	(162300006,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Unilateral headache
+	(428264009,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Painful gait
+	(905231000000103,   'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Imbalanced intake of fibre
+	(896531000000104,   'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Imbalanced dietary intake of fat
+	(735643002,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Short stature of childhood
+	(948391000000106,   'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - antalgic gait
+	(43528001,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distomolar supernumerary tooth
+	(371234007,         'Meas Value',   TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Colour modifier
 
-    --Found during github search and/or Vocabulary team reports
-    (165109007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Basal metabolic rate
-    (7928001,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body oxygen consumption
-    (698834005,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Metabolic equivalent of task
-    (251836004,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Nitrogen balance
-    (16206004,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen delivery
-    (251831009,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen extraction ratio
-    (251832002,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen uptake
-    (74427007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory quotient
-    (251838003,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Total body potassium
-    (409652008,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Population statistic
-    (165815009,          'Condition',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --HIV negative
-    (59000001,          'Procedure',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Surgical pathology consultation and report on referred slides prepared elsewhere
-    (365956009,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of sexual orientation
-    (443938003,          'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Procedure carried out on subject
-
-
+	--Found during github search and/or Vocabulary team reports
+	(165109007,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Basal metabolic rate
+	(7928001,           'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body oxygen consumption
+	(698834005,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Metabolic equivalent of task
+	(251836004,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Nitrogen balance
+	(16206004,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen delivery
+	(251831009,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen extraction ratio
+	(251832002,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Oxygen uptake
+	(74427007,          'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory quotient
+	(251838003,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Total body potassium
+	(409652008,         'Measurement',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Population statistic
+	(165815009,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --HIV negative
+	(59000001,          'Procedure',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Surgical pathology consultation and report on referred slides prepared elsewhere
+	(365956009,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of sexual orientation
+	(443938003,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Procedure carried out on subject
 ) as c;
 
 --19.2.3 To be reviewed in the future
@@ -2166,22 +2166,24 @@ FROM (
 		p.ranked DESC,
 		-- if there are two conflicting domains in the rank (both equally distant from the ancestor) then use precedence
 		CASE peak_domain_id WHEN 'Condition'
-		    THEN 1
+			THEN 1
 		WHEN 'Measurement'
-		    THEN 2
+			THEN 2
 		WHEN 'Procedure'
-		    THEN 3
+			THEN 3
 		WHEN 'Device'
-		    THEN 4
+			THEN 4
 		WHEN 'Provider'
-		    THEN 5
+			THEN 5
 		WHEN 'Drug'
-		    THEN 6
+			THEN 6
 		WHEN 'Gender'
-		    THEN 7
+			THEN 7
 		WHEN 'Race'
-		    THEN 8
-		    ELSE 10 END, -- everything else is Observation
+			THEN 8
+		ELSE
+			10
+		END, -- everything else is Observation
 		p.peak_domain_id
 	) i
 WHERE d.concept_code = i.descendant_concept_code;
@@ -2410,7 +2412,7 @@ SET domain_id = CASE concept_class_id
 		END
 WHERE vocabulary_id = 'SNOMED'
 	AND concept_code IN (
-		SELECT  descendant_concept_code::TEXT
+		SELECT descendant_concept_code::TEXT
 		FROM snomed_ancestor
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
 		);

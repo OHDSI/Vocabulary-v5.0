@@ -1296,7 +1296,11 @@ WHERE c.concept_id = r.concept_id_1
 DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 IN (
+        'A9576',
+        'A9585',
         'C9275',
+        'C9210',
+        'C9267',
 		'G0010',
         'J0572',
 		'J0573',

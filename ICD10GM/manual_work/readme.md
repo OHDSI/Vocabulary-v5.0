@@ -1,6 +1,6 @@
 ### STEP 6 of the refresh: work with manual staging tables (skip this step if implementing on the Pallas vocabulary server)
-
-6.1.Extract the [respective csv file](https://drive.google.com/file/d/1ZjYCykojpUyxljZ4v1Qs3Yz72TiXWvKC/view?usp=sharing) into the concept_manual table. The file was generated using the query:
+Detected newly codes should be uploaded to concept manual (name translation via Google translate)
+6.1.Extract the [respective csv file](https://docs.google.com/spreadsheets/d/1nk66P2seuEcXrdcWxAzJePko6RgJ5_5CJHynIZKU7Xo/edit#gid=1634989798) into the concept_manual table. The file was generated using the query:
 ```sql
 SELECT concept_name,
        domain_id,

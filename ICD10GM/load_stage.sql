@@ -62,7 +62,7 @@ LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10'
 	AND c.concept_class_id NOT LIKE '%Chapter%';
 
---4 Append concept corrections -- COVID concepts added and English translation
+--4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();

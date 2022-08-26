@@ -62,11 +62,7 @@ LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10'
 	AND c.concept_class_id NOT LIKE '%Chapter%';
 
--- 4.0 Per readme file Manual Cleaun-Up
-DELETE FROM concept_manual
-WHERE concept_code NOT IN (SELECT concept_code FROM sources.icd10gm);
-
---4.1 Append concept corrections -- COVID concepts added and English translation
+--4 Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();

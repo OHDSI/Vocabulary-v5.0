@@ -384,10 +384,10 @@ FROM (
 		AND c2.concept_class_id = 'ICDO Condition'
 		AND c2.concept_code = c1.concept_code || '-NULL'
 	--Commented since we allow fuzzy match uphill for this iteration
-	-- where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
-
+	--where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
+	
 	UNION ALL
-
+	
 	SELECT DISTINCT cs.concept_code,
 		FIRST_VALUE(c.concept_id) OVER (
 			PARTITION BY cs.concept_code ORDER BY LENGTH(c.concept_code) DESC --Longest matching code for best results
@@ -410,13 +410,13 @@ JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 		'Maps to value'
 		)
 JOIN concept c ON c.concept_id = r.concept_id_2
-
-where NOT EXISTS (SELECT 1
-             from concept_relationship_stage crs
-             where crs.concept_code_1 = i.concept_code
-               and crs.invalid_reason is  null
-               and crs.relationship_id in ('Maps to')
-          );
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = i.concept_code
+			AND crs.invalid_reason IS NULL
+			AND crs.relationship_id = 'Maps to'
+		);
 
 --From mapping target
 UPDATE concept_stage cs
@@ -504,7 +504,6 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
-
 
 --16. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now

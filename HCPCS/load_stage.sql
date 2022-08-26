@@ -100,7 +100,8 @@ AS (
 					'A9600',
 					'A9604',
 					'A9605',
-					'A9606')
+					'A9606'
+					)
 				THEN 'Drug'
 			WHEN l1.str = 'A Codes'
 				AND concept_code NOT IN (
@@ -118,11 +119,11 @@ AS (
 					'A4248',
 					'A4802',
 					'A9152',
-				    'A9153',
+					'A9153',
 					'A9180',
 					'A9155'
 					)
-				AND l2.str != 'Transport Services Including Ambulance'
+				AND l2.str <> 'Transport Services Including Ambulance'
 				THEN 'Device' -- default for Level 1: A0000-A9999
 			WHEN l2.str = 'Transport Services Including Ambulance'
 				THEN 'Observation' -- Level 2: A0000-A0999
@@ -132,7 +133,7 @@ AS (
 					'A9180'
 					)
 				THEN 'Procedure'
-		    WHEN concept_code IN (
+			WHEN concept_code IN (
 					'A9152',
 					'A9153'
 					)
@@ -175,9 +176,9 @@ AS (
 				THEN 'Drug'
 			WHEN concept_code IN (
 					'C9060',
-			        'C9067',
-			        'C9068',
-			        'C9200',
+					'C9067',
+					'C9068',
+					'C9200',
 					'C9201',
 					'C9123',
 					'C9102'
@@ -243,30 +244,30 @@ AS (
 			WHEN concept_code = 'G0027'
 				THEN 'Measurement' -- Level 2: G0027-G0027
 			WHEN concept_code IN (
-			                'G0048',
-			                'G0049',
-			                'G0050',
-			                'G0051',
-			                'G0052',
-			                'G0053',
-			                'G0054',
-			                'G0055',
-			                'G0056',
-			                'G0057',
-			                'G0058',
-			                'G0058',
-			                'G0059',
-			                'G0060',
-			                'G0061',
-			                'G0062',
-			                'G0063',
-			                'G0064',
-			                'G0065',
-			                'G0066',
-			                'G0067'
-			                 )
-		        THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
-		    WHEN concept_code IN (
+					'G0048',
+					'G0049',
+					'G0050',
+					'G0051',
+					'G0052',
+					'G0053',
+					'G0054',
+					'G0055',
+					'G0056',
+					'G0057',
+					'G0058',
+					'G0058',
+					'G0059',
+					'G0060',
+					'G0061',
+					'G0062',
+					'G0063',
+					'G0064',
+					'G0065',
+					'G0066',
+					'G0067'
+					)
+				THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
+			WHEN concept_code IN (
 					'G0101',
 					'G0102'
 					)
@@ -392,7 +393,7 @@ AS (
 					'G0461',
 					'G0462'
 					)
-				THEN 'Measurement' --    Immunohistochemistry or immunocytochemistry
+				THEN 'Measurement' -- Immunohistochemistry or immunocytochemistry
 			WHEN concept_code = 'G0463'
 				THEN 'Observation' -- Hospital outpatient clinic visit for assessment AND management of a patient
 			WHEN concept_code = 'G0464'
@@ -427,52 +428,53 @@ AS (
 					'G0920',
 					'G0921',
 					'G0922',
-			        'G2184'
+					'G2184'
 					)
 				THEN 'Observation' -- various documented levels AND assessments
 			WHEN concept_code = 'G3001'
 				THEN 'Drug' -- Administration and supply of tositumomab, 450 mg
-		    WHEN concept_code IN (
-		                       'G4000',
-		                       'G4001',
-		                       'G4002',
-		                       'G4003',
-		                       'G4004',
-		                       'G4005',
-		                       'G4006',
-		                       'G4007',
-		                       'G4008',
-		                       'G4009',
-		                       'G4010',
-		                       'G4011',
-		                       'G4012',
-		                       'G4013',
-		                       'G4014',
-		                       'G4015',
-		                       'G4016',
-		                       'G4017',
-		                       'G4018',
-		                       'G4019',
-		                       'G4020',
-		                       'G4021',
-		                       'G4022',
-		                       'G4023',
-		                       'G4024',
-		                       'G4025',
-		                       'G4026',
-		                       'G4027',
-		                       'G4028',
-		                       'G4029',
-		                       'G4030',
-		                       'G4031',
-		                       'G4032',
-		                       'G4033',
-		                       'G4034',
-		                       'G4035',
-		                       'G4036',
-		                       'G4037',
-		                       'G4038')
-		        THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
+			WHEN concept_code IN (
+					'G4000',
+					'G4001',
+					'G4002',
+					'G4003',
+					'G4004',
+					'G4005',
+					'G4006',
+					'G4007',
+					'G4008',
+					'G4009',
+					'G4010',
+					'G4011',
+					'G4012',
+					'G4013',
+					'G4014',
+					'G4015',
+					'G4016',
+					'G4017',
+					'G4018',
+					'G4019',
+					'G4020',
+					'G4021',
+					'G4022',
+					'G4023',
+					'G4024',
+					'G4025',
+					'G4026',
+					'G4027',
+					'G4028',
+					'G4029',
+					'G4030',
+					'G4031',
+					'G4032',
+					'G4033',
+					'G4034',
+					'G4035',
+					'G4036',
+					'G4037',
+					'G4038'
+					)
+				THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
 			WHEN concept_code IN (
 					'G6001',
 					'G6002',
@@ -643,35 +645,35 @@ AS (
 			WHEN l1.str = 'Temporary Codes Assigned to Durable Medical Equipment Regional Carriers'
 				THEN 'Device' -- Level 1: K0000-K9999
 			WHEN concept_code IN ('K1006',
-			                      'K1007',
-			                      'K1009',
-			                      'K1010',
-			                      'K1011',
-			                      'K1012',
-			                      'K1013',
-			                      'K1014',
-			                      'K1015',
-			                      'K1016',
-			                      'K1017',
-			                      'K1018',
-			                      'K1019',
-			                      'K1020',
-			                      'K1021',
-			                      'K1022',
-			                      'K1023',
-			                      'K1024',
-			                      'K1025',
-			                      'K1026',
-			                      'K1027',
-			                      'K1028',
-			                      'K1029',
-			                      'K1030',
-			                      'K1031',
-			                      'K1032',
-			                      'K1033',
-			                      'K1034'
-                )
-		        THEN 'Device'
+					'K1007',
+					'K1009',
+					'K1010',
+					'K1011',
+					'K1012',
+					'K1013',
+					'K1014',
+					'K1015',
+					'K1016',
+					'K1017',
+					'K1018',
+					'K1019',
+					'K1020',
+					'K1021',
+					'K1022',
+					'K1023',
+					'K1024',
+					'K1025',
+					'K1026',
+					'K1027',
+					'K1028',
+					'K1029',
+					'K1030',
+					'K1031',
+					'K1032',
+					'K1033',
+					'K1034'
+					)
+				THEN 'Device'
 					-- L codes
 			WHEN l1.str = 'L Codes'
 				THEN 'Device' -- Level 1: L0000-L9999
@@ -785,15 +787,15 @@ AS (
 				THEN 'Drug'
 			WHEN l2.str = 'Skin Substitutes (CMS Temporary Codes)'
 				THEN 'Device' -- Level 2: Q4100-Q4226
-		    WHEN concept_code IN (
-		            'Q4261',
-		            'Q4260',
-		            'Q4259',
-		            'Q4258',
-		            'Q4257',
-		            'Q4256'
-		                         )
-		        THEN 'Device' -- Allograft amniotic membrane
+			WHEN concept_code IN (
+					'Q4261',
+					'Q4260',
+					'Q4259',
+					'Q4258',
+					'Q4257',
+					'Q4256'
+					)
+				THEN 'Device' -- Allograft amniotic membrane
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
 			WHEN l2.str = 'Contrast Agents'
@@ -1114,7 +1116,7 @@ END $_$;
 
 --6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
 DO $_$
- BEGIN
+BEGIN
 	PERFORM dev_hcpcs.ProcedureDrug();
 END $_$;
 
@@ -1296,21 +1298,22 @@ WHERE c.concept_id = r.concept_id_1
 DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 IN (
-        'A9576',
-        'A9585',
-        'C9275',
-        'C9210',
-        'C9267',
+		'A9576',
+		'A9585',
+		'C9275',
+		'C9210',
+		'C9267',
 		'G0010',
-        'J0572',
+		'J0572',
 		'J0573',
-        'J7042',
-        'J7340',
+		'J7042',
+		'J7340',
 		'J0574',
 		'J9175',
 		'Q0178',
-        'Q0172',
-        'Q3022');
+		'Q0172',
+		'Q3022'
+		);
 
 --12. Append manual relationships
 DO $_$
@@ -1388,8 +1391,8 @@ FROM (
 						THEN 1
 					WHEN 'Provider'
 						THEN 2
-			        WHEN 'Device'
-			            THEN 3
+					WHEN 'Device'
+						THEN 3
 					ELSE 4
 					END
 			) AS domain_id
@@ -1413,7 +1416,7 @@ FROM (
 					WHEN 'Provider'
 						THEN 2
 					WHEN 'Device'
-			            THEN 3
+						THEN 3
 					ELSE 4
 					END
 			)

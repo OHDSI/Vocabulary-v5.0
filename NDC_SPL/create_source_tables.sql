@@ -50,7 +50,7 @@ CREATE TABLE SOURCES.PACKAGE
   productid                         VARCHAR(50),
   productndc                        VARCHAR(10),
   ndcpackagecode                    VARCHAR(500),
-  packagedescription                VARCHAR(1000),
+  packagedescription                TEXT,
   startmarketingdate                DATE,
   endmarketingdate                  DATE,
   ndc_exclude_flag                  VARCHAR(1),

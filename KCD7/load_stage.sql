@@ -118,8 +118,11 @@ JOIN concept c ON c.concept_code = cs.concept_code
 	AND c.vocabulary_id = 'ICD10'
 JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 	AND cr.invalid_reason IS NULL
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-	AND c2.vocabulary_id = 'SNOMED';
+	AND cr.relationship_id IN (
+		'Maps to',
+		'Maps to value'
+		)
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2;
 
 --6. Add "Subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -194,7 +197,7 @@ FROM (
 		AND cs1.vocabulary_id = 'KCD7'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		--AND c2.vocabulary_id = 'SNOMED'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	) i
@@ -216,10 +219,10 @@ FROM (
 						AND next_domain IS NOT NULL
 						THEN CASE 
 								WHEN prev_domain < next_domain
-									THEN prev_domain || '/' || next_domain
-								ELSE next_domain || '/' || prev_domain
+									THEN LEFT((prev_domain || '/' || next_domain),20) -- essential due to length constraints
+								ELSE LEFT((next_domain || '/' || prev_domain),20) -- essential due to length constraints
 								END -- prev and next domain are not same and not null both, with order by name
-					ELSE coalesce(prev_domain, next_domain, 'Condition')
+					ELSE COALESCE(prev_domain, next_domain, 'Condition')
 					END
 			END domain_id
 	FROM (
@@ -238,6 +241,11 @@ WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7'
 	AND c.domain_id IS NULL;
 
+--11.1 Detect and Update misclassified domains to Condition
+UPDATE concept_stage c
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Observatio';
+
 --12. Manual name fix
 UPDATE concept_stage
 SET concept_name = 'Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2'
@@ -246,6 +254,5 @@ WHERE concept_code = 'U07.1';
 UPDATE concept_synonym_stage
 SET synonym_name = '코로나바이러스질환2019[코로나-19]'
 WHERE synonym_concept_code = 'U07.1' and language_concept_id=4175771;
-
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

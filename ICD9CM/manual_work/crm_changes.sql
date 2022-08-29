@@ -27,12 +27,32 @@ $body$
         EXECUTE format('create table %I as select * from concept_relationship_manual',
                        'concept_relationship_manual_backup_' || update);
 
-        END
+    END
 $body$;
 
-TRUNCATE TABLE dev_icd10.concept_relationship_manual;
-INSERT INTO dev_icd10.concept_relationship_manual
-SELECT*FROM dev_icd10.concept_relationship_manual_backup_2022_04_25;
+--restore concept_relationship_manual table (run it only if something went wrong)
+TRUNCATE TABLE dev_icd9cm.concept_relationship_manual;
+INSERT INTO dev_icd9cm.concept_relationship_manual
+SELECT * FROM dev_icd9cm.concept_relationship_manual_backup_2022_04_26;
+
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE FORMAT('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
+
+    END
+$body$;
+
+--restore concept_manual table (run it only if something went wrong)
+/*TRUNCATE TABLE dev_icd9cm.concept_manual;
+INSERT INTO dev_icd9cm.concept_manual
+SELECT * FROM dev_icd9cm.concept_manual_backup_2022_06_01;*/
+
 
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
@@ -57,7 +77,7 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
     valid_end_date = to_date('20991231','yyyymmdd'),
-    valid_start_date =current_date
+        valid_start_date = current_date
 
 --SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
 WHERE invalid_reason = 'D' -- activate only deprecated mappings
@@ -71,12 +91,13 @@ WHERE invalid_reason = 'D' -- activate only deprecated mappings
         )
 ;
 
+
 -- insert new mapping
 with mapping AS -- select all new codes with their mappings from manual file
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'ICD10' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
+               'ICD9CM' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
                current_date AS valid_start_date, -- set the date of the refresh as valid_start_date
@@ -102,13 +123,17 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                concept_code_2, --to the same concept_code
                vocabulary_id_1,
                vocabulary_id_2, --of the same vocabulary
-               relationship_id) --with the same relationship
+               relationship_id, --with the same relationship
+               invalid_reason)
         NOT IN (SELECT concept_code_1,
                        concept_code_2,
                        vocabulary_id_1,
                        vocabulary_id_2,
-                       relationship_id FROM concept_relationship_manual)
+                       relationship_id,
+                       invalid_reason FROM concept_relationship_manual
+            )
     )
 ;
 
-SELECT * FROM concept_relationship_manual;
+
+

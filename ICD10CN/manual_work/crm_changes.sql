@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
@@ -27,12 +27,13 @@ $body$
         EXECUTE format('create table %I as select * from concept_relationship_manual',
                        'concept_relationship_manual_backup_' || update);
 
-        END
+    END
 $body$;
 
-TRUNCATE TABLE dev_icd10.concept_relationship_manual;
-INSERT INTO dev_icd10.concept_relationship_manual
-SELECT*FROM dev_icd10.concept_relationship_manual_backup_2022_04_25;
+TRUNCATE TABLE dev_icd10cn.concept_relationship_manual;
+INSERT INTO dev_icd10cn.concept_relationship_manual
+SELECT*FROM dev_icd10cn.concept_relationship_manual_backup_2022_05_16;
+
 
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
@@ -76,7 +77,7 @@ with mapping AS -- select all new codes with their mappings from manual file
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'ICD10' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
+               'ICD10CN' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
                current_date AS valid_start_date, -- set the date of the refresh as valid_start_date
@@ -102,13 +103,17 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                concept_code_2, --to the same concept_code
                vocabulary_id_1,
                vocabulary_id_2, --of the same vocabulary
-               relationship_id) --with the same relationship
+               relationship_id, --with the same relationship
+               invalid_reason)
         NOT IN (SELECT concept_code_1,
                        concept_code_2,
                        vocabulary_id_1,
                        vocabulary_id_2,
-                       relationship_id FROM concept_relationship_manual)
+                       relationship_id,
+                       invalid_reason FROM concept_relationship_manual
+            )
     )
 ;
 
-SELECT * FROM concept_relationship_manual;
+
+

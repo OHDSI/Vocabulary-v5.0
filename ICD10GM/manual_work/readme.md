@@ -1,6 +1,6 @@
 ### STEP 6 of the refresh: work with manual staging tables (skip this step if implementing on the Pallas vocabulary server)
-
-6.1.Extract the [respective csv file](https://drive.google.com/file/d/1ZjYCykojpUyxljZ4v1Qs3Yz72TiXWvKC/view?usp=sharing) into the concept_manual table. The file was generated using the query:
+Detected newly codes should be uploaded to concept manual (name translation via Google translate)
+6.1.Extract the [respective csv file](https://docs.google.com/spreadsheets/d/1nk66P2seuEcXrdcWxAzJePko6RgJ5_5CJHynIZKU7Xo/edit#gid=1634989798) into the concept_manual table. The file was generated using the query:
 ```sql
 SELECT concept_name,
        domain_id,
@@ -19,7 +19,7 @@ ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_en
 DELETE FROM concept_manual
 WHERE concept_code NOT IN (SELECT concept_code FROM sources.icd10gm);
 ```
-6.3.Extract the [respective csv file](https://drive.google.com/file/d/1oPJtaUuhhU7uDSQ6y2QwwFwmps_rRm5x/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
+6.3.Extract the [respective csv file](https://drive.google.com/file/d/1UaM9OEGXj7D5xvJHKj-JHiG1cGxX3Jm6/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
 ```sql
 SELECT concept_code_1,
        concept_code_2,

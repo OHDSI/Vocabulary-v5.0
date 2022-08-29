@@ -1,4 +1,3 @@
-  
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -13,14 +12,14 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
-
 DROP TABLE IF EXISTS refresh_lookup_done;
 TRUNCATE TABLE refresh_lookup_done;
 CREATE TABLE refresh_lookup_done (
+id serial primary key,
 icd_code VARCHAR,
 icd_name VARCHAR,
 repl_by_relationship VARCHAR,

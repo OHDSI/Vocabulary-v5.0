@@ -316,7 +316,31 @@ JOIN sources.icd10cn_concept ic2 ON ic2.concept_id = r.concept_id_2
 WHERE r.relationship_id = 'Is a'
 	AND ic1.concept_code_clean <> ic2.concept_code_clean;
 
---9. Find parents among ICD10 and ICDO3 to inherit mapping relationships from
+--9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--10. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--12. Update Domains
+--ICD10 Histologies are always Condition
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_class_id = 'ICD10 Histology';
+
+--13 Find parents among ICD10 and ICDO3 to inherit mapping relationships from
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --For LIKE patterns
 ANALYZE concept_stage;
 
@@ -360,7 +384,7 @@ FROM (
 		AND c2.concept_class_id = 'ICDO Condition'
 		AND c2.concept_code = c1.concept_code || '-NULL'
 	--Commented since we allow fuzzy match uphill for this iteration
-	-- where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
+	--where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
 	
 	UNION ALL
 	
@@ -378,9 +402,6 @@ FROM (
 			'ICD10 code',
 			'ICD10 Hierarchy'
 			)
-		--Exclude ICD10CN COVID-19 specific stuff that is mapped in CRM
-		AND cs.concept_code NOT LIKE 'U07.100%'
-		AND cs.concept_code <> 'Z03.800x001'
 	) i
 JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.invalid_reason IS NULL
@@ -388,31 +409,14 @@ JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c ON c.concept_id = r.concept_id_2;
-
---10. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---11. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---12. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---13. Update Domains 
---ICD10 Histologies are always Condition
-UPDATE concept_stage
-SET domain_id = 'Condition'
-WHERE concept_class_id = 'ICD10 Histology';
+JOIN concept c ON c.concept_id = r.concept_id_2
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = i.concept_code
+			AND crs.invalid_reason IS NULL
+			AND crs.relationship_id = 'Maps to'
+		);
 
 --From mapping target
 UPDATE concept_stage cs
@@ -482,7 +486,26 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
 
---14. Add "subsumes" relationship between concepts where the concept_code is like of another
+--14. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--14.1 BRAND NEW Add mapping from deprecated to fresh concepts (value level)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--15. Deprecate
+-- 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--16. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -599,7 +622,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---15. Cleanup
+--17. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE icd10cn_chapters, name_source, intervals;
 

@@ -30,9 +30,29 @@ $body$
         END
 $body$;
 
-TRUNCATE TABLE dev_icd10.concept_relationship_manual;
-INSERT INTO dev_icd10.concept_relationship_manual
-SELECT*FROM dev_icd10.concept_relationship_manual_backup_2022_04_25;
+--create current date backup of concept_manual table
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
+
+    END
+$body$;
+--Backup without new NON-translated codes - concept_manual_backup_2022_08_16
+--SELECT*FROM concept_manual_backup_2022_08_16;
+SELECT distinct *
+FROM concept_manual;
+
+
+
+TRUNCATE TABLE dev_cim10.concept_relationship_manual;
+INSERT INTO dev_cim10.concept_relationship_manual
+SELECT*FROM dev_cim10.concept_relationship_manual_backup_2022_05_18;
 
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
@@ -56,11 +76,12 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
 -- activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
-    valid_end_date = to_date('20991231','yyyymmdd'),
-    valid_start_date =current_date
+    valid_end_date = to_date('20991231','yyyymmdd')
 
 --SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
 WHERE invalid_reason = 'D' -- activate only deprecated mappings
+
+    AND concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh
 
     AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
                     FROM refresh_lookup_done rl
@@ -76,7 +97,7 @@ with mapping AS -- select all new codes with their mappings from manual file
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'ICD10' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
+               'CIM10' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
                current_date AS valid_start_date, -- set the date of the refresh as valid_start_date

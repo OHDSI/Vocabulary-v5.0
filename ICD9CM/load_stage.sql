@@ -343,7 +343,7 @@ FROM (
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'ICD9CM'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-	--	AND c2.vocabulary_id = 'SNOMED'
+		--AND c2.vocabulary_id = 'SNOMED'
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'

@@ -402,3 +402,25 @@ GROUP BY c.concept_name
 HAVING COUNT (*) >1
 ORDER BY when_added, concept_name
 ;
+
+--04. Concepts have replacement link, but miss "Maps to" link
+SELECT DISTINCT cr.concept_id_1, cr.relationship_id, cc.standard_concept
+FROM concept_relationship cr
+JOIN concept c
+    ON c.concept_id = cr.concept_id_1
+LEFT JOIN concept cc
+    ON cc.concept_id = cr.concept_id_2
+WHERE c.vocabulary_id IN (:your_vocabs)
+    AND EXISTS (SELECT concept_id_1
+                FROM concept_relationship cr1
+                WHERE cr1.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+                    AND cr1.invalid_reason IS NULL
+                    AND cr1.concept_id_1 = cr.concept_id_1)
+    AND NOT EXISTS (SELECT concept_id_1
+                    FROM concept_relationship cr2
+                    WHERE cr2.relationship_id IN ('Maps to')
+                        AND cr2.invalid_reason IS NULL
+                        AND cr2.concept_id_1 = cr.concept_id_1)
+    AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
+;

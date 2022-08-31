@@ -371,13 +371,50 @@ SELECT distinct
                 NULL as invalid_reason,
                 CURRENT_DATE AS valid_start_date,
                 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                aa.concept_code as concept_code_2,
-                aa.vocabulary_id as vocabulary_id_2
+                c.concept_code as concept_code_2,
+                c.vocabulary_id as vocabulary_id_2
 FROM concept_manual_nodes aa
 JOIN devv5.concept  c
 on c.concept_id = 36769180	--	Metastasis
 where aa.concept_name='Distant spread to lymph node'
 ;
+
+--Axis for distant spread creation
+INSERT INTO concept_relationship_manual_nodes (concept_code_1, relationship_id, vocabulary_id_1, invalid_reason, valid_start_date, valid_end_date, concept_code_2,vocabulary_id_2)
+SELECT distinct
+                aa.concept_code as concept_code_1,
+              'Is a' as relationship_id,
+                aa.vocabulary_id as vocabulary_id_1,
+                NULL as invalid_reason,
+                CURRENT_DATE AS valid_start_date,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                c.concept_code as concept_code_2,
+                c.vocabulary_id as vocabulary_id_2
+FROM concept_manual_nodes aa
+JOIN concept_manual_nodes  c
+on c.concept_name = 'Distant spread to lymph node'
+where aa.concept_name!='Distant spread to lymph node'
+and aa.concept_name ilike 'Distant%'
+;
+
+--Axis for regional spread creation
+INSERT INTO concept_relationship_manual_nodes (concept_code_1, relationship_id, vocabulary_id_1, invalid_reason, valid_start_date, valid_end_date, concept_code_2,vocabulary_id_2)
+SELECT distinct
+                aa.concept_code as concept_code_1,
+              'Is a' as relationship_id,
+                aa.vocabulary_id as vocabulary_id_1,
+                NULL as invalid_reason,
+                CURRENT_DATE AS valid_start_date,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                c.concept_code as concept_code_2,
+                c.vocabulary_id as vocabulary_id_2
+FROM concept_manual_nodes aa
+JOIN concept_manual_nodes  c
+on c.concept_name = 'Regional spread to lymph node'
+where aa.concept_name!='Regional spread to lymph node'
+and aa.concept_name ilike 'Regional%'
+;
+
 
 -- Use for mapping of existing CM codes
 SELECT distinct
@@ -393,5 +430,21 @@ WHERE c.vocabulary_id='Cancer Modifier'
 and concept_class_id='Nodes'
 ;
 
+SELECT distinct
+null as concept_id,concept_code,concept_name,standard_concept,invalid_reason,concept_class_id, domain_id,vocabulary_id
+FROM concept_manual_nodes
+where concept_code  in (SELECT concept_code_2 from concept_relationship_manual_nodes where relationship_id='Subsumes' )
+--and concept_name ilike 'Spread%'
+order by concept_name desc
+;
 
+SELECT distinct c.concept_name,r.relationship_id,coalesce(cc.concept_name,ccc.concept_name)
+from concept_relationship_manual_nodes r
+    left join concept_manual_nodes c on r.concept_code_1 = c.concept_code
+    left join concept_manual_nodes cc on r.concept_code_2 = cc.concept_code
+  left   join concept  ccc on r.concept_code_2 = ccc.concept_code and ccc.vocabulary_id='Cancer Modifier'
 
+where r.relationship_id in ('Subsumes','Is a')
+;
+SELECT *
+from concept_relationship_manual_nodes r

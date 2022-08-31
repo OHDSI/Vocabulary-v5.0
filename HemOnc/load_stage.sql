@@ -36,7 +36,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Create concept_stage. Take only the folowing concept classes in the first iteration
+--3. Create concept_stage. Take only the following concept classes in the first iteration
 INSERT INTO concept_stage
 SELECT NULL AS concept_id,
 	concept_name,
@@ -103,7 +103,10 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	r.relationship_id,
+	CASE WHEN r.relationship_id = 'Is historical in adult' then 'Is hstrcl in adlt'
+	          WHEN r.relationship_id = 'Is current in pediatric' then 'Is current in pdtrc'
+              WHEN r.relationship_id = 'Has investigational use' then 'Has invstg use'
+	    else r.relationship_id end as relationship_id,
 	( SELECT latest_update
 			FROM vocabulary
 			WHERE vocabulary_id = 'HemOnc'

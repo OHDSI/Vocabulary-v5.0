@@ -116,20 +116,7 @@ on c2.concept_id= 36769180	--	Metastasis
 and c.concept_code = 	'OMOP4998920'	-- Distant Lymph Nodes
 ;
 
-SELECT distinct split_part(split_part(concept_code,'_',2),'-',1)
-FROM concept
-WHERE concept_class_id='Staging/Grading'
-and standard_concept='S'
-
-UNION ALL
-
-SELECT distinct split_part(concept_code,'-',1)
-FROM concept
-WHERE concept_class_id='Staging/Grading'
-and standard_concept='S'
-and
-
-
+--Classifiers
  SELECT
         'FIGO finding'  as concept_name,
         'Measurement'        as domain_id,
@@ -214,7 +201,7 @@ UNION ALL
         'Cancer Modifier'    as vocabulary_id,
         'Staging/Grading' as concept_class_id,
         'C'                     standard_concept,
-        'ann_arbor'          as concept_code,
+        'Ann_Arbor'          as concept_code,
         CURRENT_DATE         as valid_start_date,
         '2099-12-31'::date   as valid_end_date,
         NULL                 as invalid_reason
@@ -227,7 +214,7 @@ UNION ALL
         'Cancer Modifier'    as vocabulary_id,
         'Staging/Grading' as concept_class_id,
         'C'                     standard_concept,
-        'binet'          as concept_code,
+        'Binet'          as concept_code,
         CURRENT_DATE         as valid_start_date,
         '2099-12-31'::date   as valid_end_date,
         NULL                 as invalid_reason
@@ -305,7 +292,7 @@ UNION ALL
         'Cancer Modifier'    as vocabulary_id,
         'Staging/Grading' as concept_class_id,
         'C'                     standard_concept,
-        'enneking'          as concept_code,
+        'Enneking'          as concept_code,
         CURRENT_DATE         as valid_start_date,
         '2099-12-31'::date   as valid_end_date,
         NULL                 as invalid_reason
@@ -330,7 +317,7 @@ UNION ALL
         'Cancer Modifier'    as vocabulary_id,
         'Staging/Grading' as concept_class_id,
         'C'                     standard_concept,
-        'evans'          as concept_code,
+        'Evans'          as concept_code,
         CURRENT_DATE         as valid_start_date,
         '2099-12-31'::date   as valid_end_date,
         NULL                 as invalid_reason
@@ -434,7 +421,7 @@ UNION ALL
         'Cancer Modifier'    as vocabulary_id,
         'Staging/Grading' as concept_class_id,
         'C'                     standard_concept,
-        'lugano'          as concept_code,
+        'Lugano'          as concept_code,
         CURRENT_DATE         as valid_start_date,
         '2099-12-31'::date   as valid_end_date,
         NULL                 as invalid_reason

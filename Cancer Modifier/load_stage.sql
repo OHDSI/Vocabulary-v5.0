@@ -31,15 +31,15 @@ BEGIN
     pVocabularyDate			=> to_date ('2018-03-02', 'yyyy-mm-dd'), -- https://www.naaccr.org/data-standards-data-dictionary/#DataDictionary -- Version 18 Data Standards and Data Dictionary – (posted 3/2/18;
 	pVocabularyVersion		=> 'NAACCR v18',
 	pVocabularyDevSchema	=> 'dev_cancer_modifier',
-	pAppendVocabulary		=> TRUE
-);*/ --commented for the current run
-    PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pAppendVocabulary		=> TRUE*/
+/*);*/ --commented for the current run
+/*    PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'NCIt',
     pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> ' NCIt ' ||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'dev_cancer_modifier',
 	pAppendVocabulary		=> TRUE
-);
+);*/
 END $_$;
 
 -- 2. Truncate all working tables

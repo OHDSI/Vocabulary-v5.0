@@ -26,6 +26,13 @@ BEGIN
 	pVocabularyVersion		=> 'NAACCR v18',
 	pVocabularyDevSchema	=> 'dev_naaccr'
 	);
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'ICDO3',
+	pVocabularyDate			=> TO_DATE ('20200630', 'yyyymmdd'), -- https://seer.cancer.gov/ICDO3/
+	pVocabularyVersion		=> 'ICDO3 SEER Site/Histology Released 06/2020',
+	pVocabularyDevSchema	=> 'dev_naaccr',
+	pAppendVocabulary		=> TRUE
+); --commented for the current run
 	END $_$;
 
 -- 2. Truncate all working tables

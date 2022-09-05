@@ -246,10 +246,10 @@ BEGIN
                 cVocabVer := 'DPD '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'CVX'
             THEN
-                select max(parsed.last_updated) into cVocabDate from (
+                select max(TO_DATE(parsed.last_updated,'mm/dd/yyyy')) into cVocabDate from (
                   select unnest(regexp_matches(cVocabHTML,'<div class=''table-responsive''>(<table class.+?</table>)<div/>','g'))::xml xmlfield) cvx_table
                   cross join xmltable ('/table/tr' passing cvx_table.xmlfield
-                    columns last_updated date path 'td[5]'
+                    columns last_updated text path 'td[5]'
                   ) parsed;
                 cVocabVer := 'CVX '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'BDPM'

@@ -74,6 +74,8 @@ SELECT
 FROM concept
 where concept_id =36768587	--	Lymph Nodes
 ;
+
+--Regional LN renaming
 INSERT  INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 SELECT
     'Regional spread to lymph node'   as concept_name,
@@ -88,7 +90,160 @@ SELECT
 FROM concept
 where concept_id =36769269	--	Regional Lymph Nodes
 ;
+--Rename of post therapy clinical
+INSERT  INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+SELECT
+regexp_replace(concept_name,'clinica ','clinical ','g') as concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason
+    FROM concept
+        where concept_name ilike '%clinica %'
+and standard_concept='S'
+and vocabulary_id='Cancer Modifier'
+and concept_class_id='Staging/Grading'
+;
 
+--  ETL-driiven request
+ INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+ SELECT
+        'Nottingham nuclear score 1'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+        'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-nScore-1'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham nuclear score 2'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-nScore-2'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham nuclear score 3'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-nScore-3'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham mitotic score 1'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-mScore-1'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham mitotic score 2'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-mScore-2'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham mitotic score 3'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-mScore-3'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham tubular score 1'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-tScore-1'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham tubular score 2'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-tScore-2'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+
+UNION ALL
+
+ SELECT
+        'Nottingham tubular score 3'  as concept_name,
+        'Measurement'        as domain_id,
+        'Cancer Modifier'    as vocabulary_id,
+     'Staging/Grading' as concept_class_id,
+        'S'                     standard_concept,
+        'Nottingham-tScore-3'          as concept_code,
+        CURRENT_DATE         as valid_start_date,
+        '2099-12-31'::date   as valid_end_date,
+        NULL                 as invalid_reason
+;
+
+--Is a
+INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
+SELECT distinct concept_code_1,
+                'Cancer Modifier' as vocabulary_id_1,
+                        CURRENT_DATE as valid_start_date,
+                         '2099-12-31'::date as valid_end_date,
+                                         null         as invalid_reason,
+                                'Is a'    as relationship_id,
+                             concept_code_2,
+                'Cancer Modifier' as vocabulary_id_2
+FROM (
+select c.concept_code as concept_code_1,cc.concept_code as concept_code_2,row_number() OVER (PARTITION BY c.concept_code ORDER BY length(cc.concept_code) DESC)  AS rating_in_section
+FROM concept_manual c
+join concept cc
+on c.concept_code ilike cc.concept_code || '%'
+and c.concept_code<>cc.concept_code
+    and c.standard_concept='S'
+    and cc.standard_concept='S'
+    and cc.standard_concept='S'
+and cc.vocabulary_id='Cancer Modifier'
+and cc.concept_class_id='Staging/Grading')
+    as tablescd
+where rating_in_section=1
+and (concept_code_1,'Is a',concept_code_2) NOT IN (select concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual_staging  where concept_relationship_manual_staging .concept_code_1=concept_relationship_manual_staging .concept_code_2 UNION ALL SELECT c.concept_code,relationship_id,cc.concept_code from concept c join concept_relationship cr on c.concept_id = cr.concept_id_1 and c.concept_class_id='Staging/Grading'  and cr.relationship_id='Is a' and cr.invalid_reason is null join concept cc on cr.concept_id_2=cc.concept_id and cc.concept_class_id='Staging/Grading')
+;
 --Relationship Creation
 INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
 SELECT c.concept_code as concept_code_1,
@@ -630,7 +785,26 @@ SELECT distinct
                 vocabulary_id_2
 FROM tab
 where ancest=1
+and concept_code<>concept_code_2
 ;
 
-
-
+--Manual Is a
+INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
+SELECT
+                c.concept_code                                                                       as concept_code_1,
+                c.vocabulary_id                                                                      as vocabulary_id_1,
+                'Is a'                                                                         as relationship_id,
+                CURRENT_DATE                                                                         as valid_start_date,
+                '2099-12-31'::date                                                                   as valid_end_date,
+                NULL                                                                                 as invalid_reason,
+                a.concept_code                                                                       as concept_code_2,
+                a.vocabulary_id                                                                      as vocabulary_id_2
+         FROM concept_manual c
+         left JOIN concept_manual a
+                    ON split_part(c.concept_code,'-',1) ilike '%' || a.concept_code || '%'
+         where c.concept_class_id = 'Staging/Grading'
+           and c.standard_concept = 'S'
+           and a.standard_concept ='C'
+         and c.concept_code <>'Stage-DS'
+and a.concept_code<>c.concept_code
+;

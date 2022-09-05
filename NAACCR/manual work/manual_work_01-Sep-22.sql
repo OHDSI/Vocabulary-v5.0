@@ -37,7 +37,9 @@ SELECT *
 FROM concept_relationship_manual;
 
 TRUNCATE concept_relationship_manual;
-
+INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
+SELECT concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
+FROM concept_relationship_manual_backup_2022_09_01;
 --How we can deal with unpredictable combinations in Gleason
 SELECT *
 FROM concept_relationship_manual_refresh
@@ -67,9 +69,7 @@ SELECT concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, vali
 FROM concept_relationship_manual_refresh;
 ;
 
-INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
-SELECT concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
-FROM concept_relationship_manual_backup_2022_09_01;
+
 
 INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 SELECT concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason

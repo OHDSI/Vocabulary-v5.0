@@ -385,6 +385,14 @@ JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	-- 15704 has empty name, typo, I suppose
 	AND css.synonym_name IS NOT NULL;
 
+
+--11,1 Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+
 --12. Replace 'Was replaced by' to 'Concept replaced by' (need to tell Jeremy)
 UPDATE concept_relationship_stage
 SET relationship_id = 'Concept replaced by'

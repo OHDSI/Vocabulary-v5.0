@@ -13,8 +13,13 @@ Prerequisites:
 3. Download the latest file https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets/HCPCS-Quarterly-Update file name Mon-YYYY-Alpha-Numeric-HCPCS-File.zip
 4. Extract HCPCYYYY_CONTR_ANWEB.xlsx and rename to HCPC_CONTR_ANWEB.xlsx
 5. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('HCPCS',TO_DATE('20171106','YYYYMMDD'),'2018 Alpha Numeric HCPCS File');
-6. Run load_stage.sql
-7. Run generic_update: devv5.GenericUpdate();
+_-- If you already have the source tables uploaded in the vocab schema then start with step 6_
+6. Run fast_recreate_schema.sql 
+7. Run load_stage.sql 
+8. Run generic_update: devv5.GenericUpdate(); 
+9. Perform the manual work 
+10. Repeat steps 6-8 
+11. Perform vocab specific QA and general checks found here: [https://github.com/Alexdavv/IntermediateWork/blob/master/vocabularies%20QA%20and%20run.sql]()
 
 CSV sources for CONCEPT_MANUAL and CONCEPT_RELATIONSHIP_MANUAL are available here:
 https://drive.google.com/drive/u/2/folders/1mvXzaXW9294RaDC2DgnM1qBi1agCwxHJ

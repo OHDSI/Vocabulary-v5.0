@@ -72,25 +72,7 @@ and r.invalid_reason is null
 and r.concept_id_2<>r.concept_id_1;
 
 
--- deprecate previous inaccurate mapping
-UPDATE concept_relationship_manual crm
-SET invalid_reason = 'D',
-    valid_end_date = current_date-1
 
---SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
-WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order to preserve the original deprecation date
-
-    AND concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual_refresh where relationship_id='Maps to') --work only with the codes presented in the manual file of the current vocabulary refresh
-
-    AND NOT EXISTS (SELECT 1 --don't deprecate mapping if the same exists in the current manual file
-                    FROM concept_relationship_manual_refresh rl
-                    WHERE rl.concept_code_1 = crm.concept_code_1 --the same source_code is mapped
-                        AND rl.concept_code_2 = crm.concept_code_2 --to the same concept_code
-                        AND rl.vocabulary_id_2 = crm.vocabulary_id_2 --of the same vocabulary
-                        AND rl.relationship_id = crm.relationship_id --with the same relationship
-        )
-and crm.relationship_id IN ('Maps to', 'Maps to value')
-;
 
 --Mapping insertion
 INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
@@ -112,4 +94,25 @@ where exists (select 1
      where crm.concept_code_1=cm.concept_code
     and crm.vocabulary_id_1=cm.vocabulary_id)
 and cm.standard_concept is not null
+;
+
+
+-- deprecate previous inaccurate mapping
+UPDATE concept_relationship_manual crm
+SET invalid_reason = 'D',
+    valid_end_date = current_date-1
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order to preserve the original deprecation date
+
+    AND concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual_refresh where relationship_id='Maps to') --work only with the codes presented in the manual file of the current vocabulary refresh
+
+    AND NOT EXISTS (SELECT 1 --don't deprecate mapping if the same exists in the current manual file
+                    FROM concept_relationship_manual_refresh rl
+                    WHERE rl.concept_code_1 = crm.concept_code_1 --the same source_code is mapped
+                        AND rl.concept_code_2 = crm.concept_code_2 --to the same concept_code
+                        AND rl.vocabulary_id_2 = crm.vocabulary_id_2 --of the same vocabulary
+                        AND rl.relationship_id = crm.relationship_id --with the same relationship
+        )
+and crm.relationship_id IN ('Maps to', 'Maps to value')
 ;

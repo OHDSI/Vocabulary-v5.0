@@ -76,7 +76,7 @@ and r.concept_id_2<>r.concept_id_1;
 
 --Mapping insertion
 INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
-SELECT concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
+SELECT concept_code_1, vocabulary_id_1,  relationship_id, CURRENT_DATE as valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
 FROM concept_relationship_manual_refresh
 where (concept_code_1,relationship_id,concept_code_2) NOT IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual);
 ;

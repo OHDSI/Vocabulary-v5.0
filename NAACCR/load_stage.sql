@@ -26,13 +26,13 @@ BEGIN
 	pVocabularyVersion		=> 'NAACCR v18',
 	pVocabularyDevSchema	=> 'dev_naaccr'
 	);
-	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+/*	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ICDO3',
 	pVocabularyDate			=> TO_DATE ('20200630', 'yyyymmdd'), -- https://seer.cancer.gov/ICDO3/
 	pVocabularyVersion		=> 'ICDO3 SEER Site/Histology Released 06/2020',
 	pVocabularyDevSchema	=> 'dev_naaccr',
 	pAppendVocabulary		=> TRUE
-); --commented for the current run
+); --commented for the current run*/
 	END $_$;
 
 -- 2. Truncate all working tables
@@ -65,7 +65,27 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
+END $_$;\
+--  4.1 Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> ICDO3, but currently we are updating NAACCR)
+DELETE
+FROM concept_relationship_stage crs_o
+WHERE (
+		crs_o.concept_code_1,
+		crs_o.vocabulary_id_1,
+		crs_o.concept_code_2,
+		crs_o.vocabulary_id_2
+		) IN (
+		SELECT crs.concept_code_1,
+			crs.vocabulary_id_1,
+			crs.concept_code_2,
+			crs.vocabulary_id_2
+		FROM concept_relationship_stage crs
+		LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			AND v1.latest_update IS NOT NULL
+		LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2
+			AND v2.latest_update IS NOT NULL
+		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
+		);
 
 --5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$

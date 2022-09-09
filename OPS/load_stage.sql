@@ -48,7 +48,7 @@ codes_date as
 			(start_year || '-01-01') :: date as valid_start_date,
 			case end_year
 				when (select max(year) from ops_src_agg) then '2099-12-31' :: date
-				else (end_year+1 || '-01-01') :: date
+				else (end_year || '-12-31') :: date
 			end as valid_end_date
 		from codes_lifespan
 	)

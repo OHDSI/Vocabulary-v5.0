@@ -386,12 +386,19 @@ JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND css.synonym_name IS NOT NULL;
 
 
---11,1 Working with manual synonyms
+--11.1 Working with manual synonyms
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
+--Unify Concept_id
+UPDATE concept_synonym_stage
+SET synonym_concept_id = null;
+
+--Delete codes non-existing in Release
+DELETE FROM
+concept_synonym_stage where synonym_concept_code NOT IN (SELECT distinct concept_code from concept_stage)
 
 --12. Replace 'Was replaced by' to 'Concept replaced by' (need to tell Jeremy)
 UPDATE concept_relationship_stage

@@ -65,8 +65,9 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;\
---  4.1 Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> ICDO3, but currently we are updating NAACCR)
+END $_$;
+
+--4.1. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> ICDO3, but currently we are updating NAACCR)
 DELETE
 FROM concept_relationship_stage crs_o
 WHERE (
@@ -92,3 +93,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

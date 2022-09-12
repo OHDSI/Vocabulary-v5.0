@@ -1067,7 +1067,7 @@ JOIN concept c1 ON c1.concept_code = a.sn_key -- LOINC to SNOMED relationship_id
 		)
 JOIN concept c2 ON c2.concept_code = a.sn_value -- SNOMED Attribute
 	AND c2.vocabulary_id = 'SNOMED'
-	AND c2.invalid_reason IS NULL
+	AND (c2.invalid_reason IS NULL or c2.concept_code = '41598000') --Estrogen. This concept is invalid, but is used as component
 JOIN vocabulary v ON cs.vocabulary_id = v.vocabulary_id;
 
 --19. Build 'Is a' from LOINC Measurements to SNOMED Measurements in concept_relationship_stage to create a hierarchical cross-walks;
@@ -1088,7 +1088,7 @@ CREATE UNLOGGED TABLE sn_attr AS
 						cr.relationship_id
 						) AS cnt
 				FROM concept c1
-				JOIN concept_relationship cr ON cr.concept_id_1=c1.concept_id
+				JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 					AND cr.invalid_reason IS NULL
 				JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 				WHERE c1.vocabulary_id = 'SNOMED'
@@ -1113,8 +1113,9 @@ CREATE UNLOGGED TABLE sn_attr AS
 						'Inheres in'
 						)
 				) kk
-			WHERE kk.cnt = 1
-				AND kk.sn_name NOT ilike '%screening%'
+			WHERE /*kk.cnt = 1
+				AND*/ --Take concepts only with one component/scale and ect, so not all concepts have right hierarchy
+			      kk.sn_name NOT ilike '%screening%'
 				AND kk.sn_code NOT IN (
 					'104193001',
 					'104194007',
@@ -1153,6 +1154,13 @@ CREATE UNLOGGED TABLE sn_attr AS
 					AND c.concept_code = f.id::VARCHAR
 				) AS s0
 			WHERE statusid = 900000000000073002
+
+		    UNION
+            SELECT cc.concept_code, d.statusid AS statusid
+		    FROM sources.sct2_concept_full_merged d
+		    JOIN concept cc ON cc.vocabulary_id = 'SNOMED'
+					AND cc.concept_code = d.id::VARCHAR
+		    WHERE d.id = '41598000' and d.statusid = '900000000000073002' --This union is needed to take Estrogen component
 			)
 
 SELECT zz.*
@@ -1160,7 +1168,7 @@ FROM t1 zz
 JOIN snomed_concept sc ON sc.concept_code = zz.sn_code;
 
 --create an index for the temporary table of 'sn_attr' to speed up next table creation
-CREATE INDEX idx_sa_name ON sn_attr (LOWER (attr_name));
+CREATE INDEX idx_sa_name ON sn_attr (LOWER(attr_name));
 CREATE INDEX idx_sa_sncode ON sn_attr (sn_code);
 ANALYZE sn_attr;
 
@@ -1254,7 +1262,7 @@ CREATE UNLOGGED TABLE lc_attr AS (
 			AND cs.domain_id = 'Measurement'
 		JOIN concept c ON c.concept_code = crs.concept_code_2
 			AND c.vocabulary_id = crs.vocabulary_id_2 -- SNOMED Attribute
-			AND c.invalid_reason IS NULL
+			AND (c.invalid_reason IS NULL OR c.concept_code = '41598000') --To take Estrogen component
 		WHERE (
 				crs.concept_code_1,
 				crs.relationship_id
@@ -1445,12 +1453,12 @@ WITH ax_1 AS (
 			AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
 		WHERE x1.relationship_id = 'Has component'
 			AND x2.relationship_id = 'Has specimen'
-			AND x1.sn_code IN (
+			AND (x1.sn_code IN (
 				SELECT sn_attr_int.sn_code
 				FROM sn_attr sn_attr_int
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 2
-				) -- to restrict SNOMED attribute pool
+				) /*to restrict SNOMED attribute pool*/ OR x1.attr_code = '41598000') --To take Estrogen component
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int

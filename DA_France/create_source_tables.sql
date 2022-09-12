@@ -1,69 +1,21 @@
---At least these tables to be updated during refresh:
---1) FRANCE (OBLIGATORY)
---2) Data_NFC_Reference
---3) Data_NFC_Dictionary
-
 CREATE TABLE FRANCE
 (
-    PRODUCT_DESC    VARCHAR (450), --DESCR_PROD
-    FORM_DESC       VARCHAR (250),--DESCR_FORME
-    DOSAGE          VARCHAR (100), --VL_WG_UNIT (as it needed to be stored somewhere)
-    DOSAGE_ADD      VARCHAR (100), --ADDOS
-    VOLUME          VARCHAR (100), --VL_WG_MEAS (based on load_stage (e.g. regexp_replace(volume, '\d*(\.)?(\d)*', '', 'g') = 'ML'))  -> then UPDATE WITH CONCATENATION OF VL_WG_UNIT || ' ' || VL_WG_MEAS ( based on substring(volume, '(\d+(\.\d+)*)')::FLOAT,)
-    PACKSIZE        VARCHAR (100), --PCK_SIZE
-    CLAATC          VARCHAR (100), --CODE_ATC
-    PFC             VARCHAR (100), --CODE_PFC
-    MOLECULE        VARCHAR (1024), --MOLECULE
-    CD_NFC_3        VARCHAR (250), -- CD_NFC_3
-    ENGLISH         VARCHAR (250), -- retrieve from Update table
-    LB_NFC_3        VARCHAR (250), -- retrieve from Update table
-    DESCR_PCK       VARCHAR (250), -- DESCR_PCK
-    STRG_UNIT       VARCHAR (100), --STRG_UNIT
-    STRG_MEAS       VARCHAR (100) --STRG_MEAS
+    PRODUCT_DESC    VARCHAR (250),
+    FORM_DESC       VARCHAR (250),
+    DOSAGE          VARCHAR (100),
+    DOSAGE_ADD      VARCHAR (100),
+    VOLUME          VARCHAR (100),
+    PACKSIZE        VARCHAR (100),
+    CLAATC          VARCHAR (100),
+    PFC             VARCHAR (100),
+    MOLECULE        VARCHAR (450),
+    CD_NFC_3        VARCHAR (250),
+    ENGLISH         VARCHAR (250),
+    LB_NFC_3        VARCHAR (250),
+    DESCR_PCK       VARCHAR (250),
+    STRG_UNIT       VARCHAR (100),
+    STRG_MEAS       VARCHAR (100)
 );
-
--- Based on substring(volume, '(\d+(\.\d+)*)')::FLOAT,)
-UPDATE FRANCE
-SET VOLUME = CONCAT(DOSAGE,' ',VOLUME )
-;
-
---After population of VOLUME rebuild the DOSAGE according to https://docs.google.com/document/d/1Fp4Ru2ONqlb9x4ch_IRifXrV810BGznfpKbc_a96P2M/edit
---Needed in case when we decide to rerun the Script
-UPDATE FRANCE
-SET DOSAGE = CONCAT(STRG_UNIT,' ',STRG_MEAS )
-;
-
-CREATE TABLE Data_NFC_Reference
-(
-
-    CD_NFC_3 VARCHAR (255),
-        LB_NFC_3 VARCHAR (255),
-        CD_NFC_2	 VARCHAR (255),
-        LB_NFC_2	VARCHAR (255),
-        CD_NFC_1	VARCHAR (255),
-        LB_NFC_1	VARCHAR (255),
-        TOPICAL VARCHAR (255)
-);
-
-
-UPDATE FRANCE f
-SET LB_NFC_3 = r.LB_NFC_3
-FROM Data_NFC_Reference r
-where r.CD_NFC_3=f.CD_NFC_3;
-
-CREATE TABLE Data_NFC_Dictionary
-(
-
-     CD_NFC_1 VARCHAR (255),
-     LB_NFC_1 VARCHAR (255),
-     English	 VARCHAR (255)
-);
-
-UPDATE FRANCE f
-SET english = r.English
-FROM Data_NFC_Dictionary r
-where r.CD_NFC_1= left(f.CD_NFC_3,1);
-
 
 CREATE TABLE DRUG_CONCEPT_STAGE
 (
@@ -172,7 +124,3 @@ CREATE TABLE COMPLETE_NAME
     CONCEPT_CODE    VARCHAR (50),
     CONCEPT_NAME    VARCHAR (255)
 );
-
-
-
-

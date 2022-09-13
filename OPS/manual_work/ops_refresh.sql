@@ -15,7 +15,7 @@ $body$;
 --restore concept_relationship_manual table (!!!run it only if something went wrong!!!)
 /*TRUNCATE TABLE dev_ops.concept_relationship_manual;
 INSERT INTO dev_ops.concept_relationship_manual
-SELECT * FROM dev_ops.concept_relationship_manual_backup_YYYY_MM_DD;*/
+SELECT * FROM dev_ops.concept_relationship_manual_backup_2022_09_09;*/
 
 DO
 $body$
@@ -33,7 +33,7 @@ $body$;
 --restore concept_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_ops.concept_manual;
 INSERT INTO dev_ops.concept_manual
-SELECT * FROM dev_ops.concept_manual_backup_YYYY_MM_DD;*/
+SELECT * FROM dev_ops.concept_manual_backup_2022_09_09;*/
 
 -- 7.3.2. Create table ops_delta_translated.
 CREATE TABLE dev_ops.ops_delta_translated
@@ -47,10 +47,11 @@ CREATE TABLE dev_ops.ops_delta_translated
 
 -- 7.3.4. Insert the translation into the concept__manual table.
 
-INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code)
+INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, invalid_reason)
     (SELECT concept_name_en as concept_name,
             'OPS' as vocabulary_id,
-            t.concept_code as concept_code
+            t.concept_code as concept_code,
+            'X' as invalid_reason
      FROM dev_ops.ops_delta_translated t
         WHERE concept_code
                   NOT IN (SELECT concept_code FROM dev_ops.concept_manual)

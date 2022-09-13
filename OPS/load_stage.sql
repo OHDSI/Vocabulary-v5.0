@@ -75,8 +75,8 @@ codes_date as
 			modifier,code,
 			(start_year || '-01-01') :: date as valid_start_date,
 			case end_year
-				when (select max(year) from ops_src_agg) then '2099-12-31' :: date
-				else (end_year+1 || '-01-01') :: date
+				when (select max(year) from ops_mod_src) then '2099-12-31' :: date
+				else (end_year || '-12-31') :: date
 			end as valid_end_date
 		from codes_lifespan
 	)
@@ -97,11 +97,12 @@ select
 	concat (h.code, a.code) as code,
 	a.label_de as label_de,
 	h.code as superclass,
-	a.valid_start_date,
-	a.valid_end_date
+	h.valid_start_date,
+	h.valid_end_date
 from hierarchy_full h
 join modifiers_append a on
 	h.modifiedby = a.modifier
+
 where a.modifier = a.superclass
 ;
 --superclass must be created from parent modifier
@@ -121,7 +122,7 @@ join modifiers_append b on
 	b.code = a.superclass
 where a.modifier != a.superclass
 ;
---3. Use hierarchy_full to create a single table concept_stage_de with full German concept names 
+--3. Use hierarchy_full to create a single table concept_stage_de with full German concept names
 drop table if exists concept_stage_de
 ;
 create table concept_stage_de as
@@ -200,7 +201,7 @@ from hierarchy_full h
 join concept_stage a on
 	h.superclass = a.concept_code
 ;
-delete from concept_stage 
+delete from concept_stage
 where concept_code in (
 select concept_code from concept_stage
 group by concept_code

@@ -1,3 +1,66 @@
+--DDL (predicted data type)
+CREATE TABLE genomic_civic_variantsummaries
+(
+  variant_id varchar(255),
+           variant_civic_url varchar(255),
+           gene varchar(255),
+           entrez_id varchar(255),
+           variant varchar(255),
+           summary varchar(255),
+           variant_groups varchar(255),
+           chromosome varchar(255),
+           civic_start varchar(255),
+           civic_stop varchar(255),
+           reference_bases varchar(255),
+           variant_bases varchar(255),
+           representative_transcript varchar(255),
+           ensembl_version varchar(255),
+           reference_build varchar(255),
+           chromosome2 varchar(255),
+           civic_start2 varchar(255),
+           civic_stop2 varchar(255),
+           representative_transcript2 varchar(255),
+           variant_types varchar(255),
+           hgvs_expressions varchar(255),
+           last_review_date varchar(255),
+           civic_variant_evidence_score varchar(255),
+           allele_registry_id varchar(255),
+           clinvar_ids varchar(255),
+           variant_aliases varchar(255),
+           assertion_ids varchar(255),
+           assertion_civic_urls varchar(255)
+    )
+;
+
 DROP TABLE IF EXISTS dev_civic.genomic_civic_variantsummaries;
 CREATE TABLE dev_civic.genomic_civic_variantsummaries
-as (select * from sources.genomic_civic_variantsummaries);
+as (select
+           variant_id,
+           variant_civic_url,
+           gene,
+           entrez_id,
+           variant,
+           summary,
+           variant_groups,
+           chromosome,
+           civic_start,
+           civic_stop,
+           reference_bases,
+           variant_bases,
+           representative_transcript,
+           ensembl_version,
+           reference_build,
+           chromosome2,
+           civic_start2,
+           civic_stop2,
+           representative_transcript2,
+           variant_types,
+           hgvs_expressions,
+           last_review_date,
+           civic_variant_evidence_score,
+           allele_registry_id,
+           clinvar_ids,
+           variant_aliases,
+           assertion_ids,
+           assertion_civic_urls
+    from sources.genomic_civic_variantsummaries);

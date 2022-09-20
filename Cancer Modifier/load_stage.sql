@@ -33,13 +33,13 @@ BEGIN
 	pVocabularyDevSchema	=> 'dev_cancer_modifier',
 	pAppendVocabulary		=> TRUE
 );*/ --commented for the current run
-    PERFORM VOCABULARY_PACK.SetLatestUpdate(
+/*    PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'NCIt',
     pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> ' NCIt ' ||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'dev_cancer_modifier',
 	pAppendVocabulary		=> TRUE
-);
+);*/
 END $_$;
 
 -- 2. Truncate all working tables

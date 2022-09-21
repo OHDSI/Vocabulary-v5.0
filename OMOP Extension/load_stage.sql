@@ -243,18 +243,18 @@ SELECT an.ancestor_concept_code,
 	an.ancestor_vocabulary_id,
 	an.descendant_concept_code,
 	an.descendant_vocabulary_id,
-	/*CASE WHEN NOT an.approved_domains_array @> ARRAY [an.descendant_domain_id]
+	CASE WHEN NOT an.approved_domains_array @> ARRAY [an.descendant_domain_id]
 			AND cs.domain_id = '-1' THEN an.descendant_domain_id END AS domain_not_in_list,
 	CASE WHEN NOT an.approved_concept_class_array @> ARRAY [an.descendant_concept_class_id]
-			AND cs.concept_class_id = '-1' THEN an.descendant_concept_class_id END AS class_not_in_list,*/
+			AND cs.concept_class_id = '-1' THEN an.descendant_concept_class_id END AS class_not_in_list,
 	array_to_string(an.hierarchy_path, ' -> ') AS hierarchy_path
 FROM omop_ext_ancestor an
 JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 	AND cs.vocabulary_id = an.ancestor_vocabulary_id
-	/*AND '-1' IN (
+	AND '-1' IN (
 		cs.domain_id,
 		cs.concept_class_id
-		)*/
+		)
 ORDER BY 1, 2, 3, 4;
 
 --clean up

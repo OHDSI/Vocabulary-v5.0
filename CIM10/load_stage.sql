@@ -48,12 +48,12 @@ SELECT s1.modifierclass_code,
 FROM (
 	SELECT *
 	FROM (
-		SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR modifierclass_code,
-			(xpath('./@modifier', i.xmlfield))[1]::VARCHAR modifierclass_modifier,
-			(xpath('./SuperClass/@code', i.xmlfield))[1]::VARCHAR superclass_code,
-			UNNEST(xpath('./Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
-			UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-			UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
+		SELECT (xpath('/ModifierClass/@code', i.xmlfield))[1]::VARCHAR modifierclass_code,
+			(xpath('/ModifierClass/@modifier', i.xmlfield))[1]::VARCHAR modifierclass_modifier,
+			(xpath('/ModifierClass/SuperClass/@code', i.xmlfield))[1]::VARCHAR superclass_code,
+			UNNEST(xpath('/ModifierClass/Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
+			UNNEST(xpath('/ModifierClass/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+			UNNEST(xpath('/ModifierClass/Rubric', i.xmlfield)) rubric_label
 		FROM (
 			SELECT UNNEST(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
 			FROM sources.cim10 i
@@ -77,17 +77,17 @@ AS (
 	FROM (
 		SELECT *
 		FROM (
-			SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR class_code,
+			SELECT (xpath('/Class/@code', i.xmlfield))[1]::VARCHAR class_code,
 				l.superclass_code,
 				l1.modifiedby_code,
-				UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-				UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
+				UNNEST(xpath('/Class/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+				UNNEST(xpath('/Class/Rubric', i.xmlfield)) rubric_label
 			FROM (
 				SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
 				FROM sources.cim10 i
 				) AS i
-			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
-			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./ModifiedBy/@code', i.xmlfield))::VARCHAR modifiedby_code) l1 ON true
+			LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
+			LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/ModifiedBy/@code', i.xmlfield))::VARCHAR modifiedby_code) l1 ON true
 			) AS s0
 		) AS s1
 	LEFT JOIN LATERAL(SELECT string_agg(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (

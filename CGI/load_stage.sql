@@ -33,10 +33,10 @@ truncate concept_stage;
 truncate concept_relationship_stage;
 truncate concept_synonym_stage;
 
-drop table cgi_source_new;
-create table cgi_source_new as (
+drop table cgi_source;
+create table cgi_source as (
 select distinct concat(gene, ':', regexp_replace(protein, 'p.', '')) as concept_name, 'CGI' as vocabulary_id,  concat(gene, ':', regexp_replace(protein, 'p.', '')) as concept_code,gdna as hgvs
-from dev_cgi.genomic_cgi_new
+from dev_cgi.genomic_cgi_source
 where gdna != ''
 and protein != '.');
 
@@ -53,7 +53,7 @@ with s as (SELECT DISTINCT
        n.concept_code AS concept_code,
       COALESCE(c.valid_start_date, v.latest_update)   as valid_start_date, -- defines valid_start_date  based on previous vocabulary run
        COALESCE(c.valid_end_date,TO_DATE('20991231', 'yyyymmdd'))  as valid_end_date -- defines valid_end_date  based on previous vocabulary run
-FROM cgi_source_new n
+FROM cgi_source n
 JOIN vocabulary v ON v.vocabulary_id = 'CGI'
 LEFT JOIN concept c ON c.concept_code = n.concept_code -- already existing LOINC concepts
     	AND c.vocabulary_id = 'CGI')
@@ -86,7 +86,7 @@ hgvs AS synonym_name,
 cs.concept_code as synonym_concept_code,
 cs.vocabulary_id AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from cgi_source_new a
+from cgi_source a
 join concept_stage cs on cs.concept_code = a.concept_code
 ) r
 where synonym_name is not null

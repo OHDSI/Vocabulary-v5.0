@@ -1,6 +1,6 @@
 --source upload based on 2022 files structure
-drop table dev_cgi.genomic_cgi_new;
-create table dev_cgi.genomic_cgi_new (
+drop table dev_cgi.genomic_cgi_source;
+create table dev_cgi.genomic_cgi_source (
     gene varchar(255),
     gdna varchar(255),
     protein varchar(255),

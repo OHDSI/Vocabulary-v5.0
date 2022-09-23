@@ -14,6 +14,6 @@ create table dev_cgi.genomic_cgi_source (
 
 
 -- with existing sources
-DROP TABLE IF EXISTS dev_cgi.genomic_cgi;
-CREATE TABLE dev_cgi.genomic_cgi
+DROP TABLE IF EXISTS dev_cgi.genomic_cgi_backup210727;
+CREATE TABLE dev_cgi.genomic_cgi_backup210727
 as (select * from sources.genomic_cgi);

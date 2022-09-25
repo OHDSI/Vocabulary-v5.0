@@ -1,6 +1,6 @@
 -- with new download
-drop table dev_civic.genomic_civic_variantsummaries_new;
-create table dev_civic.genomic_civic_variantsummaries_new (
+drop table dev_civic.genomic_civic_source;
+create table dev_civic.genomic_civic_source(
     variant_id int,
     variant_civic_url varchar(255),
     gene varchar(255),

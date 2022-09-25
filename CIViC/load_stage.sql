@@ -32,10 +32,29 @@ truncate concept_stage;
 truncate concept_relationship_stage;
 truncate concept_synonym_stage;
 
-create table civic_source_new as (
+drop table civic_source;
+create table civic_source as (
 select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-from dev_civic.genomic_civic_variantsummaries_new
-where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.');
+from dev_civic.genomic_civic_source
+where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
+and variant!~*'frameshift|truncating'
+
+union
+
+select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, concat(gene, ':p.', variant) as hgvs
+from dev_civic.genomic_civic_source
+where variant ~'([A-Z][1-9]*[A-Z])'
+and variant!~*'expression|amplification|truncation|truncating|loss|wildtype|mutation|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
+and variant!~*'rs'
+
+union
+
+select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, variant as hgvs
+from dev_civic.genomic_civic_source
+where variant ~'([A-Z][1-9]*[A-Z])'
+and variant!~*'expression|amplification|truncation|truncating|wildtype|mutation|loss|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
+and variant~*'rs'
+and variant!~'::');
 
 
 --insert into concept_stage
@@ -50,7 +69,7 @@ with s as (SELECT DISTINCT
        n.concept_code AS concept_code,
       COALESCE(c.valid_start_date, v.latest_update)   as valid_start_date, -- defines valid_start_date  based on previous vocabulary run
        COALESCE(c.valid_end_date,TO_DATE('20991231', 'yyyymmdd'))  as valid_end_date -- defines valid_end_date  based on previous vocabulary run
-FROM civic_source_new n
+FROM civic_source n
 JOIN vocabulary v ON v.vocabulary_id = 'CIViC'
 LEFT JOIN concept c ON c.concept_code = n.concept_code -- already existing LOINC concepts
     	AND c.vocabulary_id = 'CIViC')
@@ -83,7 +102,7 @@ hgvs AS synonym_name,
 cs.concept_code as synonym_concept_code,
 cs.vocabulary_id AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from civic_source_new a
+from civic_source a
 join concept_stage cs on cs.concept_code = a.concept_code
 ) r
 where synonym_name is not null

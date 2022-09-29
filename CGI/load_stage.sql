@@ -77,17 +77,72 @@ where s.concept_code is not null
 
 
 -- insert synonyms
-insert into concept_synonym_stage
-select *
-from (
-select
-DISTINCT NULL::INT as synonym_concept_id,
-hgvs AS synonym_name,
-cs.concept_code as synonym_concept_code,
-cs.vocabulary_id AS synonym_vocabulary_id,
-4180186 as language_concept_id
-from cgi_source a
-join concept_stage cs on cs.concept_code = a.concept_code
-) r
-where synonym_name is not null
+with tab as (
+    SELECT *,
+           regexp_replace((regexp_match(reference, 'NM_.\d.+\(p\..+\)\s|NM_.\d.+\(p\..+\)(?<!__PMID)|NM_.\d.+\(p\..+\)$'))[1],
+                          'AND .+__Clinvar:|__PMID.+__Clinvar:|__PMID', ' @ ', 'gi') as hgvs_array,
+           concat(gene, ':', regexp_replace(protein, 'p.', ''))               as concept_code
+    FROM dev_cgi.genomic_cgi_source
+    where reference ilike '%Clinvar%'
+      and protein != '.'
+)
+,
+ref_hgvs  as (
+SELECT
+       gene,
+       gdna,
+       protein,
+       transcript,
+       info,
+       context,
+       cancer_acronym,
+       source,
+       reference,
+       coalesce(hgvs_array,(regexp_match(split_part(reference, ' AND ',1),'NM_.\d.+\s|NM_.\d.+$'))[1]) as hgvs,
+       concept_code
+FROM tab)
+,
+hgvs_synonyms as (
+SELECT
+    'ref' as flag,
+      'CGI' AS synonym_vocabulary_id,
+4180186 as language_concept_id,
+       trim(regexp_split_to_table(hgvs,' @ ')) as synonym_name,
+       concept_code as synonym_concept_code
+FROM ref_hgvs
+UNION ALL
+
+SELECT
+    'gdna' as flag,
+    'CGI' AS synonym_vocabulary_id,
+    4180186 as language_concept_id,
+       trim(gdna) as synonym_name,
+       concat(gene, ':', regexp_replace(protein, 'p.', '')) as synonym_concept_code
+
+FROM  dev_cgi.genomic_cgi_source
+      where protein != '.'
+
+UNION ALL
+
+SELECT
+    'protein' as flag,
+    'CGI' AS synonym_vocabulary_id,
+    4180186 as language_concept_id,
+       trim(concat(gene,':',protein)) as synonym_name,
+       concat(gene, ':', regexp_replace(protein, 'p.', '')) as synonym_concept_code
+
+FROM  dev_cgi.genomic_cgi_source
+          where protein != '.'
+
+    )
+    ,
+synonyms as (
+    SELECT distinct flag,synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code
+    FROM hgvs_synonyms
+    where flag IN ('protein', 'gdna')
+       or (flag = 'ref' and synonym_name ilike 'NM%')
+)
+INSERT INTO concept_synonym_stage(synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code)
+SELECT distinct synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code
+FROM synonyms
 ;

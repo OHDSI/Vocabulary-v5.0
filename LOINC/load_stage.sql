@@ -50,7 +50,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE 
+SELECT CASE
 		WHEN loinc_num = '66678-4'
 			AND property = 'Hx'
 			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
@@ -61,7 +61,7 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	CASE 
+	CASE
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -197,7 +197,7 @@ SELECT CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE 
+	CASE
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -314,7 +314,7 @@ SELECT CASE
 		WHEN classtype = '4'
 			THEN 'Survey'
 		END AS concept_class_id,
-	CASE 
+	CASE
 		WHEN l.STATUS IN ('DEPRECATED')
 			THEN NULL
 		WHEN l.STATUS IN ('DISCOURAGED')
@@ -332,9 +332,9 @@ SELECT CASE
 		END AS standard_concept,
 	LOINC_NUM AS concept_code,
 	v.latest_update AS valid_start_date,
-	CASE 
+	CASE
 		WHEN l.STATUS IN ('DEPRECATED')
-			THEN CASE 
+			THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -350,7 +350,7 @@ SELECT CASE
 					'4'
 					)
 				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-			THEN CASE 
+			THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -358,7 +358,7 @@ SELECT CASE
 					END
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE 
+	CASE
 		WHEN (
 				l.STATUS IN ('DISCOURAGED')
 				AND (
@@ -595,6 +595,13 @@ WHERE (
 		AND lh.code = cs.concept_code
 		)
 	OR cs.concept_code = 'LP29684-5';
+
+--5.2 Update Note-related concepts Domains
+UPDATE concept_stage cs
+SET domain_id = 'Note'
+FROM sources.loinc_hierarchy lh
+WHERE lh.path_to_root LIKE 'LP432695-7.LP7787-7.LP32519-8%'
+AND lh.code = cs.concept_code;
 
 --6. Insert missing codes from manual extraction
 DO $_$
@@ -1106,62 +1113,59 @@ CREATE UNLOGGED TABLE sn_attr AS
 							AND cr_int.invalid_reason IS NULL
 						)
 					AND cr.relationship_id IN (
-						'Has component',
-						'Has scale type',
-						'Has specimen',
-						'Has dir proc site',
-						'Inheres in'
-						)
-				) kk
-			WHERE /*kk.cnt = 1
+                                               'Has component',
+                                               'Has scale type',
+                                               'Has specimen',
+                                               'Has dir proc site',
+                                               'Inheres in'
+                    )
+                 ) kk
+            WHERE /*kk.cnt = 1
 				AND*/ --Take concepts only with one component/scale and ect, so not all concepts have right hierarchy
-			      kk.sn_name NOT ilike '%screening%'
-				AND kk.sn_code NOT IN (
-					'104193001',
-					'104194007',
-					'104178000',
-					'370990004',
-					'401298000',
-					'399177007',
-					'399193003',
-					'115253009',
-					'395129003',
-					'409613001',
-					'399143002',
-					'115340009',
-					'430925007',
-					'104568008',
-					'121806006',
-					'445132000',
-					'104326007',
-					'104323004',
-					'697001',
-					'413058006',
-				    '432883005'
-					) -- SNOMED concepts with wrong sets of attributes
-			), -- exclude concepts with multiple attributes from one category
-		-- get a list of Fully defined SNOMED concepts, using sources.sct2_concept_full_merged, to weed out Primitive SNOMED Measurements composed of inadequate attribute set
-		snomed_concept AS (
-			SELECT *
-			FROM (
-				SELECT DISTINCT c.concept_code,
-					FIRST_VALUE(f.statusid) OVER (
-						PARTITION BY f.id ORDER BY f.effectivetime DESC
-						) AS statusid -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
-				FROM sources.sct2_concept_full_merged f -- the source table indicating 'definition status' of SNOMED concepts
-				JOIN concept c ON c.vocabulary_id = 'SNOMED'
-					AND c.standard_concept = 'S'
-					AND c.concept_code = f.id::VARCHAR
-				) AS s0
-			WHERE statusid = 900000000000073002
+                kk.sn_name NOT ilike '%screening%'
+              AND kk.sn_code NOT IN (
+                                     '104193001',
+                                     '104194007',
+                                     '104178000',
+                                     '370990004',
+                                     '401298000',
+                                     '399177007',
+                                     '399193003',
+                                     '115253009',
+                                     '395129003',
+                                     '409613001',
+                                     '399143002',
+                                     '115340009',
+                                     '430925007',
+                                     '104568008',
+                                     '121806006',
+                                     '445132000',
+                                     '104326007',
+                                     '104323004',
+                                     '697001',
+                                     '413058006',
+                                     '432883005'
+                ) -- SNOMED concepts with wrong sets of attributes
+    ), -- exclude concepts with multiple attributes from one category
+         -- get a list of Fully defined SNOMED concepts, using sources.sct2_concept_full_merged, to weed out Primitive SNOMED Measurements composed of inadequate attribute set
+         snomed_concept AS (
+             SELECT *
+             FROM (
+                      SELECT DISTINCT c.concept_code,
+                                      FIRST_VALUE(f.statusid) OVER (
+                                          PARTITION BY f.id ORDER BY f.effectivetime DESC
+                                          ) AS statusid -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
+                      FROM sources.sct2_concept_full_merged f -- the source table indicating 'definition status' of SNOMED concepts
+                               JOIN concept c ON c.vocabulary_id = 'SNOMED'
+                          AND c.standard_concept = 'S'
+                          AND c.concept_code = f.id::VARCHAR
+                  ) AS s0
+             WHERE statusid = 900000000000073002
 
-		    UNION
-            SELECT cc.concept_code, d.statusid AS statusid
-		    FROM sources.sct2_concept_full_merged d
-		    JOIN concept cc ON cc.vocabulary_id = 'SNOMED'
-					AND cc.concept_code = d.id::VARCHAR
-		    WHERE d.id = '41598000' and d.statusid = '900000000000073002' --This union is needed to take Estrogen component
-			)
+             UNION ALL
+
+             SELECT '41598000' as concept_code, 900000000000073002 AS statusid --This union is needed to take Estrogen component
+         )
 
 SELECT zz.*
 FROM t1 zz
@@ -1403,144 +1407,183 @@ INSERT INTO concept_relationship_stage (
 	)
 -- AXIS 1: get 3-attribute Measurements (Component+Specimen+Scale)
 WITH ax_1 AS (
-		SELECT DISTINCT z4.lc_code,
-			z4.lc_name, -- to preserve names for word-pattern filtering
-			x3.sn_code,
-			x3.sn_name
-		FROM sn_attr x1 -- X1 - SNOMED attribute pool
-		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-			ON z1.attr_code = x1.attr_code -- common Component
-			AND z1.relationship_id = 'Has component'
-		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-		JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
-			AND z2.relationship_id IN (
-				'Has dir proc site',
-				'Inheres in'
-				) -- given by the source relationships indicating SNOMED Specimens
-		JOIN sn_attr x3 ON x3.sn_code = x2.sn_code -- common 3-attribute SNOMED Measurement
-		JOIN lc_attr z3 ON z3.attr_code = x3.attr_code -- common Scale
-			AND z3.relationship_id = 'Has scale type'
-		JOIN lc_attr z4 ON z4.lc_code = z3.lc_code
-			AND z4.lc_code = z2.lc_code
-			AND z4.lc_code = z1.lc_code -- common 3-attribute LOINC Measurement
-		WHERE x1.relationship_id = 'Has component'
-			AND x2.relationship_id = 'Has specimen'
-			AND x3.relationship_id = 'Has scale type'
-			AND x1.sn_code IN (
-				SELECT sn_attr_int.sn_code
-				FROM sn_attr sn_attr_int
-				GROUP BY sn_attr_int.sn_code
-				HAVING COUNT(*) = 3
-				) -- to restrict SNOMED attribute pool
-		),
-	-- AXIS 2: get 2-attribute Measurements (Component+Specimen)
-	ax_2 AS (
-		SELECT DISTINCT z3.lc_code,
-			z3.lc_name,
-			x2.sn_code,
-			x2.sn_name
-		FROM sn_attr x1 -- X1 - SNOMED attribute pool
-		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-			ON z1.attr_code = x1.attr_code -- common Component
-			AND z1.relationship_id = 'Has component'
-		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-		JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
-			AND z2.relationship_id IN (
-				'Has dir proc site',
-				'Inheres in'
-				) -- given by the source relationships indicating SNOMED Specimens
-		JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
-			AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
-		WHERE x1.relationship_id = 'Has component'
-			AND x2.relationship_id = 'Has specimen'
-			AND (x1.sn_code IN (
-				SELECT sn_attr_int.sn_code
-				FROM sn_attr sn_attr_int
-				GROUP BY sn_attr_int.sn_code
-				HAVING COUNT(*) = 2
-				) /*to restrict SNOMED attribute pool*/ OR x1.attr_code = '41598000') --To take Estrogen component
-			AND z3.lc_code NOT IN (
-				SELECT ax_1_int.lc_code
-				FROM ax_1 ax_1_int
-				) -- exclude duplicates
-		),
-	-- AXIS 3: get 2-attribute Measurements (Component+Scale)
-	ax_3 AS (
-		SELECT DISTINCT z3.lc_code,
-			z3.lc_name,
-			x2.sn_code,
-			x2.sn_name
-		FROM sn_attr x1 --X1 - SNOMED attribute pool
-		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-			ON z1.attr_code = x1.attr_code -- common Component
-			AND z1.relationship_id = 'Has component'
-		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-		JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Scale
-			AND z2.relationship_id = 'Has scale type'
-		JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
-			AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
-		WHERE x1.relationship_id = 'Has component'
-			AND x2.relationship_id = 'Has scale type'
-			AND x1.sn_code IN (
-				SELECT sn_attr_int.sn_code
-				FROM sn_attr sn_attr_int
-				GROUP BY sn_attr_int.sn_code
-				HAVING COUNT(*) = 2
-				) -- to restrict SNOMED attribute pool
-			AND z3.lc_code NOT IN (
-				SELECT ax_1_int.lc_code
-				FROM ax_1 ax_1_int
-				) -- exclude duplicates
-		),
-	-- AXIS 4: get 1-attribute Measurements (Component)
-	ax_4 AS (
-		SELECT DISTINCT z1.lc_code,
-			z1.lc_name,
-			x1.sn_code,
-			x1.sn_name
-		FROM sn_attr x1 --X1 - SNOMED attribute pool
-		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-			ON z1.attr_code = x1.attr_code -- common Component
-			AND z1.relationship_id = 'Has component'
-		WHERE x1.relationship_id = 'Has component'
-			AND x1.sn_code IN (
-				SELECT sn_attr_int.sn_code
-				FROM sn_attr sn_attr_int
-				GROUP BY sn_attr_int.sn_code
-				HAVING COUNT(*) = 1
-				) -- to restrict SNOMED attribute pool
-			AND z1.lc_code NOT IN (
-				SELECT ax_1_int.lc_code
-				FROM ax_1 ax_1_int
-				)
-			AND z1.lc_code NOT IN (
-				SELECT ax_2_int.lc_code
-				FROM ax_2 ax_2_int
-				)
-			AND z1.lc_code NOT IN (
-				SELECT ax_3_int.lc_code
-				FROM ax_3 ax_3_int
-				) -- exclude duplicates
-		),
-	-- unite all AXES
-	all_ax AS (
-		SELECT *
-		FROM ax_1
+    SELECT DISTINCT z4.lc_code,
+                    z4.lc_name, -- to preserve names for word-pattern filtering
+                    x3.sn_code,
+                    x3.sn_name
+    FROM sn_attr x1 -- X1 - SNOMED attribute pool
+             JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+                  ON z1.attr_code = x1.attr_code -- common Component
+                      AND z1.relationship_id = 'Has component'
+             JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+             JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
+        AND z2.relationship_id IN (
+                                   'Has dir proc site',
+                                   'Inheres in'
+            ) -- given by the source relationships indicating SNOMED Specimens
+             JOIN sn_attr x3 ON x3.sn_code = x2.sn_code -- common 3-attribute SNOMED Measurement
+             JOIN lc_attr z3 ON z3.attr_code = x3.attr_code -- common Scale
+        AND z3.relationship_id = 'Has scale type'
+             JOIN lc_attr z4 ON z4.lc_code = z3.lc_code
+        AND z4.lc_code = z2.lc_code
+        AND z4.lc_code = z1.lc_code -- common 3-attribute LOINC Measurement
+    WHERE x1.relationship_id = 'Has component'
+      AND x2.relationship_id = 'Has specimen'
+      AND x3.relationship_id = 'Has scale type'
+      AND x1.sn_code IN (
+        SELECT sn_attr_int.sn_code
+        FROM sn_attr sn_attr_int
+        GROUP BY sn_attr_int.sn_code
+        HAVING COUNT(*) = 3
+    ) -- to restrict SNOMED attribute pool
+),
+     -- AXIS 2: get 2-attribute Measurements (Component+Specimen)
+     ax_2 AS (
+         SELECT DISTINCT z3.lc_code,
+                         z3.lc_name,
+                         x2.sn_code,
+                         x2.sn_name
+         FROM sn_attr x1 -- X1 - SNOMED attribute pool
+                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+                       ON z1.attr_code = x1.attr_code -- common Component
+                           AND z1.relationship_id = 'Has component'
+                  JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+                  JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
+             AND z2.relationship_id IN (
+                                        'Has dir proc site',
+                                        'Inheres in'
+                 ) -- given by the source relationships indicating SNOMED Specimens
+                  JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
+             AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
+         WHERE x1.relationship_id = 'Has component'
+           AND x2.relationship_id = 'Has specimen'
+           AND (x1.sn_code IN (
+             SELECT sn_attr_int.sn_code
+             FROM sn_attr sn_attr_int
+             GROUP BY sn_attr_int.sn_code
+             HAVING COUNT(*) = 2
+         ) /*to restrict SNOMED attribute pool*/ OR x1.attr_code = '41598000') --To take Estrogen component
+           AND z3.lc_code NOT IN (
+             SELECT ax_1_int.lc_code
+             FROM ax_1 ax_1_int
+         ) -- exclude duplicates
+     ),
+     -- AXIS 3: get 2-attribute Measurements (Component+Specimen) ONLY for Acellular blood (serum or plasma) specimen
+     ax_3 AS (
+         SELECT DISTINCT z2.lc_code, z2.lc_name, x2.sn_code, x2.sn_name
+         FROM sn_attr x1 -- X1 - SNOMED attribute pool
+                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+                       ON z1.attr_code = x1.attr_code -- common Component
+                           AND z1.relationship_id = 'Has component'
+                  JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+                  JOIN lc_attr z2 ON z2.lc_code = z1.lc_code -- common Site
+             AND z2.relationship_id IN (
+                                        'Has dir proc site',
+                                        'Inheres in'
+                 ) -- given by the source relationships indicating SNOMED Specimens
+             AND x2.attr_code = '122592007' --Acellular blood (serum or plasma) specimen
+             AND z2.attr_code = '119364003' --Serum specimen
+             AND x1.sn_code IN (
+                 SELECT sn_attr_int.sn_code
+                 FROM sn_attr sn_attr_int
+                 GROUP BY sn_attr_int.sn_code
+                 HAVING COUNT(*) = 2
+             ) /*to restrict SNOMED attribute pool*/
+            /* AND z2.lc_code NOT IN (
+                 SELECT ax_1_int.lc_code
+                 FROM ax_1 ax_1_int
+             )
+             AND z2.lc_code NOT IN (
+                 SELECT ax_2_int.lc_code
+                 FROM ax_2 ax_2_int
+             ) */-- exclude duplicates
+     ),
+     -- AXIS 4: get 2-attribute Measurements (Component+Scale)
+     ax_4 AS (
+         SELECT DISTINCT z3.lc_code,
+                         z3.lc_name,
+                         x2.sn_code,
+                         x2.sn_name
+         FROM sn_attr x1 --X1 - SNOMED attribute pool
+                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+                       ON z1.attr_code = x1.attr_code -- common Component
+                           AND z1.relationship_id = 'Has component'
+                  JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+                  JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Scale
+             AND z2.relationship_id = 'Has scale type'
+                  JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
+             AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
+         WHERE x1.relationship_id = 'Has component'
+           AND x2.relationship_id = 'Has scale type'
+           AND x1.sn_code IN (
+             SELECT sn_attr_int.sn_code
+             FROM sn_attr sn_attr_int
+             GROUP BY sn_attr_int.sn_code
+             HAVING COUNT(*) = 2
+         ) -- to restrict SNOMED attribute pool
+           AND z3.lc_code NOT IN (
+             SELECT ax_1_int.lc_code
+             FROM ax_1 ax_1_int
+         ) -- exclude duplicates
+     ),
+     -- AXIS 5: get 1-attribute Measurements (Component)
+     ax_5 AS (
+         SELECT DISTINCT z1.lc_code,
+                         z1.lc_name,
+                         x1.sn_code,
+                         x1.sn_name
+         FROM sn_attr x1 --X1 - SNOMED attribute pool
+                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+                       ON z1.attr_code = x1.attr_code -- common Component
+                           AND z1.relationship_id = 'Has component'
+         WHERE x1.relationship_id = 'Has component'
+           AND x1.sn_code IN (
+             SELECT sn_attr_int.sn_code
+             FROM sn_attr sn_attr_int
+             GROUP BY sn_attr_int.sn_code
+             HAVING COUNT(*) = 1
+         ) -- to restrict SNOMED attribute pool
+           AND z1.lc_code NOT IN (
+             SELECT ax_1_int.lc_code
+             FROM ax_1 ax_1_int
+         )
+           AND z1.lc_code NOT IN (
+             SELECT ax_2_int.lc_code
+             FROM ax_2 ax_2_int
+         )
+           AND z1.lc_code NOT IN (
+             SELECT ax_3_int.lc_code
+             FROM ax_3 ax_3_int
+         )
+           AND z1.lc_code NOT IN (
+             SELECT ax_4_int.lc_code
+             FROM ax_4 ax_4_int
+         ) -- exclude duplicates
+     ),
+     -- unite all AXES
+     all_ax AS (
+         SELECT *
+         FROM ax_1
 
-		UNION ALL
+         UNION ALL
 
-		SELECT *
-		FROM ax_2
+         SELECT *
+         FROM ax_2
 
-		UNION ALL
+         UNION ALL
 
-		SELECT *
-		FROM ax_3
+         SELECT *
+         FROM ax_3
 
-		UNION ALL
+         UNION ALL
 
-		SELECT *
-		FROM ax_4
+         SELECT *
+         FROM ax_4
+
+         UNION ALL
+
+         SELECT *
+         FROM ax_5
 		)
 -- get input for concept_relationship_stage
 SELECT lc_code AS concept_code_1,

@@ -51,7 +51,7 @@ $BODY$
   import gspread
 
   res = []
-  credentials = eval(plpy.execute("SELECT var_value::json FROM config$ where var_name='gspread_credentials'")[0]['var_value'])
+  credentials = eval(plpy.execute("SELECT var_value::json FROM devv5.config$ where var_name='gspread_credentials'")[0]['var_value'])
   gc = gspread.service_account_from_dict(credentials)
   sh = gc.open_by_url(url)
   #get first worksheet, all records, replace all empty cells with null

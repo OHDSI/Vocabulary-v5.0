@@ -1,0 +1,30 @@
+resistance_mutation,tier,mutation_description,genomic_mutation_id,pct_total
+Yes,1,Unknown,2,0.0
+Yes,1,Insertion - In frame,2,0.0
+Yes,1,Deletion - In frame,1,0.0
+Yes,1,Deletion - Frameshift,1,0.0
+Yes,1,Substitution - Nonsense,3,0.0
+-,1,Complex - deletion inframe,7,0.001
+-,1,Complex - insertion inframe,12,0.002
+-,2,Nonstop extension,17,0.003
+-,2,Complex - frameshift,19,0.003
+-,1,Frameshift,40,0.006
+Yes,1,Substitution - Missense,61,0.009
+-,2,Insertion - In frame,64,0.01
+-,1,Nonstop extension,116,0.018
+-,2,Deletion - In frame,183,0.028
+-,1,Complex - frameshift,555,0.085
+-,2,Insertion - Frameshift,638,0.097
+-,2,Deletion - Frameshift,936,0.143
+-,1,Insertion - In frame,1062,0.162
+-,1,Deletion - In frame,2597,0.396
+-,2,Substitution - Nonsense,2941,0.448
+-,1,Insertion - Frameshift,7139,1.087
+-,1,Deletion - Frameshift,12350,1.881
+-,2,Substitution - coding silent,12877,1.961
+-,1,Substitution - Nonsense,15245,2.322
+-,1,Substitution - coding silent,36908,5.621
+-,2,Substitution - Missense,40952,6.237
+-,1,Substitution - Missense,138876,21.152
+-,2,Unknown,149503,22.771
+-,1,Unknown,233457,35.557

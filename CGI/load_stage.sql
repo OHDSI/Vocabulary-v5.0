@@ -36,7 +36,7 @@ truncate concept_synonym_stage;
 drop table cgi_source;
 create table cgi_source as (
 select distinct gdna as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein
-from dev_cgi.genomic_cgi_source
+from genomic_cgi_source
 where gdna != ''
 and protein != '.');
 
@@ -73,7 +73,9 @@ SELECT distinct
        s.valid_end_date ,
       CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
 from s
-FULL OUTER JOIN concept c ON c.concept_code =    concat(gene, ':', regexp_replace(protein, 'p.', '')) -- already existing CGI concepts
+FULL OUTER JOIN concept c ON c.concept_code =
+                             --  n.concept_code -- already existing CGI concepts (subsequent run)
+                             concat(gene, ':', regexp_replace(protein, 'p.', '')) -- already existing CGI concepts (гd for Fall2022 run)
 	and c.vocabulary_id = 'CGI'
 where s.concept_code is not null
 
@@ -86,7 +88,7 @@ with tab as (
            regexp_replace((regexp_match(reference, 'NM_.\d.+\(p\..+\)\s|NM_.\d.+\(p\..+\)(?<!__PMID)|NM_.\d.+\(p\..+\)$'))[1],
                           'AND .+__Clinvar:|__PMID.+__Clinvar:|__PMID', ' @ ', 'gi') as hgvs_array,
            trim(substr(regexp_split_to_table(gdna,'__'),1,50))         as concept_code
-    FROM dev_cgi.genomic_cgi_source
+    FROM genomic_cgi_source
     where reference ilike '%Clinvar%'
       and protein != '.'
 )
@@ -123,7 +125,7 @@ SELECT
             trim(regexp_split_to_table(gdna,'__'))  as synonym_name,
              trim(substr(regexp_split_to_table(gdna,'__'),1,50))           as synonym_concept_code
 
-FROM  dev_cgi.genomic_cgi_source
+FROM  genomic_cgi_source
       where protein != '.'
 
 UNION ALL
@@ -135,7 +137,7 @@ SELECT
        trim(concat(gene,':',protein)) as synonym_name,
              trim(substr(regexp_split_to_table(gdna,'__'),1,50))           as synonym_concept_code
 
-FROM  dev_cgi.genomic_cgi_source
+FROM  genomic_cgi_source
           where protein != '.'
 
     )

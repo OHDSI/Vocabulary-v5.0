@@ -35,8 +35,8 @@ truncate concept_synonym_stage;
 
 drop table cgi_source;
 create table cgi_source as (
-select distinct gdna as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein --    october 2022 update will Update concept_code definition with preserving concept_id
-from genomic_cgi_source
+select distinct  regexp_split_to_table(gdna,'__') as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein,gdna--    october 2022 update will Update concept_code definition with preserving concept_id
+from dev_cgi.genomic_cgi_source
 where gdna != ''
 and protein != '.');
 
@@ -57,28 +57,61 @@ protein
 FROM cgi_source n
 JOIN vocabulary v ON v.vocabulary_id = 'CGI'
 LEFT JOIN concept c ON c.concept_code =
-                      --  n.concept_code
+                 --     n.concept_code
                        concat(gene, ':', regexp_replace(protein, 'p.', '')) -- Should be dropped after Fall2022 release and replaced with n.concept_code
-    	AND c.vocabulary_id = 'CGI')
+    	AND c.vocabulary_id = 'CGI'
+    )
+,
+    stage
+        as (
+        SELECT distinct s.concept_id,
+                        s.concept_name,
+                        s.domain_id,
+                        s.vocabulary_id,
+                        s.concept_class_id,
+                        s.standard_concept,
+                        s.concept_code,
+                        s.valid_start_date,
+                        s.valid_end_date,
+                        CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
+        from s
+        where s.concept_code is not null
+          and coalesce(s.concept_id, 0) IN
+              (SELECT coalesce(s.concept_id, 0) from s group by 1 having count(distinct concept_code) = 1) --to update Concept codes
 
-SELECT distinct
-       s.concept_id,
-       s.concept_name,
-       s.domain_id,
+        UNION ALL
+
+        SELECT distinct null::int                                               as concept_id,
+                        s.concept_name,
+                        s.domain_id,
+                        s.vocabulary_id,
+                        s.concept_class_id,
+                        s.standard_concept,
+                        s.concept_code,
+                        s.valid_start_date,
+                        s.valid_end_date,
+                        CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
+        from s
+        where s.concept_code is not null
+          and coalesce(s.concept_id, 0) IN
+              (SELECT coalesce(s.concept_id, 0) from s group by 1 having count(distinct concept_code) > 1)
+    )
+
+SELECT
+       concept_id,
+       concept_name,
+       domain_id,
        s.vocabulary_id,
-       s.concept_class_id,
-       s.standard_concept,
-       s.concept_code,
-       s.valid_start_date,
-       s.valid_end_date ,
-      CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
-from s
-FULL OUTER JOIN concept c ON c.concept_code =
-                             --  n.concept_code -- already existing CGI concepts (subsequent run)
-                             concat(gene, ':', regexp_replace(protein, 'p.', '')) -- already existing CGI concepts (гd for Fall2022 run)
-	and c.vocabulary_id = 'CGI'
-where s.concept_code is not null
-
+       concept_class_id,
+       standard_concept,
+       concept_code,
+      CASE WHEN concept_id is null then   v.latest_update
+          ELSE s.valid_start_date end as valid_start_date,
+           CASE WHEN concept_id is null then   TO_DATE('20991231', 'yyyymmdd')
+          ELSE s.valid_end_date end as valid_end_date,
+       invalid_reason
+FROM stage  s
+JOIN vocabulary v ON v.vocabulary_id = 'CGI'
 ;
 
 
@@ -88,7 +121,7 @@ with tab as (
            regexp_replace((regexp_match(reference, 'NM_.\d.+\(p\..+\)\s|NM_.\d.+\(p\..+\)(?<!__PMID)|NM_.\d.+\(p\..+\)$'))[1],
                           'AND .+__Clinvar:|__PMID.+__Clinvar:|__PMID', ' @ ', 'gi') as hgvs_array,
            trim(substr(regexp_split_to_table(gdna,'__'),1,50))         as concept_code
-    FROM genomic_cgi_source
+    FROM dev_cgi.genomic_cgi_source
     where reference ilike '%Clinvar%'
       and protein != '.'
 )
@@ -123,9 +156,9 @@ SELECT
     'CGI' AS synonym_vocabulary_id,
     4180186 as language_concept_id,
             trim(regexp_split_to_table(gdna,'__'))  as synonym_name,
-             trim(substr(regexp_split_to_table(gdna,'__'),1,50))           as synonym_concept_code
+            concept_code         as synonym_concept_code
 
-FROM  genomic_cgi_source
+FROM  cgi_source
       where protein != '.'
 
 UNION ALL
@@ -135,9 +168,9 @@ SELECT
     'CGI' AS synonym_vocabulary_id,
     4180186 as language_concept_id,
        trim(concat(gene,':',protein)) as synonym_name,
-             trim(substr(regexp_split_to_table(gdna,'__'),1,50))           as synonym_concept_code
+             concept_code         as synonym_concept_code
 
-FROM  genomic_cgi_source
+FROM  cgi_source
           where protein != '.'
 
     )
@@ -148,8 +181,8 @@ synonyms as (
     where flag IN ('protein', 'gdna')
        or (flag = 'ref' and synonym_name ilike 'NM%')
 )
-INSERT INTO concept_synonym_stage(synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code)
-SELECT distinct synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code
+INSERT INTO concept_synonym_stage(synonym_concept_id,synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code)
+SELECT distinct cs.concept_id,synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code
 FROM synonyms s
 JOIN concept_stage cs
 ON cs.concept_code=s.synonym_concept_code

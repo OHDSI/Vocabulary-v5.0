@@ -35,7 +35,7 @@ truncate concept_synonym_stage;
 
 drop table cgi_source;
 create table cgi_source as (
-select distinct  regexp_split_to_table(gdna,'__') as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein,gdna--    october 2022 update will Update concept_code definition with preserving concept_id
+select distinct  regexp_split_to_table(gdna,'__') as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein,gdna
 from dev_cgi.genomic_cgi_source
 where gdna != ''
 and protein != '.');
@@ -51,20 +51,15 @@ with s as (SELECT DISTINCT
        NULL AS standard_concept,
   trim(substr(n.concept_code,1,50)) AS concept_code,
       COALESCE(c.valid_start_date, v.latest_update)   as valid_start_date, -- defines valid_start_date  based on previous vocabulary run
-       COALESCE(c.valid_end_date,TO_DATE('20991231', 'yyyymmdd'))  as valid_end_date, -- defines valid_end_date  based on previous vocabulary run
-gene,
-protein
+       COALESCE(c.valid_end_date,TO_DATE('20991231', 'yyyymmdd'))  as valid_end_date -- defines valid_end_date  based on previous vocabulary run
 FROM cgi_source n
 JOIN vocabulary v ON v.vocabulary_id = 'CGI'
 LEFT JOIN concept c ON c.concept_code =
-                 --     n.concept_code
-                       concat(gene, ':', regexp_replace(protein, 'p.', '')) -- Should be dropped after Fall2022 release and replaced with n.concept_code
+  n.concept_code
     	AND c.vocabulary_id = 'CGI'
     )
-,
-    stage
-        as (
-        SELECT distinct s.concept_id,
+        SELECT distinct
+                        s.concept_id,
                         s.concept_name,
                         s.domain_id,
                         s.vocabulary_id,
@@ -76,42 +71,7 @@ LEFT JOIN concept c ON c.concept_code =
                         CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
         from s
         where s.concept_code is not null
-          and coalesce(s.concept_id, 0) IN
-              (SELECT coalesce(s.concept_id, 0) from s group by 1 having count(distinct concept_code) = 1) --to update Concept codes
 
-        UNION ALL
-
-        SELECT distinct null::int                                               as concept_id,
-                        s.concept_name,
-                        s.domain_id,
-                        s.vocabulary_id,
-                        s.concept_class_id,
-                        s.standard_concept,
-                        s.concept_code,
-                        s.valid_start_date,
-                        s.valid_end_date,
-                        CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
-        from s
-        where s.concept_code is not null
-          and coalesce(s.concept_id, 0) IN
-              (SELECT coalesce(s.concept_id, 0) from s group by 1 having count(distinct concept_code) > 1)
-    )
-
-SELECT
-       concept_id,
-       concept_name,
-       domain_id,
-       s.vocabulary_id,
-       concept_class_id,
-       standard_concept,
-       concept_code,
-      CASE WHEN concept_id is null then   v.latest_update
-          ELSE s.valid_start_date end as valid_start_date,
-           CASE WHEN concept_id is null then   TO_DATE('20991231', 'yyyymmdd')
-          ELSE s.valid_end_date end as valid_end_date,
-       invalid_reason
-FROM stage  s
-JOIN vocabulary v ON v.vocabulary_id = 'CGI'
 ;
 
 
@@ -187,4 +147,5 @@ FROM synonyms s
 JOIN concept_stage cs
 ON cs.concept_code=s.synonym_concept_code
 and s.synonym_name<>cs.concept_name
+and s.synonym_name NOT IN (SELECT concept_code from concept_stage)
 ;

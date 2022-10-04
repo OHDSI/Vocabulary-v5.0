@@ -9,3 +9,4 @@ Prerequisites:
 3. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('NFC',TO_DATE('20160704','YYYYMMDD'),'NFC 20160704');
 4. Run load_stage.sql
 5. Run generic_update: devv5.GenericUpdate();
+6. thank you.

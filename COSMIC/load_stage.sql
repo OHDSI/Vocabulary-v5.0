@@ -33,60 +33,67 @@ truncate concept_relationship_stage;
 truncate concept_synonym_stage;
 
 drop table cosmic_source;
-create table cosmic_source as (select case
-                                          when (mutation_aa != 'p.?' and mutation_cds != 'c.?')
-                                              then concat(gene_name, ':', mutation_cds, ' (', mutation_aa, ')')
-
-                                          when mutation_aa = 'p.?' and mutation_cds != 'c.?' then
-                                              concat(gene_name, ':', mutation_cds)
-
-                                          else concat(gene_name, ':', mutation_aa)
-                                          end            as concept_name,
+create table cosmic_source as
+    (with tab as (select distinct gene_name, genomic_mutation_id, resistance_mutation, tier, mutation_description, mutation_cds, mutation_aa,
+                hgvsp, hgvsc, hgvsg from cosmicmutantexportcensus
+where genomic_mutation_id not in (
+    select genomic_mutation_id from (
+        with tab as (select distinct gene_name,
+                             accession_number,
+                             gene_cds_length,
+                             hgnc_id,
+                             genomic_mutation_id,
+                             mutation_id,
+                             mutation_cds,
+                             mutation_aa,
+                             mutation_description,
+                             loh,
+                             grch,
+                             mutation_genome_position,
+                             mutation_strand,
+                             resistance_mutation,
+                             tier,
+                             hgvsp,
+                             hgvsc,
+                             hgvsg
+             from cosmicmutantexportcensus
+             where length(genomic_mutation_id)!=0)
+select genomic_mutation_id from tab
+group by 1
+having count(genomic_mutation_id)>1
+                                   )c
+    )
+and length(genomic_mutation_id)!=0
+and (mutation_description != 'Unknown'
+or resistance_mutation = 'Yes'))
+    (select   concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')')    as concept_name,
 
                                       'COSMIC'           as vocabulary_id,
-                                      legacy_mutation_id as concept_code,
+                                      genomic_mutation_id as concept_code,
                                       hgvsp              as hgvs
 
 
-                               from cosmicmutantexportcensus
-                               where length(genomic_mutation_id) > 0
-
+                               from tab
 
                                union
 
-                               select case
-                                          when (mutation_aa != 'p.?' and mutation_cds != 'c.?')
-                                              then concat(gene_name, ':', mutation_cds, ' (', mutation_aa, ')')
-
-                                          when mutation_aa = 'p.?' and mutation_cds != 'c.?' then
-                                              concat(gene_name, ':', mutation_cds)
-
-                                          else concat(gene_name, ':', mutation_aa)
-                                          end            as concept_name,
+                               select   concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')')    as concept_name,
 
                                       'COSMIC'           as vocabulary_id,
-                                      legacy_mutation_id as concept_code,
+                                      genomic_mutation_id as concept_code,
                                       hgvsc              as hgvs
-                               from cosmicmutantexportcensus
+                               from tab
                                where length(genomic_mutation_id) > 0
 
                                union
 
-                               select case
-                                          when (mutation_aa != 'p.?' and mutation_cds != 'c.?')
-                                              then concat(gene_name, ':', mutation_cds, ' (', mutation_aa, ')')
-
-                                          when mutation_aa = 'p.?' and mutation_cds != 'c.?' then
-                                              concat(gene_name, ':', mutation_cds)
-
-                                          else concat(gene_name, ':', mutation_aa)
-                                          end            as concept_name,
+                               select     concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')')        as concept_name,
 
                                       'COSMIC'           as vocabulary_id,
-                                      legacy_mutation_id as concept_code,
+                                      genomic_mutation_id as concept_code,
                                       hgvsg              as hgvs
-                               from cosmicmutantexportcensus
-                               where length(genomic_mutation_id) > 0);
+                               from tab
+                               where length(genomic_mutation_id) > 0));
 
 
 --insert into concept_stage

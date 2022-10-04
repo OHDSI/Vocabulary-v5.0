@@ -819,6 +819,19 @@ begin
       execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       insert into sources.invdrug_pharmsub select concept_id, trim(pt), trim(sy), trim(cas_registry), trim(fda_unii_code), COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from sources.py_xlsparse_ncit(pVocabularyPath||'/ncit_pharmsub.xlsx');
       execute 'COPY sources.invdrug_inxight FROM '''||pVocabularyPath||'dump-public.gsrs'' delimiter E''\b'' csv quote E''\f''';
+  when 'CIVIC' then
+      truncate table sources.civic_variantsummaries_raw, sources.civic_variantsummaries;
+      --CIViC has a problem with assertion_civic_urls field, it contains TABs without escaping
+      execute 'COPY sources.civic_variantsummaries_raw FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\b'' csv quote E''\f'' HEADER';
+      --so we just parse by TAB before this field (we don't need it and the subsequent ones)
+      insert into sources.civic_variantsummaries
+      select nullif(arr[1],'')::int4,nullif(arr[2],''),nullif(arr[3],''),nullif(arr[4],'')::int4,nullif(arr[5],''),nullif(arr[6],''),nullif(arr[7],''),nullif(arr[8],''),nullif(arr[9],'')::int4,nullif(arr[10],'')::int4,nullif(arr[11],''),
+        nullif(arr[12],''),nullif(arr[13],''),nullif(arr[14],'')::int4,nullif(arr[15],''),nullif(arr[16],''),nullif(arr[17],'')::int4,nullif(arr[18],'')::int4,nullif(arr[19],''),nullif(arr[20],''),nullif(arr[21],''),
+        nullif(arr[22],'')::date,nullif(arr[23],'')::numeric,nullif(arr[24],''),nullif(arr[25],''),nullif(arr[26],''),nullif(arr[27],''),COALESCE(pVocabularyDate,current_date),COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from (
+        select regexp_split_to_array(civic_variantsummaries_tsv,'\t') arr from sources.civic_variantsummaries_raw
+      ) s0;
+      --execute 'COPY sources.civic_variantsummaries (variant_id,variant_civic_url,gene,entrez_id,variant,summary,variant_groups,chromosome,start,stop,reference_bases,variant_bases,representative_transcript,ensembl_version,reference_build,chromosome2,start2,stop2,representative_transcript2,variant_types,hgvs_expressions,last_review_date,civic_variant_evidence_score,allele_registry_id,clinvar_ids,variant_aliases,assertion_ids,assertion_civic_urls,is_flagged) FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --update sources.civic_variantsummaries set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

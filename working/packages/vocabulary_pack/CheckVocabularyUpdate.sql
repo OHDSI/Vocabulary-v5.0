@@ -141,6 +141,7 @@ BEGIN
           29. OncoTree
           30. CIM10
           31. OMOP Invest Drug
+          32. CiViC
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -353,6 +354,19 @@ BEGIN
                 AND i.types->>'title'='Newest GSRS Public Data Released'
                 ORDER BY 1 DESC LIMIT 1;
                 cVocabVer := 'OMOP Invest Drug version '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'CIVIC'
+            THEN
+                --CIViC use POST-requests
+                SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_post(url=>cURL,
+                  content_type=>'application/json',
+                  params=>'{"operationName":"DataReleases","variables":{},"query":"query DataReleases {\n  dataReleases {\n    ...Release\n    __typename\n  }\n}\n\nfragment Release on DataRelease {\n  name\n  geneTsv {\n    filename\n    path\n    __typename\n  }\n  variantTsv {\n    filename\n    path\n    __typename\n  }\n  variantGroupTsv {\n    filename\n    path\n    __typename\n  }\n  evidenceTsv {\n    filename\n    path\n    __typename\n  }\n  assertionTsv {\n    filename\n    path\n    __typename\n  }\n  acceptedVariantsVcf {\n    filename\n    path\n    __typename\n  }\n  acceptedAndSubmittedVariantsVcf {\n    filename\n    path\n    __typename\n  }\n  __typename\n}"}'
+                );
+                
+                SELECT TO_DATE(main_array#>>'{name}','dd-mon-yyyy') INTO cVocabDate FROM
+                (SELECT json_array_elements(cVocabHTML::json#>'{data,dataReleases}') main_array) s0
+                WHERE s0.main_array#>>'{name}'<>'nightly'
+                ORDER BY 1 DESC LIMIT 1;
+                cVocabVer := 'CIViC '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

@@ -579,3 +579,44 @@ select genomic_mutation_id from tab
 group by 1
 having count(genomic_mutation_id)>1;
 
+
+select distinct gene_name from cosmicmutantexportcensus
+where resistance_mutation = 'Yes';
+
+
+
+
+select distinct gene_name, genomic_mutation_id, resistance_mutation, tier, mutation_description, mutation_cds, mutation_aa,
+                hgvsp, hgvsc, hgvsg from cosmicmutantexportcensus
+where genomic_mutation_id not in (
+    select genomic_mutation_id from (
+        with tab as (select distinct gene_name,
+                             accession_number,
+                             gene_cds_length,
+                             hgnc_id,
+                             genomic_mutation_id,
+                             mutation_id,
+                             mutation_cds,
+                             mutation_aa,
+                             mutation_description,
+                             loh,
+                             grch,
+                             mutation_genome_position,
+                             mutation_strand,
+                             resistance_mutation,
+                             tier,
+                             hgvsp,
+                             hgvsc,
+                             hgvsg
+             from cosmicmutantexportcensus
+             where length(genomic_mutation_id)!=0)
+select genomic_mutation_id from tab
+group by 1
+having count(genomic_mutation_id)>1
+                                   )c
+    )
+and length(genomic_mutation_id)!=0
+and (mutation_description != 'Unknown'
+or resistance_mutation = 'Yes');
+
+

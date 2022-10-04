@@ -134,3 +134,21 @@ AND     (NOT EXISTS (SELECT 1
 
 ORDER BY 1,2,3,4,5,6,7,8
 ;
+
+--8 Activate mapping, that became valid again
+UPDATE concept_relationship_manual crm
+SET invalid_reason = null,
+valid_end_date = to_date('20991231','yyyymmdd'),
+valid_start_date =current_date
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason = 'D' -- activate only deprecated mappings
+
+AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
+                FROM dev_ndc.NDC_manual_mapped mm
+                WHERE mm.source_code = crm.concept_code_1 --the same source_code is mapped
+                    AND mm.target_concept_code = crm.concept_code_2 --to the same concept_code
+                    AND mm.target_vocabulary_id = crm.vocabulary_id_2 --of the same vocabulary
+                    AND mm.to_value = crm.relationship_id --with the same relationship
+    )
+;

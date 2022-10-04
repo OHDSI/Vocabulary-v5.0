@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Varvara Savitskaya, Vlad Korsik
-* Date: 2022
+* Authors: Varvara Savitskaya, Vlad Korsik, Alexander Davydov
+* Date: Fall-2022
 **************************************************************************/
 
 DO $_$
@@ -35,7 +35,7 @@ truncate concept_synonym_stage;
 
 drop table cgi_source;
 create table cgi_source as (
-select distinct gdna as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein
+select distinct gdna as concept_name, 'CGI' as vocabulary_id,  regexp_split_to_table(gdna,'__') as concept_code,regexp_split_to_table(gdna,'__') as hgvs,gene,protein --    october 2022 update will Update concept_code definition with preserving concept_id
 from genomic_cgi_source
 where gdna != ''
 and protein != '.');

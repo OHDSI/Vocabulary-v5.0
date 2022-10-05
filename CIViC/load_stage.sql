@@ -35,14 +35,14 @@ truncate concept_synonym_stage;
 drop table civic_source;
 create table civic_source as (
 select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-from dev_civic.genomic_civic_source
+from sources.civic_variantsummaries
 where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
 and variant!~*'frameshift|truncating'
 
 union
 
 select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, concat(gene, ':p.', variant) as hgvs
-from dev_civic.genomic_civic_source
+from sources.civic_variantsummaries
 where variant ~'([A-Z][1-9]*[A-Z])'
 and variant!~*'expression|amplification|truncation|truncating|loss|wildtype|mutation|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
 and variant!~*'rs'
@@ -50,7 +50,7 @@ and variant!~*'rs'
 union
 
 select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, variant as hgvs
-from dev_civic.genomic_civic_source
+from sources.civic_variantsummaries
 where variant ~'([A-Z][1-9]*[A-Z])'
 and variant!~*'expression|amplification|truncation|truncating|wildtype|mutation|loss|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
 and variant~*'rs'

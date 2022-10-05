@@ -1907,55 +1907,308 @@ WHERE v.vocabulary_id = 'LOINC'
 
 --28. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
 INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
---add LOINC Group Categories
-SELECT DISTINCT TRIM(lgt.category) AS concept_name, -- LOINC Category name from sources.loinc_grouploincterms
-	'Measurement' AS domain_id,
-	v.vocabulary_id AS vocabulary_id,
-	'LOINC Group' AS concept_class_id,
-	'C' AS standard_concept,
-	lg.parentgroupid AS concept_code, -- LOINC Category code from sources.loinc_group
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM sources.loinc_group lg -- table with codes of LOINC Category concepts
-JOIN sources.loinc_grouploincterms lgt ON lgt.groupid = lg.groupid-- table with names of LOINC Category concepts
-JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
-WHERE lgt.category IS NOT NULL
+    concept_name,
+    domain_id,
+    vocabulary_id,
+    concept_class_id,
+    standard_concept,
+    concept_code,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+--add LOINC Groups
+WITH gr_tab AS (
+    --fix LOINC Groups names
+    WITH tab_splitted AS (SELECT DISTINCT split_part(lgroup, '|', 1) AS test_name,
+                                          CASE
+                                              WHEN split_part(lgroup, '|', 2) = 'MCnt'
+                                                  THEN 'Mass Content'
+                                              WHEN split_part(lgroup, '|', 2) = 'Temp'
+                                                  THEN 'Temperature'
+                                              WHEN split_part(lgroup, '|', 2) = 'ACnc'
+                                                  THEN 'Arbitrary Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'Imp'
+                                                  THEN 'Impression/interpretation of study'
+                                              WHEN split_part(lgroup, '|', 2) = 'CRto'
+                                                  THEN 'Catalytic Ratio'
+                                              WHEN split_part(lgroup, '|', 2) = 'NCncRange'
+                                                  THEN 'Number Concentration (count/vol) Range'
+                                              WHEN split_part(lgroup, '|', 2) = 'MRat'
+                                                  THEN 'Mass Rate'
+                                              WHEN split_part(lgroup, '|', 2) = 'MFr.DF'
+                                                  THEN 'Mass Decimal Fraction'
+                                              WHEN split_part(lgroup, '|', 2) = 'SRat'
+                                                  THEN 'Substance Rate'
+                                              WHEN split_part(lgroup, '|', 2) = 'MFr'
+                                                  THEN 'Mass Fraction'
+                                              WHEN split_part(lgroup, '|', 2) = 'ThreshNum'
+                                                  THEN 'Threshold Number'
+                                              WHEN split_part(lgroup, '|', 2) = '12H'
+                                                  THEN '12 hours'
+                                              WHEN split_part(lgroup, '|', 2) = 'PrThr'
+                                                  THEN 'Presence or Threshold'
+                                              WHEN split_part(lgroup, '|', 2) = '24H'
+                                                  THEN '24 hours'
+                                              WHEN split_part(lgroup, '|', 2) = 'Pt'
+                                                  THEN 'Moment in time'
+                                              WHEN split_part(lgroup, '|', 2) = 'NFr'
+                                                  THEN 'Number Fraction'
+                                              WHEN split_part(lgroup, '|', 2) = 'ANYTypeofService'
+                                                  THEN 'Any Type of Service'
+                                              WHEN split_part(lgroup, '|', 2) = 'Prid'
+                                                  THEN 'Presence or Identity'
+                                              WHEN split_part(lgroup, '|', 2) = 'VRat'
+                                                  THEN 'Volume Rate'
+                                              WHEN split_part(lgroup, '|', 2) = 'Pres'
+                                                  THEN 'Pressure'
+                                              WHEN split_part(lgroup, '|', 2) = 'ANYRole'
+                                                  THEN 'Any Role'
+                                              WHEN split_part(lgroup, '|', 2) = 'MCnc'
+                                                  THEN 'Mass Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'Vol'
+                                                  THEN 'Volume'
+                                              WHEN split_part(lgroup, '|', 2) = 'CCnc'
+                                                  THEN 'Catalytic Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'MRto'
+                                                  THEN 'Mass Ratio'
+                                              WHEN split_part(lgroup, '|', 2) = 'ANYProp'
+                                                  THEN 'Any Property'
+                                              WHEN split_part(lgroup, '|', 2) = 'XXX'
+                                                  THEN 'Not specified'
+                                              WHEN split_part(lgroup, '|', 2) = 'ANYTypeOfService'
+                                                  THEN 'Any Type Of Service'
+                                              WHEN split_part(lgroup, '|', 2) = 'Naric'
+                                                  THEN 'Number Aeric'
+                                              WHEN split_part(lgroup, '|', 2) = 'MSCnc'
+                                                  THEN 'Mass or Substance Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'LnCnc'
+                                                  THEN 'Log Number Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'CRat'
+                                                  THEN 'Catalytic Rate'
+                                              WHEN split_part(lgroup, '|', 2) = 'SCnc'
+                                                  THEN 'Substance Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'CCnt'
+                                                  THEN 'Catalytic Content'
+                                              WHEN split_part(lgroup, '|', 2) = 'CFr'
+                                                  THEN 'Catalytic Fraction'
+                                              WHEN split_part(lgroup, '|', 2) = 'SRto'
+                                                  THEN 'Substance Ratio'
+                                              WHEN split_part(lgroup, '|', 2) = 'LsCnc'
+                                                  THEN 'Log Substance Concentration'
+                                              WHEN split_part(lgroup, '|', 2) = 'ArVRat'
+                                                  THEN 'Volume Rate/Area'
+                                              WHEN split_part(lgroup, '|', 2) = 'SCnt'
+                                                  THEN 'Substance Content'
+                                              WHEN split_part(lgroup, '|', 2) = 'NCnc'
+                                                  THEN 'Number Concentration (count/vol)'
+                                              WHEN split_part(lgroup, '|', 2) = 'NRat'
+                                                  THEN 'Number=Count/Time'
+                                              WHEN split_part(lgroup, '|', 2) = 'Len'
+                                                  THEN 'Length'
+                                              WHEN split_part(lgroup, '|', 2) = 'PPres'
+                                                  THEN 'Pressure (partial)'
+                                              WHEN split_part(lgroup, '|', 2) = 'Titr'
+                                                  THEN 'Titer'
+                                              WHEN split_part(lgroup, '|', 2) = 'Rden'
+                                                  THEN 'Relative Density'
+                                              WHEN split_part(lgroup, '|', 2) = 'Num'
+                                                  THEN 'Number'
+                                              WHEN split_part(lgroup, '|', 2) = 'Osmol'
+                                                  THEN 'Osmolality'
+                                              ELSE split_part(lgroup, '|', 2)
+                                              END                    AS property,
+                                          CASE
+                                              WHEN split_part(lgroup, '|', 3) = 'TPN'
+                                                  THEN 'Total parental nutrition'
+                                              WHEN split_part(lgroup, '|', 3) = 'ANYKindOfNote'
+                                                  THEN 'Any Kind Of Note'
+                                              WHEN split_part(lgroup, '|', 3) = 'Plr fld'
+                                                  THEN 'Pleural fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'Bld'
+                                                  THEN 'Blood'
+                                              WHEN split_part(lgroup, '|', 3) = 'Plas'
+                                                  THEN 'Plasma'
+                                              WHEN split_part(lgroup, '|', 3) = 'BldV'
+                                                  THEN 'Blood venous'
+                                              WHEN split_part(lgroup, '|', 3) = 'Vitr fld'
+                                                  THEN 'Vitreous Fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'BldA'
+                                                  THEN 'Blood arterial'
+                                              WHEN split_part(lgroup, '|', 3) = 'BldC'
+                                                  THEN 'Blood capillary'
+                                              WHEN split_part(lgroup, '|', 3) = 'Amnio fld'
+                                                  THEN 'Amniotic fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'Bld.dot'
+                                                  THEN 'Blood filter paper'
+                                              WHEN split_part(lgroup, '|', 3) = 'Dial fld'
+                                                  THEN 'Dialysis fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'Ser/Plas/Bld'
+                                                  THEN 'Blood, Serum or Plasma'
+                                              WHEN split_part(lgroup, '|', 3) = 'Dial fld prt'
+                                                  THEN 'Peritoneal dialysis fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'Sys:ANYResp'
+                                                  THEN 'Any Respiratory specimen'
+                                              WHEN split_part(lgroup, '|', 3) = '24H'
+                                                  THEN '24 hours'
+                                              WHEN split_part(lgroup, '|', 3) = 'Gast fld'
+                                                  THEN 'Gastric fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'Asp'
+                                                  THEN 'Aspirate'
+                                              WHEN split_part(lgroup, '|', 3) = 'Pt'
+                                                  THEN 'Moment in time'
+                                              WHEN split_part(lgroup, '|', 3) = 'Synv fld'
+                                                  THEN 'Synovial fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'ANYTm'
+                                                  THEN 'Any Time'
+                                              WHEN split_part(lgroup, '|', 3) = 'BldCo'
+                                                  THEN 'Blood – cord'
+                                              WHEN split_part(lgroup, '|', 3) = 'ANYSetting'
+                                                  THEN 'Any Setting'
+                                              WHEN split_part(lgroup, '|', 3) = 'Sys:ANYEYE'
+                                                  THEN 'Any Eye specimen'
+                                              WHEN split_part(lgroup, '|', 3) = 'Flu.nonbiological'
+                                                  THEN 'Nonbiological fluid'
+                                              WHEN split_part(lgroup, '|', 3) = 'Body fld'
+                                                  THEN 'Body fluid, unspecified'
+                                              WHEN split_part(lgroup, '|', 3) = 'Sys:ANYGU'
+                                                  THEN 'Any Genital specimen'
+                                              WHEN split_part(lgroup, '|', 3) = 'PPP'
+                                                  THEN 'Platelet poor plasma'
+                                              WHEN split_part(lgroup, '|', 3) = 'Ser/Plas'
+                                                  THEN 'Serum or Plasma'
+                                              WHEN split_part(lgroup, '|', 3) = 'Ser'
+                                                  THEN 'Serum'
+                                              ELSE split_part(lgroup, '|', 3)
+                                              END                    AS time,
+                                          CASE
+                                              WHEN split_part(lgroup, '|', 4) = 'Chal:None'
+                                                  THEN 'Without specimen'
+                                              WHEN split_part(lgroup, '|', 4) = 'Plr fld'
+                                                  THEN 'Pleural fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'ANYMethod'
+                                                  THEN 'Any Method'
+                                              WHEN split_part(lgroup, '|', 4) = 'BAL'
+                                                  THEN 'Bronchoalveolar lavage'
+                                              WHEN split_part(lgroup, '|', 4) = 'Bld'
+                                                  THEN 'Blood'
+                                              WHEN split_part(lgroup, '|', 4) = 'Plas'
+                                                  THEN 'Plasma'
+                                              WHEN split_part(lgroup, '|', 4) = 'Bld.dot'
+                                                  THEN 'Blood filter paper'
+                                              WHEN split_part(lgroup, '|', 4) = 'Laterality:ANY'
+                                                  THEN 'Any Laterality'
+                                              WHEN split_part(lgroup, '|', 4) = 'Dial fld'
+                                                  THEN 'Dialysis fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'Dial fld prt'
+                                                  THEN 'Peritoneal dialysis fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'Amnio fld'
+                                                  THEN 'Amniotic fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'ANYSys'
+                                                  THEN 'Any System'
+                                              WHEN split_part(lgroup, '|', 4) = 'Gast fld'
+                                                  THEN 'Gastric fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'RIA'
+                                                  THEN 'Radioimmunoassay'
+                                              WHEN split_part(lgroup, '|', 4) = 'ANYUrine'
+                                                  THEN 'Any Urine specimen'
+                                              WHEN split_part(lgroup, '|', 4) = 'Synv fld'
+                                                  THEN 'Synovial fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'BldCo'
+                                                  THEN 'Blood – cord'
+                                              WHEN split_part(lgroup, '|', 4) = 'BCG'
+                                                  THEN 'Bromocresol green'
+                                              WHEN split_part(lgroup, '|', 4) = 'ANYRole'
+                                                  THEN 'Any Role'
+                                              WHEN split_part(lgroup, '|', 4) = 'Tiss'
+                                                  THEN 'Tissue'
+                                              WHEN split_part(lgroup, '|', 4) = 'ANYSetting'
+                                                  THEN 'Any Setting'
+                                              WHEN split_part(lgroup, '|', 4) = 'HPLC'
+                                                  THEN 'High-performance liquid chromatography'
+                                              WHEN split_part(lgroup, '|', 4) = 'IA'
+                                                  THEN 'Immunoassay'
+                                              WHEN split_part(lgroup, '|', 4) = 'BCP'
+                                                  THEN 'Bromocresol purple'
+                                              WHEN split_part(lgroup, '|', 4) = 'Body fld'
+                                                  THEN 'Body fluid, unspecified'
+                                              WHEN split_part(lgroup, '|', 4) = 'ANYBldSerPl'
+                                                  THEN 'Blood, Serum or Plasma'
+                                              WHEN split_part(lgroup, '|', 4) = 'ISE'
+                                                  THEN 'Ion-selective membrane electrode'
+                                              WHEN split_part(lgroup, '|', 4) = 'Urine+Ser/Plas'
+                                                  THEN 'Urine and Serum or Plasma'
+                                              WHEN split_part(lgroup, '|', 4) = 'RBC'
+                                                  THEN 'Erythrocytes'
+                                              WHEN split_part(lgroup, '|', 4) = 'Pericard fld'
+                                                  THEN 'Pericardial fluid'
+                                              WHEN split_part(lgroup, '|', 4) = 'Periton fld'
+                                                  THEN 'Peritoneal fluid /ascites'
+                                              WHEN split_part(lgroup, '|', 4) = 'Bone mar'
+                                                  THEN 'Bone Marrow'
+                                              WHEN split_part(lgroup, '|', 4) = 'CSF'
+                                                  THEN 'Cerebral spinal fluid'
+                                              ELSE split_part(lgroup, '|', 4)
+                                              END                    AS specimen,
+                                          CASE
+                                              WHEN split_part(lgroup, '|', 5) = 'ANYSubjectMatterDomain'
+                                                  THEN 'Any Subject Matter Domain'
+                                              WHEN split_part(lgroup, '|', 5) = 'ANYMeth'
+                                                  THEN 'Any Method'
+                                              ELSE split_part(lgroup, '|', 5)
+                                              END                    AS method,
+                                          groupid                    AS concept_code
+                          FROM sources.loinc_group
+                          WHERE parentgroupid != 'LG85-3') --Groups non-related to Radiology
+    SELECT TRIM(REGEXP_REPLACE(CONCAT(test_name, '|', property, '|', time, '|', specimen, '|', method), '[|]\S+$|[|]$',
+                               '')) as concept_name, -- LOINC Group name
+           concept_code                              -- LOINC Group code
+    FROM tab_splitted
+
+    UNION ALL
+
+    SELECT TRIM(lgroup) as concept_name, -- LOINC Group name
+           groupid      AS concept_code  -- LOINC Group code
+    FROM sources.loinc_group
+    WHERE parentgroupid = 'LG85-3' --Groups related to Radiology
+)
+SELECT concept_name,
+       'Measurement'                   AS domain_id,
+       v.vocabulary_id                 AS vocabulary_id,
+       'LOINC Group'                   AS concept_class_id,
+       'C'                             AS standard_concept,
+       concept_code, -- LOINC Group code
+       v.latest_update                 AS valid_start_date,
+       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+       NULL                            AS invalid_reason
+FROM gr_tab
+         JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 
 UNION ALL
 
---add LOINC Groups
-SELECT TRIM(lg.lgroup) AS concept_name, -- LOINC Group name
-	'Measurement' AS domain_id,
-	v.vocabulary_id AS vocabulary_id,
-	'LOINC Group' AS concept_class_id,
-	'C' AS standard_concept,
-	lg.groupid AS concept_code, -- LOINC Group code
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM sources.loinc_group lg
-JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
+--add LOINC Group Categories
+SELECT DISTINCT TRIM(lgt.category)              AS concept_name, -- LOINC Category name from sources.loinc_grouploincterms
+                'Measurement'                   AS domain_id,
+                v.vocabulary_id                 AS vocabulary_id,
+                'LOINC Group'                   AS concept_class_id,
+                'C'                             AS standard_concept,
+                lg.parentgroupid                AS concept_code, -- LOINC Category code from sources.loinc_group
+                v.latest_update                 AS valid_start_date,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                NULL                            AS invalid_reason
+FROM sources.loinc_group lg -- table with codes of LOINC Category concepts
+         JOIN sources.loinc_grouploincterms lgt ON lgt.groupid = lg.groupid-- table with names of LOINC Category concepts
+         JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+WHERE lgt.category IS NOT NULL;
 
 --28.1 Update radiology Group Domains
 UPDATE concept_stage cs
 SET domain_id = 'Procedure'
 FROM sources.loinc_group lg
 WHERE (
-		cs.concept_code = lg.groupid
-		AND lg.parentgroupid = 'LG85-3'
-		)
-	OR cs.concept_code IN (
+        cs.concept_code = lg.groupid
+        AND lg.parentgroupid = 'LG85-3'
+    )
+   OR cs.concept_code IN (
 		'LG85-3', --Radiology
 		'LG41849-7', --Region imaged: Lower extremity
 		'LG41814-1' --Radiology

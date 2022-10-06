@@ -22,5 +22,6 @@ CREATE TABLE koios_output
 (
    source_concept_id  INT,
    hgvsg              VARCHAR (100),
-   target_concept_id  INT
+   target_concept_id  INT,
+   timestamp          TIMESTAMP
 );

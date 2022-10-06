@@ -1,6 +1,6 @@
 -- with new download
-drop table dev_civic.genomic_civic_source;
-create table dev_civic.genomic_civic_source(
+drop table sources.genomic_civic_source;
+create table sources.genomic_civic_source(
     variant_id int,
     variant_civic_url varchar(255),
     gene varchar(255),
@@ -22,8 +22,8 @@ create table dev_civic.genomic_civic_source(
     representative_transcript2 varchar(255),
     variant_types varchar(255),
     hgvs_expressions varchar(255),
-    last_review_date varchar(255),
-    civic_variant_evidence_score float,
+    last_review_date date,
+    civic_variant_evidence_score numeric,
     allele_registry_id varchar(255),
     clinvar_ids varchar(255),
     variant_aliases varchar(255),
@@ -31,9 +31,3 @@ create table dev_civic.genomic_civic_source(
     assertion_civic_urls varchar(255),
     is_flagged varchar(255)
 );
-
-
--- with existing sources
-DROP TABLE IF EXISTS dev_civic.genomic_civic_variantsummaries;
-CREATE TABLE dev_civic.genomic_civic_variantsummaries
-as (select * from sources.genomic_civic_variantsummaries);

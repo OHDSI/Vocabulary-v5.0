@@ -137,15 +137,10 @@ FROM synonyms s
          JOIN concept_stage cs
               ON cs.concept_code = s.synonym_concept_code
                   AND s.synonym_name <> cs.concept_name
+                    AND s.synonym_name NOT IN (select concept_code from concept_stage)
 ;
 
---6. Add manual concepts or changes
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
-
---7 Clean up
+--6. Clean up
 DROP TABLE cgi_source;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

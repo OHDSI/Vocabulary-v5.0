@@ -35,60 +35,25 @@ END $_$
 drop table if exists hierarchy_full
 ;
 create unlogged table hierarchy_full as
-with codes_lifespan as
-	(
-		select code, min (year) as start_year, max (year) as end_year
-		from ops_src_agg
-		group by code
-	),
-codes_date as
-	(
-		select distinct
-			code,
-			(start_year || '-01-01') :: date as valid_start_date,
-			case end_year
-				when (select max(year) from ops_src_agg) then '2099-12-31' :: date
-				else (end_year || '-12-31') :: date
-			end as valid_end_date
-		from codes_lifespan
-	)
-select o.code, o.label_de, o.superclass, o.modifiedby, d.valid_start_date, d.valid_end_date
+select distinct on (s0.code) s0.code, s0.label_de, s0.superclass, s0.modifiedby, to_date(s0.min_year::text,'yyyy') as valid_start_date,
+                             case when s0.end_year=s0.max_year then to_date('20991231', 'yyyymmdd')
+                                 else to_date(end_year::text||'1231','yyyymmdd')
+                                 end as valid_end_date
+from (
+select o.code, o.label_de, o.superclass, o.modifiedby, min(year) over (partition by o.code) min_year,  o.year as end_year, max(year) over () as max_year
 from ops_src_agg o
-join codes_lifespan c on
-	c.code = o.code and
-	o.year = c.end_year -- last appearance of the code contains the best label
-join codes_date d on
-	d.code = o.code
+) s0
+order by s0.code, s0.end_year desc;
 ;
 drop table if exists modifiers_append
 ;
 create unlogged table modifiers_append as
-with codes_lifespan as
-	(
-		select modifier, code, min (year) as start_year, max (year) as end_year
-		from ops_mod_src
-		group by modifier, code
-	),
-codes_date as
-	(
-		select distinct
-			modifier,code,
-			(start_year || '-01-01') :: date as valid_start_date,
-			case end_year
-				when (select max(year) from ops_mod_src) then '2099-12-31' :: date
-				else (end_year || '-12-31') :: date
-			end as valid_end_date
-		from codes_lifespan
-	)
-select o.modifier, o.code, o.label_de, o.superclass, d.valid_start_date, d.valid_end_date
+select distinct on (s0.modifier, s0.code) s0.modifier, s0.code, s0.label_de, s0.superclass, to_date(s0.min_year::text,'yyyy') as valid_start_date, case when s0.end_year=s0.max_year then to_date('20991231', 'yyyymmdd') else to_date(end_year::text||'1231','yyyymmdd') end as valid_end_date
+from (
+select o.modifier, o.code, o.label_de, o.superclass, min(year) over (partition by o.modifier, o.code) min_year,  o.year as end_year, max(year) over () as max_year
 from ops_mod_src o
-join codes_lifespan c on
-	c.modifier = o.modifier and
-	c.code = o.code and
-	o.year = c.end_year -- last appearance of the code contains the best label
-join codes_date d on
-	d.code = o.code and
-	d.modifier = o.modifier
+) s0
+order by s0.modifier, s0.code, s0.end_year desc;
 ;
 --imprint modifiers into main table
 --modifier = superclass
@@ -97,13 +62,17 @@ select
 	concat (h.code, a.code) as code,
 	a.label_de as label_de,
 	h.code as superclass,
-	h.valid_start_date,
-	h.valid_end_date
+	case when h.valid_start_date > a.valid_start_date then h.valid_start_date
+	    else a.valid_start_date end as valid_start_date,
+	case when h.valid_end_date < a.valid_end_date then h.valid_end_date
+        else a.valid_end_date end as valid_end_date
 from hierarchy_full h
 join modifiers_append a on
 	h.modifiedby = a.modifier
 
 where a.modifier = a.superclass
+and h.valid_start_date <= a.valid_end_date
+and a.valid_start_date <= h.valid_end_date
 ;
 --superclass must be created from parent modifier
 insert into hierarchy_full (code,label_de,superclass,valid_start_date,valid_end_date)
@@ -111,8 +80,10 @@ select
 	concat (h.code, a.code) as code,
 	a.label_de as label_de,
 	concat (h.code, b.code) as superclass,
-	a.valid_start_date,
-	a.valid_end_date
+	case when h.valid_start_date > a.valid_start_date then h.valid_start_date
+	    else a.valid_start_date end as valid_start_date,
+	case when h.valid_end_date < a.valid_end_date then h.valid_end_date
+        else a.valid_end_date end as valid_end_date
 from hierarchy_full h
 join modifiers_append a on
 	h.modifiedby = a.modifier
@@ -121,6 +92,8 @@ join modifiers_append b on
 	b.modifier = a.modifier and
 	b.code = a.superclass
 where a.modifier != a.superclass
+and h.valid_start_date <= a.valid_end_date
+and a.valid_start_date <= h.valid_end_date
 ;
 --3. Use hierarchy_full to create a single table concept_stage_de with full German concept names
 drop table if exists concept_stage_de

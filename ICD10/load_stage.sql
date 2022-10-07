@@ -60,47 +60,78 @@ FROM (
 			) AS i
 		) AS s0
 	) AS s1
-LEFT JOIN LATERAL(SELECT STRING_AGG(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
+LEFT JOIN LATERAL(SELECT STRING_AGG(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
 		SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
 		) AS s0) l ON TRUE;
 
 --classes
 DROP TABLE IF EXISTS classes;
 CREATE UNLOGGED TABLE classes AS
-WITH classes
-AS (
-	SELECT s1.class_code,
-		s1.rubric_kind,
-		s1.superclass_code,
-		l.rubric_label
-	FROM (
-		SELECT *
-		FROM (
-			SELECT (xpath('/Class/@code', i.xmlfield))[1]::VARCHAR class_code,
-				l.superclass_code,
-				UNNEST(xpath('/Class/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-				UNNEST(xpath('/Class/Rubric', i.xmlfield)) rubric_label
+	WITH classes AS (
+			SELECT s1.class_code,
+				s1.rubric_kind,
+				s1.superclass_code,
+				s1.modifiedby_code,
+				l.rubric_label
 			FROM (
-				SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
-				FROM sources.icdclaml i
-				) AS i
-			LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON TRUE
-			) AS s0
-		) AS s1
-	LEFT JOIN LATERAL(SELECT STRING_AGG(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-			SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-			) AS s0) l ON TRUE
-	)
+				SELECT *
+				FROM (
+					SELECT (xpath('/Class/@code', i.xmlfield)) [1]::VARCHAR class_code,
+						l.superclass_code,
+						l1.modifiedby_code,
+						UNNEST(xpath('/Class/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+						UNNEST(xpath('/Class/Rubric', i.xmlfield)) rubric_label
+					FROM (
+						SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
+						FROM sources.icdclaml i
+						) AS i
+					LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON TRUE
+					LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/ModifiedBy[1]/@code', i.xmlfield))::VARCHAR modifiedby_code) l1 ON TRUE
+					) AS s0
+				) AS s1
+			LEFT JOIN LATERAL(SELECT STRING_AGG(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
+					SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
+					) AS s0) l ON TRUE
+			)
+
 --modify classes_table replacing  preferred name to preferredLong where it's possible
 SELECT a.class_code,
 	a.rubric_kind,
 	a.superclass_code,
+	a.modifiedby_code,
 	COALESCE(b.rubric_label, a.rubric_label) AS rubric_label
 FROM classes a
 LEFT JOIN classes b ON a.class_code = b.class_code
 	AND a.rubric_kind = 'preferred'
 	AND b.rubric_kind = 'preferredLong'
 WHERE a.rubric_kind <> 'preferredLong';
+
+--3.1. Manual fixes
+--manual fix for J96
+INSERT INTO classes
+SELECT c.class_code || m.modifierclass_code,
+	c.rubric_kind,
+	c.superclass_code,
+	NULL,
+	c.rubric_label || ', ' || m.rubric_label
+FROM classes c
+JOIN modifier_classes m ON SUBSTRING(m.superclass_code, '(.+?)_') = c.superclass_code
+	AND m.rubric_kind = 'preferred'
+WHERE c.superclass_code ~ '^[A-Z]\d\d$'
+	AND c.rubric_kind = 'preferred'
+
+UNION ALL
+
+--manual fix for B18 and T14
+SELECT c.class_code || m.modifierclass_code,
+	c.rubric_kind,
+	c.superclass_code,
+	NULL,
+	c.rubric_label || ', ' || m.rubric_label
+FROM classes c
+JOIN modifier_classes m ON m.modifierclass_modifier=c.modifiedby_code and m.rubric_kind='preferred'
+WHERE c.superclass_code ~ '^[A-Z]\d\d$'
+and c.rubric_kind='preferred';
 
 --4. Fill the concept_stage
 INSERT INTO concept_stage (
@@ -124,9 +155,13 @@ WITH codes_need_modified AS (
 			b.superclass_code AS super_concept_code
 		FROM classes a
 		JOIN classes b ON b.class_code LIKE a.class_code || '%'
-		WHERE a.rubric_kind = 'modifierlink'
+		WHERE (
+				a.rubric_kind = 'modifierlink'
+				OR a.modifiedby_code IS NOT NULL
+				)
 			AND b.rubric_kind = 'preferred'
 			AND b.class_code NOT LIKE '%-%'
+			AND a.class_code <> 'J96' --looks like a bug, but this code added manually
 		),
 	codes AS (
 		SELECT a.*,
@@ -463,11 +498,7 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---12. Check for NULL in domain_id
-ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
-ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
-
---13. Add hierarchical relationships
+--12. Add hierarchical relationships
 --add relationship from chapters to subchapters and vice versa
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -560,13 +591,13 @@ FROM classes
 WHERE rubric_kind = 'preferred'
 	AND superclass_code LIKE '%-%';
 
---14. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--13. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---15. Build reverse relationship. This is necessary for next point
+--14. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -598,7 +629,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---16. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--15. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -643,7 +674,7 @@ WHERE 'ICD10' IN (
 		'ICD10 Chapter'
 		);
 
---17. Clean up
+--16. Clean up
 DROP TABLE modifier_classes;
 DROP TABLE classes;
 

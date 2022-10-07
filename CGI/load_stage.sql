@@ -36,7 +36,7 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Create temporary table
-DROP TABLE cgi_source;
+DROP TABLE if exists cgi_source;
 CREATE TABLE cgi_source as (
    SELECT DISTINCT regexp_split_to_table(gdna, '__') as concept_name,
                     'CGI'                             as vocabulary_id,
@@ -131,16 +131,21 @@ with tab as (
 
 INSERT INTO concept_synonym_stage(synonym_concept_id, synonym_vocabulary_id, language_concept_id, synonym_name,
                            synonym_concept_code)
-                           
-select distinct cs.concept_id, synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code
+
+select  cs.concept_id, synonym_vocabulary_id, language_concept_id, synonym_name, synonym_concept_code
 FROM synonyms s
          JOIN concept_stage cs
               ON cs.concept_code = s.synonym_concept_code
                   AND s.synonym_name <> cs.concept_name
-                  AND s.synonym_name NOT IN (select concept_code from concept_stage)
 ;
 
---17. Clean up
+--6. Add manual concepts or changes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--7 Clean up
 DROP TABLE cgi_source;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

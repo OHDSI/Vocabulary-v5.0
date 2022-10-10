@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIViC',
-	pVocabularyDate			=>  TO_DATE('20221001', 'yyyymmdd'),
-	pVocabularyVersion		=> 'CIViC'||'20221001',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.civic_variantsummaries LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.civic_variantsummaries LIMIT 1),
 	pVocabularyDevSchema	=> 'dev_civic'
 );
 END $_$;

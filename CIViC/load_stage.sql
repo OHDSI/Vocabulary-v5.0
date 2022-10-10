@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIViC',
-	pVocabularyDate			=> '2022-10-01',
-	pVocabularyVersion		=> 'CIViC'||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDate			=>  TO_DATE('20221001', 'yyyymmdd'),
+	pVocabularyVersion		=> 'CIViC'||'20221001',
 	pVocabularyDevSchema	=> 'dev_civic'
 );
 END $_$;
@@ -50,7 +50,7 @@ UNION
 SELECT DISTINCT variant as concept_name, 'CIViC' as vocabulary_id, variant_id as concept_code, concat(gene, ':p.', variant) as hgvs
 FROM sources.civic_variantsummaries
 WHERE variant ~'([A-Z][1-9]*[A-Z])'
-AND variant!~*'expression|amplification|truncation|truncating|loss|wildtype|mutation|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
+AND variant!~*'expression|amplification|wild type|truncation|truncating|loss|wildtype|mutation|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
 AND variant not ilike '%rs%'
 
 UNION
@@ -58,7 +58,7 @@ UNION
 SELECT DISTINCT variant as concept_name, 'CIViC' as vocabulary_id, variant_id as concept_code, variant as hgvs
 FROM sources.civic_variantsummaries
 WHERE variant ~'([A-Z][1-9]*[A-Z])'
-AND variant!~*'expression|amplification|truncation|truncating|wildtype|mutation|loss|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
+AND variant!~*'expression|amplification|wild type|truncation|truncating|wildtype|mutation|loss|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
 AND variant ilike '%rs%'
 AND variant not like '%::%');
 

@@ -81,7 +81,7 @@ END $_$;*/
 DO $$
 DECLARE
 	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device']; --order does matter
-	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device']; --order does matter
+	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Clinical Finding','Event','Observable Entity','Context-dependent','Procedure','Lab Test','Staging / Scales','Substance','Qualifier Value','Social Context','Attribute']; --order does matter
 BEGIN
 	--build the concept_ancestor
 	DROP TABLE IF EXISTS omop_ext_ancestor;

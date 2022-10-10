@@ -23,7 +23,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIViC',
 	pVocabularyDate			=> '2022-10-01',
-	pVocabularyVersion		=> 'CIViC'||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyVersion		=> 'CIViC'||'2022-10-01',
 	pVocabularyDevSchema	=> 'dev_civic'
 );
 END $_$;

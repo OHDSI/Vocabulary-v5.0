@@ -601,7 +601,7 @@ UPDATE concept_stage cs
 SET domain_id = 'Note'
 FROM sources.loinc_hierarchy lh
 WHERE lh.path_to_root LIKE 'LP432695-7.LP7787-7.LP32519-8%'
-AND lh.code = cs.concept_code;
+	AND lh.code = cs.concept_code;
 
 --6. Insert missing codes from manual extraction
 DO $_$
@@ -1074,7 +1074,10 @@ JOIN concept c1 ON c1.concept_code = a.sn_key -- LOINC to SNOMED relationship_id
 		)
 JOIN concept c2 ON c2.concept_code = a.sn_value -- SNOMED Attribute
 	AND c2.vocabulary_id = 'SNOMED'
-	AND (c2.invalid_reason IS NULL or c2.concept_code = '41598000') --Estrogen. This concept is invalid, but is used as component
+	AND (
+		c2.invalid_reason IS NULL
+		OR c2.concept_code = '41598000'
+		) --Estrogen. This concept is invalid, but is used as component
 JOIN vocabulary v ON cs.vocabulary_id = v.vocabulary_id;
 
 --19. Build 'Is a' from LOINC Measurements to SNOMED Measurements in concept_relationship_stage to create a hierarchical cross-walks;
@@ -1113,59 +1116,60 @@ CREATE UNLOGGED TABLE sn_attr AS
 							AND cr_int.invalid_reason IS NULL
 						)
 					AND cr.relationship_id IN (
-                                               'Has component',
-                                               'Has scale type',
-                                               'Has specimen',
-                                               'Has dir proc site',
-                                               'Inheres in'
-                    )
-                 ) kk
-            WHERE /*kk.cnt = 1
+						'Has component',
+						'Has scale type',
+						'Has specimen',
+						'Has dir proc site',
+						'Inheres in'
+						)
+				) kk
+			WHERE /*kk.cnt = 1
 				AND*/ --Take concepts only with one component/scale and ect, so not all concepts have right hierarchy
-                kk.sn_name NOT ilike '%screening%'
-              AND kk.sn_code NOT IN (
-                                     '104193001',
-                                     '104194007',
-                                     '104178000',
-                                     '370990004',
-                                     '401298000',
-                                     '399177007',
-                                     '399193003',
-                                     '115253009',
-                                     '395129003',
-                                     '409613001',
-                                     '399143002',
-                                     '115340009',
-                                     '430925007',
-                                     '104568008',
-                                     '121806006',
-                                     '445132000',
-                                     '104326007',
-                                     '104323004',
-                                     '697001',
-                                     '413058006',
-                                     '432883005'
-                ) -- SNOMED concepts with wrong sets of attributes
-    ), -- exclude concepts with multiple attributes from one category
-         -- get a list of Fully defined SNOMED concepts, using sources.sct2_concept_full_merged, to weed out Primitive SNOMED Measurements composed of inadequate attribute set
-         snomed_concept AS (
-             SELECT *
-             FROM (
-                      SELECT DISTINCT c.concept_code,
-                                      FIRST_VALUE(f.statusid) OVER (
-                                          PARTITION BY f.id ORDER BY f.effectivetime DESC
-                                          ) AS statusid -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
-                      FROM sources.sct2_concept_full_merged f -- the source table indicating 'definition status' of SNOMED concepts
-                               JOIN concept c ON c.vocabulary_id = 'SNOMED'
-                          AND c.standard_concept = 'S'
-                          AND c.concept_code = f.id::VARCHAR
-                  ) AS s0
-             WHERE statusid = 900000000000073002
-
-             UNION ALL
-
-             SELECT '41598000' as concept_code, 900000000000073002 AS statusid --This union is needed to take Estrogen component
-         )
+				kk.sn_name NOT ILIKE '%screening%'
+				AND kk.sn_code NOT IN (
+					'104193001',
+					'104194007',
+					'104178000',
+					'370990004',
+					'401298000',
+					'399177007',
+					'399193003',
+					'115253009',
+					'395129003',
+					'409613001',
+					'399143002',
+					'115340009',
+					'430925007',
+					'104568008',
+					'121806006',
+					'445132000',
+					'104326007',
+					'104323004',
+					'697001',
+					'413058006',
+					'432883005'
+					) -- SNOMED concepts with wrong sets of attributes
+			), -- exclude concepts with multiple attributes from one category
+		-- get a list of Fully defined SNOMED concepts, using sources.sct2_concept_full_merged, to weed out Primitive SNOMED Measurements composed of inadequate attribute set
+		snomed_concept AS (
+			SELECT *
+			FROM (
+				SELECT DISTINCT ON (f.id) c.concept_code,
+					f.statusid
+				FROM sources.sct2_concept_full_merged f -- the source table indicating 'definition status' of SNOMED concepts
+				JOIN concept c ON c.vocabulary_id = 'SNOMED'
+					AND c.standard_concept = 'S'
+					AND c.concept_code = f.id::VARCHAR
+				ORDER BY f.id,
+					f.effectivetime DESC -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
+				) AS s0
+			WHERE statusid = 900000000000073002
+			
+			UNION ALL
+			
+			SELECT '41598000' AS concept_code,
+				900000000000073002 AS statusid --This union is needed to take Estrogen component
+			)
 
 SELECT zz.*
 FROM t1 zz
@@ -1178,218 +1182,222 @@ ANALYZE sn_attr;
 
 --'LC_ATTR' contains normalized set of relationships between LOINC Measurements and SNOMED Attributes
 DROP TABLE IF EXISTS lc_attr;
-CREATE UNLOGGED TABLE lc_attr AS (
+CREATE UNLOGGED TABLE lc_attr AS
 	-- AXIS 1: build links between TOP-6 LOINC Systems or 'Quantitative'/'Qualitative' Scales AND respective SNOMED Attributes
 	WITH lc_attr_add AS (
-		SELECT cs.concept_code AS lc_code,
-			cs.concept_name AS lc_name,
-			CASE
-				WHEN crs.concept_code_2 NOT IN (
-						'LP7753-9',
-						'LP7751-3'
-						)
-					THEN 'Has dir proc site'
-				ELSE 'Has scale type'
-				END AS relationship_id,
-			CASE
-				WHEN crs.concept_code_2 IN (
-						'LP7057-5',
-						'LP21304-8',
-						'LP7068-2',
-						'LP185760-8',
-						'LP7536-8',
-						'LP7576-4',
-						'LP7578-0',
-						'LP7579-8',
-						'LP7067-4',
-						'LP7073-2'
-						) --'Bld', 'Bld.dot', 'BldC', 'Plas/Bld', 'Ser/Plas/Bld', 'Ser/Plas', 'Ser/Plas.ultracentrifugate', 'RBC'
-					THEN '119297000' -- 	Blood specimen
-				WHEN crs.concept_code_2 = 'LP7567-3'
-					THEN '119364003' -- Serum specimen
-				WHEN crs.concept_code_2 = 'LP7681-2'
-					THEN '122575003' -- Urine specimen
-				WHEN crs.concept_code_2 = 'LP7156-5'
-					THEN '258450006' -- Cerebrospinal fluid sample
-				WHEN crs.concept_code_2 = 'LP7479-1'
-					THEN '119361006' -- Plasma specimen
-				WHEN crs.concept_code_2 = 'LP7604-4'
-					THEN '119339001' -- Stool specimen
-				WHEN crs.concept_code_2 = 'LP7753-9'
-					THEN '30766002' -- Quantitative
-				WHEN crs.concept_code_2 = 'LP7751-3'
-					THEN '26716007' -- Qualitative
-				END AS attr_code
-		FROM concept_stage cs
-		JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
-			AND crs.vocabulary_id_1 = cs.vocabulary_id -- LOINC Measurement
-			AND crs.concept_code_2 IN (
-				'LP7057-5',
-				'LP21304-8',
-				'LP7068-2',
-				'LP185760-8',
-				'LP7536-8',
-				'LP7576-4',
-				'LP7578-0',
-				'LP7579-8',
-				'LP7567-3',
-				'LP7681-2',
-				'LP7156-5',
-				'LP7479-1',
-				'LP7604-4',
-				'LP7753-9',
-				'LP7067-4',
-				'LP7073-2',
-				'LP7751-3'
-				) -- list of needful LOINC Parts (System and Scale)
-			AND crs.relationship_id IN (
-				'Has system',
-				'Has scale type'
-				)
-			AND crs.invalid_reason IS NULL
-		WHERE cs.vocabulary_id = 'LOINC'
-			AND cs.domain_id = 'Measurement'
-			AND cs.invalid_reason IS NULL
-			AND cs.standard_concept = 'S'
-		),
-	-- AXIS 2: get links given by the source between LOINC Measurements and SNOMED Attributes
-	lc_sn AS (
-		SELECT concept_code_1 AS lc_code,
-			cs.concept_name AS lc_name,
-			crs.relationship_id,
-			concept_code_2 AS attr_code
-		FROM concept_relationship_stage crs
-		JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1
-			AND cs.vocabulary_id = crs.vocabulary_id_1 -- LOINC Measurement
-			AND cs.standard_concept = 'S'
-			AND cs.invalid_reason IS NULL
-			AND cs.domain_id = 'Measurement'
-		JOIN concept c ON c.concept_code = crs.concept_code_2
-			AND c.vocabulary_id = crs.vocabulary_id_2 -- SNOMED Attribute
-			AND (c.invalid_reason IS NULL OR c.concept_code = '41598000') --To take Estrogen component
-		WHERE (
-				crs.concept_code_1,
-				crs.relationship_id
-				) NOT IN (
-				SELECT lca_int.lc_code,
-					lca_int.relationship_id
-				FROM lc_attr_add lca_int
-				) -- to exclude duplicates
-			AND crs.vocabulary_id_1 = 'LOINC'
-			AND crs.vocabulary_id_2 = 'SNOMED'
-			AND crs.invalid_reason IS NULL
-			AND crs.relationship_id IN (
-				'Has component',
-				'Has dir proc site',
-				'Inheres in',
-				'Has scale type'
-				) -- list of useful relationship_ids
-		),
-	-- AXIS 3: build links between LOINC Measurements and SNOMED Attributes using given by the source mappings of LOINC Attributes to SNOMED Attributes
-	lc_attr_1 AS (
-		SELECT cs2.concept_code AS lc_code,
-			cs2.concept_name AS lc_name,
-			'Has component' AS relationship_id,
-			c.concept_code AS attr_code
-		FROM concept_relationship_stage crs1
-		JOIN concept_stage cs1 ON cs1.concept_code = crs1.concept_code_1
-			AND cs1.vocabulary_id = crs1.vocabulary_id_1 -- LOINC Component
-			AND cs1.concept_class_id = 'LOINC Component'
-		JOIN concept c ON c.concept_code = crs1.concept_code_2
-			AND c.vocabulary_id = crs1.vocabulary_id_2 -- SNOMED Attribute
-			AND c.concept_class_id = 'Substance'
-		JOIN concept_relationship_stage crs2 ON crs2.concept_code_1 = cs1.concept_code
-			AND crs2.vocabulary_id_1 = cs1.vocabulary_id -- LOINC Component
-			AND crs2.relationship_id = 'Subsumes' -- LOINC Component 'Subsumes' LOINC Panel
-			AND crs2.invalid_reason IS NULL
-		JOIN concept_relationship_stage crs3 ON crs3.concept_code_1 = crs2.concept_code_2
-			AND crs3.vocabulary_id_1 = crs2.vocabulary_id_2 -- LOINC Panel
-			AND crs3.relationship_id = 'Subsumes' -- LOINC Panel 'Subsumes' LOINC Measurement
-			AND crs3.invalid_reason IS NULL
-		JOIN concept_stage cs2 ON cs2.concept_code = crs3.concept_code_2
-			AND cs2.vocabulary_id = crs3.vocabulary_id_2 -- LOINC Measurement
-			AND cs2.vocabulary_id = 'LOINC'
-			AND cs2.standard_concept = 'S'
-			AND cs2.standard_concept = 'S'
-			AND cs2.invalid_reason IS NULL
-			AND cs2.domain_id = 'Measurement'
-		WHERE cs2.concept_code NOT IN (
-				SELECT lc_int.lc_code
-				FROM lc_sn lc_int
-				WHERE lc_int.relationship_id = 'Has component'
-				)
-			AND crs1.vocabulary_id_1 = 'LOINC'
-			AND crs1.vocabulary_id_2 = 'SNOMED'
-			AND crs1.relationship_id = 'LOINC - SNOMED eq'
-			AND crs1.invalid_reason IS NULL
-		),
-	-- AXIS 4: build links between LOINC Measurements and SNOMED Attributes using Components of LOINC Measurements and name similarity of SNOMED Attributes
-	lc_attr_2 AS (
-		SELECT crs.concept_code_1 AS lc_code,
-			cs1.concept_name AS lc_name, -- preserved for word-pattern filtering
-			crs.relationship_id,
-			x1.attr_code AS attr_code
-		FROM concept_relationship_stage crs
-		JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-			AND cs1.vocabulary_id = crs.vocabulary_id_1 -- LOINC Measurement
-			AND cs1.standard_concept = 'S'
-			AND cs1.invalid_reason IS NULL
-			AND cs1.domain_id = 'Measurement'
-		JOIN concept_stage cs2 ON cs2.concept_code = crs.concept_code_2
-			AND cs2.vocabulary_id = crs.vocabulary_id_2 -- LOINC Component
-		JOIN sn_attr x1 ON (
-				LOWER(SPLIT_PART(cs2.concept_name, '.', 1)) = LOWER(x1.attr_name)
-				OR LOWER(SPLIT_PART(cs2.concept_name, '^', 1)) = LOWER(x1.attr_name)
-				) -- SNOMED Attribute
-		WHERE (
-				crs.concept_code_1,
-				crs.relationship_id
-				) NOT IN (
-				SELECT lc_int.lc_code,
-					lc_int.relationship_id
-				FROM lc_sn lc_int
-				)
-			AND (
-				crs.concept_code_1,
-				crs.relationship_id
-				) NOT IN (
-				SELECT lca_int.lc_code,
-					lca_int.relationship_id
-				FROM lc_attr_1 lca_int
-				) -- exclude duplicates
-			AND crs.vocabulary_id_1 = 'LOINC'
-			AND crs.vocabulary_id_2 = 'LOINC'
-			AND crs.relationship_id = 'Has component'
-			AND crs.invalid_reason IS NULL
-		)
-	-- get input
-	SELECT DISTINCT lc_code,
+			SELECT cs.concept_code AS lc_code,
+				cs.concept_name AS lc_name,
+				CASE 
+					WHEN crs.concept_code_2 NOT IN (
+							'LP7753-9',
+							'LP7751-3'
+							)
+						THEN 'Has dir proc site'
+					ELSE 'Has scale type'
+					END AS relationship_id,
+				CASE 
+					WHEN crs.concept_code_2 IN (
+							'LP7057-5',
+							'LP21304-8',
+							'LP7068-2',
+							'LP185760-8',
+							'LP7536-8',
+							'LP7576-4',
+							'LP7578-0',
+							'LP7579-8',
+							'LP7067-4',
+							'LP7073-2'
+							) --'Bld', 'Bld.dot', 'BldC', 'Plas/Bld', 'Ser/Plas/Bld', 'Ser/Plas', 'Ser/Plas.ultracentrifugate', 'RBC'
+						THEN '119297000' -- Blood specimen
+					WHEN crs.concept_code_2 = 'LP7567-3'
+						THEN '119364003' -- Serum specimen
+					WHEN crs.concept_code_2 = 'LP7681-2'
+						THEN '122575003' -- Urine specimen
+					WHEN crs.concept_code_2 = 'LP7156-5'
+						THEN '258450006' -- Cerebrospinal fluid sample
+					WHEN crs.concept_code_2 = 'LP7479-1'
+						THEN '119361006' -- Plasma specimen
+					WHEN crs.concept_code_2 = 'LP7604-4'
+						THEN '119339001' -- Stool specimen
+					WHEN crs.concept_code_2 = 'LP7753-9'
+						THEN '30766002' -- Quantitative
+					WHEN crs.concept_code_2 = 'LP7751-3'
+						THEN '26716007' -- Qualitative
+					END AS attr_code
+			FROM concept_stage cs
+			JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
+				AND crs.vocabulary_id_1 = cs.vocabulary_id -- LOINC Measurement
+				AND crs.concept_code_2 IN (
+					'LP7057-5',
+					'LP21304-8',
+					'LP7068-2',
+					'LP185760-8',
+					'LP7536-8',
+					'LP7576-4',
+					'LP7578-0',
+					'LP7579-8',
+					'LP7567-3',
+					'LP7681-2',
+					'LP7156-5',
+					'LP7479-1',
+					'LP7604-4',
+					'LP7753-9',
+					'LP7067-4',
+					'LP7073-2',
+					'LP7751-3'
+					) -- list of needful LOINC Parts (System and Scale)
+				AND crs.relationship_id IN (
+					'Has system',
+					'Has scale type'
+					)
+				AND crs.invalid_reason IS NULL
+			WHERE cs.vocabulary_id = 'LOINC'
+				AND cs.domain_id = 'Measurement'
+				AND cs.invalid_reason IS NULL
+				AND cs.standard_concept = 'S'
+			),
+		-- AXIS 2: get links given by the source between LOINC Measurements and SNOMED Attributes
+		lc_sn AS (
+			SELECT concept_code_1 AS lc_code,
+				cs.concept_name AS lc_name,
+				crs.relationship_id,
+				concept_code_2 AS attr_code
+			FROM concept_relationship_stage crs
+			JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1
+				AND cs.vocabulary_id = crs.vocabulary_id_1 -- LOINC Measurement
+				AND cs.standard_concept = 'S'
+				AND cs.invalid_reason IS NULL
+				AND cs.domain_id = 'Measurement'
+			JOIN concept c ON c.concept_code = crs.concept_code_2
+				AND c.vocabulary_id = crs.vocabulary_id_2 -- SNOMED Attribute
+				AND (
+					c.invalid_reason IS NULL
+					OR c.concept_code = '41598000'
+					) --To take Estrogen component
+			WHERE (
+					crs.concept_code_1,
+					crs.relationship_id
+					) NOT IN (
+					SELECT lca_int.lc_code,
+						lca_int.relationship_id
+					FROM lc_attr_add lca_int
+					) -- to exclude duplicates
+				AND crs.vocabulary_id_1 = 'LOINC'
+				AND crs.vocabulary_id_2 = 'SNOMED'
+				AND crs.invalid_reason IS NULL
+				AND crs.relationship_id IN (
+					'Has component',
+					'Has dir proc site',
+					'Inheres in',
+					'Has scale type'
+					) -- list of useful relationship_ids
+			),
+		-- AXIS 3: build links between LOINC Measurements and SNOMED Attributes using given by the source mappings of LOINC Attributes to SNOMED Attributes
+		lc_attr_1 AS (
+			SELECT cs2.concept_code AS lc_code,
+				cs2.concept_name AS lc_name,
+				'Has component' AS relationship_id,
+				c.concept_code AS attr_code
+			FROM concept_relationship_stage crs1
+			JOIN concept_stage cs1 ON cs1.concept_code = crs1.concept_code_1
+				AND cs1.vocabulary_id = crs1.vocabulary_id_1 -- LOINC Component
+				AND cs1.concept_class_id = 'LOINC Component'
+			JOIN concept c ON c.concept_code = crs1.concept_code_2
+				AND c.vocabulary_id = crs1.vocabulary_id_2 -- SNOMED Attribute
+				AND c.concept_class_id = 'Substance'
+			JOIN concept_relationship_stage crs2 ON crs2.concept_code_1 = cs1.concept_code
+				AND crs2.vocabulary_id_1 = cs1.vocabulary_id -- LOINC Component
+				AND crs2.relationship_id = 'Subsumes' -- LOINC Component 'Subsumes' LOINC Panel
+				AND crs2.invalid_reason IS NULL
+			JOIN concept_relationship_stage crs3 ON crs3.concept_code_1 = crs2.concept_code_2
+				AND crs3.vocabulary_id_1 = crs2.vocabulary_id_2 -- LOINC Panel
+				AND crs3.relationship_id = 'Subsumes' -- LOINC Panel 'Subsumes' LOINC Measurement
+				AND crs3.invalid_reason IS NULL
+			JOIN concept_stage cs2 ON cs2.concept_code = crs3.concept_code_2
+				AND cs2.vocabulary_id = crs3.vocabulary_id_2 -- LOINC Measurement
+				AND cs2.vocabulary_id = 'LOINC'
+				AND cs2.standard_concept = 'S'
+				AND cs2.standard_concept = 'S'
+				AND cs2.invalid_reason IS NULL
+				AND cs2.domain_id = 'Measurement'
+			WHERE cs2.concept_code NOT IN (
+					SELECT lc_int.lc_code
+					FROM lc_sn lc_int
+					WHERE lc_int.relationship_id = 'Has component'
+					)
+				AND crs1.vocabulary_id_1 = 'LOINC'
+				AND crs1.vocabulary_id_2 = 'SNOMED'
+				AND crs1.relationship_id = 'LOINC - SNOMED eq'
+				AND crs1.invalid_reason IS NULL
+			),
+		-- AXIS 4: build links between LOINC Measurements and SNOMED Attributes using Components of LOINC Measurements and name similarity of SNOMED Attributes
+		lc_attr_2 AS (
+			SELECT crs.concept_code_1 AS lc_code,
+				cs1.concept_name AS lc_name, -- preserved for word-pattern filtering
+				crs.relationship_id,
+				x1.attr_code AS attr_code
+			FROM concept_relationship_stage crs
+			JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+				AND cs1.vocabulary_id = crs.vocabulary_id_1 -- LOINC Measurement
+				AND cs1.standard_concept = 'S'
+				AND cs1.invalid_reason IS NULL
+				AND cs1.domain_id = 'Measurement'
+			JOIN concept_stage cs2 ON cs2.concept_code = crs.concept_code_2
+				AND cs2.vocabulary_id = crs.vocabulary_id_2 -- LOINC Component
+			JOIN sn_attr x1 ON (
+					LOWER(SPLIT_PART(cs2.concept_name, '.', 1)) = LOWER(x1.attr_name)
+					OR LOWER(SPLIT_PART(cs2.concept_name, '^', 1)) = LOWER(x1.attr_name)
+					) -- SNOMED Attribute
+			WHERE (
+					crs.concept_code_1,
+					crs.relationship_id
+					) NOT IN (
+					SELECT lc_int.lc_code,
+						lc_int.relationship_id
+					FROM lc_sn lc_int
+					)
+				AND (
+					crs.concept_code_1,
+					crs.relationship_id
+					) NOT IN (
+					SELECT lca_int.lc_code,
+						lca_int.relationship_id
+					FROM lc_attr_1 lca_int
+					) -- exclude duplicates
+				AND crs.vocabulary_id_1 = 'LOINC'
+				AND crs.vocabulary_id_2 = 'LOINC'
+				AND crs.relationship_id = 'Has component'
+				AND crs.invalid_reason IS NULL
+			)
+
+-- get input
+SELECT DISTINCT lc_code,
 	lc_name,
 	relationship_id,
-	attr_code FROM (
+	attr_code
+FROM (
 	SELECT *
 	FROM lc_attr_add
-
+	
 	UNION ALL
-
+	
 	SELECT *
 	FROM lc_sn
-
+	
 	UNION ALL
-
+	
 	SELECT *
 	FROM lc_attr_1
-
+	
 	UNION ALL
-
+	
 	SELECT *
 	FROM lc_attr_2
 	) lc
-	-- weed out LOINC Measurements with inapplicable properties in the SNOMED architecture context
-	JOIN sources.loinc j ON j.loinc_num = lc.lc_code
+-- weed out LOINC Measurements with inapplicable properties in the SNOMED architecture context
+JOIN sources.loinc j ON j.loinc_num = lc.lc_code
 	AND j.property !~ 'Rto|Ratio|^\w.Fr|Imp|Prid|Zscore|Susc|^-$' -- exclude ratio/interpretation/identifier/z-score/susceptibility-related concepts
-	WHERE lc_name !~* 'susceptibility|protein\.monoclonal'
-	);-- susceptibility may have property other than 'Susc'
+WHERE lc_name !~* 'susceptibility|protein\.monoclonal';-- susceptibility may have property other than 'Susc'
 
 CREATE INDEX idx_la_lccode ON lc_attr (lc_code);
 ANALYZE lc_attr;
@@ -1407,183 +1415,189 @@ INSERT INTO concept_relationship_stage (
 	)
 -- AXIS 1: get 3-attribute Measurements (Component+Specimen+Scale)
 WITH ax_1 AS (
-    SELECT DISTINCT z4.lc_code,
-                    z4.lc_name, -- to preserve names for word-pattern filtering
-                    x3.sn_code,
-                    x3.sn_name
-    FROM sn_attr x1 -- X1 - SNOMED attribute pool
-             JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-                  ON z1.attr_code = x1.attr_code -- common Component
-                      AND z1.relationship_id = 'Has component'
-             JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-             JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
-        AND z2.relationship_id IN (
-                                   'Has dir proc site',
-                                   'Inheres in'
-            ) -- given by the source relationships indicating SNOMED Specimens
-             JOIN sn_attr x3 ON x3.sn_code = x2.sn_code -- common 3-attribute SNOMED Measurement
-             JOIN lc_attr z3 ON z3.attr_code = x3.attr_code -- common Scale
-        AND z3.relationship_id = 'Has scale type'
-             JOIN lc_attr z4 ON z4.lc_code = z3.lc_code
-        AND z4.lc_code = z2.lc_code
-        AND z4.lc_code = z1.lc_code -- common 3-attribute LOINC Measurement
-    WHERE x1.relationship_id = 'Has component'
-      AND x2.relationship_id = 'Has specimen'
-      AND x3.relationship_id = 'Has scale type'
-      AND x1.sn_code IN (
-        SELECT sn_attr_int.sn_code
-        FROM sn_attr sn_attr_int
-        GROUP BY sn_attr_int.sn_code
-        HAVING COUNT(*) = 3
-    ) -- to restrict SNOMED attribute pool
-),
-     -- AXIS 2: get 2-attribute Measurements (Component+Specimen)
-     ax_2 AS (
-         SELECT DISTINCT z3.lc_code,
-                         z3.lc_name,
-                         x2.sn_code,
-                         x2.sn_name
-         FROM sn_attr x1 -- X1 - SNOMED attribute pool
-                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-                       ON z1.attr_code = x1.attr_code -- common Component
-                           AND z1.relationship_id = 'Has component'
-                  JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-                  JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
-             AND z2.relationship_id IN (
-                                        'Has dir proc site',
-                                        'Inheres in'
-                 ) -- given by the source relationships indicating SNOMED Specimens
-                  JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
-             AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
-         WHERE x1.relationship_id = 'Has component'
-           AND x2.relationship_id = 'Has specimen'
-           AND (x1.sn_code IN (
-             SELECT sn_attr_int.sn_code
-             FROM sn_attr sn_attr_int
-             GROUP BY sn_attr_int.sn_code
-             HAVING COUNT(*) = 2
-         ) /*to restrict SNOMED attribute pool*/ OR x1.attr_code = '41598000') --To take Estrogen component
-           AND z3.lc_code NOT IN (
-             SELECT ax_1_int.lc_code
-             FROM ax_1 ax_1_int
-         ) -- exclude duplicates
-     ),
-     -- AXIS 3: get 2-attribute Measurements (Component+Specimen) ONLY for Acellular blood (serum or plasma) specimen
-     ax_3 AS (
-         SELECT DISTINCT z2.lc_code, z2.lc_name, x2.sn_code, x2.sn_name
-         FROM sn_attr x1 -- X1 - SNOMED attribute pool
-                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-                       ON z1.attr_code = x1.attr_code -- common Component
-                           AND z1.relationship_id = 'Has component'
-                  JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-                  JOIN lc_attr z2 ON z2.lc_code = z1.lc_code -- common Site
-             AND z2.relationship_id IN (
-                                        'Has dir proc site',
-                                        'Inheres in'
-                 ) -- given by the source relationships indicating SNOMED Specimens
-             AND x2.attr_code = '122592007' --Acellular blood (serum or plasma) specimen
-             AND z2.attr_code = '119364003' --Serum specimen
-             AND x1.sn_code IN (
-                 SELECT sn_attr_int.sn_code
-                 FROM sn_attr sn_attr_int
-                 GROUP BY sn_attr_int.sn_code
-                 HAVING COUNT(*) = 2
-             ) /*to restrict SNOMED attribute pool*/
-            /* AND z2.lc_code NOT IN (
-                 SELECT ax_1_int.lc_code
-                 FROM ax_1 ax_1_int
-             )
-             AND z2.lc_code NOT IN (
-                 SELECT ax_2_int.lc_code
-                 FROM ax_2 ax_2_int
-             ) */-- exclude duplicates
-     ),
-     -- AXIS 4: get 2-attribute Measurements (Component+Scale)
-     ax_4 AS (
-         SELECT DISTINCT z3.lc_code,
-                         z3.lc_name,
-                         x2.sn_code,
-                         x2.sn_name
-         FROM sn_attr x1 --X1 - SNOMED attribute pool
-                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-                       ON z1.attr_code = x1.attr_code -- common Component
-                           AND z1.relationship_id = 'Has component'
-                  JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-                  JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Scale
-             AND z2.relationship_id = 'Has scale type'
-                  JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
-             AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
-         WHERE x1.relationship_id = 'Has component'
-           AND x2.relationship_id = 'Has scale type'
-           AND x1.sn_code IN (
-             SELECT sn_attr_int.sn_code
-             FROM sn_attr sn_attr_int
-             GROUP BY sn_attr_int.sn_code
-             HAVING COUNT(*) = 2
-         ) -- to restrict SNOMED attribute pool
-           AND z3.lc_code NOT IN (
-             SELECT ax_1_int.lc_code
-             FROM ax_1 ax_1_int
-         ) -- exclude duplicates
-     ),
-     -- AXIS 5: get 1-attribute Measurements (Component)
-     ax_5 AS (
-         SELECT DISTINCT z1.lc_code,
-                         z1.lc_name,
-                         x1.sn_code,
-                         x1.sn_name
-         FROM sn_attr x1 --X1 - SNOMED attribute pool
-                  JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-                       ON z1.attr_code = x1.attr_code -- common Component
-                           AND z1.relationship_id = 'Has component'
-         WHERE x1.relationship_id = 'Has component'
-           AND x1.sn_code IN (
-             SELECT sn_attr_int.sn_code
-             FROM sn_attr sn_attr_int
-             GROUP BY sn_attr_int.sn_code
-             HAVING COUNT(*) = 1
-         ) -- to restrict SNOMED attribute pool
-           AND z1.lc_code NOT IN (
-             SELECT ax_1_int.lc_code
-             FROM ax_1 ax_1_int
-         )
-           AND z1.lc_code NOT IN (
-             SELECT ax_2_int.lc_code
-             FROM ax_2 ax_2_int
-         )
-           AND z1.lc_code NOT IN (
-             SELECT ax_3_int.lc_code
-             FROM ax_3 ax_3_int
-         )
-           AND z1.lc_code NOT IN (
-             SELECT ax_4_int.lc_code
-             FROM ax_4 ax_4_int
-         ) -- exclude duplicates
-     ),
-     -- unite all AXES
-     all_ax AS (
-         SELECT *
-         FROM ax_1
-
-         UNION ALL
-
-         SELECT *
-         FROM ax_2
-
-         UNION ALL
-
-         SELECT *
-         FROM ax_3
-
-         UNION ALL
-
-         SELECT *
-         FROM ax_4
-
-         UNION ALL
-
-         SELECT *
-         FROM ax_5
+		SELECT DISTINCT z4.lc_code,
+			z4.lc_name, -- to preserve names for word-pattern filtering
+			x3.sn_code,
+			x3.sn_name
+		FROM sn_attr x1 -- X1 - SNOMED attribute pool
+		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+			ON z1.attr_code = x1.attr_code -- common Component
+			AND z1.relationship_id = 'Has component'
+		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+		JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
+			AND z2.relationship_id IN (
+				'Has dir proc site',
+				'Inheres in'
+				) -- given by the source relationships indicating SNOMED Specimens
+		JOIN sn_attr x3 ON x3.sn_code = x2.sn_code -- common 3-attribute SNOMED Measurement
+		JOIN lc_attr z3 ON z3.attr_code = x3.attr_code -- common Scale
+			AND z3.relationship_id = 'Has scale type'
+		JOIN lc_attr z4 ON z4.lc_code = z3.lc_code
+			AND z4.lc_code = z2.lc_code
+			AND z4.lc_code = z1.lc_code -- common 3-attribute LOINC Measurement
+		WHERE x1.relationship_id = 'Has component'
+			AND x2.relationship_id = 'Has specimen'
+			AND x3.relationship_id = 'Has scale type'
+			AND x1.sn_code IN (
+				SELECT sn_attr_int.sn_code
+				FROM sn_attr sn_attr_int
+				GROUP BY sn_attr_int.sn_code
+				HAVING COUNT(*) = 3
+				) -- to restrict SNOMED attribute pool
+		),
+	-- AXIS 2: get 2-attribute Measurements (Component+Specimen)
+	ax_2 AS (
+		SELECT DISTINCT z3.lc_code,
+			z3.lc_name,
+			x2.sn_code,
+			x2.sn_name
+		FROM sn_attr x1 -- X1 - SNOMED attribute pool
+		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+			ON z1.attr_code = x1.attr_code -- common Component
+			AND z1.relationship_id = 'Has component'
+		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+		JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Site
+			AND z2.relationship_id IN (
+				'Has dir proc site',
+				'Inheres in'
+				) -- given by the source relationships indicating SNOMED Specimens
+		JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
+			AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
+		WHERE x1.relationship_id = 'Has component'
+			AND x2.relationship_id = 'Has specimen'
+			AND (
+				x1.sn_code IN (
+					SELECT sn_attr_int.sn_code
+					FROM sn_attr sn_attr_int
+					GROUP BY sn_attr_int.sn_code
+					HAVING COUNT(*) = 2
+					) /*to restrict SNOMED attribute pool*/
+				OR x1.attr_code = '41598000'
+				) --To take Estrogen component
+			AND z3.lc_code NOT IN (
+				SELECT ax_1_int.lc_code
+				FROM ax_1 ax_1_int
+				) -- exclude duplicates
+		),
+	-- AXIS 3: get 2-attribute Measurements (Component+Specimen) ONLY for Acellular blood (serum or plasma) specimen
+	ax_3 AS (
+		SELECT DISTINCT z2.lc_code,
+			z2.lc_name,
+			x2.sn_code,
+			x2.sn_name
+		FROM sn_attr x1 -- X1 - SNOMED attribute pool
+		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+			ON z1.attr_code = x1.attr_code -- common Component
+			AND z1.relationship_id = 'Has component'
+		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+		JOIN lc_attr z2 ON z2.lc_code = z1.lc_code -- common Site
+			AND z2.relationship_id IN (
+				'Has dir proc site',
+				'Inheres in'
+				) -- given by the source relationships indicating SNOMED Specimens
+			AND x2.attr_code = '122592007' --Acellular blood (serum or plasma) specimen
+			AND z2.attr_code = '119364003' --Serum specimen
+			AND x1.sn_code IN (
+				SELECT sn_attr_int.sn_code
+				FROM sn_attr sn_attr_int
+				GROUP BY sn_attr_int.sn_code
+				HAVING COUNT(*) = 2
+				) /*to restrict SNOMED attribute pool*/
+			/*AND z2.lc_code NOT IN (
+				SELECT ax_1_int.lc_code
+				FROM ax_1 ax_1_int
+			)
+			AND z2.lc_code NOT IN (
+				SELECT ax_2_int.lc_code
+				FROM ax_2 ax_2_int
+			)*/ -- exclude duplicates
+		),
+	-- AXIS 4: get 2-attribute Measurements (Component+Scale)
+	ax_4 AS (
+		SELECT DISTINCT z3.lc_code,
+			z3.lc_name,
+			x2.sn_code,
+			x2.sn_name
+		FROM sn_attr x1 --X1 - SNOMED attribute pool
+		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+			ON z1.attr_code = x1.attr_code -- common Component
+			AND z1.relationship_id = 'Has component'
+		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+		JOIN lc_attr z2 ON z2.attr_code = x2.attr_code -- common Scale
+			AND z2.relationship_id = 'Has scale type'
+		JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
+			AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
+		WHERE x1.relationship_id = 'Has component'
+			AND x2.relationship_id = 'Has scale type'
+			AND x1.sn_code IN (
+				SELECT sn_attr_int.sn_code
+				FROM sn_attr sn_attr_int
+				GROUP BY sn_attr_int.sn_code
+				HAVING COUNT(*) = 2
+				) -- to restrict SNOMED attribute pool
+			AND z3.lc_code NOT IN (
+				SELECT ax_1_int.lc_code
+				FROM ax_1 ax_1_int
+				) -- exclude duplicates
+		),
+	-- AXIS 5: get 1-attribute Measurements (Component)
+	ax_5 AS (
+		SELECT DISTINCT z1.lc_code,
+			z1.lc_name,
+			x1.sn_code,
+			x1.sn_name
+		FROM sn_attr x1 --X1 - SNOMED attribute pool
+		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+			ON z1.attr_code = x1.attr_code -- common Component
+			AND z1.relationship_id = 'Has component'
+		WHERE x1.relationship_id = 'Has component'
+			AND x1.sn_code IN (
+				SELECT sn_attr_int.sn_code
+				FROM sn_attr sn_attr_int
+				GROUP BY sn_attr_int.sn_code
+				HAVING COUNT(*) = 1
+				) -- to restrict SNOMED attribute pool
+			AND z1.lc_code NOT IN (
+				SELECT ax_1_int.lc_code
+				FROM ax_1 ax_1_int
+				)
+			AND z1.lc_code NOT IN (
+				SELECT ax_2_int.lc_code
+				FROM ax_2 ax_2_int
+				)
+			AND z1.lc_code NOT IN (
+				SELECT ax_3_int.lc_code
+				FROM ax_3 ax_3_int
+				)
+			AND z1.lc_code NOT IN (
+				SELECT ax_4_int.lc_code
+				FROM ax_4 ax_4_int
+				) -- exclude duplicates
+		),
+	-- unite all AXES
+	all_ax AS (
+		SELECT *
+		FROM ax_1
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax_2
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax_3
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax_4
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax_5
 		)
 -- get input for concept_relationship_stage
 SELECT lc_code AS concept_code_1,
@@ -1600,39 +1614,39 @@ FROM all_ax a_x
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC' -- to get latest update
 	-- get rid of wrong SNOMED concepts with the same sets of attributes
 WHERE NOT (
-		a_x.sn_name ilike '%dipstick%'
-		AND a_x.lc_name NOT ilike '%test strip%'
+		a_x.sn_name ILIKE '%dipstick%'
+		AND a_x.lc_name NOT ILIKE '%test strip%'
 		OR (
 			a_x.lc_name ~* 'titer|presence'
-			AND a_x.sn_name ilike '% level%'
+			AND a_x.sn_name ILIKE '% level%'
 			)
 		OR (
-			a_x.lc_name NOT ilike '%titer%'
-			AND a_x.sn_name ilike '% titer%'
+			a_x.lc_name NOT ILIKE '%titer%'
+			AND a_x.sn_name ILIKE '% titer%'
 			)
 		OR (
 			a_x.lc_name LIKE '%/%'
-			AND a_x.sn_name ilike '% titer%'
+			AND a_x.sn_name ILIKE '% titer%'
 			)
 		OR (
 			a_x.lc_name !~* 'count|100|#'
-			AND a_x.sn_name ilike '%count%'
+			AND a_x.sn_name ILIKE '%count%'
 			)
 		OR (
 			a_x.lc_name ~* 'morpholog|presence'
-			AND a_x.sn_name ilike '%count%'
+			AND a_x.sn_name ILIKE '%count%'
 			)
 		OR (
-			a_x.lc_name NOT ilike '%fasting glucose%'
-			AND a_x.sn_name ilike '%fasting glucose%'
+			a_x.lc_name NOT ILIKE '%fasting glucose%'
+			AND a_x.sn_name ILIKE '%fasting glucose%'
 			)
 		OR (
-			a_x.lc_name NOT ilike '%microscop%'
-			AND a_x.sn_name ilike '%microscop%'
+			a_x.lc_name NOT ILIKE '%microscop%'
+			AND a_x.sn_name ILIKE '%microscop%'
 			)
 		OR (
 			a_x.lc_name !~* 'culture|isolate'
-			AND a_x.sn_name ilike '%culture%'
+			AND a_x.sn_name ILIKE '%culture%'
 			)
 		)
 	-- note, some LOINC Measurements may be mapped to 2 SNOMED Measurements
@@ -1644,12 +1658,12 @@ WHERE NOT (
 			HAVING COUNT(*) > 1
 			)
 		AND (
-			a_x.lc_name ilike '%fasting glucose%'
-			AND a_x.sn_name NOT ilike '%fasting glucose%'
-			OR a_x.lc_name ilike '%test strip%'
-			AND a_x.sn_name NOT ilike '%dipstick%'
+			a_x.lc_name ILIKE '%fasting glucose%'
+			AND a_x.sn_name NOT ILIKE '%fasting glucose%'
+			OR a_x.lc_name ILIKE '%test strip%'
+			AND a_x.sn_name NOT ILIKE '%dipstick%'
 			)
-		AND sn_name NOT ilike '%quantitative%'
+		AND sn_name NOT ILIKE '%quantitative%'
 		);
 
 --21. Build hierarchical links 'Is a' from LOINC Lab Tests to SNOMED Measurements with the use of LOINC Component - SNOMED Attribute name similarity in CONCEPT_RELATIONSHIP_STAGE
@@ -1907,308 +1921,321 @@ WHERE v.vocabulary_id = 'LOINC'
 
 --28. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
 INSERT INTO concept_stage (
-    concept_name,
-    domain_id,
-    vocabulary_id,
-    concept_class_id,
-    standard_concept,
-    concept_code,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason)
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
 --add LOINC Groups
 WITH gr_tab AS (
-    --fix LOINC Groups names
-    WITH tab_splitted AS (SELECT DISTINCT split_part(lgroup, '|', 1) AS test_name,
-                                          CASE
-                                              WHEN split_part(lgroup, '|', 2) = 'MCnt'
-                                                  THEN 'Mass Content'
-                                              WHEN split_part(lgroup, '|', 2) = 'Temp'
-                                                  THEN 'Temperature'
-                                              WHEN split_part(lgroup, '|', 2) = 'ACnc'
-                                                  THEN 'Arbitrary Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'Imp'
-                                                  THEN 'Impression/interpretation of study'
-                                              WHEN split_part(lgroup, '|', 2) = 'CRto'
-                                                  THEN 'Catalytic Ratio'
-                                              WHEN split_part(lgroup, '|', 2) = 'NCncRange'
-                                                  THEN 'Number Concentration (count/vol) Range'
-                                              WHEN split_part(lgroup, '|', 2) = 'MRat'
-                                                  THEN 'Mass Rate'
-                                              WHEN split_part(lgroup, '|', 2) = 'MFr.DF'
-                                                  THEN 'Mass Decimal Fraction'
-                                              WHEN split_part(lgroup, '|', 2) = 'SRat'
-                                                  THEN 'Substance Rate'
-                                              WHEN split_part(lgroup, '|', 2) = 'MFr'
-                                                  THEN 'Mass Fraction'
-                                              WHEN split_part(lgroup, '|', 2) = 'ThreshNum'
-                                                  THEN 'Threshold Number'
-                                              WHEN split_part(lgroup, '|', 2) = '12H'
-                                                  THEN '12 hours'
-                                              WHEN split_part(lgroup, '|', 2) = 'PrThr'
-                                                  THEN 'Presence or Threshold'
-                                              WHEN split_part(lgroup, '|', 2) = '24H'
-                                                  THEN '24 hours'
-                                              WHEN split_part(lgroup, '|', 2) = 'Pt'
-                                                  THEN 'Moment in time'
-                                              WHEN split_part(lgroup, '|', 2) = 'NFr'
-                                                  THEN 'Number Fraction'
-                                              WHEN split_part(lgroup, '|', 2) = 'ANYTypeofService'
-                                                  THEN 'Any Type of Service'
-                                              WHEN split_part(lgroup, '|', 2) = 'Prid'
-                                                  THEN 'Presence or Identity'
-                                              WHEN split_part(lgroup, '|', 2) = 'VRat'
-                                                  THEN 'Volume Rate'
-                                              WHEN split_part(lgroup, '|', 2) = 'Pres'
-                                                  THEN 'Pressure'
-                                              WHEN split_part(lgroup, '|', 2) = 'ANYRole'
-                                                  THEN 'Any Role'
-                                              WHEN split_part(lgroup, '|', 2) = 'MCnc'
-                                                  THEN 'Mass Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'Vol'
-                                                  THEN 'Volume'
-                                              WHEN split_part(lgroup, '|', 2) = 'CCnc'
-                                                  THEN 'Catalytic Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'MRto'
-                                                  THEN 'Mass Ratio'
-                                              WHEN split_part(lgroup, '|', 2) = 'ANYProp'
-                                                  THEN 'Any Property'
-                                              WHEN split_part(lgroup, '|', 2) = 'XXX'
-                                                  THEN 'Not specified'
-                                              WHEN split_part(lgroup, '|', 2) = 'ANYTypeOfService'
-                                                  THEN 'Any Type Of Service'
-                                              WHEN split_part(lgroup, '|', 2) = 'Naric'
-                                                  THEN 'Number Aeric'
-                                              WHEN split_part(lgroup, '|', 2) = 'MSCnc'
-                                                  THEN 'Mass or Substance Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'LnCnc'
-                                                  THEN 'Log Number Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'CRat'
-                                                  THEN 'Catalytic Rate'
-                                              WHEN split_part(lgroup, '|', 2) = 'SCnc'
-                                                  THEN 'Substance Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'CCnt'
-                                                  THEN 'Catalytic Content'
-                                              WHEN split_part(lgroup, '|', 2) = 'CFr'
-                                                  THEN 'Catalytic Fraction'
-                                              WHEN split_part(lgroup, '|', 2) = 'SRto'
-                                                  THEN 'Substance Ratio'
-                                              WHEN split_part(lgroup, '|', 2) = 'LsCnc'
-                                                  THEN 'Log Substance Concentration'
-                                              WHEN split_part(lgroup, '|', 2) = 'ArVRat'
-                                                  THEN 'Volume Rate/Area'
-                                              WHEN split_part(lgroup, '|', 2) = 'SCnt'
-                                                  THEN 'Substance Content'
-                                              WHEN split_part(lgroup, '|', 2) = 'NCnc'
-                                                  THEN 'Number Concentration (count/vol)'
-                                              WHEN split_part(lgroup, '|', 2) = 'NRat'
-                                                  THEN 'Number=Count/Time'
-                                              WHEN split_part(lgroup, '|', 2) = 'Len'
-                                                  THEN 'Length'
-                                              WHEN split_part(lgroup, '|', 2) = 'PPres'
-                                                  THEN 'Pressure (partial)'
-                                              WHEN split_part(lgroup, '|', 2) = 'Titr'
-                                                  THEN 'Titer'
-                                              WHEN split_part(lgroup, '|', 2) = 'Rden'
-                                                  THEN 'Relative Density'
-                                              WHEN split_part(lgroup, '|', 2) = 'Num'
-                                                  THEN 'Number'
-                                              WHEN split_part(lgroup, '|', 2) = 'Osmol'
-                                                  THEN 'Osmolality'
-                                              ELSE split_part(lgroup, '|', 2)
-                                              END                    AS property,
-                                          CASE
-                                              WHEN split_part(lgroup, '|', 3) = 'TPN'
-                                                  THEN 'Total parental nutrition'
-                                              WHEN split_part(lgroup, '|', 3) = 'ANYKindOfNote'
-                                                  THEN 'Any Kind Of Note'
-                                              WHEN split_part(lgroup, '|', 3) = 'Plr fld'
-                                                  THEN 'Pleural fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'Bld'
-                                                  THEN 'Blood'
-                                              WHEN split_part(lgroup, '|', 3) = 'Plas'
-                                                  THEN 'Plasma'
-                                              WHEN split_part(lgroup, '|', 3) = 'BldV'
-                                                  THEN 'Blood venous'
-                                              WHEN split_part(lgroup, '|', 3) = 'Vitr fld'
-                                                  THEN 'Vitreous Fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'BldA'
-                                                  THEN 'Blood arterial'
-                                              WHEN split_part(lgroup, '|', 3) = 'BldC'
-                                                  THEN 'Blood capillary'
-                                              WHEN split_part(lgroup, '|', 3) = 'Amnio fld'
-                                                  THEN 'Amniotic fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'Bld.dot'
-                                                  THEN 'Blood filter paper'
-                                              WHEN split_part(lgroup, '|', 3) = 'Dial fld'
-                                                  THEN 'Dialysis fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'Ser/Plas/Bld'
-                                                  THEN 'Blood, Serum or Plasma'
-                                              WHEN split_part(lgroup, '|', 3) = 'Dial fld prt'
-                                                  THEN 'Peritoneal dialysis fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'Sys:ANYResp'
-                                                  THEN 'Any Respiratory specimen'
-                                              WHEN split_part(lgroup, '|', 3) = '24H'
-                                                  THEN '24 hours'
-                                              WHEN split_part(lgroup, '|', 3) = 'Gast fld'
-                                                  THEN 'Gastric fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'Asp'
-                                                  THEN 'Aspirate'
-                                              WHEN split_part(lgroup, '|', 3) = 'Pt'
-                                                  THEN 'Moment in time'
-                                              WHEN split_part(lgroup, '|', 3) = 'Synv fld'
-                                                  THEN 'Synovial fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'ANYTm'
-                                                  THEN 'Any Time'
-                                              WHEN split_part(lgroup, '|', 3) = 'BldCo'
-                                                  THEN 'Blood – cord'
-                                              WHEN split_part(lgroup, '|', 3) = 'ANYSetting'
-                                                  THEN 'Any Setting'
-                                              WHEN split_part(lgroup, '|', 3) = 'Sys:ANYEYE'
-                                                  THEN 'Any Eye specimen'
-                                              WHEN split_part(lgroup, '|', 3) = 'Flu.nonbiological'
-                                                  THEN 'Nonbiological fluid'
-                                              WHEN split_part(lgroup, '|', 3) = 'Body fld'
-                                                  THEN 'Body fluid, unspecified'
-                                              WHEN split_part(lgroup, '|', 3) = 'Sys:ANYGU'
-                                                  THEN 'Any Genital specimen'
-                                              WHEN split_part(lgroup, '|', 3) = 'PPP'
-                                                  THEN 'Platelet poor plasma'
-                                              WHEN split_part(lgroup, '|', 3) = 'Ser/Plas'
-                                                  THEN 'Serum or Plasma'
-                                              WHEN split_part(lgroup, '|', 3) = 'Ser'
-                                                  THEN 'Serum'
-                                              ELSE split_part(lgroup, '|', 3)
-                                              END                    AS time,
-                                          CASE
-                                              WHEN split_part(lgroup, '|', 4) = 'Chal:None'
-                                                  THEN 'Without specimen'
-                                              WHEN split_part(lgroup, '|', 4) = 'Plr fld'
-                                                  THEN 'Pleural fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'ANYMethod'
-                                                  THEN 'Any Method'
-                                              WHEN split_part(lgroup, '|', 4) = 'BAL'
-                                                  THEN 'Bronchoalveolar lavage'
-                                              WHEN split_part(lgroup, '|', 4) = 'Bld'
-                                                  THEN 'Blood'
-                                              WHEN split_part(lgroup, '|', 4) = 'Plas'
-                                                  THEN 'Plasma'
-                                              WHEN split_part(lgroup, '|', 4) = 'Bld.dot'
-                                                  THEN 'Blood filter paper'
-                                              WHEN split_part(lgroup, '|', 4) = 'Laterality:ANY'
-                                                  THEN 'Any Laterality'
-                                              WHEN split_part(lgroup, '|', 4) = 'Dial fld'
-                                                  THEN 'Dialysis fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'Dial fld prt'
-                                                  THEN 'Peritoneal dialysis fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'Amnio fld'
-                                                  THEN 'Amniotic fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'ANYSys'
-                                                  THEN 'Any System'
-                                              WHEN split_part(lgroup, '|', 4) = 'Gast fld'
-                                                  THEN 'Gastric fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'RIA'
-                                                  THEN 'Radioimmunoassay'
-                                              WHEN split_part(lgroup, '|', 4) = 'ANYUrine'
-                                                  THEN 'Any Urine specimen'
-                                              WHEN split_part(lgroup, '|', 4) = 'Synv fld'
-                                                  THEN 'Synovial fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'BldCo'
-                                                  THEN 'Blood – cord'
-                                              WHEN split_part(lgroup, '|', 4) = 'BCG'
-                                                  THEN 'Bromocresol green'
-                                              WHEN split_part(lgroup, '|', 4) = 'ANYRole'
-                                                  THEN 'Any Role'
-                                              WHEN split_part(lgroup, '|', 4) = 'Tiss'
-                                                  THEN 'Tissue'
-                                              WHEN split_part(lgroup, '|', 4) = 'ANYSetting'
-                                                  THEN 'Any Setting'
-                                              WHEN split_part(lgroup, '|', 4) = 'HPLC'
-                                                  THEN 'High-performance liquid chromatography'
-                                              WHEN split_part(lgroup, '|', 4) = 'IA'
-                                                  THEN 'Immunoassay'
-                                              WHEN split_part(lgroup, '|', 4) = 'BCP'
-                                                  THEN 'Bromocresol purple'
-                                              WHEN split_part(lgroup, '|', 4) = 'Body fld'
-                                                  THEN 'Body fluid, unspecified'
-                                              WHEN split_part(lgroup, '|', 4) = 'ANYBldSerPl'
-                                                  THEN 'Blood, Serum or Plasma'
-                                              WHEN split_part(lgroup, '|', 4) = 'ISE'
-                                                  THEN 'Ion-selective membrane electrode'
-                                              WHEN split_part(lgroup, '|', 4) = 'Urine+Ser/Plas'
-                                                  THEN 'Urine and Serum or Plasma'
-                                              WHEN split_part(lgroup, '|', 4) = 'RBC'
-                                                  THEN 'Erythrocytes'
-                                              WHEN split_part(lgroup, '|', 4) = 'Pericard fld'
-                                                  THEN 'Pericardial fluid'
-                                              WHEN split_part(lgroup, '|', 4) = 'Periton fld'
-                                                  THEN 'Peritoneal fluid /ascites'
-                                              WHEN split_part(lgroup, '|', 4) = 'Bone mar'
-                                                  THEN 'Bone Marrow'
-                                              WHEN split_part(lgroup, '|', 4) = 'CSF'
-                                                  THEN 'Cerebral spinal fluid'
-                                              ELSE split_part(lgroup, '|', 4)
-                                              END                    AS specimen,
-                                          CASE
-                                              WHEN split_part(lgroup, '|', 5) = 'ANYSubjectMatterDomain'
-                                                  THEN 'Any Subject Matter Domain'
-                                              WHEN split_part(lgroup, '|', 5) = 'ANYMeth'
-                                                  THEN 'Any Method'
-                                              ELSE split_part(lgroup, '|', 5)
-                                              END                    AS method,
-                                          groupid                    AS concept_code
-                          FROM sources.loinc_group
-                          WHERE parentgroupid != 'LG85-3') --Groups non-related to Radiology
-    SELECT TRIM(REGEXP_REPLACE(CONCAT(test_name, '|', property, '|', time, '|', specimen, '|', method), '[|]+$',
-                               '')) as concept_name, -- LOINC Group name
-           concept_code                              -- LOINC Group code
-    FROM tab_splitted
-
-    UNION ALL
-
-    SELECT TRIM(lgroup) as concept_name, -- LOINC Group name
-           groupid      AS concept_code  -- LOINC Group code
-    FROM sources.loinc_group
-    WHERE parentgroupid = 'LG85-3' --Groups related to Radiology
-)
+		--fix LOINC Groups names
+		WITH tab_splitted AS (
+				SELECT DISTINCT SPLIT_PART(lgroup, '|', 1) AS test_name,
+					CASE 
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MCnt'
+							THEN 'Mass Content'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Temp'
+							THEN 'Temperature'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ACnc'
+							THEN 'Arbitrary Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Imp'
+							THEN 'Impression/interpretation of study'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'CRto'
+							THEN 'Catalytic Ratio'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'NCncRange'
+							THEN 'Number Concentration (count/vol) Range'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MRat'
+							THEN 'Mass Rate'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MFr.DF'
+							THEN 'Mass Decimal Fraction'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'SRat'
+							THEN 'Substance Rate'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MFr'
+							THEN 'Mass Fraction'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ThreshNum'
+							THEN 'Threshold Number'
+						WHEN SPLIT_PART(lgroup, '|', 2) = '12H'
+							THEN '12 hours'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'PrThr'
+							THEN 'Presence or Threshold'
+						WHEN SPLIT_PART(lgroup, '|', 2) = '24H'
+							THEN '24 hours'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Pt'
+							THEN 'Moment in time'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'NFr'
+							THEN 'Number Fraction'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ANYTypeofService'
+							THEN 'Any Type of Service'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Prid'
+							THEN 'Presence or Identity'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'VRat'
+							THEN 'Volume Rate'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Pres'
+							THEN 'Pressure'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ANYRole'
+							THEN 'Any Role'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MCnc'
+							THEN 'Mass Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Vol'
+							THEN 'Volume'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'CCnc'
+							THEN 'Catalytic Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MRto'
+							THEN 'Mass Ratio'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ANYProp'
+							THEN 'Any Property'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'XXX'
+							THEN 'Not specified'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ANYTypeOfService'
+							THEN 'Any Type Of Service'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Naric'
+							THEN 'Number Aeric'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'MSCnc'
+							THEN 'Mass or Substance Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'LnCnc'
+							THEN 'Log Number Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'CRat'
+							THEN 'Catalytic Rate'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'SCnc'
+							THEN 'Substance Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'CCnt'
+							THEN 'Catalytic Content'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'CFr'
+							THEN 'Catalytic Fraction'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'SRto'
+							THEN 'Substance Ratio'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'LsCnc'
+							THEN 'Log Substance Concentration'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'ArVRat'
+							THEN 'Volume Rate/Area'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'SCnt'
+							THEN 'Substance Content'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'NCnc'
+							THEN 'Number Concentration (count/vol)'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'NRat'
+							THEN 'Number=Count/Time'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Len'
+							THEN 'Length'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'PPres'
+							THEN 'Pressure (partial)'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Titr'
+							THEN 'Titer'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Rden'
+							THEN 'Relative Density'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Num'
+							THEN 'Number'
+						WHEN SPLIT_PART(lgroup, '|', 2) = 'Osmol'
+							THEN 'Osmolality'
+						ELSE SPLIT_PART(lgroup, '|', 2)
+						END AS property,
+					CASE 
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'TPN'
+							THEN 'Total parental nutrition'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'ANYKindOfNote'
+							THEN 'Any Kind Of Note'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Plr fld'
+							THEN 'Pleural fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Bld'
+							THEN 'Blood'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Plas'
+							THEN 'Plasma'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'BldV'
+							THEN 'Blood venous'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Vitr fld'
+							THEN 'Vitreous Fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'BldA'
+							THEN 'Blood arterial'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'BldC'
+							THEN 'Blood capillary'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Amnio fld'
+							THEN 'Amniotic fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Bld.dot'
+							THEN 'Blood filter paper'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Dial fld'
+							THEN 'Dialysis fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Ser/Plas/Bld'
+							THEN 'Blood, Serum or Plasma'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Dial fld prt'
+							THEN 'Peritoneal dialysis fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Sys:ANYResp'
+							THEN 'Any Respiratory specimen'
+						WHEN SPLIT_PART(lgroup, '|', 3) = '24H'
+							THEN '24 hours'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Gast fld'
+							THEN 'Gastric fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Asp'
+							THEN 'Aspirate'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Pt'
+							THEN 'Moment in time'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Synv fld'
+							THEN 'Synovial fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'ANYTm'
+							THEN 'Any Time'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'BldCo'
+							THEN 'Blood – cord'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'ANYSetting'
+							THEN 'Any Setting'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Sys:ANYEYE'
+							THEN 'Any Eye specimen'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Flu.nonbiological'
+							THEN 'Nonbiological fluid'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Body fld'
+							THEN 'Body fluid, unspecified'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Sys:ANYGU'
+							THEN 'Any Genital specimen'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'PPP'
+							THEN 'Platelet poor plasma'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Ser/Plas'
+							THEN 'Serum or Plasma'
+						WHEN SPLIT_PART(lgroup, '|', 3) = 'Ser'
+							THEN 'Serum'
+						ELSE SPLIT_PART(lgroup, '|', 3)
+						END AS TIME,
+					CASE 
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Chal:None'
+							THEN 'Without specimen'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Plr fld'
+							THEN 'Pleural fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ANYMethod'
+							THEN 'Any Method'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'BAL'
+							THEN 'Bronchoalveolar lavage'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Bld'
+							THEN 'Blood'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Plas'
+							THEN 'Plasma'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Bld.dot'
+							THEN 'Blood filter paper'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Laterality:ANY'
+							THEN 'Any Laterality'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Dial fld'
+							THEN 'Dialysis fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Dial fld prt'
+							THEN 'Peritoneal dialysis fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Amnio fld'
+							THEN 'Amniotic fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ANYSys'
+							THEN 'Any System'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Gast fld'
+							THEN 'Gastric fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'RIA'
+							THEN 'Radioimmunoassay'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ANYUrine'
+							THEN 'Any Urine specimen'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Synv fld'
+							THEN 'Synovial fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'BldCo'
+							THEN 'Blood – cord'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'BCG'
+							THEN 'Bromocresol green'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ANYRole'
+							THEN 'Any Role'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Tiss'
+							THEN 'Tissue'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ANYSetting'
+							THEN 'Any Setting'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'HPLC'
+							THEN 'High-performance liquid chromatography'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'IA'
+							THEN 'Immunoassay'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'BCP'
+							THEN 'Bromocresol purple'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Body fld'
+							THEN 'Body fluid, unspecified'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ANYBldSerPl'
+							THEN 'Blood, Serum or Plasma'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'ISE'
+							THEN 'Ion-selective membrane electrode'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Urine+Ser/Plas'
+							THEN 'Urine and Serum or Plasma'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'RBC'
+							THEN 'Erythrocytes'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Pericard fld'
+							THEN 'Pericardial fluid'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Periton fld'
+							THEN 'Peritoneal fluid /ascites'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'Bone mar'
+							THEN 'Bone Marrow'
+						WHEN SPLIT_PART(lgroup, '|', 4) = 'CSF'
+							THEN 'Cerebral spinal fluid'
+						ELSE SPLIT_PART(lgroup, '|', 4)
+						END AS specimen,
+					CASE 
+						WHEN SPLIT_PART(lgroup, '|', 5) = 'ANYSubjectMatterDomain'
+							THEN 'Any Subject Matter Domain'
+						WHEN SPLIT_PART(lgroup, '|', 5) = 'ANYMeth'
+							THEN 'Any Method'
+						ELSE SPLIT_PART(lgroup, '|', 5)
+						END AS method,
+					groupid AS concept_code
+				FROM sources.loinc_group
+				WHERE parentgroupid <> 'LG85-3'
+				) --Groups non-related to Radiology
+		SELECT TRIM(REGEXP_REPLACE(CONCAT (
+						test_name,
+						'|',
+						property,
+						'|',
+						TIME,
+						'|',
+						specimen,
+						'|',
+						method
+						), '\|+$', '')) AS concept_name, -- LOINC Group name
+			concept_code -- LOINC Group code
+		FROM tab_splitted
+		
+		UNION ALL
+		
+		SELECT TRIM(lgroup) AS concept_name, -- LOINC Group name
+			groupid AS concept_code -- LOINC Group code
+		FROM sources.loinc_group
+		WHERE parentgroupid = 'LG85-3' --Groups related to Radiology
+		)
 SELECT concept_name,
-       'Measurement'                   AS domain_id,
-       v.vocabulary_id                 AS vocabulary_id,
-       'LOINC Group'                   AS concept_class_id,
-       'C'                             AS standard_concept,
-       concept_code, -- LOINC Group code
-       v.latest_update                 AS valid_start_date,
-       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-       NULL                            AS invalid_reason
+	'Measurement' AS domain_id,
+	v.vocabulary_id AS vocabulary_id,
+	'LOINC Group' AS concept_class_id,
+	'C' AS standard_concept,
+	concept_code, -- LOINC Group code
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
 FROM gr_tab
-         JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 
 UNION ALL
 
 --add LOINC Group Categories
-SELECT DISTINCT TRIM(lgt.category)              AS concept_name, -- LOINC Category name from sources.loinc_grouploincterms
-                'Measurement'                   AS domain_id,
-                v.vocabulary_id                 AS vocabulary_id,
-                'LOINC Group'                   AS concept_class_id,
-                'C'                             AS standard_concept,
-                lg.parentgroupid                AS concept_code, -- LOINC Category code from sources.loinc_group
-                v.latest_update                 AS valid_start_date,
-                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                NULL                            AS invalid_reason
+SELECT DISTINCT TRIM(lgt.category) AS concept_name, -- LOINC Category name from sources.loinc_grouploincterms
+	'Measurement' AS domain_id,
+	v.vocabulary_id AS vocabulary_id,
+	'LOINC Group' AS concept_class_id,
+	'C' AS standard_concept,
+	lg.parentgroupid AS concept_code, -- LOINC Category code from sources.loinc_group
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
 FROM sources.loinc_group lg -- table with codes of LOINC Category concepts
-         JOIN sources.loinc_grouploincterms lgt ON lgt.groupid = lg.groupid-- table with names of LOINC Category concepts
-         JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+JOIN sources.loinc_grouploincterms lgt ON lgt.groupid = lg.groupid -- table with names of LOINC Category concepts
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 WHERE lgt.category IS NOT NULL;
 
 --28.1 Update radiology Group Domains
 UPDATE concept_stage cs
 SET domain_id = 'Procedure'
 FROM sources.loinc_group lg
-WHERE (
-        cs.concept_code = lg.groupid
-        AND lg.parentgroupid = 'LG85-3'
-    )
-   OR cs.concept_code IN (
+WHERE cs.concept_code = lg.groupid
+	AND lg.parentgroupid = 'LG85-3';
+
+UPDATE concept_stage cs
+SET domain_id = 'Procedure'
+WHERE cs.concept_code IN (
 		'LG85-3', --Radiology
 		'LG41849-7', --Region imaged: Lower extremity
 		'LG41814-1' --Radiology
@@ -2401,4 +2428,5 @@ WHERE a.vocabulary_id = 'LOINC'
 
 --39. Clean up
 DROP TABLE sn_attr, lc_attr;
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

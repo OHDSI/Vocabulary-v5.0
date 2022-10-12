@@ -2159,7 +2159,7 @@ WITH gr_tab AS (
                                           groupid                    AS concept_code
                           FROM sources.loinc_group
                           WHERE parentgroupid != 'LG85-3') --Groups non-related to Radiology
-    SELECT TRIM(REGEXP_REPLACE(CONCAT(test_name, '|', property, '|', time, '|', specimen, '|', method), '[|]\S+$|[|]$',
+    SELECT TRIM(REGEXP_REPLACE(CONCAT(test_name, '|', property, '|', time, '|', specimen, '|', method), '[|]+$',
                                '')) as concept_name, -- LOINC Group name
            concept_code                              -- LOINC Group code
     FROM tab_splitted

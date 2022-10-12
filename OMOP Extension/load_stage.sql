@@ -77,7 +77,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;*/
 
---10. Assign Domain for concepts with unassigned Domain using the Domain of an ancestor
+--10. Assign Domain and Class for concepts with unassigned Domain and Class using the Domain and Class of an ancestor
 DO $$
 DECLARE
 	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device']; --order does matter
@@ -220,7 +220,8 @@ BEGIN
 		AND cs.vocabulary_id = i.vocabulary_id;
 END $$;
 
---now check for domain/class assignment error
+--Check for domain/class assignment error
+--We are waiting for no errors. If errors exist, you can get these concepts using the check below
 DO $$
 DECLARE
 	z int4;
@@ -238,7 +239,8 @@ BEGIN
 	END IF;
 END $$;
 
---get specific concept_codes
+--Get specific concept_codes
+--We are waiting nothing as the result
 SELECT an.ancestor_concept_code,
 	an.ancestor_vocabulary_id,
 	an.descendant_concept_code,
@@ -257,11 +259,8 @@ JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 		)
 ORDER BY 1, 2, 3, 4;
 
---clean up
+--Clean up
 DROP TABLE omop_ext_ancestor;
-
---11. Assign Concept_class for concepts with unassigned Concept_class using the Concept_class of an ancestor
---TODO: AVOF-3548
 
 --12. Workaround to drop the relationships between the vocabularies that are not affected by the SetLatestUpdate
 DELETE

@@ -40,6 +40,6 @@ $body$
     END
 $body$;
 
-/*select * from concept_manual_backup_2022_09_12;
-select * from concept_relationship_manual_backup_2022_09_12;
-select * from concept_synonym_manual_backup_2022_09_12;*/
+/*select * from concept_manual_backup_2022_10_13;
+select * from concept_relationship_manual_backup_2022_10_13;
+select * from concept_synonym_manual_backup_2022_10_13;*/

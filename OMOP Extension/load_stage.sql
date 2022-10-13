@@ -241,7 +241,7 @@ END $$;
 
 --Get specific concept_codes
 --We are waiting nothing as the result
-SELECT an.ancestor_concept_code,
+/*SELECT an.ancestor_concept_code,
 	an.ancestor_vocabulary_id,
 	an.descendant_concept_code,
 	an.descendant_vocabulary_id,
@@ -257,7 +257,7 @@ JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 		cs.domain_id,
 		cs.concept_class_id
 		)
-ORDER BY 1, 2, 3, 4;
+ORDER BY 1, 2, 3, 4;*/
 
 --Clean up
 DROP TABLE omop_ext_ancestor;

@@ -37,7 +37,7 @@ TRUNCATE TABLE drug_strength_stage;
 
 --3. Create temporary table
 DROP TABLE IF EXISTS cgi_source;
-CREATE UNLOGGED TABLE cgi_source
+CREATE UNLOGGED TABLE cgi_source AS
 SELECT DISTINCT REGEXP_SPLIT_TO_TABLE(gdna, '__') AS concept_name,
 	'CGI' AS vocabulary_id,
 	REGEXP_SPLIT_TO_TABLE(gdna, '__') AS concept_code,

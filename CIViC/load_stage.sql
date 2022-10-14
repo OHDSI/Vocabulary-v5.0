@@ -28,7 +28,6 @@ BEGIN
 );
 END $_$;
 
-
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
@@ -36,63 +35,78 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
-
 --3. Create temporary table
-DROP TABLE civic_source;
-CREATE TABLE civic_source as (
-SELECT DISTINCT variant as concept_name, 'CIViC' as vocabulary_id, variant_id as concept_code, (regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
+DROP TABLE IF EXISTS civic_source;
+CREATE UNLOGGED TABLE civic_source AS
+SELECT variant AS concept_name,
+	'CIViC' AS vocabulary_id,
+	variant_id AS concept_code,
+	(regexp_matches(hgvs_expressions, '[^, ]+', 'g')) [1] AS hgvs
 FROM sources.civic_variantsummaries
-WHERE hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
-AND variant!~*'frameshift|truncating'
+WHERE hgvs_expressions ~* '[\w_]+(\.\d+)?:[cgomnrp]\.'
+	AND variant !~* 'frameshift|truncating'
 
-UNION
+UNION ALL
 
-SELECT DISTINCT variant as concept_name, 'CIViC' as vocabulary_id, variant_id as concept_code, concat(gene, ':p.', variant) as hgvs
+SELECT variant AS concept_name,
+	'CIViC' AS vocabulary_id,
+	variant_id AS concept_code,
+	CONCAT (
+		gene,
+		':p.',
+		variant
+		) AS hgvs
 FROM sources.civic_variantsummaries
-WHERE variant ~'([A-Z][1-9]*[A-Z])'
-AND variant!~*'expression|amplification|wild type|truncation|truncating|loss|wildtype|mutation|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
-AND variant not ilike '%rs%'
+WHERE variant ~ '([A-Z][1-9]*[A-Z])'
+	AND variant !~* 'expression|amplification|wild type|truncation|truncating|loss|wildtype|mutation|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
+	AND variant NOT ILIKE '%rs%'
 
-UNION
+UNION ALL
 
-SELECT DISTINCT variant as concept_name, 'CIViC' as vocabulary_id, variant_id as concept_code, variant as hgvs
+SELECT variant AS concept_name,
+	'CIViC' AS vocabulary_id,
+	variant_id AS concept_code,
+	variant AS hgvs
 FROM sources.civic_variantsummaries
-WHERE variant ~'([A-Z][1-9]*[A-Z])'
-AND variant!~*'expression|amplification|wild type|truncation|truncating|wildtype|mutation|loss|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
-AND variant ilike '%rs%'
-AND variant not like '%::%');
+WHERE variant ~ '([A-Z][1-9]*[A-Z])'
+	AND variant !~* 'expression|amplification|wild type|truncation|truncating|wildtype|mutation|loss|methylation|polymorphism|HOMOZYGOSITY|translocation|PHOSPHORYLATION|deletion|function|shift|alteration|tandem|serum|alternative|REARRANGEMENT|MISLOCALIZATION|and|INACTIVATION|DOMAIN'
+	AND variant ILIKE '%rs%'
+	AND variant NOT LIKE '%::%';
 
+--4. Fill the concept_stage
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT c.concept_name,
+	'Measurement' AS domain_id,
+	c.vocabulary_id AS vocabulary_id,
+	'Variant' AS concept_class_id,
+	NULL AS standard_concept,
+	c.concept_code AS concept_code,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM civic_source c
+JOIN vocabulary v ON v.vocabulary_id = 'CIViC';
 
--- 4 Fill the concept_stage
-INSERT INTO concept_stage (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date)
-SELECT          DISTINCT        vocabulary_pack.CutConceptName(n.concept_name)                     AS concept_name,
-                           'Measurement'                                               AS domain_id,
-                           n.vocabulary_id                                             AS vocabulary_id,
-                           'Variant'                                                   AS concept_class_id,
-                           NULL                                                        AS standard_concept,
-                           trim(substr(n.concept_code, 1, 50))                         AS concept_code,
-                           v.latest_update           as valid_start_date,
-                           TO_DATE('20991231', 'yyyymmdd') as valid_end_date
-           FROM civic_source n
-                    JOIN vocabulary v ON v.vocabulary_id = 'CIViC'
-;
-
-
--- 5 Fill the concept_synonym_stage
-INSERT INTO concept_synonym_stage
-SELECT *
-FROM (
-SELECT
-NULL::INT as synonym_concept_id,
-hgvs AS synonym_name,
-cs.concept_code as synonym_concept_code,
-cs.vocabulary_id AS synonym_vocabulary_id,
-4180186 as language_concept_id
-FROM civic_source a
-JOIN concept_stage cs on cs.concept_code = a.concept_code
-) r
-;
-
+--5. Fill the concept_synonym_stage
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT concept_code AS synonym_concept_code,
+	hgvs AS synonym_name,
+	vocabulary_id AS synonym_vocabulary_id,
+	4180186 AS language_concept_id --English
+FROM civic_source;
 
 --6. Clean up
 DROP TABLE civic_source;

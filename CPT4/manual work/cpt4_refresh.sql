@@ -14,9 +14,9 @@ $body$;
 
 
 --restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_meddra.concept_relationship_manual;
-INSERT INTO dev_meddra.concept_relationship_manual
-SELECT * FROM dev_meddra.concept_relationship_manual_backup_YYYY_MM_DD;*/
+/*TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
+INSERT INTO dev_cpt4.concept_relationship_manual
+SELECT * FROM dev_cpt4.concept_relationship_manual_backup_2022_08_12;*/
 
 DO
 $body$
@@ -32,9 +32,9 @@ $body$
 $body$;
 
 --restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_meddra.concept_manual;
-INSERT INTO dev_meddra.concept_manual
-SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
+/*TRUNCATE TABLE dev_cpt4.concept_manual;
+INSERT INTO dev_cpt4.concept_manual
+SELECT * FROM dev_cpt4.concept_manual_backup_YYYY_MM_DD;*/
 
 --9.2.2 Create cpt4_mapped table and pre-populate it with the resulting manual table of the previous CPT4 refresh.
 

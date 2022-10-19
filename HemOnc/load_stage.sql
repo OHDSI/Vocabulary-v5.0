@@ -106,6 +106,7 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	CASE WHEN r.relationship_id = 'Is historical in adult' then 'Is hstrcl in adlt'
 	          WHEN r.relationship_id = 'Is current in pediatric' then 'Is current in pdtrc'
               WHEN r.relationship_id = 'Has investigational use' then 'Has invstg use'
+	     WHEN r.relationship_id = 'Is historical in pediatric' then 'Is hstrcl in pdtrc'
 	    else r.relationship_id end as relationship_id,
 	( SELECT latest_update
 			FROM vocabulary
@@ -126,6 +127,7 @@ LEFT JOIN concept_stage cs2 ON cs2.concept_code = r.concept_code_2
 	AND cs2.vocabulary_id = r.vocabulary_id_2
 WHERE r.relationship_id NOT IN (
 		-- these aren't investigated well yet
+                                'Was studied in',--looks irrelevant and non-needed as it's combined
 		'Has been compared to',
 		'Can be preceded by',
 		'Can be followed by',

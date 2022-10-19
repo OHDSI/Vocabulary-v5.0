@@ -111,3 +111,17 @@ BEGIN
 	pDefines_ancestry_rev		=>0
 );
 END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Is historical in pediatric (HemOnc)',
+	pRelationship_id			=>'Is hstrcl in pdtrc',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Historical pediatric indication for (HemOnc)',
+	pReverse_relationship_id		=>'Hstrcl pdtr indc for',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;

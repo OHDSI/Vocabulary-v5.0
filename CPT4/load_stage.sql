@@ -534,7 +534,29 @@ FROM (
 	) t1
 WHERE t1.concept_code = cs.concept_code;
 
---15. Add everything from the Manual tables
+--15. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. HCPCS <-> Visit, but currently we are updating CPT4)
+--This is because we have HCPCS <-> CPT4 in concept_relationship_stage, but AddFreshMAPSTO adds HCPCS <-> Visit from concept_relationship
+DELETE
+FROM concept_relationship_stage crs_o
+WHERE (
+		crs_o.concept_code_1,
+		crs_o.vocabulary_id_1,
+		crs_o.concept_code_2,
+		crs_o.vocabulary_id_2
+		) IN (
+		SELECT crs.concept_code_1,
+			crs.vocabulary_id_1,
+			crs.concept_code_2,
+			crs.vocabulary_id_2
+		FROM concept_relationship_stage crs
+		LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			AND v1.latest_update IS NOT NULL
+		LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2
+			AND v2.latest_update IS NOT NULL
+		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
+		);
+
+--16. Add everything from the Manual tables
 --Working with manual concepts
 DO $_$
 BEGIN
@@ -577,7 +599,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id and standard concept value for CPT4 according to mappings
+--17. Update domain_id and standard concept value for CPT4 according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id,
 	standard_concept = NULL

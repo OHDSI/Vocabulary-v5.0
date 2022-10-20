@@ -98,20 +98,19 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
 (
     id SERIAL PRIMARY KEY,
     source_code_description varchar(255),
-    source_code varchar(50),
-    source_concept_class_id varchar(50),
+    source_code varchar(255),
+    source_concept_class_id varchar(255),
     source_invalid_reason varchar(20),
-    source_domain_id varchar(50),
-    to_value varchar(50),
-    source varchar(50),
+    source_domain_id varchar(255),
+    to_value varchar(255),
     target_concept_id int,
-    target_concept_code varchar(50),
+    target_concept_code varchar(255),
     target_concept_name varchar(255),
-    target_concept_class_id varchar(50),
+    target_concept_class_id varchar(255),
     target_standard_concept varchar(20),
     target_invalid_reason varchar(20),
-    target_domain_id varchar(50),
-    target_vocabulary_id varchar(50)
+    target_domain_id varchar(255),
+    target_vocabulary_id varchar(255)
 );*/
 
 --7.3.9 Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.

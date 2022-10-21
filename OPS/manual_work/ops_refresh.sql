@@ -116,37 +116,7 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
 --7.3.9 Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
 --TRUNCATE TABLE dev_ops.ops_mapped;
 
---7.3.12 Deprecate all mappings that differ from the new version of resulting mapping file.
-UPDATE dev_ops.concept_relationship_manual
-SET invalid_reason = 'D',
-    valid_end_date = current_date
-WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
-      (SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2
-       FROM concept_relationship_manual crm_old
-
-       WHERE NOT exists(SELECT source_code,
-                               target_concept_code,
-                               'ops',
-                               target_vocabulary_id,
-                               CASE
-                                   WHEN to_value ~* 'value' THEN 'Maps to value'
-                                   WHEN to_value ~* 'Is a' THEN 'Is a'
-                                   WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
-                                   ELSE 'Maps to' END
-                        FROM dev_ops.ops_mapped crm_new
-                        WHERE source_code = crm_old.concept_code_1
-                          AND target_concept_code = crm_old.concept_code_2
-                          AND target_vocabulary_id = crm_old.vocabulary_id_2
-                          AND CASE
-                                  WHEN to_value ~* 'value' THEN 'Maps to value'
-                    WHEN to_value ~* 'Is a' THEN 'Is a'
-                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
-                   ELSE 'Maps to' END = crm_old.relationship_id
-
-    )
-    AND invalid_reason IS NULL
-    )
-;
+--7.3.10 Deprecate updated relationships in CRM
 
 --7.3.13 Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS

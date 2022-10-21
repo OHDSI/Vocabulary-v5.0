@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Eduard Korchmae, Timur Vakhitov, Dmitry Dymshyts, Christian Reich
-* Date: 2020
+* Authors: Eduard Korchmar, Timur Vakhitov, Dmitry Dymshyts, Christian Reich, Maria Khitrun
+* Date: 2022
 **************************************************************************/
 
 --0. Latest update construction

@@ -116,7 +116,12 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
 --7.3.9 Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
 --TRUNCATE TABLE dev_ops.ops_mapped;
 
---7.3.10 Deprecate updated relationships in CRM
+--7.3.10 Deprecate relationships in CRM
+UPDATE dev_ops.concept_relationship_manual
+SET invalid_reason = 'D',
+    valid_end_date = current_date
+WHERE concept_code_1 = '8-713.0'
+;
 
 --7.3.13 Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS

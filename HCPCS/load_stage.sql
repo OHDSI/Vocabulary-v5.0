@@ -680,9 +680,10 @@ AS (
 					'M0075', --Cellular therapy
 					'M0076', --Prolotherapy
 					'M0100', --Intragastric hypothermia using gastric freezing
+			        'M0201', -- Covid-19 vaccine administration
 					'M0300', --Iv chelation therapy (chemical endarterectomy)
 					'M0301' --Fabric wrapping of abdominal aneurysm
-					)
+			        					)
 				THEN 'Procedure'
 			WHEN l1.str = 'Other Medical Services'
 				THEN 'Observation' -- Level 1: M0000-M0301
@@ -1302,15 +1303,28 @@ WHERE concept_code_1 IN (
         'C9210',
         'C9267',
 		'G0010',
+		'J0170',
+		'J0171',
         'J0572',
 		'J0573',
+		'J1580',
+		'J1952',
         'J7042',
+        'J7184',
+        'J7301',
+        'J7311',
+        'J7313',
         'J7340',
 		'J0574',
 		'J9175',
+		'Q0090',
 		'Q0178',
         'Q0172',
-        'Q3022');
+        'Q3022',
+        'Q4091',
+        'Q4092',
+        'Q4097'
+                        );
 
 --12. Append manual relationships
 DO $_$
@@ -1380,8 +1394,20 @@ WHERE EXISTS (
 --19. All concepts mapped to Visit, Provider, Device domains should get the respective domain_id:
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
+FROM (WITH crs1 AS
+        (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, invalid_reason,
+            count(concept_code_2) OVER (PARTITION BY concept_code_1) as num
+            from concept_relationship_stage
+            where vocabulary_id_1 = 'HCPCS'),
+
+      cr1 AS
+    (select concept_id_1, relationship_id, concept_id_2, cr.invalid_reason,
+            count(concept_id_2) OVER (PARTITION BY concept_id_1) as num
+          from concept_relationship cr
+            join concept c on c.concept_id = cr.concept_id_1
+            where c.vocabulary_id = 'HCPCS')
+
+SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Visit'
@@ -1393,19 +1419,20 @@ FROM (
 					ELSE 4
 					END
 			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
+	FROM crs1
+	JOIN concept_stage cs1 ON cs1.concept_code = crs1.concept_code_1
+		AND cs1.vocabulary_id = crs1.vocabulary_id_1
 		AND cs1.vocabulary_id = 'HCPCS'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
+	JOIN concept c2 ON c2.concept_code = crs1.concept_code_2
+		AND c2.vocabulary_id = crs1.vocabulary_id_2
 		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
+	WHERE crs1.relationship_id = 'Maps to'
+		AND crs1.invalid_reason IS NULL
+	    AND crs1.num = 1
 
 	UNION ALL
 
-	SELECT DISTINCT cs1.concept_code,
+SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Visit'
@@ -1417,22 +1444,21 @@ FROM (
 					ELSE 4
 					END
 			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+	FROM concept_relationship cr1
+	JOIN concept c1 ON c1.concept_id = cr1.concept_id_1
 		AND c1.vocabulary_id = 'HCPCS'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+	JOIN concept c2 ON c2.concept_id = cr1.concept_id_2
 		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
+	WHERE cr1.relationship_id = 'Maps to'
+		AND cr1.invalid_reason IS NULL
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs_int
 			WHERE crs_int.concept_code_1 = cs1.concept_code
 				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
+				AND crs_int.relationship_id = cr1.relationship_id)
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'HCPCS';

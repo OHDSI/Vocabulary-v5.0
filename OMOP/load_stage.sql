@@ -81,7 +81,7 @@ END $_$;
 --7. Workaround to drop the concepts that are not affected by the SetLatestUpdate
 DELETE
 FROM concept_stage
-WHERE vocabulary_id <> 'Type Concept'
+WHERE vocabulary_id NOT IN ('Type Concept')
 ;
 
 --8. Workaround to drop the relationships between the vocabularies that are not affected by the SetLatestUpdate

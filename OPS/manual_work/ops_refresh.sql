@@ -67,9 +67,11 @@ SELECT synonym_concept_code AS concept_code,
 	NULL::TEXT AS english_term
 FROM dev_ops.concept_synonym_stage
 WHERE language_concept_id = 4182504
-  and synonym_concept_code in (select concept_code from dev_ops.concept_stage where concept_name like 'Placeholder%');
+  and synonym_concept_code in (select concept_code from dev_ops.concept_stage where concept_name like 'Placeholder%')
+  ;
 
-SELECT * FROM ops_translation_auto;
+  SELECT * FROM ops_translation_auto
+  ;
 
 DO $_$
 BEGIN
@@ -79,7 +81,8 @@ BEGIN
 		pOutputField   =>'english_term',
 		pDestLang      =>'en'
 	);
-END $_$;*/
+END $_$
+  ;*/
 
 INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, invalid_reason)
     (SELECT vocabulary_pack.CutConceptName(english_term) as concept_name,
@@ -98,37 +101,37 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
 (
     id SERIAL PRIMARY KEY,
     source_code_description varchar(255),
-    source_code varchar(255),
-    source_concept_class_id varchar(255),
+    source_code varchar(50),
+    source_concept_class_id varchar(50),
     source_invalid_reason varchar(20),
-    source_domain_id varchar(255),
+    source_domain_id varchar(50),
     to_value varchar(255),
     target_concept_id int,
-    target_concept_code varchar(255),
+    target_concept_code varchar(50),
     target_concept_name varchar(255),
-    target_concept_class_id varchar(255),
+    target_concept_class_id varchar(50),
     target_standard_concept varchar(20),
     target_invalid_reason varchar(20),
-    target_domain_id varchar(255),
-    target_vocabulary_id varchar(255)
+    target_domain_id varchar(50),
+    target_vocabulary_id varchar(50)
 );*/
 
 --7.3.9 Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
 --TRUNCATE TABLE dev_ops.ops_mapped;
 
---7.3.10 Deprecate relationships in CRM
+--7.3.10 Deprecate relationships in CRM, updated in ops_mapped
 UPDATE dev_ops.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
-WHERE concept_code_1 = '8-713.0'
+WHERE concept_code_1 IN ('8-713.0', '8-706', '5-543.40', '5-543.42')
 ;
 
 --7.3.13 Insert new and corrected mappings into the concept_relationship_manual table.
-with mapping AS
+WITH mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
                target_concept_code AS concept_code_2,
-               'ops' AS vocabulary_id_1,
+               'OPS' AS vocabulary_id_1,
                target_vocabulary_id AS vocabulary_id_2,
                CASE WHEN to_value ~* 'value' THEN 'Maps to value'
                     WHEN to_value ~* 'Is a' THEN 'Is a'

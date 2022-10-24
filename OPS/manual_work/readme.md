@@ -52,7 +52,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 7.3.11. Iteratively repeat steps 8.2.3-8.2.6 if found any issues.
 
-7.3.12. Deprecate all mappings that differ from the new version of resulting mapping file.
+7.3.12. Deprecate all mappings that were updated in manual mapping table.
 
 7.3.13. Insert new and corrected mappings into the concept_relationship_manual table.
 

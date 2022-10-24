@@ -78,15 +78,4 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---7. Workaround to drop the concepts that are not affected by the SetLatestUpdate
-DELETE
-FROM concept_stage
-WHERE vocabulary_id NOT IN ('Type Concept')
-;
-
---8. Workaround to drop the relationships between the vocabularies that are not affected by the SetLatestUpdate
-DELETE
-FROM concept_relationship_stage
-WHERE vocabulary_id_1 NOT IN ('Type Concept')
-;
 --At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

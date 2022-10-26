@@ -109,6 +109,7 @@ AS (
 					'A9527',
 					'A9517',
 					'A9530',
+					'A9602',
 					'A9606',
 					'A9543',
 					'A9563',
@@ -180,7 +181,10 @@ AS (
 			        'C9200',
 					'C9201',
 					'C9123',
-					'C9102'
+					'C9102',
+					'C9458',
+					'C9459',
+					'C9461'
 					)
 				THEN 'Device'
 			WHEN concept_code IN (
@@ -319,7 +323,15 @@ AS (
 				THEN 'Procedure' -- Level 2: G0333-G0333 previously 'Fee, Pharmacy'
 			WHEN concept_code = 'G0337'
 				THEN 'Observation' -- Level 2: G0337-G0337 previously 'Hospice'
-			WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
+			WHEN concept_code IN (
+			    'G9481',
+			    'G9482',
+			    'G9486',
+			    'G9487',
+			    'G9488',
+			    'G9489')
+		        THEN 'Visit'
+		    WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
 				THEN 'Observation' -- Level 2: G0378-G0384
 			WHEN l2.str = 'Trauma Response Team'
 				THEN 'Observation' -- Level 2: G0390-G0390
@@ -1299,6 +1311,15 @@ FROM concept_relationship_stage
 WHERE concept_code_1 IN (
         'A9576',
         'A9585',
+        'C9034',
+        'C9044',
+        'C9045',
+        'C9049',
+        'C9050',
+        'C9051',
+        'C9092',
+        'C9040'
+        'C9130',
         'C9275',
         'C9210',
         'C9267',
@@ -1323,8 +1344,33 @@ WHERE concept_code_1 IN (
         'Q3022',
         'Q4091',
         'Q4092',
-        'Q4097'
-                        );
+        'Q4097',
+        'C9137',
+        'C9141',
+        'C9270',
+        'C9432',
+        'C9465',
+        'C9471',
+        'J0713',
+        'J0834',
+        'J1330',
+        'J1459',
+        'J1556',
+        'J1557',
+        'J1568',
+        'J1569',
+        'J7179',
+        'J7180',
+        'J7183',
+        'J7187',
+        'J7201',
+        'J7318',
+        'J7320',
+        'J7322',
+        'J7327',
+        'J7329',
+        'J9355',
+        'Q9980'                        );
 
 --12. Append manual relationships
 DO $_$
@@ -1398,14 +1444,16 @@ FROM (WITH crs1 AS
         (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, invalid_reason,
             count(concept_code_2) OVER (PARTITION BY concept_code_1) as num
             from concept_relationship_stage
-            where vocabulary_id_1 = 'HCPCS'),
+            where vocabulary_id_1 = 'HCPCS'
+            and relationship_id = 'Maps to'),
 
       cr1 AS
     (select concept_id_1, relationship_id, concept_id_2, cr.invalid_reason,
             count(concept_id_2) OVER (PARTITION BY concept_id_1) as num
           from concept_relationship cr
             join concept c on c.concept_id = cr.concept_id_1
-            where c.vocabulary_id = 'HCPCS')
+            where c.vocabulary_id = 'HCPCS'
+            and relationship_id = 'Maps to')
 
 SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (

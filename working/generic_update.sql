@@ -204,7 +204,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'OMOP Extension' THEN 0
 		WHEN c.vocabulary_id = 'CIM10' THEN 1
 		WHEN c.vocabulary_id = 'NCCD' THEN 0
-		WHEN c.vocabulary_id = 'CIViC' THEN 0
+		WHEN c.vocabulary_id = 'CIViC' THEN 1
 		WHEN c.vocabulary_id = 'CGI' THEN 1
 		WHEN c.vocabulary_id = 'ClinVar' THEN 0
 		WHEN c.vocabulary_id = 'JAX' THEN 0

@@ -29,6 +29,10 @@ $body$
         END
 $body$;
 
+TRUNCATE TABLE concept_relationship_manual;
+INSERT INTO concept_relationship_manual
+SELECT*FROM concept_relationship_manual_backup_2022_05_21;
+
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
@@ -40,6 +44,24 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
     AND concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh
 
     AND NOT EXISTS (SELECT 1 --don't deprecate mapping if the same exists in the current manual file
+                    FROM refresh_lookup_done rl
+                    WHERE rl.icd_code = crm.concept_code_1 --the same source_code is mapped
+                        AND rl.repl_by_code = crm.concept_code_2 --to the same concept_code
+                        AND rl.repl_by_vocabulary = crm.vocabulary_id_2 --of the same vocabulary
+                        AND rl.repl_by_relationship = crm.relationship_id --with the same relationship
+        )
+;
+
+-- activate mapping, that became valid again
+UPDATE concept_relationship_manual crm
+SET invalid_reason = null,
+    valid_end_date = to_date('20991231','yyyymmdd'),
+    valid_start_date = current_date
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason = 'D' -- activate only deprecated mappings
+
+    AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
                     FROM refresh_lookup_done rl
                     WHERE rl.icd_code = crm.concept_code_1 --the same source_code is mapped
                         AND rl.repl_by_code = crm.concept_code_2 --to the same concept_code

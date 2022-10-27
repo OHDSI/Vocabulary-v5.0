@@ -18,6 +18,8 @@
 * Date: 2021
 **************************************************************************/
 
+DROP TABLE IF EXISTS refresh_lookup_done;
+TRUNCATE TABLE refresh_lookup_done;
 CREATE TABLE refresh_lookup_done (
 icd_code VARCHAR,
 icd_name VARCHAR,
@@ -27,3 +29,5 @@ repl_by_code VARCHAR,
 repl_by_name VARCHAR,
 repl_by_domain VARCHAR,
 repl_by_vocabulary VARCHAR);
+
+SELECT*FROM refresh_lookup_done;

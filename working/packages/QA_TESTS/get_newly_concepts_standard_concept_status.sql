@@ -14,13 +14,13 @@ CREATE TYPE qa_tests.type_get_newly_concepts_sc_status AS (
 	cnt BIGINT
 	);
 
-CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts_standard_concept_status (pCompareWith VARCHAR DEFAULT 'PRODV5')
+CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts_standard_concept_status (pCompareWith VARCHAR DEFAULT 'prodv5')
 RETURNS SETOF qa_tests.type_get_newly_concepts_sc_status
 SET work_mem='5GB'
 AS $BODY$
 BEGIN
 	RETURN QUERY
-	EXECUTE $$
+	EXECUTE FORMAT ($$
 		SELECT new.vocabulary_id,
 			CASE 
 				WHEN new.standard_concept = 'S'
@@ -38,7 +38,7 @@ BEGIN
 				END AS new_standard_concept,
 			COUNT(DISTINCT new.concept_id) AS cnt --there can be more than one Maps to, so DISTINCT
 		FROM concept new
-		LEFT JOIN $$||pCompareWith||$$.concept old ON old.concept_id = new.concept_id
+		LEFT JOIN %I.concept old ON old.concept_id = new.concept_id
 		LEFT JOIN concept_relationship r ON r.concept_id_1 = new.concept_id
 			AND relationship_id = 'Maps to'
 			AND r.invalid_reason IS NULL
@@ -46,7 +46,7 @@ BEGIN
 		WHERE old.concept_id IS NULL
 		GROUP BY new.vocabulary_id,
 			new.standard_concept,
-			r.relationship_id$$;
+			r.relationship_id$$, LOWER(pCompareWith));
 END;
 $BODY$
 LANGUAGE 'plpgsql' STABLE SECURITY INVOKER;

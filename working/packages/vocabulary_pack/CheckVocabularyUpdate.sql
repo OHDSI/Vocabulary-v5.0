@@ -141,6 +141,7 @@ BEGIN
           29. OncoTree
           30. CIM10
           31. OMOP Invest Drug
+          32. CiViC
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -246,15 +247,12 @@ BEGIN
                 cVocabVer := 'DPD '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'CVX'
             THEN
-                select s0.cvx_date into cVocabDate from (
-                  select unnest(xpath ('/rdf:RDF/global:item/dc:date/text()', cVocabHTML::xml,
-                  ARRAY[
-                    ARRAY['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
-                    ARRAY['global', 'http://purl.org/rss/1.0/'],
-                    ARRAY['dc', 'http://purl.org/dc/elements/1.1/']
-                  ]))::VARCHAR::date cvx_date
-                ) as s0 order by s0.cvx_date desc limit 1;
-                cVocabVer := 'CVX Code Set '||to_char(cVocabDate,'YYYYMMDD');
+                select max(TO_DATE(parsed.last_updated,'mm/dd/yyyy')) into cVocabDate from (
+                  select unnest(regexp_matches(cVocabHTML,'<div class=''table-responsive''>(<table class.+?</table>)<div/>','g'))::xml xmlfield) cvx_table
+                  cross join xmltable ('/table/tr' passing cvx_table.xmlfield
+                    columns last_updated text path 'td[5]'
+                  ) parsed;
+                cVocabVer := 'CVX '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'BDPM'
             THEN
                 select max(to_date(arr[2],'dd/mm/yyyy')) as bdpm_dt into cVocabDate from (
@@ -356,6 +354,19 @@ BEGIN
                 AND i.types->>'title'='Newest GSRS Public Data Released'
                 ORDER BY 1 DESC LIMIT 1;
                 cVocabVer := 'OMOP Invest Drug version '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'CIVIC'
+            THEN
+                --CIViC use POST-requests
+                SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_post(url=>cURL,
+                  content_type=>'application/json',
+                  params=>'{"operationName":"DataReleases","variables":{},"query":"query DataReleases {\n  dataReleases {\n    ...Release\n    __typename\n  }\n}\n\nfragment Release on DataRelease {\n  name\n  geneTsv {\n    filename\n    path\n    __typename\n  }\n  variantTsv {\n    filename\n    path\n    __typename\n  }\n  variantGroupTsv {\n    filename\n    path\n    __typename\n  }\n  evidenceTsv {\n    filename\n    path\n    __typename\n  }\n  assertionTsv {\n    filename\n    path\n    __typename\n  }\n  acceptedVariantsVcf {\n    filename\n    path\n    __typename\n  }\n  acceptedAndSubmittedVariantsVcf {\n    filename\n    path\n    __typename\n  }\n  __typename\n}"}'
+                );
+                
+                SELECT TO_DATE(main_array#>>'{name}','dd-mon-yyyy') INTO cVocabDate FROM
+                (SELECT json_array_elements(cVocabHTML::json#>'{data,dataReleases}') main_array) s0
+                WHERE s0.main_array#>>'{name}'<>'nightly'
+                ORDER BY 1 DESC LIMIT 1;
+                cVocabVer := 'CIViC '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

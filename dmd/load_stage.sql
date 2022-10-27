@@ -223,11 +223,11 @@ where d.b_id is null
 ;
 create table vtms as
 SELECT
-	devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) NM,
-	unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR VTMID,
-	unnest(xpath('./VTMIDPREV/text()', i.xmlfield))::VARCHAR VTMIDPREV,
-	to_date(unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VTMIDDT,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID
+	devv5.py_unescape(unnest(xpath('/VTM/NM/text()', i.xmlfield))::VARCHAR) NM,
+	unnest(xpath('/VTM/VTMID/text()', i.xmlfield))::VARCHAR VTMID,
+	unnest(xpath('/VTM/VTMIDPREV/text()', i.xmlfield))::VARCHAR VTMIDPREV,
+	to_date(unnest(xpath('/VTM/VTMIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VTMIDDT,
+	unnest(xpath('/VTM/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
 	FROM sources.f_vtm2 i
@@ -237,13 +237,13 @@ update vtms set invalid = '0' where invalid is null
 ;
 create table vmpps as
 SELECT
-	devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR VPPID,
-	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./QTYVAL/text()', i.xmlfield))::VARCHAR::numeric QTYVAL,
-	unnest(xpath('./QTY_UOMCD/text()', i.xmlfield))::VARCHAR QTY_UOMCD,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM
+	devv5.py_unescape(unnest(xpath('/VMPP/NM/text()', i.xmlfield))::VARCHAR) nm,
+	unnest(xpath('/VMPP/VPPID/text()', i.xmlfield))::VARCHAR VPPID,
+	unnest(xpath('/VMPP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMPP/QTYVAL/text()', i.xmlfield))::VARCHAR::numeric QTYVAL,
+	unnest(xpath('/VMPP/QTY_UOMCD/text()', i.xmlfield))::VARCHAR QTY_UOMCD,
+	unnest(xpath('/VMPP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	devv5.py_unescape(unnest(xpath('/VMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
 	FROM sources.f_vmpp2 i
@@ -251,8 +251,8 @@ FROM (
 ;	
 create table licensed_route as
 SELECT
-	unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('./ROUTECD/text()', i.xmlfield))::VARCHAR ROUTECD
+	unnest(xpath('/LIC_ROUTE/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/LIC_ROUTE/ROUTECD/text()', i.xmlfield))::VARCHAR ROUTECD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
@@ -262,30 +262,30 @@ update vmpps set invalid = '0' where invalid is null
 ;
 create table COMB_CONTENT_v as
 SELECT
-	unnest(xpath('./PRNTVPPID/text()', i.xmlfield))::VARCHAR PRNTVPPID,
-	unnest(xpath('./CHLDVPPID/text()', i.xmlfield))::VARCHAR CHLDVPPID
+	unnest(xpath('/CCONTENT/PRNTVPPID/text()', i.xmlfield))::VARCHAR PRNTVPPID,
+	unnest(xpath('/CCONTENT/CHLDVPPID/text()', i.xmlfield))::VARCHAR CHLDVPPID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
 	FROM sources.f_vmpp2 i
 	) AS i
 ;
 create table VMPS as
-SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	to_date(unnest(xpath('./VPIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VPIDDT,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./VPIDPREV/text()', i.xmlfield))::VARCHAR VPIDPREV,
-	unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR VTMID,
-	devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
-	to_date(unnest(xpath('./NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
-	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
-	unnest(xpath('./COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
-	unnest(xpath('./NON_AVAILDT/text()', i.xmlfield))::VARCHAR NON_AVAILDT,
-	unnest(xpath('./DF_INDCD/text()', i.xmlfield))::VARCHAR DF_INDCD,
-	unnest(xpath('./UDFS/text()', i.xmlfield))::VARCHAR::numeric UDFS,
-	unnest(xpath('./UDFS_UOMCD/text()', i.xmlfield))::VARCHAR UDFS_UOMCD,
-	unnest(xpath('./UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
-	unnest(xpath('./PRES_STATCD/text()', i.xmlfield))::VARCHAR PRES_STATCD
+SELECT devv5.py_unescape(unnest(xpath('/VMP/NM/text()', i.xmlfield))::VARCHAR) nm,
+	to_date(unnest(xpath('/VMP/VPIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VPIDDT,
+	unnest(xpath('/VMP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMP/VPIDPREV/text()', i.xmlfield))::VARCHAR VPIDPREV,
+	unnest(xpath('/VMP/VTMID/text()', i.xmlfield))::VARCHAR VTMID,
+	devv5.py_unescape(unnest(xpath('/VMP/NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
+	to_date(unnest(xpath('/VMP/NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
+	devv5.py_unescape(unnest(xpath('/VMP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
+	unnest(xpath('/VMP/COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
+	unnest(xpath('/VMP/NON_AVAILDT/text()', i.xmlfield))::VARCHAR NON_AVAILDT,
+	unnest(xpath('/VMP/DF_INDCD/text()', i.xmlfield))::VARCHAR DF_INDCD,
+	unnest(xpath('/VMP/UDFS/text()', i.xmlfield))::VARCHAR::numeric UDFS,
+	unnest(xpath('/VMP/UDFS_UOMCD/text()', i.xmlfield))::VARCHAR UDFS_UOMCD,
+	unnest(xpath('/VMP/UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
+	unnest(xpath('/VMP/PRES_STATCD/text()', i.xmlfield))::VARCHAR PRES_STATCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -310,13 +310,13 @@ where
 		)
 ;
 create table VIRTUAL_PRODUCT_INGREDIENT as
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
-	unnest(xpath('./STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_NMRTR_VAL,
-	unnest(xpath('./STRNT_NMRTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
-	unnest(xpath('./STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_DNMTR_VAL,
-	unnest(xpath('./STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
+SELECT unnest(xpath('/VPI/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VPI/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	unnest(xpath('/VPI/BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
+	unnest(xpath('/VPI/STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_NMRTR_VAL,
+	unnest(xpath('/VPI/STRNT_NMRTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
+	unnest(xpath('/VPI/STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_DNMTR_VAL,
+	unnest(xpath('/VPI/STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -330,32 +330,32 @@ set
 where strnt_nmrtr_uomcd = '282113003' -- nL
 ;
 create table ONT_DRUG_FORM as
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
+SELECT unnest(xpath('/ONT/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/ONT/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/ONT_DRUG_FORM/ONT', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
 	) AS i
 ;
 create table DRUG_FORM as
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
+SELECT unnest(xpath('/DFORM/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/DFORM/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
 	) AS i
 ;
 create table amps as
-SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
-	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
-	to_date(unnest(xpath('./NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
-	unnest(xpath('./SUPPCD/text()', i.xmlfield))::VARCHAR SUPPCD,
-	unnest(xpath('./COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
-	unnest(xpath('./LIC_AUTHCD/text()', i.xmlfield))::VARCHAR LIC_AUTHCD
+SELECT devv5.py_unescape(unnest(xpath('/AMP/NM/text()', i.xmlfield))::VARCHAR) nm,
+	unnest(xpath('/AMP/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/AMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/AMP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	devv5.py_unescape(unnest(xpath('/AMP/NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
+	devv5.py_unescape(unnest(xpath('/AMP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
+	to_date(unnest(xpath('/AMP/NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
+	unnest(xpath('/AMP/SUPPCD/text()', i.xmlfield))::VARCHAR SUPPCD,
+	unnest(xpath('/AMP/COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
+	unnest(xpath('/AMP/LIC_AUTHCD/text()', i.xmlfield))::VARCHAR LIC_AUTHCD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
@@ -364,24 +364,24 @@ FROM (
 update amps set invalid = '0' where invalid is null
 ;
 create table ap_ingredient as
-SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	unnest(xpath('./STRNTH/text()', i.xmlfield))::VARCHAR::numeric STRNTH,
-	unnest(xpath('./UOMCD/text()', i.xmlfield))::VARCHAR UOMCD
+SELECT unnest(xpath('/AP_ING/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/AP_ING/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	unnest(xpath('/AP_ING/STRNTH/text()', i.xmlfield))::VARCHAR::numeric STRNTH,
+	unnest(xpath('/AP_ING/UOMCD/text()', i.xmlfield))::VARCHAR UOMCD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AP_INGREDIENT/AP_ING', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
 	) AS i
 ;
 	create table ampps as
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-		unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR APPID,
-		unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
-		unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR VPPID,
-		unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-		unnest(xpath('./COMBPACKCD/text()', i.xmlfield))::VARCHAR COMBPACKCD,
-		to_date(unnest(xpath('./DISCDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') DISCDT
+	SELECT devv5.py_unescape(unnest(xpath('/AMPP/NM/text()', i.xmlfield))::VARCHAR) nm,
+		unnest(xpath('/AMPP/APPID/text()', i.xmlfield))::VARCHAR APPID,
+		unnest(xpath('/AMPP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+		devv5.py_unescape(unnest(xpath('/AMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
+		unnest(xpath('/AMPP/VPPID/text()', i.xmlfield))::VARCHAR VPPID,
+		unnest(xpath('/AMPP/APID/text()', i.xmlfield))::VARCHAR APID,
+		unnest(xpath('/AMPP/COMBPACKCD/text()', i.xmlfield))::VARCHAR COMBPACKCD,
+		to_date(unnest(xpath('/AMPP/DISCDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') DISCDT
 	FROM (
 		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
 		FROM sources.f_ampp2 i
@@ -390,19 +390,19 @@ FROM (
 update ampps set invalid = '0' where invalid is null
 ;
 create table COMB_CONTENT_A as
-SELECT unnest(xpath('./PRNTAPPID/text()', i.xmlfield))::VARCHAR PRNTAPPID,
-	unnest(xpath('./CHLDAPPID/text()', i.xmlfield))::VARCHAR CHLDAPPID
+SELECT unnest(xpath('/CCONTENT/PRNTAPPID/text()', i.xmlfield))::VARCHAR PRNTAPPID,
+	unnest(xpath('/CCONTENT/CHLDAPPID/text()', i.xmlfield))::VARCHAR CHLDAPPID
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
 	FROM sources.f_ampp2 i
 	) AS i
 ;
 create table INGREDIENT_SUBSTANCES as
-SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	to_date(unnest(xpath('./ISIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') ISIDDT,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('./ISIDPREV/text()', i.xmlfield))::VARCHAR ISIDPREV
+SELECT devv5.py_unescape(unnest(xpath('/ING/NM/text()', i.xmlfield))::VARCHAR) nm,
+	unnest(xpath('/ING/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	to_date(unnest(xpath('/ING/ISIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') ISIDDT,
+	unnest(xpath('/ING/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/ING/ISIDPREV/text()', i.xmlfield))::VARCHAR ISIDPREV
 FROM (
 	SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
 	FROM sources.f_ingredient2 i
@@ -411,34 +411,34 @@ FROM (
 update INGREDIENT_SUBSTANCES set invalid = '0' where invalid is null
 ;
 create table COMBINATION_PACK_IND as
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PACK_IND/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
 	) AS i
 ;
 create table COMBINATION_PROD_IND as
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PROD_IND/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
 	) AS i
 ;
 create table UNIT_OF_MEASURE as
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD,
-	to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
 FROM (
 	SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
 	) AS i
 ;
 create table FORMS as
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD,
-	to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
 FROM (
 	SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -447,10 +447,10 @@ FROM (
 create table SUPPLIER as
 with supp_temp as
 	(
-		SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-			unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD,
-			to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT,
-			unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID
+		SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+			unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+			to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT,
+			unnest(xpath('/INFO/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 		FROM (
 			SELECT unnest(xpath('/LOOKUP/SUPPLIER/INFO', i.xmlfield)) xmlfield
 			FROM sources.f_lookup2 i
@@ -489,8 +489,8 @@ update SUPPLIER
 set info_desc = replace (info_desc, ' Ltd', '')
 ;
 create table DF_INDICATOR as
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/DF_INDICATOR/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -498,8 +498,8 @@ FROM (
 ;
 --Not used at the time?
 CREATE TABLE dmd2atc as
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./ATC/text()', i.xmlfield))::VARCHAR ATC
+SELECT unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMP/ATC/text()', i.xmlfield))::VARCHAR ATC
 FROM (
 	SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
 	FROM sources.dmdbonus i
@@ -507,18 +507,18 @@ FROM (
 ;
 create table dmd2bnf as
 	(
-		SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
-			unnest(xpath('./BNF/text()', i.xmlfield))::VARCHAR BNF,
+		SELECT unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
+			unnest(xpath('/VMP/BNF/text()', i.xmlfield))::VARCHAR BNF,
 			'VMP' as concept_class_id
 		FROM (
 			SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
 			FROM sources.dmdbonus i
 			) AS i
 
-			UNION
+			UNION ALL
 
-		SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
-			unnest(xpath('./BNF/text()', i.xmlfield))::VARCHAR BNF,
+		SELECT unnest(xpath('/AMP/VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
+			unnest(xpath('/AMP/BNF/text()', i.xmlfield))::VARCHAR BNF,
 			'AMP' as concept_class_id
 		FROM (
 			SELECT unnest(xpath('/BNF_DETAILS/AMPS/AMP', i.xmlfield)) xmlfield

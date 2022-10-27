@@ -220,6 +220,12 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10CM';
 
+--TODO: check why the actual U* code limitation is not used.
+--Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
+UPDATE concept_stage
+SET domain_id = 'Observation'
+WHERE domain_id IS NULL;
+
 --13. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;

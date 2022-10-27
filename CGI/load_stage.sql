@@ -72,6 +72,9 @@ FROM cgi_source n
 JOIN vocabulary v ON v.vocabulary_id = 'CGI';
 
 --5. Fill the concept_synonym_stage
+
+
+
 WITH tab
 AS (
 	SELECT *,
@@ -107,13 +110,20 @@ AS (
 	
 	UNION ALL
 	
-	SELECT 'gdna' AS flag,
+	SELECT flag,
+	       synonym_vocabulary_id,
+	       language_concept_id,
+	       synonym_name,
+	       synonym_concept_code
+	           FROM (
+	   SELECT 'gdna' AS flag,
 		'CGI' AS synonym_vocabulary_id,
 		4180186 AS language_concept_id,
 		TRIM(REGEXP_SPLIT_TO_TABLE(gdna, '__')) AS synonym_name,
-		concept_code AS synonym_concept_code
+			TRIM(SUBSTR(concept_code, 1, 50))  AS synonym_concept_code
 	FROM cgi_source
-	WHERE protein <> '.'
+	WHERE protein <> '.') as x
+	where  synonym_name ilike synonym_concept_code || '%'
 	
 	UNION ALL
 	
@@ -125,7 +135,7 @@ AS (
 				':',
 				protein
 				)) AS synonym_name,
-		concept_code AS synonym_concept_code
+			TRIM(SUBSTR(concept_code, 1, 50)) AS synonym_concept_code
 	FROM cgi_source
 	WHERE protein <> '.'
 	),
@@ -147,27 +157,17 @@ AS (
 			)
 	)
 INSERT INTO concept_synonym_stage (
-	synonym_concept_id,
 	synonym_vocabulary_id,
 	language_concept_id,
 	synonym_name,
 	synonym_concept_code
 	)
 SELECT
-    cs.concept_id,
 	synonym_vocabulary_id,
 	language_concept_id,
 	synonym_name,
 	synonym_concept_code
 FROM synonyms s
-JOIN concept_stage cs ON cs.concept_code = s.synonym_concept_code
-	AND (s.synonym_name <> cs.concept_name
-        AND s.synonym_name NOT IN (
-            SELECT concept_code
-            FROM concept_stage
-        )
-
-OR s.synonym_name=cs.concept_name)
 ;
 
 --6. Clean up

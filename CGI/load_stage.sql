@@ -153,18 +153,22 @@ INSERT INTO concept_synonym_stage (
 	synonym_name,
 	synonym_concept_code
 	)
-SELECT cs.concept_id,
+SELECT
+    cs.concept_id,
 	synonym_vocabulary_id,
 	language_concept_id,
 	synonym_name,
 	synonym_concept_code
 FROM synonyms s
 JOIN concept_stage cs ON cs.concept_code = s.synonym_concept_code
-	AND s.synonym_name <> cs.concept_name
-	AND s.synonym_name NOT IN (
-		SELECT concept_code
-		FROM concept_stage
-		);
+	AND (s.synonym_name <> cs.concept_name
+        AND s.synonym_name NOT IN (
+            SELECT concept_code
+            FROM concept_stage
+        )
+
+OR s.synonym_name=cs.concept_name)
+;
 
 --6. Clean up
 DROP TABLE cgi_source;

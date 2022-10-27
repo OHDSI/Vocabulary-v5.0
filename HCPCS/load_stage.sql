@@ -1125,17 +1125,19 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
---6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
-DO $_$
+-- 6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
+-- TO DO: --!! still need to be investigated
+/*DO $_$
  BEGIN
 	PERFORM dev_hcpcs.ProcedureDrug();
 END $_$;
 
 --7. Run the HCPCS/MapDrugVocabulary.sql. This will produce a concept_relationship_stage with HCPCS to Rx RxNorm/RxNorm Extension relationships
-DO $_$
+-- TO DO: --!! still need to be investigated
+  DO $_$
 BEGIN
 	PERFORM dev_hcpcs.MapDrugVocabulary();
-END $_$;
+END $_$;*/
 
 --8. Add upgrade relationships
 INSERT INTO concept_relationship_stage (
@@ -1306,7 +1308,7 @@ WHERE c.concept_id = r.concept_id_1
 
 --11. The following codes are mapped incorrectly by map_drug but correctly in concept_relationship_manual
 --will be removed after procedure_drug be fixed
-DELETE
+/*DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 IN (
         'A9576',
@@ -1370,7 +1372,7 @@ WHERE concept_code_1 IN (
         'J7327',
         'J7329',
         'J9355',
-        'Q9980'                        );
+        'Q9980'                        );*/
 
 --12. Append manual relationships
 DO $_$
@@ -1423,19 +1425,57 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---18. All the codes that have mapping to RxNorm% should get domain_id='Drug'
+--18. All the codes that have mapping to Drud domain should get domain_id='Drug'
 UPDATE concept_stage cs
-SET domain_id = 'Drug'
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r
-		WHERE r.concept_code_1 = cs.concept_code
-			AND r.vocabulary_id_1 = cs.vocabulary_id
-			AND r.invalid_reason IS NULL
-			AND r.relationship_id = 'Maps to'
-			AND r.vocabulary_id_2 LIKE 'RxNorm%'
-		)
-	AND cs.domain_id <> 'Drug';
+SET domain_id = i.domain_id
+FROM (
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Drug'
+						THEN 1
+					ELSE 2
+					END
+			) AS domain_id
+	FROM concept_relationship_stage crs
+	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+		AND cs1.vocabulary_id = crs.vocabulary_id_1
+		AND cs1.vocabulary_id = 'HCPCS'
+	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+		AND c2.vocabulary_id = crs.vocabulary_id_2
+		AND c2.domain_id = 'Drug'
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
+
+	UNION ALL
+
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Drug'
+						THEN 1
+					ELSE 2
+					END
+			)
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+		AND c1.vocabulary_id = 'HCPCS'
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		AND c2.domain_id = 'Drug'
+	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
+		AND cs1.vocabulary_id = c1.vocabulary_id
+	WHERE cr.relationship_id = 'Maps to'
+		AND cr.invalid_reason IS NULL
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_relationship_stage crs_int
+			WHERE crs_int.concept_code_1 = cs1.concept_code
+				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
+				AND crs_int.relationship_id = cr.relationship_id
+			)
+	) i
+WHERE i.concept_code = cs.concept_code
+	AND cs.vocabulary_id = 'HCPCS';;
 
 --19. All concepts mapped to Visit, Provider, Device domains should get the respective domain_id:
 UPDATE concept_stage cs

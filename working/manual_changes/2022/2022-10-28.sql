@@ -30,7 +30,7 @@ BEGIN
 	PERFORM vocabulary_pack.AddNewConcept(
 		pConcept_name		=>'Genetic nomenclature',
 		pDomain_id			=>'Language',
-		pVocabulary_id		=>'OMOP Extension',
+		pVocabulary_id		=>'Language',
 		pConcept_class_id	=>'Qualifier Value',
 		pStandard_concept	=>'S',
 		pConcept_code		=>'Genetic_nomenclature'

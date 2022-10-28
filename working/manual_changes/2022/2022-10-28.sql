@@ -42,6 +42,6 @@ BEGIN
 		pVocabulary_id		=>'Language',
 		pConcept_class_id	=>'Language',
 		pStandard_concept	=>'S',
-		pConcept_code		=> 'OMOP5181830'
+		pConcept_code		=> 'OMOP5181831'
 	);
 END $_$;

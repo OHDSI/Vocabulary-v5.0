@@ -100,7 +100,6 @@ hgvs_synonyms
 AS (
 	SELECT 'ref' AS flag,
 		'CGI' AS synonym_vocabulary_id,
-		4180186 AS language_concept_id,
 		TRIM(REGEXP_SPLIT_TO_TABLE(hgvs, ' @ ')) AS synonym_name,
 		concept_code AS synonym_concept_code
 	FROM ref_hgvs
@@ -109,13 +108,11 @@ AS (
 	
 	SELECT flag,
 		synonym_vocabulary_id,
-		language_concept_id,
 		synonym_name,
 		synonym_concept_code
 	FROM (
 		SELECT 'gdna' AS flag,
 			'CGI' AS synonym_vocabulary_id,
-			4180186 AS language_concept_id,
 			TRIM(REGEXP_SPLIT_TO_TABLE(gdna, '__')) AS synonym_name,
 			TRIM(SUBSTR(concept_code, 1, 50)) AS synonym_concept_code
 		FROM cgi_source
@@ -127,7 +124,6 @@ AS (
 	
 	SELECT 'protein' AS flag,
 		'CGI' AS synonym_vocabulary_id,
-		4180186 AS language_concept_id,
 		TRIM(CONCAT (
 				gene,
 				':',
@@ -141,7 +137,6 @@ synonyms
 AS (
 	SELECT DISTINCT flag,
 		synonym_vocabulary_id,
-		language_concept_id,
 		synonym_name,
 		synonym_concept_code
 	FROM hgvs_synonyms
@@ -161,13 +156,11 @@ INSERT INTO concept_synonym_stage (
 	synonym_concept_code
 	)
 SELECT synonym_vocabulary_id,
-	c.concept_id as language_concept_id,
+ as     language_concept_id,
 	synonym_name,
 	synonym_concept_code
-FROM synonyms s
-JOIN concept c
-on c.concept_name='Genetic nomenclature'
-and c.domain_id='Language';
+FROM synonyms 
+;
 
 --6. Clean up
 DROP TABLE cgi_source;

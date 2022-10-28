@@ -25,7 +25,19 @@ BEGIN
 	pVocabularyVersion		=> 'Type Concept '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'DEV_OMOP'
 );
-END $_$;*/
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=>'Language',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'Language '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDevSchema	=> 'DEV_OMOP'
+);
+END $_$;
+
+
 
 /*DO $_$
 BEGIN

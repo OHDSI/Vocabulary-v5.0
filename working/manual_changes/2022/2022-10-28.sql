@@ -15,12 +15,21 @@ BEGIN
 	pVocabulary_id			=> 'Language',
 	pVocabulary_name		=> 'Language (OMOP)',
 	pVocabulary_reference	=> 'OMOP generated',
-	pVocabulary_version		=> NULL,
-	pOMOP_req				=> NULL,
-	pClick_default			=> NULL, --NULL or 'Y'
+	pVocabulary_version		=>  'Language 20221028',
+	pOMOP_req				=> 'Y',
+	pClick_default			=> 'Y', --NULL or 'Y'
 	pAvailable				=> NULL, --NULL, 'Currently not available','License required' or 'EULA required'
 	pURL					=> NULL,
-	pClick_disabled			=> NULL --NULL or 'Y'
+	pClick_disabled			=> 'Y' --NULL or 'Y'
+);
+END $_$;
+
+--add new concept_classes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'Language',
+	pConcept_class_name	=>'Language'
 );
 END $_$;
 
@@ -31,10 +40,8 @@ BEGIN
 		pConcept_name		=>'Genetic nomenclature',
 		pDomain_id			=>'Language',
 		pVocabulary_id		=>'Language',
-		pConcept_class_id	=>'Qualifier Value',
+		pConcept_class_id	=>'Language',
 		pStandard_concept	=>'S',
-		pConcept_code		=>'Genetic_nomenclature'
+		pConcept_code		=> 'OMOP5181830'
 	);
 END $_$;
-
-

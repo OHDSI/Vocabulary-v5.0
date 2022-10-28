@@ -1,4 +1,5 @@
---Add ne domain Language
+--Language concept update
+--Add new domain
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewDomain(
@@ -7,7 +8,7 @@ BEGIN
 	);
 END $_$;
 
---add new vocabulary Language
+--add new vocabulary
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewVocabulary(
@@ -21,6 +22,19 @@ BEGIN
 	pURL					=> NULL,
 	pClick_disabled			=> NULL --NULL or 'Y'
 );
+END $_$;
+
+--add new concept
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewConcept(
+		pConcept_name		=>'Genetic nomenclature',
+		pDomain_id			=>'Language',
+		pVocabulary_id		=>'OMOP Extension',
+		pConcept_class_id	=>'Qualifier Value',
+		pStandard_concept	=>'S',
+		pConcept_code		=>'Genetic_nomenclature'
+	);
 END $_$;
 
 

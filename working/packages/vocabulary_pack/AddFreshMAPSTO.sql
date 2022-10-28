@@ -1,9 +1,32 @@
-CREATE OR REPLACE FUNCTION vocabulary_pack.addfreshmapsto (
+CREATE OR REPLACE FUNCTION vocabulary_pack.AddFreshMAPSTO (
 )
 RETURNS void AS
 $body$
 /*
- Adds mapping from deprecated to fresh concepts
+The function works with chains like A 'Maps to' B 'Maps to' C ... 'Maps to' Z, adding a new mapping A 'Maps to' Z to concept_relationship_stage
+For example, there was a mapping A 'Maps to' B. Then another mapping B 'Maps to' C was added. The function will build a new mapping A 'Maps to' C.
+The number of links in the chain is unlimited.
+The function will also add 'Maps to' for all replacement mappings ('Concept replaced by', 'Concept same_as to', etc.), the number of links here is also unlimited.
+The following rules apply:
+1. The chain should only consist of undeprecated mappings (invalid_reason is null)
+2. The latest target concept must be alive (invalid_reason is null) and have standard_concept = 'S'. If there is such a concept in concept_stage (cs) and in concept, then cs will take precedence (because the concept table is ultimately formed from the cs table)
+For example, there is a mapping A 'Maps to' B, while concept B is present in cs (as deprecated) and in concept (as alive), then such a mapping will not be considered by the function
+3. Only 'Maps to' are taken from concept_relationship. This means that the function does not take replacement mappings from this table, because they are already duplicated by the corresponding 'Maps to' (if applicable)
+4. If 'Maps to' mapping from the same source concept is present in both concept_relationship_stage (crs) and concept_relationship (cr), then mapping from crs will take precedence
+For example, cr has a mapping A 'Maps to' B, and crs has a mapping A 'Maps to' B1. In this case, the mapping to concept B will be ignored (and as a result generic_update will deprecate the old mapping). This allows you to change the mappings if necessary, if a more suitable target appears, or deprecate the wrong one.
+5. If the final mapping that the function built is already in crs, then it will be updated (invalid_reason will be set to NULL, valid_end_date will be 20991231)
+6. If the concept has several different replacement mappings at the same time, for example, 'Concept replaced by' and 'Concept was_a to', then one is taken in the following priority:
+Concept replaced by
+Concept same_as to
+Concept alt_to to
+Concept was_a to
+
+NB:
+The fact of having multiple mappings from one concept is handled correctly, each chain separately
+For example, if there are mappings in crs
+A 'Maps to' A1 'Maps to' A2
+A 'Maps to' B1 'Maps to' B2
+then both chains will be processed independently and the output will be two mappings: A 'Maps to' A2 and A 'Maps to' B2 (of course, in compliance with the above rules)
 */
 BEGIN
 	WITH to_be_upserted
@@ -39,8 +62,7 @@ BEGIN
 						CASE 
 							WHEN rel_id <> 6
 								THEN FIRST_VALUE(concept_code_2) OVER (
-										PARTITION BY concept_code_1 ORDER BY rel_id ROWS BETWEEN UNBOUNDED PRECEDING
-												AND UNBOUNDED FOLLOWING
+										PARTITION BY concept_code_1 ORDER BY rel_id 
 										)
 							ELSE
 								--we need only fresh 'Maps to' which contains in stage-tables (per each concept_code_1), but if we doesn't have them - take from base tables

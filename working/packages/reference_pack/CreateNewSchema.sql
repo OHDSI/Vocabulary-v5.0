@@ -104,7 +104,8 @@ DECLARE
   iDefaultRole TEXT:='role_read_only';
   iTbl TEXT;
   crlf TEXT:='<br>';
-  iAlertEmail CONSTANT VARCHAR(1000):=(SELECT var_value FROM devv5.config$ WHERE var_name='schema_manipulation_email');
+  iAlertEmail TEXT:=(SELECT var_value FROM devv5.config$ WHERE var_name='schema_manipulation_email');
+  iEmailBody TEXT;
 BEGIN
   pSchemaName:=LOWER(pSchemaName);
   IF pSchemaName<>QUOTE_IDENT(pSchemaName) THEN
@@ -159,12 +160,31 @@ BEGIN
     RESET search_path;
   END IF;
 
+  iEmailBody:=FORMAT('
+    <b>Schema owner</b>: %s%s
+    <b>Comment</b>: %s
+    <b>Filled with data</b>: %s
+    <b>Credentials</b>: %s
+
+    <b>Note</b>: For personal schema, it is recommended to change the password after first login
+    ',
+    COALESCE(pOwnerName,'<i>(not specified)</i>'),
+    ' &lt;'||pOwnerEmail||'&gt;',
+    pComment,
+    CASE WHEN pFillWithData THEN 'yes' ELSE 'no' END,
+    pSchemaName||':'||pPassWord
+  );
+
+  iEmailBody:=REGEXP_REPLACE(iEmailBody,'[\n\r]+', crlf, 'g');
+
+  IF pOwnerEmail IS NOT NULL THEN
+    iAlertEmail:=iAlertEmail||','||pOwnerEmail;
+  END IF;
+
   PERFORM devv5.SendMailHTML (
     iAlertEmail,
     'A new schema '||pSchemaName||' has been created by '||SESSION_USER,
-    CONCAT('<b>Schema owner</b>: '||COALESCE(pOwnerName,'<i>(not specified)</i>')||COALESCE(' &lt;'||pOwnerEmail||'&gt;','')||crlf,
-      '<b>Comment</b>: '||pComment||crlf,
-      '<b>Filled with data</b>: '||CASE pFillWithData WHEN TRUE THEN 'yes' ELSE 'no' END)
+    iEmailBody
   );
 END;
 $BODY$

@@ -15,13 +15,13 @@ CREATE TYPE qa_tests.type_get_changes_concept_mapping AS (
 	cnt BIGINT
 	);
 
-CREATE OR REPLACE FUNCTION qa_tests.get_changes_concept_mapping (pCompareWith VARCHAR DEFAULT 'PRODV5')
+CREATE OR REPLACE FUNCTION qa_tests.get_changes_concept_mapping (pCompareWith VARCHAR DEFAULT 'prodv5')
 RETURNS SETOF qa_tests.type_get_changes_concept_mapping
 SET work_mem='5GB'
 AS $BODY$
 BEGIN
 	RETURN QUERY
-	EXECUTE $$
+	EXECUTE FORMAT ($$
 		SELECT s_all.vocabulary_id,
 			s_all.old_mapped_domains,
 			s_all.new_mapped_domains,
@@ -49,18 +49,18 @@ BEGIN
 			LEFT JOIN (
 				SELECT c1.concept_id,
 					STRING_AGG(DISTINCT c2.domain_id, '/' ORDER BY c2.domain_id) AS domains
-				FROM $$||pCompareWith||$$.concept c1
-				LEFT JOIN $$||pCompareWith||$$.concept_relationship r ON r.concept_id_1 = c1.concept_id
+				FROM %1$I.concept c1
+				LEFT JOIN %1$I.concept_relationship r ON r.concept_id_1 = c1.concept_id
 					AND r.invalid_reason IS NULL
 					AND r.relationship_id = 'Maps to'
-				LEFT JOIN $$||pCompareWith||$$.concept c2 ON c2.concept_id = r.concept_id_2
+				LEFT JOIN %1$I.concept c2 ON c2.concept_id = r.concept_id_2
 				GROUP BY c1.concept_id
 				) AS old ON old.concept_id = new.concept_id
 			WHERE coalesce(new.domains, 'X') <> coalesce(old.domains, 'X')
 			) AS s_all
 		GROUP BY s_all.vocabulary_id,
 			s_all.old_mapped_domains,
-			s_all.new_mapped_domains$$;
+			s_all.new_mapped_domains$$, LOWER(pCompareWith));
 END;
 $BODY$
 LANGUAGE 'plpgsql' STABLE SECURITY INVOKER;

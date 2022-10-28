@@ -252,3 +252,5 @@ SELECT * FROM p_map
 UNION 
 SELECT * FROM t4
 ORDER BY icd_code;
+
+SELECT*FROM refresh_lookup;

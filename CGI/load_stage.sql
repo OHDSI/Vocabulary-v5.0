@@ -161,10 +161,13 @@ INSERT INTO concept_synonym_stage (
 	synonym_concept_code
 	)
 SELECT synonym_vocabulary_id,
-	language_concept_id,
+	c.concept_id as language_concept_id,
 	synonym_name,
 	synonym_concept_code
-FROM synonyms s;
+FROM synonyms s
+JOIN concept c
+on c.concept_name='Genetic nomenclature'
+and c.domain_id='Language';
 
 --6. Clean up
 DROP TABLE cgi_source;

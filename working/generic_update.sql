@@ -853,7 +853,7 @@ BEGIN
 				AND css_int.ctid > css.ctid
 			);
 
-	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage
+	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage, but only for English
 	DELETE
 	FROM concept_synonym_stage css
 	WHERE EXISTS (
@@ -862,6 +862,7 @@ BEGIN
 			WHERE cs.concept_code = css.synonym_concept_code
 				AND cs.vocabulary_id = css.synonym_vocabulary_id
 				AND LOWER(cs.concept_name) = LOWER(css.synonym_name)
+				AND css.language_concept_id = 4180186
 			);
 
 	--26. Update synonym_concept_id

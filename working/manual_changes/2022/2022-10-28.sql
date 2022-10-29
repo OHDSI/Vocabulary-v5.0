@@ -15,7 +15,7 @@ BEGIN
 	pVocabulary_id			=> 'Language',
 	pVocabulary_name		=> 'Language (OMOP)',
 	pVocabulary_reference	=> 'OMOP generated',
-	pVocabulary_version		=>  'Language 20221028',
+	pVocabulary_version		=> 'Language 20221028',
 	pOMOP_req				=> 'Y',
 	pClick_default			=> 'Y', --NULL or 'Y'
 	pAvailable				=> NULL, --NULL, 'Currently not available','License required' or 'EULA required'
@@ -42,6 +42,6 @@ BEGIN
 		pVocabulary_id		=>'Language',
 		pConcept_class_id	=>'Language',
 		pStandard_concept	=>'S',
-		pConcept_code		=> 'OMOP5181831'
+		pConcept_code		=>'OMOP5181831'
 	);
 END $_$;

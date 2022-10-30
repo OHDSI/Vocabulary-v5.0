@@ -844,9 +844,10 @@ WHERE
 	lower (v.nm) LIKE 'purified %' OR
 	lower (a.nm) LIKE 'phlexy%' OR
 	lower (v.nm) LIKE '%lymphoseek%' OR
-	lower (v.nm) LIKE '%radium%223%';
+	lower (v.nm) LIKE '%radium%223%' OR
+    lower (v.nm) LIKE '%radionuclide generator%';
 
---homeopathic products are not woth analyzing if source does not provide ingredients
+--homeopathic products are not worth analyzing if source does not provide ingredients
 INSERT INTO devices
 SELECT
 	a.apid,
@@ -1335,7 +1336,7 @@ WHERE
 ;
 
 --if X replaced with Y AND Y replaced with Z, replace X with Z
---TODO: cause errors
+--TODO: investigate where did they come? Eg. 10040711000001104
 UPDATE ingred_replacement x
 	SET
 		(isidnew,nmnew) =
@@ -1345,9 +1346,21 @@ UPDATE ingred_replacement x
 					r.nmnew
 				FROM ingred_replacement r
 				WHERE x.isidnew = r.isidprev
-
+				  --Only one to one change
+                AND r.isidprev NOT IN (SELECT isidprev
+FROM ingred_replacement ir
+GROUP BY isidprev
+HAVING count(DISTINCT isidnew) > 1)
+                --Intermediate ingredient does not have multiple ingredients to change
+                AND r.isidnew NOT IN (SELECT isidprev
+FROM ingred_replacement ir
+GROUP BY isidprev
+HAVING count(DISTINCT isidnew) > 1
+    )
 			)
-	WHERE x.isidnew in (SELECT ISIDprev FROM ingred_replacement);
+	WHERE x.isidnew in (SELECT ISIDprev FROM ingred_replacement)
+	  --do not update for rows with 2 or more replacement ingredients
+;
 
 
 --4. Preparation for drug_concept_stage population
@@ -2359,6 +2372,7 @@ WHERE
 				dz.concept_class_id in ('Supplier', 'Dose Form')
 		)
 ;
+
 DELETE FROM pc_stage WHERE
 	pack_concept_code in
 		(
@@ -2366,12 +2380,14 @@ DELETE FROM pc_stage WHERE
 			FROM only_1_pack
 		)
 ;
+
 UPDATE pc_stage
 SET	amount = 1
 WHERE pack_concept_code = '34884711000001100';
+
 -- 3. Form ds_stage using source relations AND name analysis. Replace ingredient relations
-DROP TABLE IF EXISTS ds_prototype
-;
+DROP TABLE IF EXISTS ds_prototype;
+
 --Create ds_stage for VMPs, inherit everything else later
 CREATE TABLE ds_prototype as
 --temporary table
@@ -2414,10 +2430,11 @@ LEFT JOIN drug_concept_stage c4 on
 LEFT JOIN devices d on --no ds entry for non-drugs
 	i.vpid = d.vpid
 WHERE
-	d.vpid IS NULL
-;
+	d.vpid IS NULL;
+
 DROP TABLE IF EXISTS vmps_res --try to salvage missing dosages FROM texts FROM VMPs
 ;
+
 CREATE TABLE vmps_res as
 with ingreds as
 	(
@@ -2459,6 +2476,7 @@ WHERE
 	p.pack_concept_code IS NULL AND
 	s.drug_concept_code IS NULL
 ;-- move deprecated gases (given as 1 ml / 1 ml) to manual work
+
 INSERT INTO vmps_res
 SELECT
 	drug_concept_code,
@@ -2474,8 +2492,8 @@ WHERE
 	amount_value = 1 AND
 	total IS NULL AND
 	denominator_name != 'litre' AND
-	drug_name LIKE '%litres%'
-;
+	drug_name LIKE '%litres%';
+
 INSERT INTO internal_relationship_stage
 SELECT DISTINCT
 	drug_concept_code,
@@ -2486,31 +2504,30 @@ WHERE
 	amount_value = 1 AND
 	total IS NULL AND
 	denominator_name != 'litre' AND
-	drug_name LIKE '%litres%'
-;
-delete
+	drug_name LIKE '%litres%';
+
+DELETE
 FROM ds_prototype
 WHERE
 	amount_name = 'ml' AND
 	amount_value = 1 AND
 	total IS NULL AND
-	denominator_name != 'litre'
-;
+	denominator_name != 'litre';
+
 --help autoparser a little
-UPDATE vmps_res SET drug_concept_name = replace (drug_concept_name,'1.5million unit','1500000unit')
-;
-UPDATE vmps_res SET drug_concept_name = replace (drug_concept_name,'1.2million unit','1200000unit')
-;
+UPDATE vmps_res SET drug_concept_name = replace (drug_concept_name,'1.5million unit','1500000unit');
+UPDATE vmps_res SET drug_concept_name = replace (drug_concept_name,'1.2million unit','1200000unit');
+
 DELETE FROM vmps_res
 WHERE
 	lower(drug_concept_name) LIKE '%homeopath%' OR
 	lower(ingredient_concept_name) LIKE '%homeopath%' OR
-	lower(form_concept_name) LIKE '%homeopath%'
-;
+	lower(form_concept_name) LIKE '%homeopath%';
+
 UPDATE vmps_res SET ingredient_concept_name = 'Estramustine' WHERE ingredient_concept_name = 'Estramustine phosphate';
 UPDATE vmps_res SET ingredient_concept_name = 'Tenofovir' WHERE ingredient_concept_name = 'Tenofovir disoproxil';
 UPDATE vmps_res SET ingredient_concept_name = 'Lysine' WHERE ingredient_concept_name = 'L-Lysine';
-;
+
 UPDATE vmps_res --cut ingred at start for single-ingredient
 SET	modified_name =
 	replace (
@@ -2530,6 +2547,7 @@ WHERE
 			HAVING count (ingredient_concept_code) = 1 --good results only guaranteed for single ingred
 		)
 ;
+
 UPDATE vmps_res
 SET modified_name =
 	replace (
@@ -2543,8 +2561,8 @@ WHERE
 			FROM vmps_res
 			GROUP BY drug_concept_code
 			HAVING count (ingredient_concept_code) = 1 --good results only guaranteed for single ingred
-		)
-;
+		);
+
 UPDATE vmps_res --cut form FROM the end
 SET modified_name =
 	case
@@ -2553,33 +2571,32 @@ SET modified_name =
 			left (modified_name, strpos (modified_name, lower (form_concept_name)) - 1)
 		else modified_name
 	end
-WHERE form_concept_code IS NOT NULL
-;
+WHERE form_concept_code IS NOT NULL;
+
 UPDATE vmps_res
 SET modified_name =
-	case
-		when modified_name = '' then NULL
-		when regexp_match (modified_name, '\d', 'im') IS NULL then NULL
-		else modified_name
-	end
-;
+	CASE
+		WHEN modified_name = '' THEN NULL
+		WHEN regexp_match (modified_name, '\d', 'im') IS NULL THEN NULL
+		ELSE modified_name
+	END;
+
 UPDATE vmps_res --remove traces of other artifacts
 SET modified_name =
 	trim (FROM regexp_replace (regexp_replace (modified_name, '^[a-z \(\)]+ ', '', 'im'),' [\w \(\),-.]+$','','im'))
-WHERE modified_name IS NOT NULL
-;
+WHERE modified_name IS NOT NULL;
+
 UPDATE vmps_res SET
 modified_name = regexp_replace (modified_name, ' .*$','')
-WHERE modified_name LIKE '% %'
-;
+WHERE modified_name LIKE '% %';
+
 UPDATE vmps_res
 SET modified_name = NULL
 WHERE
 	modified_name LIKE '%ppm%' OR
-	modified_name LIKE '%square%'
-;
-DROP TABLE IF EXISTS ds_parsed
-;
+	modified_name LIKE '%square%';
+
+DROP TABLE IF EXISTS ds_parsed;
 CREATE TABLE ds_parsed as
 SELECT --percentage
 	drug_concept_code,
@@ -2601,7 +2618,7 @@ WHERE
 	modified_name LIKE '%|%' escape '|' AND
 	regexp_match (drug_concept_name, ' [0-9.]+ml ') IS NULL
 
-	union all
+	UNION ALL
 
 SELECT --percentage, with given total volume
 	drug_concept_code,
@@ -2623,7 +2640,7 @@ WHERE
 	modified_name LIKE '%|%' escape '|' AND
 	regexp_match (drug_concept_name, ' [0-9.]+ml ') IS NOT NULL
 
-	union all
+	UNION ALL
 
 SELECT --numerator/denominator
 	drug_concept_code,
@@ -2647,7 +2664,7 @@ SELECT --numerator/denominator
 FROM vmps_res
 WHERE modified_name LIKE '%|/%' escape '|'
 
-	union all
+	UNION ALL
 
 SELECT --simple amount
 	drug_concept_code,
@@ -2667,22 +2684,23 @@ SELECT --simple amount
 FROM vmps_res
 WHERE
 	modified_name not LIKE '%|/%' escape '|' AND
-	modified_name not LIKE '%|%' escape '|'
-;
+	modified_name not LIKE '%|%' escape '|';
+
 UPDATE ds_parsed d SET amount_name = 'gram' WHERE amount_name = 'g';
 UPDATE ds_parsed d SET amount_name = trim (trailing 's' FROM amount_name) WHERE amount_name LIKE '%s';
 UPDATE ds_parsed d SET denominator_name = 'gram' WHERE denominator_name = 'g';
 UPDATE ds_parsed d SET denominator_name = trim (trailing 's' FROM denominator_name) WHERE denominator_name LIKE '%s';
 UPDATE ds_parsed d SET amount_code = (SELECT cd FROM unit_of_measure WHERE d.amount_name = info_desc) WHERE amount_name IS NOT NULL;
 UPDATE ds_parsed d SET denominator_code = (SELECT cd FROM unit_of_measure WHERE d.denominator_name = info_desc) WHERE denominator_name IS NOT NULL;
-;
+
 UPDATE ds_parsed d SET --only various Units remain by now
 	amount_code = '258666001',
 	amount_name = 'unit'
 WHERE
 	amount_code IS NULL AND
-	amount_name IS NOT NULL
-;/*
+	amount_name IS NOT NULL;
+
+/*
 DROP TABLE IF EXISTS tomap_vmps_ds
 ;
 --For manual mapping
@@ -2814,7 +2832,7 @@ FROM tomap_vmps_ds d
 LEFT JOIN ds_new_ingreds i on
 	i.ingredient_id :: varchar = d.ingredient_concept_name;
 
-DROP TABLE IF EXISTS ds_stage cascade;
+DROP TABLE IF EXISTS ds_stage CASCADE;
 
 CREATE TABLE ds_stage
 	(
@@ -3650,7 +3668,7 @@ WHERE
 	drug_concept_code in
 		(
 			SELECT vpid FROM vmps WHERE unit_dose_uomcd in ('733015007'/*,'258773002'*/) --spoonful, ml
-				union all
+				UNION ALL
 			SELECT apid FROM vmps JOIN amps using (vpid) WHERE unit_dose_uomcd in ('733015007'/*,'258773002'*/) --spoonful, ml
 		) AND
 	denominator_unit IS NOT NULL AND
@@ -3749,12 +3767,17 @@ WHERE
 				d.drug_concept_code = x.drug_concept_code
 		);
 
+
+--TODO: cause errors
+--! Shouldhave been fixed by this moment
+/*
 UPDATE ds_stage
 SET	ingredient_concept_code =
 	(
 		SELECT DISTINCT isidnew FROM ingred_replacement WHERE isidprev = ingredient_concept_code
 	)
 WHERE ingredient_concept_code in (SELECT isidprev FROM ingred_replacement);
+ */
 
 UPDATE drug_concept_stage
 SET	concept_code = concept_name
@@ -3805,6 +3828,19 @@ SET
 WHERE
 	numerator_unit = 'ml' AND
 	ingredient_concept_code in (SELECT ingredient_concept_code FROM nongas2fix);
+
+--Remove drugs without or with incomplete attributes in ds_stage attribute (check for mappings in relationship to concept file)
+DELETE FROM ds_stage WHERE drug_concept_code IN
+(SELECT drug_concept_code
+	FROM ds_stage
+	WHERE COALESCE(amount_value, numerator_value) IS NULL
+		-- needs to have at least one value, zeros don't count
+		OR COALESCE(amount_unit, numerator_unit) IS NULL
+		-- if there is an amount record, there must be a unit
+		OR (
+			COALESCE(numerator_value, 0) <> 0
+			AND COALESCE(numerator_unit, denominator_unit) IS NULL
+			));
 
 --replace relations to ingredients in irs with ones FROM ds_stage
 DELETE FROM internal_relationship_stage
@@ -4251,7 +4287,7 @@ DROP TABLE IF EXISTS brands;
 
 CREATE TABLE brands as --all brand names given by UK SNOMED
 	(
-		SELECT c2.concept_id as brand_id, c2.concept_code as brand_code, replace (c2.concept_name, ' - brand name','') as brand_name
+		SELECT c2.concept_id as brand_id, c2.concept_code as brand_code, c2.concept_class_id, replace (c2.concept_name, ' - brand name','') as brand_name
 		FROM concept_relationship cr
 		JOIN concept cx on
 			cr.concept_id_1 = cx.concept_id AND
@@ -4259,6 +4295,8 @@ CREATE TABLE brands as --all brand names given by UK SNOMED
 			cx.concept_code = '9191801000001103' --NHS dm+d trade family
 		JOIN concept c2 on
 			cr.concept_id_2 = c2.concept_id
+		--Taking only pharmacological products (previous approach resulted in bugs due to changes in Snomed)
+	    WHERE c2.concept_class_id = 'Pharma/Biol Product'
 	);
 
 DROP TABLE IF EXISTS amps_to_brands;
@@ -4345,10 +4383,11 @@ WHERE
 	concept_name LIKE 'Benzoi%' OR
 	regexp_match (concept_name,'^([A-Z ]+ [\w.%/]+ (\(.*\) )?\/ )+[A-Z ]+ [\w.%/]+( \(.*\) )? [\w. ]+$','im') IS NOT NULL --listed multiple ingredients AND strengths without a BN
 ;
+
 DROP TABLE IF EXISTS b_temp;
 DROP TABLE IF EXISTS x_temp;
-create index idx_tf_b on tofind_brands USING GIN ((lower(concept_name)) devv5.gin_trgm_ops);;
-analyze tofind_brands;
+CREATE INDEX idx_tf_b on tofind_brands USING GIN ((lower(concept_name)) devv5.gin_trgm_ops);;
+ANALYZE tofind_brands;
 
 DROP TABLE IF EXISTS rx_concept;
 CREATE TABLE rx_concept as
@@ -4362,8 +4401,8 @@ WHERE
 	c.concept_class_id = 'Brand Name' AND
 	c.invalid_reason IS NULL;
 
-create index if not exists idx_tf_c on rx_concept USING GIN ((lower(concept_name)) devv5.gin_trgm_ops);
-analyze rx_concept;
+CREATE INDEX IF NOT EXISTS idx_tf_c ON rx_concept USING GIN ((lower(concept_name)) devv5.gin_trgm_ops);
+ANALYZE rx_concept;
 DELETE FROM rx_concept r1
 WHERE exists
 	(
@@ -4381,8 +4420,8 @@ WHERE exists
 			)
 	);
 
-analyze rx_concept;
-	create unlogged table x_temp as
+ANALYZE rx_concept;
+	CREATE UNLOGGED TABLE x_temp AS
 		(
 			SELECT DISTINCT
 				b.concept_code,
@@ -4435,6 +4474,13 @@ SELECT
 	b.brand_name
 FROM b_temp b
 JOIN brands_assigned a using (brand_name)
+--Only for drugs without brands already
+WHERE b.concept_code NOT IN (
+    SELECT concept_code FROM amps_to_brands
+    WHERE brand_code IS NOT NULL
+    )
+
+
 ;/*
 DROP TABLE IF EXISTS tofind_brands_man
 ;
@@ -4518,6 +4564,7 @@ SELECT DISTINCT
 	NULL AS invalid_reason,
 	'Brand Name'
 FROM amps_to_brands;
+
 DROP TABLE IF EXISTS brand_replace;
 
 CREATE TABLE brand_replace as
@@ -4573,7 +4620,7 @@ with preex_m as
 		JOIN concept cc on
 			b.brand_id = cc.concept_id
 
-			union
+			UNION
 
 		SELECT DISTINCT --previously obtained name match
 			c.concept_code,
@@ -4586,7 +4633,7 @@ with preex_m as
 			c.concept_class_id = 'Brand Name' AND
 			c.invalid_reason IS NULL
 
-			union
+			UNION
 
 		SELECT DISTINCT --Previous manual map (optional)
 			s.concept_code,
@@ -4903,8 +4950,8 @@ WHERE exists
 			x.concept_id_2 < r.concept_id_2
 	);
 
-analyze relationship_to_concept;
-analyze internal_relationship_stage;
+ANALYZE relationship_to_concept;
+ANALYZE internal_relationship_stage;
 --some drugs in IRS have duplicating ingredient entries over relationship_to_concept mappings
 with multiing as
 	(
@@ -5042,11 +5089,11 @@ DELETE FROM internal_relationship_stage
 WHERE concept_code_1 in
 	(
 		SELECT vpid FROM vmps WHERE vpid in ('3439211000001108','3439311000001100') --VMP for 23valent vaccines
-			union all
+			UNION ALL
 		SELECT apid FROM amps WHERE vpid in ('3439211000001108','3439311000001100') --AMP
-			union all
+			UNION ALL
 		SELECT vppid FROM vmpps WHERE vpid in ('3439211000001108','3439311000001100') --VMPP
-			union all
+			UNION ALL
 		SELECT appid FROM vmpps JOIN ampps using (vppid) WHERE vpid in ('3439211000001108','3439311000001100') --AMP
 	);
 
@@ -5060,11 +5107,11 @@ SELECT DISTINCT
 from
 	(
 		SELECT vpid FROM vmps WHERE vpid in ('3439211000001108','3439311000001100') --VMP for 23valent vaccines
-			union all
+			UNION ALL
 		SELECT apid FROM amps WHERE vpid in ('3439211000001108','3439311000001100') --AMP
-			union all
+			UNION ALL
 		SELECT vppid FROM vmpps WHERE vpid in ('3439211000001108','3439311000001100') --VMPP
-			union all
+			UNION ALL
 		SELECT appid FROM vmpps JOIN ampps using (vppid) WHERE vpid in ('3439211000001108','3439311000001100') --AMP
 	) pneum
 ;
@@ -5275,9 +5322,9 @@ WHERE
 	concept_name NOT IN
 		(
 			SELECT DISTINCT amount_unit FROM ds_stage WHERE amount_unit IS NOT NULL
-				union all
+				UNION ALL
 			SELECT DISTINCT numerator_unit FROM ds_stage WHERE numerator_unit IS NOT NULL
-				union all
+				UNION ALL
 			SELECT DISTINCT denominator_unit FROM ds_stage WHERE denominator_unit IS NOT NULL
 		)
 ;
@@ -5287,10 +5334,13 @@ INSERT INTO relationship_to_concept values ('3519511000001105','dm+d',915553,1,N
 ;
 INSERT INTO relationship_to_concept values ('8147711000001108','dm+d',1353048,1,NULL)*/
 ;
+
+--No longer needed (refresh 11.2022)
 --menotropin split
+/*
 INSERT INTO drug_concept_stage
 --It IS NOT a code FROM source data, it's FROM SNOMED
-values (NULL,'Recombinant human luteinizing hormone','Drug','dm+d','Ingredient','S','415248001',to_date ('1970-01-01','YYYY-MM-DD'),to_date ('2099-12-31','YYYY-MM-DD'),NULL,'Ingredient')
+VALUES (NULL,'Recombinant human luteinizing hormone','Drug','dm+d','Ingredient','S','415248001',to_date ('1970-01-01','YYYY-MM-DD'),to_date ('2099-12-31','YYYY-MM-DD'),NULL,'Ingredient')
 ;
 INSERT INTO relationship_to_concept values ('415248001','dm+d',1589795,1,NULL);
 
@@ -5300,12 +5350,13 @@ SELECT
 	'415248001'
 FROM internal_relationship_stage
 WHERE concept_code_2 = '8203003'
-	union all
+	UNION ALL
 SELECT
 	concept_code_1,
 	'4174011000001101'
 FROM internal_relationship_stage
 WHERE concept_code_2 = '8203003';
+ */
 
 DELETE FROM ds_stage WHERE ingredient_concept_code = '8203003'; --no universally agreed proportion, so can't preserve dosage;
 
@@ -5355,6 +5406,10 @@ WHERE
 		)
 and concept_code_2 in ('14964511000001102','385229008')*/
 
+--Manual fixes (refresh 11.2022)
+DELETE FROM drug_concept_stage
+    WHERE concept_code = '10109701000001106' AND concept_name = 'Lumecare (Carbomer)';
+
 UPDATE ds_stage
 SET box_size = NULL
 WHERE
@@ -5392,7 +5447,7 @@ WHERE
 			SELECT drug_concept_code
 			FROM ds_stage
 
-				union all
+				UNION ALL
 
 			SELECT pack_concept_code
 			FROM pc_stage
@@ -5554,3 +5609,17 @@ WHERE
 			FROM amps_chain
 			WHERE concept_code_1 in (apid,appid)
 		);
+
+
+--Some ingredients are missed from the internal_relationship_stage
+--This issue should be addressed systematically
+--Here we introduce the fix that would add missing links if any at the last step
+INSERT INTO internal_relationship_stage
+SELECT drug_concept_code, ingredient_concept_code
+FROM ds_stage ds
+WHERE NOT EXISTS (
+    SELECT concept_code_1, concept_code_2
+    FROM internal_relationship_stage irs
+    WHERE irs.concept_code_1 = ds.drug_concept_code
+    AND irs.concept_code_2 = ds.ingredient_concept_code
+    );

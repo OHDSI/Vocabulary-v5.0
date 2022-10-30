@@ -105,7 +105,7 @@ INSERT INTO concept_synonym_stage (
 SELECT concept_code AS synonym_concept_code,
 	hgvs AS synonym_name,
 	vocabulary_id AS synonym_vocabulary_id,
-	4180186 AS language_concept_id --English
+	33071 AS language_concept_id --Genetic nomenclature
 FROM civic_source;
 
 --6. Clean up

@@ -156,13 +156,14 @@ INSERT INTO concept_synonym_stage (
 	synonym_concept_code
 	)
 SELECT synonym_vocabulary_id,
- as     language_concept_id,
+33071 as     language_concept_id, -- Genetic nomenclature
 	synonym_name,
 	synonym_concept_code
-FROM synonyms 
+FROM synonyms s
 ;
 
 --6. Clean up
 DROP TABLE cgi_source;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script
+SELECT * from devv5.concept where domain_id='Language'

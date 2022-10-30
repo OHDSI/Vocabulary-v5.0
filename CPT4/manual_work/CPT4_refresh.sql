@@ -14,7 +14,7 @@ $body$;
 
 
 --restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
+TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
 INSERT INTO dev_cpt4.concept_relationship_manual
 SELECT * FROM dev_cpt4.concept_relationship_manual_backup_2022_08_12;*/
 
@@ -32,7 +32,7 @@ $body$
 $body$;
 
 --restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_cpt4.concept_manual;
+TRUNCATE TABLE dev_cpt4.concept_manual;
 INSERT INTO dev_cpt4.concept_manual
 SELECT * FROM dev_cpt4.concept_manual_backup_2022_08_12;*/
 
@@ -52,7 +52,7 @@ $body$;
 -- 2. insert new concepts into concept_manual table
 create table cm_input (concept_name text,domain_id varchar(50), vocabulary_id varchar(50),
                       concept_class_id varchar(50), standard_concept varchar (2), concept_code varchar(50), valid_start_date date, valid_end_date date);
--- drop table cm_input;
+--drop table cm_input;
 truncate table cm_input;
 
 insert into concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -63,10 +63,11 @@ insert into concept_manual (concept_name, domain_id, vocabulary_id, concept_clas
     null,
     concept_code,
     valid_start_date,
-    valid_end_date,
+    '2099-12-31',
     null
  from cm_input);
 
+select * from concept_manual where concept_code = '90611';
 -- 3. insert new relationship into concept_relationship_manual:
 create table crm_input (concept_code_1 varchar(50), concept_code_2 varchar(50),
                         vocabulary_id_1 varchar(50), vocabulary_id_2 varchar(50), relationship_id varchar(10));
@@ -86,9 +87,4 @@ insert into concept_relationship_manual (concept_code_1, concept_code_2, vocabul
 create table synonym_input (synonym_name text, synonym_concept_code varchar(50), synonym_vocabulary_id varchar(50));
 --truncate table synonym_input;
 
-insert into concept_synonym_manual (synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
-(select synonym_name,
-        synonym_concept_code,
-        synonym_vocabulary_id,
-4180186
-from synonym_input);
+select * from concept_synonym_manual;

@@ -60,7 +60,7 @@ BEGIN
 		('monobasic potassium phosphate 63-30 mg/ml', 'Monobasic potassium phosphate 63 mg/ml'),
 		('short ragweed pollen extract 12 amb a 1-u', 'short ragweed pollen extract 12 UNT'),
 		('secretin 75 cu/vial', 'Secretin 10 CU/ML'), -- the vial is supposed to be reconstituted in 7.5 mL of saline
-		('sars-cov-2 (covid-19) vaccine, mrna-bnt162b2 omicron (ba.4/ba.5) -1 mg/ml', 'sars-cov-2 (covid-19) vaccine, mrna-bnt162b2 omicron (ba.4/ba.5) 0.05 mg/ml');
+		('sars-cov-2 (covid-19) vaccine, mrna-bnt162b2 omicron (ba.4/ba.5) -1 mg/ml', 'sars-cov-2 (covid-19) vaccine, mrna-bnt162b2 omicron (ba.4/ba.5) 0.0001 mg/ml');
 
 	-- Create Unit mapping
 	DROP TABLE IF EXISTS unit_to_concept_map;

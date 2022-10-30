@@ -166,4 +166,3 @@ FROM synonyms s
 DROP TABLE cgi_source;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script
-SELECT * from devv5.concept where domain_id='Language'

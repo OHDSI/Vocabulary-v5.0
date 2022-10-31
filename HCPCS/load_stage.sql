@@ -1479,7 +1479,7 @@ FROM (
 			)
 	) i
 WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'HCPCS';;
+	AND cs.vocabulary_id = 'HCPCS';
 
 --19. All concepts mapped to Visit, Provider, Device domains should get the respective domain_id:
 UPDATE concept_stage cs

@@ -15,7 +15,7 @@ $body$;
 --restore concept_relationship_manual table (!!!run it only if something went wrong!!!)
 /*TRUNCATE TABLE dev_hcpcs.concept_relationship_manual;
 INSERT INTO dev_hcpcs.concept_relationship_manual
-SELECT * FROM dev_hcpcs.concept_relationship_manual_backup_2022_10_26;*/
+SELECT * FROM dev_hcpcs.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -33,7 +33,7 @@ $body$;
 --restore concept_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_hcpcs.concept_manual;
 INSERT INTO dev_hcpcs.concept_manual
-SELECT * FROM dev_hcpcs.concept_manual_backup_YYYY_MM_DD*/
+SELECT * FROM dev_hcpcs.concept_manual_backup_YYYY_MM_DD;*/
 
 --8.2.2. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous HCPCS refresh.
 --DROP TABLE dev_hcpcs.hcpcs_mapped;

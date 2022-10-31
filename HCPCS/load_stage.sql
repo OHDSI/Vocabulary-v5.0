@@ -1374,11 +1374,7 @@ WHERE concept_code_1 IN (
         'J9355',
         'Q9980'                        );*/
 
---12. Append manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+
 
 --13. Temporary solution: make concepts that are replaced by the non-existing concepts standard
 --CPT4 doesn't have these concepts in sources yet somehow
@@ -1408,15 +1404,23 @@ BEGIN
 END $_$;
 
 --15. Add mapping from deprecated to fresh concepts
-DO $_$
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
+END $_$;*/
 
 --16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+
+
+--12. Append manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
 --17. Delete ambiguous 'Maps to' mappings
@@ -1425,7 +1429,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---18. All the codes that have mapping to Drud domain should get domain_id='Drug'
+--18. All the codes that have mapping to Drug domain should get domain_id='Drug'
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -1485,17 +1489,10 @@ FROM (WITH crs1 AS
             count(concept_code_2) OVER (PARTITION BY concept_code_1) as num
             from concept_relationship_stage
             where vocabulary_id_1 = 'HCPCS'
-            and relationship_id = 'Maps to'),
+            and relationship_id = 'Maps to'
+            and invalid_reason is null)
 
-      cr1 AS
-    (select concept_id_1, relationship_id, concept_id_2, cr.invalid_reason,
-            count(concept_id_2) OVER (PARTITION BY concept_id_1) as num
-          from concept_relationship cr
-            join concept c on c.concept_id = cr.concept_id_1
-            where c.vocabulary_id = 'HCPCS'
-            and relationship_id = 'Maps to')
-
-SELECT DISTINCT cs1.concept_code,
+  SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Visit'
@@ -1515,8 +1512,7 @@ SELECT DISTINCT cs1.concept_code,
 		AND c2.vocabulary_id = crs1.vocabulary_id_2
 		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
 	WHERE crs1.relationship_id = 'Maps to'
-		AND crs1.invalid_reason IS NULL
-	    AND crs1.num = 1
+		AND crs1.num = 1
 
 	UNION ALL
 
@@ -1540,7 +1536,6 @@ SELECT DISTINCT cs1.concept_code,
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr1.relationship_id = 'Maps to'
-		AND cr1.invalid_reason IS NULL
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs_int

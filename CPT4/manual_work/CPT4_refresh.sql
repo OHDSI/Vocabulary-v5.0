@@ -14,7 +14,7 @@ $body$;
 
 
 --restore concept_relationship_manual table (run it only if something went wrong)
-TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
+/*TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
 INSERT INTO dev_cpt4.concept_relationship_manual
 SELECT * FROM dev_cpt4.concept_relationship_manual_backup_2022_08_12;*/
 
@@ -32,7 +32,7 @@ $body$
 $body$;
 
 --restore concept_manual table (run it only if something went wrong)
-TRUNCATE TABLE dev_cpt4.concept_manual;
+/*TRUNCATE TABLE dev_cpt4.concept_manual;
 INSERT INTO dev_cpt4.concept_manual
 SELECT * FROM dev_cpt4.concept_manual_backup_2022_08_12;*/
 
@@ -62,29 +62,18 @@ insert into concept_manual (concept_name, domain_id, vocabulary_id, concept_clas
     concept_class_id,
     null,
     concept_code,
-    valid_start_date,
-    '2099-12-31',
-    null
+    null,
+    null,
+    'X'
  from cm_input);
 
-select * from concept_manual where concept_code = '90611';
+select * from concept_manual where concept_code = '0124A';
 -- 3. insert new relationship into concept_relationship_manual:
-create table crm_input (concept_code_1 varchar(50), concept_code_2 varchar(50),
-                        vocabulary_id_1 varchar(50), vocabulary_id_2 varchar(50), relationship_id varchar(10));
-
-insert into concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-(select concept_code_1,
-        concept_code_2,
-        vocabulary_id_1,
-        vocabulary_id_2,
-        relationship_id,
-        current_date,
-        '2099-12-31',
-        null
- from crm_input);
+select * from concept_relationship_manual
+where concept_code_1 = '0072A';
 
 -- 4. insert new synonyms into concept_synonym_manual:
-create table synonym_input (synonym_name text, synonym_concept_code varchar(50), synonym_vocabulary_id varchar(50));
---truncate table synonym_input;
 
 select * from concept_synonym_manual;
+
+select * from concept_manual;

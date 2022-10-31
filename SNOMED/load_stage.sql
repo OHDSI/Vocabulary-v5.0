@@ -2039,7 +2039,12 @@ SELECT c.*, NULL FROM (VALUES
 	(165815009,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --HIV negative
 	(59000001,          'Procedure',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Surgical pathology consultation and report on referred slides prepared elsewhere
 	(365956009,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of sexual orientation
-	(443938003,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Procedure carried out on subject
+	(443938003,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Procedure carried out on subject
+
+	--2022-Oct-30
+	--New domain_id = Language
+	(297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --World languages
+	--TODO: make top level concept and grouping concepts non-Standard
 ) as c;
 
 --19.2.3 To be reviewed in the future

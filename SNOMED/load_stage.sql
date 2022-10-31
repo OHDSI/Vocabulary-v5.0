@@ -2041,9 +2041,9 @@ SELECT c.*, NULL FROM (VALUES
 	(365956009,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of sexual orientation
 	(443938003,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Procedure carried out on subject
 
-    --2022-Oct-30
-    --New domain_id = Language
-    (297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --World languages
+	--2022-Oct-30
+	--New domain_id = Language
+	(297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --World languages
 ) as c;
 
 --19.2.3 To be reviewed in the future

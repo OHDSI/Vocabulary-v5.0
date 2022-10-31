@@ -168,11 +168,11 @@ BEGIN
 
     <b>Note</b>: For personal schema, it is recommended to change the password after first login
     ',
-    COALESCE(pOwnerName,'<i>(not specified)</i>'),
+    COALESCE(devv5.py_htmlescape(pOwnerName),'<i>(not specified)</i>'),
     ' &lt;'||pOwnerEmail||'&gt;',
-    pComment,
+    devv5.py_htmlescape(pComment),
     CASE WHEN pFillWithData THEN 'yes' ELSE 'no' END,
-    pSchemaName||':'||pPassWord
+    pSchemaName||':'||devv5.py_htmlescape(pPassWord)
   );
 
   iEmailBody:=REGEXP_REPLACE(iEmailBody,'[\n\r]+', crlf, 'g');

@@ -2044,6 +2044,7 @@ SELECT c.*, NULL FROM (VALUES
 	--2022-Oct-30
 	--New domain_id = Language
 	(297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --World languages
+	--TODO: make top level concept and grouping concepts non-Standard
 ) as c;
 
 --19.2.3 To be reviewed in the future

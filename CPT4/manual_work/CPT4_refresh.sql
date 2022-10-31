@@ -16,7 +16,7 @@ $body$;
 --restore concept_relationship_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
 INSERT INTO dev_cpt4.concept_relationship_manual
-SELECT * FROM dev_cpt4.concept_relationship_manual_backup_2022_08_12;*/
+SELECT * FROM dev_cpt4.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -34,7 +34,7 @@ $body$;
 --restore concept_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_cpt4.concept_manual;
 INSERT INTO dev_cpt4.concept_manual
-SELECT * FROM dev_cpt4.concept_manual_backup_2022_08_12;*/
+SELECT * FROM dev_cpt4.concept_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -48,6 +48,11 @@ $body$
 
     END
 $body$;
+
+--restore concept_synonym_manual table (run it only if something went wrong)
+/*TRUNCATE TABLE dev_cpt4.concept_synonym_manual;
+INSERT INTO dev_cpt4.concept_synonym_manual
+SELECT * FROM dev_cpt4.concept_synonym_manual_backup_YYYY_MM_DD;*/
 
 -- 2. insert new concepts into concept_manual table
 create table cm_input (concept_name text,domain_id varchar(50), vocabulary_id varchar(50),
@@ -67,13 +72,3 @@ insert into concept_manual (concept_name, domain_id, vocabulary_id, concept_clas
     'X'
  from cm_input);
 
-select * from concept_manual where concept_code = '0124A';
--- 3. insert new relationship into concept_relationship_manual:
-select * from concept_relationship_manual
-where concept_code_1 = '0072A';
-
--- 4. insert new synonyms into concept_synonym_manual:
-
-select * from concept_synonym_manual;
-
-select * from concept_manual;

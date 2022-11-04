@@ -64,7 +64,7 @@ select
 	r.concept_code_1,
 	c.concept_code,
 	'dm+d',
-	'CVX',
+	c.vocabulary_id,
 	'Maps to',
 	current_date,
 	TO_DATE('20991231','yyyymmdd'),
@@ -72,51 +72,10 @@ select
 from relationship_to_concept r
 join concept c on
 	r.concept_id_2 = c.concept_id and
-	c.vocabulary_id = 'CVX'
-;
---add replacements for VMPs, replaced by source
-insert into concept_stage
-select
-	null :: int4 as concept_id,
-	coalesce (v.nmprev, v.nm) as concept_name,
-	case --take domain ID from replacement drug
-		when d.vpid is null then 'Drug'
-		else 'Device'
-	end as domain_id,
-	'dm+d',
-	'VMP',
-	null :: varchar as standard_concept,
-	v.vpidprev as concept_code,
-	to_date ('19700101','yyyymmdd') as valid_start_date,
-	coalesce (v.NMDT, current_date - 1) as valid_end_date,
-	'U' as invalid_reason
-from vmps v
-left join vmps u on --make sure old code was not processed on it's own
-	v.vpidprev = u.vpid
-left join devices d on u.vpid = d.vpid
-where 
-	v.vpidprev is not null and
-	u.vpid is null
-;
-insert into concept_relationship_stage
-select
-	null :: int4 as concept_id_1,
-	null :: int4 as concept_id_2,
-	v.vpidprev as concept_code_1,
-	v.vpid as concept_code_2,
-	'dm+d',
-	'dm+d',
-	'Maps to',
-	coalesce (v.NMDT, current_date) as valid_start_date,
-	to_date ('20991231','yyyymmdd') as valid_end_date,
-	null as invalid_reason
-from vmps v
-left join vmps u on --make sure old code was not processed on it's own
-	v.vpidprev = u.vpid
-where
-	v.vpidprev is not null and
-	u.vpid is null and
-	v.vpidprev in (select concept_code from concept_stage)
+	(
+		c.vocabulary_id = 'CVX' or
+		c.concept_class_id ~ '(Drug|Pack)'
+	)
 ;
 --Devices can and should be mapped to SNOMED as they are the same concepts
 insert into concept_relationship_stage
@@ -183,8 +142,8 @@ where
 				vocabulary_id_2 = 'SNOMED'
 		)
 ;
-analyze concept_relationship_stage
-;
+analyze concept_relationship_stage;
+--delete useless deprecations (non-existent relations)
 delete from concept_relationship_stage i
 where
 	(concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2/*, relationship_id*/) not in
@@ -205,6 +164,51 @@ where
 	) and
 	invalid_reason is not null
 ;
+
+--add replacements for VMPs, replaced by source
+insert into concept_stage
+select
+	null :: int4 as concept_id,
+	coalesce (v.nmprev, v.nm) as concept_name,
+	case --take domain ID from replacement drug
+		when d.vpid is null then 'Drug'
+		else 'Device'
+	end as domain_id,
+	'dm+d',
+	'VMP',
+	null :: varchar as standard_concept,
+	v.vpidprev as concept_code,
+	to_date ('19700101','yyyymmdd') as valid_start_date,
+	coalesce (v.NMDT, current_date - 1) as valid_end_date,
+	'U' as invalid_reason
+from vmps v
+left join vmps u on --make sure old code was not processed on it's own
+	v.vpidprev = u.vpid
+left join devices d on u.vpid = d.vpid
+where
+	v.vpidprev is not null and
+	u.vpid is null
+;
+--Get replacement mappings for deprecated VMPs
+insert into concept_relationship_stage
+select distinct
+	null :: int4,
+	null :: int4,
+	v.vpidprev,
+	r.concept_code_2,
+	'dm+d',
+	r.vocabulary_id_2,
+	'Maps to',
+	(SELECT vocabulary_date FROM sources.f_lookup2 LIMIT 1),
+	TO_DATE('20991231','yyyymmdd'),
+	null
+from vmps v
+join concept_relationship_stage r on
+	v.vpid = r.concept_code_1
+where vpidprev is not null and
+	vpidprev not in (select concept_code_1 from concept_relationship_stage where invalid_reason is null)
+;
+
 --deprecate all old maps
 insert into concept_relationship_stage
 select distinct
@@ -250,17 +254,37 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
--- Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
+--deprecate old ingredient mappings
+insert into concept_relationship_stage
+select
+	null :: int4,
+	null :: int4,
+	c.concept_code,
+	c2.concept_code,
+	c.vocabulary_id,
+	c2.vocabulary_id,
+	'Maps to',
+	r.valid_start_date,
+	current_date - 1,
+	'D'
+from concept c
+join concept_relationship r on
+	r.concept_id_1 = c.concept_id and
+	r.relationship_id = 'Maps to' and
+	r.invalid_reason is null and
+	c.vocabulary_id = 'dm+d'
+join concept c2 on
+	c2.concept_id = r.concept_id_2 and
+	c2.concept_class_id = 'Ingredient'
+left join internal_relationship_stage i on
+	i.concept_code_2 = c.concept_code
+where
+	i.concept_code_2 is null and
+	c.concept_class_id not in
+		('VMP','AMP','VMPP','AMPP')
 
-	-- Delete ambiguous 'Maps to' mappings
-	DO $_$
-	BEGIN
-		PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-	END $_$;
-;
 update concept_stage set concept_name = trim(concept_name)
+;
+
+delete from concept_relationship_stage where concept_code_1 = '8203003' and invalid_reason is null
 ;

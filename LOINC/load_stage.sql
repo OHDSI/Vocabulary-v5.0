@@ -308,56 +308,60 @@ SELECT CASE
 		WHEN classtype = '1'
 			THEN 'Lab Test'
 		WHEN classtype = '2'
-			THEN 'Clinical Observation'
-		WHEN classtype = '3'
-			THEN 'Claims Attachment'
-		WHEN classtype = '4'
-			THEN 'Survey'
-		END AS concept_class_id,
-	CASE
-		WHEN l.STATUS IN ('DEPRECATED')
-			THEN NULL
+            THEN 'Clinical Observation'
+        WHEN classtype = '3'
+            THEN 'Claims Attachment'
+        WHEN classtype = '4'
+            THEN 'Survey'
+           END         AS concept_class_id,
+       CASE
+           WHEN l.STATUS IN ('DEPRECATED')
+               THEN NULL
+           WHEN l.STATUS IN ('DISCOURAGED')
+               AND (
+                        l.loinc_num = ANY (cj_1map.arr_loinc)
+                        OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+                        OR l.class = 'PANEL.HEDIS'
+                        OR l.classtype IN (
+                                           '3',
+                                           '4'
+                        )
+                    ) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+               THEN NULL
+           --AVOF-3562: Panels must be Non-Standard
+           WHEN l.class LIKE '%PANEL%'
+               AND l.component LIKE '%anel%'
+               THEN 'C'
+           ELSE 'S'
+           END         AS standard_concept,
+       LOINC_NUM       AS concept_code,
+       v.latest_update AS valid_start_date,
+       CASE
+           WHEN l.STATUS IN ('DEPRECATED')
+               THEN CASE
+                        WHEN c.valid_end_date > v.latest_update
+                            OR c.valid_end_date IS NULL
+                            THEN v.latest_update
+                        ELSE c.valid_end_date
+               END
 		WHEN l.STATUS IN ('DISCOURAGED')
 			AND (
 				l.loinc_num = ANY (cj_1map.arr_loinc)
 				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
 				OR l.class = 'PANEL.HEDIS'
 				OR l.classtype IN (
-					'3',
-					'4'
-					)
-				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-			THEN NULL
-		ELSE 'S'
-		END AS standard_concept,
-	LOINC_NUM AS concept_code,
-	v.latest_update AS valid_start_date,
-	CASE
-		WHEN l.STATUS IN ('DEPRECATED')
-			THEN CASE
-					WHEN c.valid_end_date > v.latest_update
-						OR c.valid_end_date IS NULL
-						THEN v.latest_update
-					ELSE c.valid_end_date
-					END
-		WHEN l.STATUS IN ('DISCOURAGED')
-			AND (
-				l.loinc_num = ANY (cj_1map.arr_loinc)
-				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
-				OR l.class = 'PANEL.HEDIS'
-				OR l.classtype IN (
-					'3',
-					'4'
-					)
-				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-			THEN CASE
-					WHEN c.valid_end_date > v.latest_update
-						OR c.valid_end_date IS NULL
-						THEN v.latest_update
-					ELSE c.valid_end_date
-					END
-		ELSE TO_DATE('20991231', 'yyyymmdd')
-		END AS valid_end_date,
+                                   '3',
+                                   '4'
+                     )
+                 ) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+               THEN CASE
+                        WHEN c.valid_end_date > v.latest_update
+                            OR c.valid_end_date IS NULL
+                            THEN v.latest_update
+                        ELSE c.valid_end_date
+            END
+           ELSE TO_DATE('20991231', 'yyyymmdd')
+           END AS valid_end_date,
 	CASE
 		WHEN (
 				l.STATUS IN ('DISCOURAGED')

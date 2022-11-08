@@ -80,11 +80,12 @@ END $_$;*/
 --10. Assign Domain and Class for concepts with unassigned Domain and Class using the Domain and Class of an ancestor
 DO $$
 DECLARE
-	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device']; --order does matter
-	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Clinical Finding','Event','Observable Entity','Context-dependent','Procedure','Lab Test','Staging / Scales','Substance','Qualifier Value','Social Context','Attribute']; --order does matter
+	--v2, AVOF-3703
+	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device']; --order does matter (the first position has the highest priority, then in descending order)
+	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Clinical Finding','Event','Observable Entity','Context-dependent','Procedure','Lab Test','Staging / Scales','Substance','Qualifier Value','Social Context','Attribute']; --order does matter (the first position has the highest priority, then in descending order)
 BEGIN
-	--build the concept_ancestor
-	DROP TABLE IF EXISTS omop_ext_ancestor;
+	--build the ancestor
+	DROP TABLE IF EXISTS omop_ext_ancestor CASCADE;
 	CREATE UNLOGGED TABLE omop_ext_ancestor AS
 		WITH RECURSIVE hierarchy_concepts (
 			ancestor_concept_code,
@@ -92,11 +93,13 @@ BEGIN
 			descendant_concept_code,
 			descendant_vocabulary_id,
 			descendant_domain_id,
+			descendant_standard_concept,
 			descendant_concept_class_id,
 			root_ancestor_concept_code,
 			root_ancestor_vocabulary_id,
 			full_path,
-			hierarchy_path
+			hierarchy_path,
+			hierarchy_depth
 			)
 		AS (
 			SELECT ancestor_concept_code,
@@ -104,12 +107,13 @@ BEGIN
 				descendant_concept_code,
 				descendant_vocabulary_id,
 				descendant_domain_id,
+				descendant_standard_concept,
 				descendant_concept_class_id,
 				ancestor_concept_code AS root_ancestor_concept_code,
 				ancestor_vocabulary_id AS root_ancestor_vocabulary_id,
 				ARRAY [ROW (descendant_concept_code, descendant_vocabulary_id)] AS full_path,
-				--ARRAY [ancestor_concept_code||' ('||ancestor_vocabulary_id||')', descendant_concept_code||' ('||descendant_vocabulary_id||')'] AS hierarchy_path
-				ARRAY [ancestor_concept_code, descendant_concept_code]::TEXT[] AS hierarchy_path --w/o casting to TEXT[] we get an error:  recursive query "hierarchy_concepts" column 8 has type character varying(50)[] in non-recursive term but type character varying[] overall
+				ARRAY [ancestor_concept_code, descendant_concept_code]::TEXT[] AS hierarchy_path, --w/o casting to TEXT[] we get an error:  recursive query "hierarchy_concepts" column 8 has type character varying(50)[] in non-recursive term but type character varying[] overall
+				0 AS hierarchy_depth
 			FROM concepts
 
 			UNION ALL
@@ -119,12 +123,13 @@ BEGIN
 				c.descendant_concept_code,
 				c.descendant_vocabulary_id,
 				c.descendant_domain_id,
+				c.descendant_standard_concept,
 				c.descendant_concept_class_id,
-				root_ancestor_concept_code,
-				root_ancestor_vocabulary_id,
+				hc.root_ancestor_concept_code,
+				hc.root_ancestor_vocabulary_id,
 				hc.full_path || ROW(c.descendant_concept_code, c.descendant_vocabulary_id) AS full_path,
-				--hc.hierarchy_path || ARRAY [c.descendant_concept_code||' ('||c.descendant_vocabulary_id||')']
-				hc.hierarchy_path || ARRAY [c.descendant_concept_code]::TEXT[]
+				hc.hierarchy_path || ARRAY [c.descendant_concept_code]::TEXT[],
+				hc.hierarchy_depth + 1
 			FROM concepts c
 			JOIN hierarchy_concepts hc ON hc.descendant_concept_code = c.ancestor_concept_code
 				AND hc.descendant_vocabulary_id = c.ancestor_vocabulary_id
@@ -137,15 +142,14 @@ BEGIN
 				CASE WHEN crs.relationship_id = 'Is a' THEN crs.concept_code_2 ELSE crs.concept_code_1 END AS descendant_concept_code,
 				CASE WHEN crs.relationship_id = 'Is a' THEN crs.vocabulary_id_2 ELSE crs.vocabulary_id_1 END AS descendant_vocabulary_id,
 				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.domain_id ELSE c_info_1.domain_id END AS descendant_domain_id,
-				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.concept_class_id ELSE c_info_1.concept_class_id END AS descendant_concept_class_id
+				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.concept_class_id ELSE c_info_1.concept_class_id END AS descendant_concept_class_id,
+				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.standard_concept ELSE c_info_1.standard_concept END AS descendant_standard_concept
 			FROM concept_relationship_stage crs
 			CROSS JOIN vocabulary_pack.GetActualConceptInfo(crs.concept_code_1, crs.vocabulary_id_1) c_info_1
 			CROSS JOIN vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) c_info_2
-			WHERE c_info_1.invalid_reason IS NULL
-				AND c_info_1.standard_concept = 'S'
-				AND c_info_2.invalid_reason IS NULL
-				AND c_info_2.standard_concept = 'S'
-				AND crs.relationship_id IN (
+			/*WHERE c_info_1.invalid_reason IS NULL
+				AND c_info_2.invalid_reason IS NULL*/
+				WHERE crs.relationship_id IN (
 					'Is a',
 					'Subsumes'
 					)
@@ -156,14 +160,64 @@ BEGIN
 			hc.descendant_concept_code,
 			hc.descendant_vocabulary_id,
 			hc.descendant_domain_id,
+			hc.descendant_standard_concept,
 			hc.descendant_concept_class_id,
 			hc.hierarchy_path,
-			DOMAINS_ARRAY as approved_domains_array,
-			CONCEPT_CLASS_ARRAY as approved_concept_class_array
+			hc.hierarchy_depth,
+			DOMAINS_ARRAY AS approved_domains_array,
+			CONCEPT_CLASS_ARRAY AS approved_concept_class_array
 		FROM hierarchy_concepts hc
 		--filter by OMOP Ext as ancestor_concept_code
 		JOIN concept_stage cs ON cs.concept_code = hc.root_ancestor_concept_code
 			AND cs.vocabulary_id = hc.root_ancestor_vocabulary_id;
+
+	--ancestor processing, go to the nearest one with a filled domain. if there are several of them, we take those that are S. otherwise, we take all
+	CREATE OR REPLACE VIEW v_domains_an AS
+	SELECT *
+	FROM (
+		SELECT s0.*,
+			MIN(descendant_standard_concept) OVER (PARTITION BY s0.ancestor_concept_code) AS min_descendant_standard_concept --we can have either S or null in this field, so this query can be interpreted as "do we have S?"
+		FROM (
+			SELECT ancestor_concept_code,
+				ancestor_vocabulary_id,
+				descendant_concept_code,
+				descendant_vocabulary_id,
+				descendant_domain_id,
+				NULLIF(descendant_standard_concept, 'C') AS descendant_standard_concept, --'C' as a standard_concept is considered non-standard
+				descendant_standard_concept AS orig_descendant_standard_concept, --preserve original standard_concept for debugging
+				approved_domains_array,
+				hierarchy_path,
+				hierarchy_depth,
+				MIN(hierarchy_depth) FILTER(WHERE descendant_domain_id IS NOT NULL) OVER (PARTITION BY ancestor_concept_code) min_hierarchy_depth --min depth with non-null domain(s)
+			FROM omop_ext_ancestor
+			) s0
+		WHERE s0.hierarchy_depth = s0.min_hierarchy_depth
+		) s1
+	WHERE s1.min_descendant_standard_concept IS NOT DISTINCT FROM s1.descendant_standard_concept;--will select only 'S' descendants or all non-standard, if there is no standard
+
+	--same logic for classes
+	CREATE OR REPLACE VIEW v_classes_an AS
+	SELECT *
+	FROM (
+		SELECT s0.*,
+			MIN(descendant_standard_concept) OVER (PARTITION BY s0.ancestor_concept_code) AS min_descendant_standard_concept --we can have either S or null in this field, so this query can be interpreted as "do we have S?"
+		FROM (
+			SELECT ancestor_concept_code,
+				ancestor_vocabulary_id,
+				descendant_concept_code,
+				descendant_vocabulary_id,
+				descendant_concept_class_id,
+				NULLIF(descendant_standard_concept, 'C') AS descendant_standard_concept, --'C' as a standard_concept is considered non-standard
+				descendant_standard_concept AS orig_descendant_standard_concept, --preserve original standard_concept for debugging
+				approved_concept_class_array,
+				hierarchy_path,
+				hierarchy_depth,
+				MIN(hierarchy_depth) FILTER(WHERE descendant_concept_class_id IS NOT NULL) OVER (PARTITION BY ancestor_concept_code) min_hierarchy_depth --min depth with non-null concept_class(es)
+			FROM omop_ext_ancestor
+			) s0
+		WHERE s0.hierarchy_depth = s0.min_hierarchy_depth
+		) s1
+	WHERE s1.min_descendant_standard_concept IS NOT DISTINCT FROM s1.descendant_standard_concept; --will select only 'S' descendants or all non-standard, if there is no standard
 
 	--update domain if not defined
 	UPDATE concept_stage cs
@@ -174,17 +228,21 @@ BEGIN
 				cs_int.vocabulary_id
 				) cs_int.concept_code,
 			cs_int.vocabulary_id,
-			CASE WHEN an.approved_domains_array @> ARRAY_AGG(an.descendant_domain_id) OVER (
+			CASE
+				WHEN an.approved_domains_array @> ARRAY_AGG(an.descendant_domain_id) OVER (
 						--collect all domains we have
 						PARTITION BY cs_int.concept_code,
 						cs_int.vocabulary_id
-						) THEN an.descendant_domain_id ELSE '-1' END AS domain_id
-		FROM omop_ext_ancestor an
+						)
+					THEN an.descendant_domain_id
+				ELSE '-1'
+				END AS domain_id
+		FROM v_domains_an an
 		JOIN concept_stage cs_int ON cs_int.concept_code = an.ancestor_concept_code
 			AND cs_int.vocabulary_id = an.ancestor_vocabulary_id
-			AND cs_int.domain_id IS NULL
+			AND cs_int.domain_id IS NULL --for concepts with no domain defined
 		LEFT JOIN UNNEST(an.approved_domains_array) WITH ORDINALITY AS domains(domain_id, domain_position) ON domains.domain_id = an.descendant_domain_id
-		WHERE an.descendant_domain_id IS NOT NULL
+		WHERE an.descendant_domain_id IS NOT NULL --descendant concepts without a domain can be on the same level (depth), we filter such
 		ORDER BY cs_int.concept_code,
 			cs_int.vocabulary_id,
 			domains.domain_position
@@ -201,17 +259,21 @@ BEGIN
 				cs_int.vocabulary_id
 				) cs_int.concept_code,
 			cs_int.vocabulary_id,
-			CASE WHEN an.approved_concept_class_array @> ARRAY_AGG(an.descendant_concept_class_id) OVER (
+			CASE
+				WHEN an.approved_concept_class_array @> ARRAY_AGG(an.descendant_concept_class_id) OVER (
 						--collect all classes we have
 						PARTITION BY cs_int.concept_code,
 						cs_int.vocabulary_id
-						) THEN an.descendant_concept_class_id ELSE '-1' END AS concept_class_id
-		FROM omop_ext_ancestor an
+						)
+					THEN an.descendant_concept_class_id
+				ELSE '-1'
+				END AS concept_class_id
+		FROM v_classes_an an
 		JOIN concept_stage cs_int ON cs_int.concept_code = an.ancestor_concept_code
 			AND cs_int.vocabulary_id = an.ancestor_vocabulary_id
-			AND cs_int.concept_class_id IS NULL
+			AND cs_int.concept_class_id IS NULL --for concepts with no class defined
 		LEFT JOIN UNNEST(an.approved_concept_class_array) WITH ORDINALITY AS classes(concept_class_id, class_position) ON classes.concept_class_id = an.descendant_concept_class_id
-		WHERE an.descendant_concept_class_id IS NOT NULL
+		WHERE an.descendant_concept_class_id IS NOT NULL --descendant concepts without a class can be on the same level (depth), we filter such
 		ORDER BY cs_int.concept_code,
 			cs_int.vocabulary_id,
 			classes.class_position
@@ -241,26 +303,45 @@ END $$;
 
 --Get specific concept_codes
 --We are waiting nothing as the result
-/*SELECT an.ancestor_concept_code,
+--run this if you have domain/class assignment error
+--get specific concept_codes for unassigned domains
+SELECT an.ancestor_concept_code,
 	an.ancestor_vocabulary_id,
 	an.descendant_concept_code,
 	an.descendant_vocabulary_id,
-	CASE WHEN NOT an.approved_domains_array @> ARRAY [an.descendant_domain_id]
-			AND cs.domain_id = '-1' THEN an.descendant_domain_id END AS domain_not_in_list,
-	CASE WHEN NOT an.approved_concept_class_array @> ARRAY [an.descendant_concept_class_id]
-			AND cs.concept_class_id = '-1' THEN an.descendant_concept_class_id END AS class_not_in_list,
+	an.orig_descendant_standard_concept,
+	/*CASE
+		WHEN NOT an.approved_domains_array @> ARRAY [an.descendant_domain_id]
+			THEN an.descendant_domain_id
+		END AS domain_not_in_list,*/
+       an.descendant_domain_id,
 	array_to_string(an.hierarchy_path, ' -> ') AS hierarchy_path
-FROM omop_ext_ancestor an
+FROM v_domains_an an
 JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 	AND cs.vocabulary_id = an.ancestor_vocabulary_id
-	AND '-1' IN (
-		cs.domain_id,
-		cs.concept_class_id
-		)
-ORDER BY 1, 2, 3, 4;*/
+	--AND cs.domain_id = '-1'
+ORDER BY 1, 2, 3, 4;
+
+--same for unassigned classes
+SELECT an.ancestor_concept_code,
+	an.ancestor_vocabulary_id,
+	an.descendant_concept_code,
+	an.descendant_vocabulary_id,
+	an.orig_descendant_standard_concept,
+	CASE
+		WHEN NOT an.approved_concept_class_array @> ARRAY [an.descendant_concept_class_id]
+			THEN an.descendant_concept_class_id
+		END AS class_not_in_list,
+	array_to_string(an.hierarchy_path, ' -> ') AS hierarchy_path
+FROM v_classes_an an
+JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
+	AND cs.vocabulary_id = an.ancestor_vocabulary_id
+	AND cs.concept_class_id = '-1'
+ORDER BY 1, 2, 3, 4;
+
 
 --Clean up
-DROP TABLE omop_ext_ancestor;
+DROP TABLE omop_ext_ancestor CASCADE;
 
 --12. Workaround to drop the relationships between the vocabularies that are not affected by the SetLatestUpdate
 DELETE

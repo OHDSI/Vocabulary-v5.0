@@ -487,7 +487,7 @@ FROM (
 				THEN 'Meas Value'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|'||
-					'assessment|recording|screening|\ycare\y|counseling|insertion|abotrion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
+					'assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
 						cs.concept_name ~* 'documented|^patient|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
 						OR LENGTH(cs.concept_code) <= 2
@@ -499,7 +499,19 @@ FROM (
 					)
 				OR (
 					m2.tui = 'T033'
-					AND cs.concept_code NOT IN (
+				AND cs.concept_code in (
+				                        '98966',
+				                        '98967',
+				                        '98968',
+				                        '98969',
+				                        '99371',
+				                        '99372',
+				                        '99373',
+				                        '99441',
+				                        '99442',
+				                        '99443',
+				                        '99444')
+				AND cs.concept_code NOT IN (
 						'80346',
 						'80347',
 						'1014978',

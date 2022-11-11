@@ -174,13 +174,55 @@ from hierarchy_full h
 join concept_stage a on
 	h.superclass = a.concept_code
 ;
-delete from concept_stage
-where concept_code in (
-select concept_code from concept_stage
-group by concept_code
-having count (1) > 1) and
-invalid_reason is null
+
+-- 7. Sum lifespans of the duplicative concepts:
+drop table if exists duplicates
 ;
+create unlogged table duplicates as (
+with a1 as (
+    select * from concept_stage
+             where concept_code in (select concept_code from concept_stage
+            group by concept_code
+            having count (1) > 1)
+             and invalid_reason = 'D'
+),
+
+a2 as (
+    select * from concept_stage
+             where concept_code in (select concept_code from concept_stage
+            group by concept_code
+            having count (1) > 1)
+             and invalid_reason is null
+    )
+
+select a1.concept_name,
+       a1.domain_id,
+       a1.vocabulary_id,
+       a1.concept_class_id,
+       a1.standard_concept,
+       a1.concept_code,
+       a1.valid_start_date,
+       a2.valid_end_date,
+       a2.invalid_reason
+from a1
+join a2 on a1.concept_code = a2.concept_code);
+
+delete from concept_stage
+where concept_code in (select concept_code from duplicates);
+
+insert into concept_stage (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+select concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+    from duplicates
+;
+
 --7. Process manual tables
 DO $_$
 BEGIN

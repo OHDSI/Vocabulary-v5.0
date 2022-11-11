@@ -223,7 +223,7 @@ select concept_name,
     from duplicates
 ;
 
---7. Process manual tables
+--8. Process manual tables
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
@@ -235,7 +235,7 @@ BEGIN
 END $_$;
 
 ;
---8. Automated scripts
+--9. Automated scripts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
@@ -255,4 +255,3 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
-

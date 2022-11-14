@@ -311,7 +311,7 @@ BEGIN
                 cVocabDate:=COALESCE(cVocabDate,cVocabOldDate);
             WHEN cVocabularyName = 'SNOMED VETERINARY'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SnomedCT_Release_VTS.+?_([\d]{8})\.zip" target="main">Download the Veterinary Extension of SNOMED CT</a>.+'),'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SnomedCT_Release_VTS.+?_([\d]{8})(:?_updated)*\.zip" target="main">Download the Veterinary Extension of SNOMED CT</a>.+'),'yyyymmdd');
                 cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'ICD10GM'
             THEN

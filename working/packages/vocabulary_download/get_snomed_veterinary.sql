@@ -69,7 +69,7 @@ BEGIN
 
     --getting fully working download link from page
     select http_content into pContent from py_http_get(url=>pVocabulary_url);
-    pDownloadURL:=pVocabulary_url||substring(pContent,'.+?<a href="(SnomedCT_Release_VTS.+?_[\d]{8}\.zip)" target="main">Download the Veterinary Extension of SNOMED CT</a>.+');
+    pDownloadURL:=pVocabulary_url||substring(pContent,'.+?<a href="(SnomedCT_Release_VTS.+?_[\d]{8}(:?_updated)*\.zip)" target="main">Download the Veterinary Extension of SNOMED CT</a>.+');
     --https://vtsl.vetmed.vt.edu/extension/Ontology/SnomedCT_Release_VTS1000009_20181001.zip
     if not pDownloadURL ~* '^(https?://vtsl\.vetmed\.vt\.edu/extension/Ontology/SnomedCT_Release)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
 

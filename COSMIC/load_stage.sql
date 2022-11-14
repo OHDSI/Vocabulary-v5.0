@@ -17,28 +17,42 @@
 * Date: 2022
 **************************************************************************/
 
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'COSMIC',
-	pVocabularyDate			=> current_date,
-	pVocabularyVersion		=> 'COSMIC'||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDate			=>  TO_DATE('20220531', 'yyyymmdd'),
+	pVocabularyVersion		=> 'v.96 20220531',
 	pVocabularyDevSchema	=> 'dev_cosmic'
 );
 END $_$;
 
+--2. Truncate all working tables
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
-truncate concept_stage;
-truncate concept_relationship_stage;
-truncate concept_synonym_stage;
-
-drop table cosmic_source;
-create table cosmic_source as
-    (with tab as (select distinct gene_name, genomic_mutation_id, resistance_mutation, tier, mutation_description, mutation_cds, mutation_aa,
-                hgvsp, hgvsc, hgvsg from cosmicmutantexportcensus
-where genomic_mutation_id not in (
-    select genomic_mutation_id from (
-        with tab as (select distinct gene_name,
+--3. Create temporary table
+DROP TABLE IF EXISTS cosmic_source;
+CREATE UNLOGGED TABLE cosmic_source AS
+    (WITH tab AS
+        (SELECT DISTINCT gene_name,
+                        genomic_mutation_id,
+                        resistance_mutation,
+                        tier,
+                        mutation_description,
+                        mutation_cds,
+                        mutation_aa,
+                        hgvsp,
+                        hgvsc,
+                        hgvsg
+        FROM cosmicmutantexportcensus
+        WHERE genomic_mutation_id NOT IN
+            (SELECT genomic_mutation_id FROM
+                (WITH tab AS (SELECT DISTINCT gene_name,
                              accession_number,
                              gene_cds_length,
                              hgnc_id,
@@ -56,93 +70,77 @@ where genomic_mutation_id not in (
                              hgvsp,
                              hgvsc,
                              hgvsg
-             from cosmicmutantexportcensus
-             where length(genomic_mutation_id)!=0)
-select genomic_mutation_id from tab
-group by 1
-having count(genomic_mutation_id)>1
+                            FROM cosmicmutantexportcensus
+                            WHERE LENGTH(genomic_mutation_id)<>0)
+SELECT genomic_mutation_id FROM tab
+GROUP BY 1
+HAVING COUNT(genomic_mutation_id) > 1
                                    )c
     )
-and length(genomic_mutation_id)!=0
-and (mutation_description != 'Unknown'
-or resistance_mutation = 'Yes'))
-    (select   concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')')    as concept_name,
+AND LENGTH(genomic_mutation_id) <> 0
+AND (mutation_description <> 'Unknown'
+OR resistance_mutation = 'Yes'))
+    (SELECT concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')') AS concept_name,
+            'COSMIC'           AS vocabulary_id,
+            genomic_mutation_id AS concept_code,
+            hgvsp              AS hgvs
+    FROM tab
+    WHERE LENGTH(hgvsp) > 0
 
-                                      'COSMIC'           as vocabulary_id,
-                                      genomic_mutation_id as concept_code,
-                                      hgvsp              as hgvs
+    UNION
 
+    SELECT concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')') AS concept_name,
+           'COSMIC'           AS vocabulary_id,
+            genomic_mutation_id AS concept_code,
+            hgvsc              AS hgvs
+    FROM tab
+    WHERE LENGTH(genomic_mutation_id) > 0
 
-                               from tab
+    UNION
 
-                               union
+    SELECT concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')') AS concept_name,
+    'COSMIC'           AS vocabulary_id,
+    genomic_mutation_id AS concept_code,
+    hgvsg              AS hgvs
+    FROM tab
+    WHERE LENGTH(genomic_mutation_id) > 0));
 
-                               select   concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')')    as concept_name,
+--4. Fill the concept_stage
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT vocabulary_pack.CutConceptName(c.concept_name) AS concept_name,
+	'Measurement' AS domain_id,
+	c.vocabulary_id AS vocabulary_id,
+	'Variant' AS concept_class_id,
+	NULL AS standard_concept,
+	c.concept_code AS concept_code,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM cosmic_source c
+JOIN vocabulary v ON v.vocabulary_id = 'COSMIC';
 
-                                      'COSMIC'           as vocabulary_id,
-                                      genomic_mutation_id as concept_code,
-                                      hgvsc              as hgvs
-                               from tab
-                               where length(genomic_mutation_id) > 0
+--5. Fill the concept_synonym_stage
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT concept_code AS synonym_concept_code,
+	vocabulary_pack.CutConceptSynonymName(hgvs) AS synonym_name,
+	vocabulary_id AS synonym_vocabulary_id,
+	4180186 AS language_concept_id --English
+FROM cosmic_source;
 
-                               union
+--6. Clean up
+DROP TABLE cosmic_source;
 
-                               select     concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')')        as concept_name,
-
-                                      'COSMIC'           as vocabulary_id,
-                                      genomic_mutation_id as concept_code,
-                                      hgvsg              as hgvs
-                               from tab
-                               where length(genomic_mutation_id) > 0));
-
-
---insert into concept_stage
-insert into concept_stage
-with s as (SELECT DISTINCT
-       COALESCE(c.concept_id, NULL::int)  as concept_id,
-       trim(substr(n.concept_name,1,255)) AS concept_name,
-       'Measurement' AS domain_id,
-       n.vocabulary_id AS vocabulary_id,
-       'Variant' AS concept_class_id,
-       NULL AS standard_concept,
-       n.concept_code AS concept_code,
-      COALESCE(c.valid_start_date, v.latest_update)   as valid_start_date, -- defines valid_start_date  based on previous vocabulary run
-       COALESCE(c.valid_end_date,TO_DATE('20991231', 'yyyymmdd'))  as valid_end_date -- defines valid_end_date  based on previous vocabulary run
-FROM cosmic_source n
-JOIN vocabulary v ON v.vocabulary_id = 'CIViC'
-LEFT JOIN concept c ON c.concept_code = n.concept_code -- already existing LOINC concepts
-    	AND c.vocabulary_id = 'CIViC')
-
-SELECT distinct
-       s.concept_id,
-       s.concept_name,
-       s.domain_id,
-       s.vocabulary_id,
-       s.concept_class_id,
-       s.standard_concept,
-       s.concept_code,
-       s.valid_start_date,
-       s.valid_end_date ,
-      CASE WHEN s.concept_code is null then 'D' else null end as invalid_reason
-from s
-FULL OUTER JOIN concept c ON c.concept_code = s.concept_code -- already existing LOINC concepts
-    	and c.vocabulary_id = 'CIViC'
-where s.concept_code is not null
-;
-
-
--- insert synonyms
-insert into concept_synonym_stage
-select *
-from (
-select
-DISTINCT NULL::INT as synonym_concept_id,
-hgvs AS synonym_name,
-cs.concept_code as synonym_concept_code,
-cs.vocabulary_id AS synonym_vocabulary_id,
-4180186 as language_concept_id
-from cosmic_source a
-join concept_stage cs on cs.concept_code = a.concept_code
-) r
-where synonym_name is not null
-;
+-- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

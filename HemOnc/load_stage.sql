@@ -380,12 +380,14 @@ WHERE ra.relationship_id = 'Maps to'
 
 --11. Concept synonym
 INSERT INTO concept_synonym_stage(synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
-SELECT css.synonym_concept_id,css.synonym_name,css.synonym_concept_code,synonym_vocabulary_id,language_concept_id
+SELECT css.synonym_concept_id,regexp_replace(css.synonym_name,'<sup>','','gi'),css.synonym_concept_code,synonym_vocabulary_id,language_concept_id -- 	fall2022 brings <syp>  is curated manually to make synonyms more reliable
 FROM sources.hemonc_css css
 JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND cs.vocabulary_id = css.synonym_vocabulary_id
 	-- 15704 has empty name, typo, I suppose
-	AND css.synonym_name IS NOT NULL;
+	AND css.synonym_name IS NOT NULL
+AND css.synonym_name not ilike '%\\>%' --\\>   fall2022 release brings synonyms with URL structure for regimens
+;
 
 
 --11.1 Working with manual synonyms

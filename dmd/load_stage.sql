@@ -1,8 +1,13 @@
 --TODO: Assign names and numbers for steps
---TODO: Avoid drops, changes and recreations of standard _stage tables
+--TODO: improve comments coverage
+--TODO: Check all the commented rows
+--TODO: Unite all manual mapping tables in one table
+--TODO: Chek BuildRxE thing. Check all the concepts to be created, incl. attributes.
+--TODO: Do not create (and probably map) attributes (incl. Suppliers) related to devices
+--TODO: Replace all the unnecessary inserts into stage tables with manual table (presumably with _mapped format)
 
 
--- 0. Schema preparation, creation of necessary tables
+--! Step 0. Schema preparation, creation of necessary tables
 --Working with basic AND stage tables
 --SETLatestUPDATE for 2 affected vocabularies
 DO $_$
@@ -55,6 +60,8 @@ WITH RECURSIVE hierarchy_concepts (ancestor_concept_id,descendant_concept_id,roo
         JOIN concept c1 on c1.concept_id = r.concept_id_1 AND c1.invalid_reason IS NULL AND c1.vocabulary_id = 'SNOMED'
         JOIN concept c2 on c2.concept_id = r.concept_id_2 AND c2.invalid_reason IS NULL AND c2.vocabulary_id = 'SNOMED'
         WHERE r.invalid_reason IS NULL
+        --Do not use module relationships due to minor inconsistency in this relationships
+        AND r.relationship_id NOT IN ('Has Module', 'Module of')
     )
 
     SELECT
@@ -230,7 +237,7 @@ WHERE d.b_id IS NULL
 --As a result, ancestor_snomed AND brand_rx prepared for future use
 TRUNCATE concept_synonym_stage;
 
---1. Extract meaningful data FROM XML source. Manual fix to source data discrepancies
+--! Step 1. Extract meaningful data FROM XML source. Manual fix to source data discrepancies
 --TODO: use NHS's own tool to create CSV tables FROM XML
 DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
     vtms, ont_drug_form, drug_form, ap_ingredient, ingredient_substances, combination_pack_ind, combination_prod_ind,
@@ -250,6 +257,17 @@ FROM (
 	) AS i;
 
 UPDATE vtms SET invalid = '0' WHERE invalid IS NULL;
+
+--Known issue: code duplication. These codes were removed from use according to official dm+d documentation
+--At the moment, these codes left as devices, derived from AMPP for compatibility
+DELETE FROM vtms
+WHERE vtmid IN
+('9854411000001103', --Medium chain triglycerides - invalid
+'9854511000001104', --Calcium + Magnesium
+'9854611000001100', --Ichthammol + Zinc
+'9854711000001109', --Amiloride + Cyclopenthiazide - invalid
+'9854911000001106') --Meglumine amidotrizoate + Sodium amidotrizoate - invalid
+;
 
 
 --vmpps: Virtual Medicinal Product Pack
@@ -322,6 +340,7 @@ WHERE
 		)
 ;
 
+
 CREATE TABLE virtual_product_ingredient AS
 SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
@@ -344,6 +363,7 @@ SET
 WHERE strnt_nmrtr_uomcd = '282113003' -- nL
 ;
 
+
 CREATE TABLE ont_drug_form AS
 SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
@@ -352,6 +372,7 @@ FROM (
 	FROM sources.f_vmp2 i
 	) AS i
 ;
+
 
 CREATE TABLE drug_form AS
 SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
@@ -383,6 +404,7 @@ FROM (
 
 UPDATE amps SET invalid = '0' WHERE invalid IS NULL;
 
+
 CREATE TABLE ap_ingredient AS
 SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
 	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
@@ -393,6 +415,7 @@ FROM (
 	FROM sources.f_amp2 i
 	) AS i
 ;
+
 
 CREATE TABLE licensed_route AS
 SELECT
@@ -423,6 +446,7 @@ FROM (
 
 UPDATE ampps SET invalid = '0' WHERE invalid IS NULL;
 
+
 CREATE TABLE comb_content_a AS
 SELECT unnest(xpath('./PRNTAPPID/text()', i.xmlfield))::VARCHAR PRNTAPPID,
 	unnest(xpath('./CHLDAPPID/text()', i.xmlfield))::VARCHAR CHLDAPPID
@@ -431,6 +455,7 @@ FROM (
 	FROM sources.f_ampp2 i
 	) AS i
 ;
+
 
 --Ingredients
 CREATE TABLE ingredient_substances AS
@@ -447,6 +472,7 @@ FROM (
 
 UPDATE ingredient_substances SET invalid = '0' WHERE invalid IS NULL;
 
+
 --combination packs
 CREATE TABLE combination_pack_ind AS
 SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
@@ -457,6 +483,7 @@ FROM (
 	) AS i
 ;
 
+
 --combination products
 CREATE TABLE combination_prod_ind AS
 SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
@@ -466,6 +493,7 @@ FROM (
 	FROM sources.f_lookup2 i
 	) AS i
 ;
+
 
 --Units
 CREATE TABLE unit_of_measure AS
@@ -478,6 +506,7 @@ FROM (
 	) AS i
 ;
 
+
 --Forms
 CREATE TABLE forms AS
 SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
@@ -488,6 +517,7 @@ FROM (
 	FROM sources.f_lookup2 i
 	) AS i
 ;
+
 
 --suppliers
 CREATE TABLE supplier AS
@@ -537,6 +567,7 @@ UPDATE supplier
 SET info_desc = replace (info_desc, ' Ltd', '')
 ;
 
+
 --some suppliers are non-existing
 CREATE TABLE fake_supp AS
 SELECT cd, info_desc
@@ -550,6 +581,7 @@ WHERE
 		) OR
 	info_desc LIKE 'Imported%';
 
+
 --df_indicator
 CREATE TABLE df_indicator AS
 SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
@@ -560,9 +592,8 @@ FROM (
 	) AS i
 ;
 
---TODO: Either use or remove, table IS NOT used at the moment
+--TODO: May be used in future
 /*
---Not used at the time?
 CREATE TABLE dmd2atc AS
 SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('./ATC/text()', i.xmlfield))::VARCHAR ATC
@@ -572,7 +603,7 @@ FROM (
 	) AS i
 ;
 
---TODO: Either use or remove, table IS NOT used at the moment
+--TODO: May be used in future
 CREATE TABLE dmd2bnf AS
 	(
 		SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
@@ -596,7 +627,7 @@ CREATE TABLE dmd2bnf AS
  */
 
 
---TODO: Either use or remove, table IS NOT used at the moment
+--TODO: May be used in future
 /*
 DELETE FROM comb_content_a
 WHERE prntappid in
@@ -629,7 +660,7 @@ ANALYZE virtual_product_ingredient;
 
 
 
---2. Separating devices
+--! Step 2. Separating devices
 DROP TABLE IF EXISTS devices;
 --TODO: improve devices detection using ancestor_snomed
 
@@ -643,7 +674,7 @@ WITH offenders1 AS
 
 SELECT DISTINCT o.apid, o.nm AS nm_a, o.vpid, v.nm AS nm_v, 'any domain, no ing' AS reason --any domain, no ingredient
 FROM offenders1 o
-JOIN vmps v on
+JOIN vmps v ON
 	v.vpid = o.vpid
 LEFT JOIN virtual_product_ingredient i
 	ON v.vpid = i.vpid
@@ -959,7 +990,7 @@ JOIN drug_form d ON
 ANALYZE devices;
 
 
---3. fix bugs in source (dosages in wrong units, missing denominators, inconsistent dosage of ingredients etc)
+--! Step 3. Fix bugs in source (dosages in wrong units, missing denominators, inconsistent dosage of ingredients etc)
 --Attributed to all tables
 UPDATE virtual_product_ingredient
 SET strnt_nmrtr_uomcd = '258684004' --mg instead of ml when obviously wrong
@@ -1230,7 +1261,7 @@ VALUES
 --At this step all tables, derived from source should be free of bugs
 
 
---4. Preparation for drug_concept_stage population
+--! Step 4. Preparation for drug_concept_stage population
 --Deduplication of devices
 CREATE TABLE devices1 AS SELECT DISTINCT apid, nm_a, vpid, nm_v FROM devices;
 DROP TABLE devices;
@@ -1253,7 +1284,7 @@ INSERT INTO ingred_replacement VALUES ('5375811000001107',NULL,'3286981100000110
 INSERT INTO ingred_replacement VALUES ('5375811000001107',NULL,'32869511000001102',NULL);
 INSERT INTO ingred_replacement VALUES ('5375811000001107',NULL,'32870011000001108',NULL);
 
---TODO: Drop if not needed
+--TODO: May be used in future
 /*
 INSERT INTO ingred_replacement -- Zidovudine + Lamivudine -> Zidovudine
 SELECT DISTINCT
@@ -1308,7 +1339,7 @@ LEFT JOIN ingredient_substances i on
 	i.invalid = '0';
 
 --Creating sequence for concept codes
---TODO: Why not OMOP LIKE sequence?
+--Later in code would be a step with exchange to OMOP-like codes. It is easier to keep it as it was written for backward compatibility
 DROP SEQUENCE IF EXISTS new_seq;
 CREATE sequence new_seq INCREMENT BY 1 START
 	WITH 1 CACHE 20;
@@ -1381,7 +1412,6 @@ WHERE
 ;
 
 --if X replaced with Y AND Y replaced with Z, replace X with Z
---TODO: investigate where did they come? Eg. 10040711000001104
 UPDATE ingred_replacement x
 	SET
 		(isidnew,nmnew) =
@@ -1408,7 +1438,6 @@ HAVING count(DISTINCT isidnew) > 1
 ;
 
 
---4. Preparation for drug_concept_stage population
 
 --Keep legacy mappings for the future
 --Relationship_to_concept_all
@@ -1469,24 +1498,15 @@ WHERE
 
 CREATE INDEX devices_vpid on devices (vpid);
 CREATE INDEX devices_apid on devices (apid);
-DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 
 
---5. drug_concept_stage population
---TODO: ???
-CREATE TABLE drug_concept_stage AS
-SELECT *
-FROM concept_stage
-WHERE false;
-
-ALTER TABLE drug_concept_stage ADD COLUMN source_concept_class_id VARCHAR(20);
-
---Populating drug_concept_stage
---TODO: change left to cutconcept_name
+--! Step 5. drug_concept_stage population
+--Splitted into a few inserts to facilitate code run
 INSERT INTO drug_concept_stage
 	(
 		concept_name,
-		domain_id,vocabulary_id,
+		domain_id,
+	    vocabulary_id,
 		concept_class_id,
 		standard_concept,
 		concept_code,
@@ -1556,10 +1576,10 @@ SELECT DISTINCT
 	TO_DATE('20991231','yyyymmdd'),
 	NULL AS invalid_reason,
 	'Ingredient'
+--Ingredients wih newly assigned OMOP style concept_codes (if no equivalents)
 FROM y;
 
 --Suppliers
---TODO: do insertion in one query
 INSERT INTO drug_concept_stage
 	(
 		concept_name,
@@ -1593,7 +1613,6 @@ WHERE
 ;
 
 --Units
---TODO: do insertion in one query
 INSERT INTO drug_concept_stage
 	(
 		concept_name,
@@ -1696,7 +1715,9 @@ FROM vmpps v
 v.vpid = p.vpid
   LEFT JOIN devices d on v.vpid = d.vpid
 WHERE d.vpid IS NULL
+
 UNION ALL
+
 --VMPPS = Virtual Medicinal Product Pack = Device (OMOP)
 SELECT DISTINCT LEFT (v.nm,255) AS concept_name,
        'Device' AS domain_id,
@@ -1888,11 +1909,10 @@ JOIN drug_concept_stage d2 on
 	TRIM(LOWER(d1.concept_name)) = TRIM(LOWER(d2.concept_name));
 
 
---6. pc_stage population
-DROP TABLE IF EXISTS pc_stage;
-CREATE TABLE pc_stage AS
 
-SELECT
+--! Step 6. pc_stage population
+INSERT INTO pc_stage
+(SELECT
 	c.prntvppid AS pack_concept_code,
 /*	case
 		when p2.qty_uomcd NOT IN
@@ -2000,7 +2020,7 @@ LEFT JOIN devices d2 on --probably redundant check for devices
 
 WHERE
 	d1.apid IS NULL AND
-	d2.apid IS NULL;
+	d2.apid IS NULL);
 
 
 --Modifiers
@@ -2086,13 +2106,9 @@ JOIN vmpps v on
 JOIN vmpps vx on
 	vx.vppid = p.drug_concept_code;
 
-DROP TABLE IF EXISTS internal_relationship_stage;
-CREATE TABLE internal_relationship_stage
-	(
-		concept_code_1 varchar,
-		concept_code_2 varchar
-	);
 
+
+--! Step 7. internal_relationship_stage population
 INSERT INTO internal_relationship_stage
  -- VMP to ingredient
 SELECT DISTINCT
@@ -2159,9 +2175,12 @@ WHERE
 	v.formcd != '3097611000001100' --Not Applicable
 ;
 
-DROP TABLE IF EXISTS dosefix;
+--Some drugs have missing dose forms at this step. Only concepts without dose forms got by regular way are addressed here.
+--Therefore, this fix should not be moved anywhere, but kept as a part of internal_relationship_stage population
+DROP TABLE IF EXISTS dose_form_fix;
 
-CREATE TABLE dosefix AS --salvage missing Dose Forms FROM names
+--TODO: Consider moving these drugs to manual mapping to avoid manual work in load_stage
+CREATE TABLE dose_form_fix AS --salvage missing Dose Forms FROM names
 SELECT DISTINCT
 	v.vpid,
 	v.nm,
@@ -2191,7 +2210,7 @@ WHERE
 				c.concept_code = i.concept_code_2
 		);
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '385219001',
 	dose_name = 'Solution for injection'
@@ -2201,7 +2220,7 @@ WHERE
 	lower (nm) LIKE '%ampoules' OR
 	lower (nm) LIKE '%syringes';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '385023001',
 	dose_name = 'Oral solution'
@@ -2211,14 +2230,14 @@ WHERE
 	lower (nm) LIKE '%oral drops%' OR
 	lower (nm) LIKE '%oral spray%';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '385108009',
 	dose_name = 'Cutaneous solution'
 WHERE
 	lower (nm) LIKE '%swabs';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '385111005',
 	dose_name = 'Cutaneous emulsion'
@@ -2227,7 +2246,7 @@ WHERE
 	lower (nm) LIKE '% oil' OR
 	lower (nm) LIKE '%cream%';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '14945811000001105',
 	dose_name = 'Powder for gastroenteral liquid'
@@ -2235,21 +2254,21 @@ WHERE
 	lower (nm) LIKE '%oral%powder%' OR
 	lower (nm) LIKE '%tri%salts%';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '385210002',
 	dose_name = 'Inhalation vapour'
 WHERE
 	lower (nm) LIKE '%inhala%';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '385124005',
 	dose_name = 'Eye drops'
 WHERE
 	lower (nm) LIKE '%eye%';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '16605211000001107',
 	dose_name = 'Irrigation solution'
@@ -2257,7 +2276,7 @@ WHERE
 	lower (nm) LIKE '%intraves%' OR
 	lower (nm) LIKE '%maint%';
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '16605211000001107',
 	dose_name = 'Irrigation solution'
@@ -2265,20 +2284,20 @@ WHERE
 	lower (nm) LIKE '%intraves%' OR
 	lower (nm) LIKE '%maint%';
 
-UPDATE dosefix --will be improved later
+UPDATE dose_form_fix --will be improved later
 SET
 	dose_code = '85581007',
 	dose_name = 'Powder'
 WHERE
 	dose_code IS NULL AND ( lower (nm) LIKE '%powder%' OR lower (nm) LIKE '%crystals%');
 
-UPDATE dosefix
+UPDATE dose_form_fix
 SET
 	dose_code = '70409003',
 	dose_name = 'Mouthwash'
 WHERE dose_code IS NULL AND lower (nm) LIKE '%mouthwash%';
 
-UPDATE dosefix --will be improved later
+UPDATE dose_form_fix --will be improved later
 SET
 	dose_code = '420699003',
 	dose_name = 'Liquid'
@@ -2286,7 +2305,7 @@ WHERE dose_code IS NULL;
 
 INSERT INTO internal_relationship_stage
 SELECT vpid, dose_code
-FROM dosefix
+FROM dose_form_fix
 WHERE dose_code IS NOT NULL;
 
 --'Foam' is too generic AND is related to multiple different dose forms
@@ -2378,8 +2397,9 @@ WHERE
 	c.pack_concept_code IS NULL AND
 	d.apid IS NULL;
 
+--Monopacks (1 drug_concept_code per pack)
 DROP TABLE IF EXISTS only_1_pack;
-CREATE TABLE only_1_pack as --for later use in other input tables
+CREATE TABLE only_1_pack as
 SELECT DISTINCT
 	pack_concept_code,
 	drug_concept_code,
@@ -2430,7 +2450,9 @@ UPDATE pc_stage
 SET	amount = 1
 WHERE pack_concept_code = '34884711000001100';
 
--- 3. Form ds_stage using source relations AND name analysis. Replace ingredient relations
+
+
+--! Step 8. Preparation for ds_stage population. Form ds_stage using source relations AND name analysis. Replace ingredient relations
 DROP TABLE IF EXISTS ds_prototype;
 
 --Create ds_stage for VMPs, inherit everything else later
@@ -2573,7 +2595,7 @@ UPDATE vmps_res SET ingredient_concept_name = 'Estramustine' WHERE ingredient_co
 UPDATE vmps_res SET ingredient_concept_name = 'Tenofovir' WHERE ingredient_concept_name = 'Tenofovir disoproxil';
 UPDATE vmps_res SET ingredient_concept_name = 'Lysine' WHERE ingredient_concept_name = 'L-Lysine';
 
-UPDATE vmps_res --cut ingred at start for single-ingredient
+UPDATE vmps_res --cut ingredient at start for single-ingredient
 SET	modified_name =
 	replace (
 		right
@@ -2745,11 +2767,19 @@ WHERE
 	amount_code IS NULL AND
 	amount_name IS NOT NULL;
 
+
+--TODO: Consider uniting all the manual tomap_ tables
+--Table created for manual curation of certain drugs, where doses were picked up from the text
 /*
-DROP TABLE IF EXISTS tomap_vmps_ds
-;
+--It is recommended to create a backup for this table just in case
+--CREATE TABLE tomap_vmps_ds_backup AS (SELECT * FROM tomap_vmps_ds)
+--DROP TABLE IF EXISTS tomap_vmps_ds;
+
 --For manual mapping
 --If corresponding ingredient code IS NOT present in DCS, manually enter concept_id of passing ingredient FROM Rx* -- OMOP concept will be created automatically
+--To fill the table use names (mg, ml, etc) that are present in unit_of_measure table (case-sensitive)
+--Use decimal point, not comma
+SELECT count(*) FROM tomap_vmps_ds;
 -- CREATE TABLE tomap_vmps_ds as
 SELECT
 	drug_concept_code,
@@ -2766,36 +2796,33 @@ WHERE
 	drug_concept_code NOT IN (SELECT drug_concept_code FROM ds_prototype)
 	and drug_concept_code NOT IN (SELECT drug_concept_code FROM tomap_vmps_ds)
 order by drug_concept_name, ingredient_concept_name desc
-;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_vmps_ds.csv --file on Eduard's PC
-         -type=text
-         -table=tomap_vmps_ds
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=drug_concept_code,drug_concept_name,ingredient_concept_code,ingredient_concept_name,amount_value,amount_name,denominator_value,denominator_unit
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=1000
+
+
+--Do a parsing and then reupload to the same table
+--TRUNCATE tomap_vmps_ds;
+
+--TODO: Investigate what to do with drugs that have 0 as ingredient
+-- at the moment, they are deleted from tomap_vmps_ds
+DELETE FROM tomap_vmps_ds WHERE ingredient_concept_code = '0';
+
 ;*/
+
+--Double check: if drug has a parsing already, it is prioritized over manual table
 DELETE FROM tomap_vmps_ds
 WHERE drug_concept_code in (SELECT drug_concept_code FROM ds_prototype);
 
+--Double check: Non-existing drugs
 DELETE FROM tomap_vmps_ds
 WHERE drug_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage WHERE domain_id = 'Drug');
 
+--Delete from internal_relationship_stage all the relationships with ingredients to recreate it few steps later from the manual table (manual table is a priority)
 DELETE FROM internal_relationship_stage
 WHERE
 	concept_code_1 in (SELECT drug_concept_code FROM tomap_vmps_ds) AND
 	concept_code_2 in (SELECT concept_code FROM drug_concept_stage WHERE concept_class_id = 'Ingredient');
 
+
+--Creating new ingredients from manually curated table
 DROP TABLE IF EXISTS ds_new_ingreds;
 
 CREATE TABLE ds_new_ingreds as
@@ -2830,7 +2857,9 @@ SELECT
 	'Ingredient'
 FROM ds_new_ingreds;
 
-INSERT INTO ds_prototype
+--Filling in the ds_prototype table from the manual table
+INSERT INTO ds_prototype (drug_concept_code, drug_name, ingredient_concept_code, ingredient_name, amount_value,
+                          amount_code, amount_name, denominator_value, denominator_code, denominator_name, box_size, total, unit_1_code, unit_1_name)
 SELECT
 	drug_concept_code,
 	drug_concept_name,
@@ -2849,6 +2878,7 @@ SELECT
 FROM tomap_vmps_ds
 WHERE amount_value IS NOT NULL;
 
+--Working with ds_parsed table
 DELETE FROM ds_parsed
 WHERE drug_concept_code in
 	(SELECT drug_concept_code FROM tomap_vmps_ds);
@@ -2869,6 +2899,7 @@ WHERE
 UPDATE ds_prototype d SET amount_code = (SELECT cd FROM unit_of_measure WHERE d.amount_name = info_desc) WHERE amount_name IS NOT NULL;
 UPDATE ds_prototype d SET denominator_code = (SELECT cd FROM unit_of_measure WHERE d.denominator_name = info_desc) WHERE denominator_name IS NOT NULL;
 
+--New ingredients into internal_relationship_stage
 INSERT INTO internal_relationship_stage
 SELECT
 	d.drug_concept_code,
@@ -2877,21 +2908,8 @@ FROM tomap_vmps_ds d
 LEFT JOIN ds_new_ingreds i on
 	i.ingredient_id :: varchar = d.ingredient_concept_name;
 
-DROP TABLE IF EXISTS ds_stage CASCADE;
 
-CREATE TABLE ds_stage
-	(
-		drug_concept_code varchar (255),
-		ingredient_concept_code varchar (255),
-		amount_value numeric,
-		amount_unit varchar (255),
-		numerator_value numeric,
-		numerator_unit varchar (255),
-		denominator_value numeric,
-		denominator_unit varchar (255),
-		box_size smallint
-	);
-
+--Preparation for ds_stage population
 --modify ds_prototype
 --replace liters with mls
 UPDATE ds_prototype d
@@ -3122,6 +3140,8 @@ WHERE
 				WHERE v.qty_uomcd in ('258773002') --ml
 		);
 
+
+--! Step 9. Populating ds_stage table
 INSERT INTO ds_stage --simple numerator only dosage, no denominator
 SELECT DISTINCT
 	drug_concept_code,
@@ -3181,7 +3201,7 @@ WHERE
 		)
 	and amount_name not LIKE '%/%'
 	and not (amount_code = '258773002' AND (amount_value, amount_code) = (total, unit_1_code)) --numerator in ml, total in ml, amount equal to total;
-	
+
 INSERT INTO ds_stage --literally 2 concepts with mg/g as numerator code
 SELECT DISTINCT
 	drug_concept_code,
@@ -3197,7 +3217,7 @@ FROM ds_prototype
 WHERE
 	denominator_code IS NULL AND
 	amount_code = '408168009'; --mg/g
-	
+
 INSERT INTO ds_stage --simple numerator+denominator
 SELECT DISTINCT
 	drug_concept_code,
@@ -3305,7 +3325,7 @@ SELECT DISTINCT
 FROM ds_stage d
 JOIN amps a on
 	d.drug_concept_code = a.vpid; --this will include packs, both proper components AND monocomponent packs;
-	
+
 --VMPPs
 --inherited FROM VMPs with added box size
 DROP TABLE IF EXISTS ds_insert;
@@ -3519,9 +3539,13 @@ WHERE
 			v.nm LIKE '% powder'
 		) AND
 	p.vppid NOT IN (SELECT drug_concept_code FROM ds_stage)
-;/*
-DROP TABLE IF EXISTS tomap_vmpps_ds
 ;
+
+/*
+--The table with the same purpose as tomap_vmps_ds
+--CREATE TABLE tomap_vmpps_ds_backup AS (SELECT * FROM tomap_vmpps_ds)
+--DROP TABLE IF EXISTS tomap_vmpps_ds;
+
 CREATE TABLE tomap_vmpps_ds as
 SELECT DISTINCT
 	vppid as drug_concept_code, nm as drug_name, d.ingredient_concept_code, d.ingredient_name, d.amount_value, d.amount_code, d.amount_name, d.denominator_value, d.denominator_code, d.denominator_name, NULL :: int4 as amount
@@ -3532,24 +3556,8 @@ WHERE
 	vppid NOT IN (SELECT drug_concept_code FROM ds_stage) AND
 	vppid NOT IN (SELECT drug_concept_code FROM tomap_vmpps_ds)
 ;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_vmpps_ds.csv
-         -type=text
-         -table=tomap_vmpps_ds
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=drug_concept_code,drug_name,ingredient_concept_code,ingredient_name,amount_value,amount_code,amount_name,denominator_value,denominator_code,denominator_name,amount
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=1000
-;*/
+*/
+
 DELETE FROM ds_stage WHERE drug_concept_code in (SELECT drug_concept_code FROM tomap_vmpps_ds);
 
 INSERT INTO ds_stage
@@ -3814,7 +3822,7 @@ WHERE
 
 
 --TODO: cause errors
---! Shouldhave been fixed by this moment
+--! Should have been fixed by this moment
 /*
 UPDATE ds_stage
 SET	ingredient_concept_code =
@@ -3848,7 +3856,7 @@ WHERE
 	numerator_unit IN ('ml') OR
 	amount_unit IN ('ml')
 
-	except
+	EXCEPT
 
 SELECT c.concept_code --use SNOMED to find gas descendants
 FROM ancestor_snomed a
@@ -3875,7 +3883,9 @@ WHERE
 	ingredient_concept_code in (SELECT ingredient_concept_code FROM nongas2fix);
 
 --Remove drugs without or with incomplete attributes in ds_stage attribute (check for mappings in relationship to concept file)
-DELETE FROM ds_stage WHERE drug_concept_code IN
+--TODO: check the mappings before delete
+DELETE FROM ds_stage
+WHERE drug_concept_code IN
 (SELECT drug_concept_code
 	FROM ds_stage
 	WHERE COALESCE(amount_value, numerator_value) IS NULL
@@ -3916,8 +3926,9 @@ JOIN only_1_pack o on
 	o.drug_concept_code = d.drug_concept_code AND
 	o.pack_concept_code NOT IN (SELECT x.drug_concept_code FROM ds_stage x); --orphan concepts may already have had entry despite being a pack (4161311000001109)
 
--- 4. Map attributes except Brand Names AND Suppliers to concept
 
+
+--! Step 10. Map attributes except Brand Names AND Suppliers to concept
 DROP TABLE IF EXISTS tomap_ingredients;
 
 CREATE TABLE tomap_ingredients as
@@ -4010,19 +4021,13 @@ WHERE
 		) AND
 	devv5.levenshtein (source_name, concept_name) > (SELECT dif FROM lev WHERE lev.source_code = t.source_code);
 
-DROP TABLE IF EXISTS relationship_to_concept CASCADE;
 
-CREATE TABLE relationship_to_concept
-(
-   concept_code_1     varchar(50),
-   vocabulary_id_1    varchar(20),
-   concept_id_2       integer,
-   precedence         smallint,
-   conversion_factor  numeric
-)
-;/*
-DROP TABLE IF EXISTS tomap_ingreds_man
-;
+/*
+--Create backup just in case
+--CREATE TABLE tomap_ingreds_man_backup AS (SELECT * FROM tomap_ingreds_man)
+DROP TABLE IF EXISTS tomap_ingreds_man;
+
+--Previous version
 --CREATE TABLE tomap_ingreds_man as
 SELECT DISTINCT
 	t.source_code,
@@ -4041,25 +4046,38 @@ WHERE
 	t.source_code in (SELECT concept_code_2 FROM internal_relationship_stage) AND
 	t.source_code in (SELECT source_code FROM tomap_ingredients) AND
 	t.source_code NOT IN (SELECT source_code FROM tomap_ingreds_man)
-;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_ingreds_man.csv
-         -type=text
-         -table=tomap_ingreds_man
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=source_code,source_name,concept_id,concept_name,vocabulary_id,precedence
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=1000
-;*/
+
+--Current version to keep mapping from backup
+--CREATE TABLE tomap_ingreds_man as
+SELECT DISTINCT
+	t.source_code,
+	t.source_name,
+    tb.concept_id,
+	c.concept_code,
+    c.concept_name,
+    c.concept_class_id,
+    c.standard_concept,
+    c.invalid_reason,
+    c.domain_id,
+	c.vocabulary_id,
+	tb.precedence
+FROM tomap_ingredients t
+LEFT JOIN tomap_ingreds_man_backup tb on
+    tb.source_code = t.source_code
+LEFT JOIN concept c on
+	c.concept_id = tb.concept_id AND
+	c.standard_concept = 'S' AND
+	c.concept_class_id = 'Ingredient'
+WHERE
+	t.concept_id IS NULL AND
+	t.source_code in (SELECT concept_code_2 FROM internal_relationship_stage) AND
+	t.source_code in (SELECT source_code FROM tomap_ingredients);
+
+--The table was manually curated and reuploaded to the same table
+--TRUNCATE tomap_ingreds_man;
+*/
+
+
 DELETE FROM tomap_ingreds_man
 WHERE source_code NOT IN (SELECT source_code FROM tomap_ingredients);
 
@@ -4092,6 +4110,9 @@ WHERE
 			FROM tomap_ingreds_man
 			WHERE concept_id IS NOT NULL
 		);
+
+SELECT * FROM tomap_ingredients;
+
 /*
 DROP TABLE IF EXISTS tomap_units_man
 ;
@@ -4114,24 +4135,10 @@ WHERE concept_class_id = 'Unit' AND
 		) AND
 	concept_name NOT IN (SELECT source_name FROM tomap_units_man)
 ;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_units_man.csv
-         -type=text
-         -table=tomap_units_man
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=concept_code_1,source_name,concept_id_2,concept_name,conversion_factor
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=100
-;*/;
+--Mapped and reuploaded to the same table
+--TRUNCATE tomap_units_man;
+*/;
+
 INSERT INTO relationship_to_concept
 SELECT
 	source_name,
@@ -4140,6 +4147,7 @@ SELECT
 	1 as precedence,
 	coalesce (conversion_factor,1)
 FROM tomap_units_man;
+
 /*
 DROP TABLE IF EXISTS tomap_forms
 ;
@@ -4155,24 +4163,8 @@ WHERE
 	concept_class_id = 'Dose Form' AND
 	concept_code NOT IN (SELECT concept_code FROM tomap_forms)
 ;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_forms.csv
-         -type=text
-         -table=tomap_forms
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=source_code,source_name,mapped_id,mapped_name,precedence
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=100
-;*/;
+*/
+
 INSERT INTO relationship_to_concept
 SELECT
 	source_code,
@@ -4182,7 +4174,7 @@ SELECT
 	NULL :: int4
 FROM tomap_forms;
 
-ALTER TABLE ds_stage -- add mapped ingredient's concept_id to aid next step in dealing with dublicates
+ALTER TABLE ds_stage -- add mapped ingredient's concept_id to aid next step in dealing with duplicates
 ADD concept_id int4;
 
 UPDATE ds_stage
@@ -4271,7 +4263,7 @@ UPDATE ds_stage
 SET	(denominator_value, denominator_unit) = (NULL, 'actuation')
 WHERE denominator_unit = 'unit dose';
 
-DELETE FROM internal_relationship_stage -- replace ingredients with ones FROM ds_stage (since it was reworked a mano) WHERE aplicable
+DELETE FROM internal_relationship_stage -- replace ingredients with ones FROM ds_stage (since it was reworked a mano) WHERE applicable
 WHERE
 	exists (SELECT FROM ds_stage WHERE drug_concept_code = concept_code_1) AND
 	exists (SELECT FROM drug_concept_stage WHERE concept_class_id = 'Ingredient' AND concept_code = concept_code_2);
@@ -4322,7 +4314,8 @@ WHERE
 			SELECT vpid FROM fix_1ml
 		);
 
--- 5. Find AND map Brand Names (using SNOMED logic), map suppliers
+
+--! Step 11. Find AND map Brand Names (using SNOMED logic), map suppliers
 
 --NOTE: despite that some VMPs AND VMPPs have Brand Names in their names, we purposefully only build relations FROM AMPs AND AMPPs.
 --VMPS are identical to Clinical Drugs by design. They are virtual products that are not meant to have Supplier OR a Brand Name
@@ -4527,39 +4520,22 @@ JOIN brands_assigned a using (brand_name)
 WHERE b.concept_code NOT IN (
     SELECT concept_code FROM amps_to_brands
     WHERE brand_code IS NOT NULL
-    )
+    );
 
 
-;/*
-DROP TABLE IF EXISTS tofind_brands_man
-;
+/*
+DROP TABLE IF EXISTS tofind_brands_man;
 -- CREATE TABLE tofind_brands_man as
 SELECT
 	concept_code,
 	concept_name,
 	NULL :: int4 as brand_id,
-	trim (regexp_replace (concept_name, ' .*$','')) :: varchar as brand_name
+	trim (regexp_replace (concept_name, ' .*$','')) :: varchar as brand_name,
+
 FROM tofind_brands
 WHERE concept_code NOT IN (SELECT concept_code FROM tofind_brands_man)
 ;
-WbImport -file=/home/ekorchmar/Documents/dmd/tofind_brands_man.csv
-         -type=text
-         -table=tofind_brands_man
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=concept_code,concept_name,brand_id,brand_name
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=1000
-;*/
+*/
 
 /*delete from tofind_brands_man
 where concept_code not in (select concept_code from tofind_brands)*/
@@ -4813,15 +4789,22 @@ SET
 WHERE
 	t1.mapped_id IS NULL AND
 	t1.concept_name LIKE '% XL'
-;/*
-DROP TABLE IF EXISTS tomap_bn_man
 ;
+
+/*
+DROP TABLE IF EXISTS tomap_bn_man;
+
 -- CREATE TABLE tomap_bn_man as
 SELECT
 	t.concept_code,
 	t.concept_name,
 	c.concept_id as mapped_id,
+    c.concept_code AS target_concept_code,
 	c.concept_name as mapped_name,
+    c.concept_class_id AS concept_class_id,
+    c.standard_concept AS standard_concept,
+    c.invalid_reason AS invalid_reason,
+    c.domain_id,
 	c.vocabulary_id
 FROM tomap_bn t
 LEFT JOIN concept c on
@@ -4833,25 +4816,17 @@ WHERE
 	t.mapped_id IS NULL AND
 	t.concept_code NOT IN (SELECT concept_code FROM tomap_bn_man)
 ;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_bn_man.csv
-         -type=text
-         -table=tomap_bn_man
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=concept_code,concept_name,mapped_id,mapped_name
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=1000
-;*/
-;
+
+ALTER TABLE tomap_bn_man
+ALTER COLUMN invalid_reason TYPE varchar(50);
+
+ALTER TABLE tomap_bn_man
+ALTER COLUMN standard_concept TYPE varchar(50);
+
+--Manual curation and reuploading to the same table
+--TRUNCATE tomap_bn_man;
+*/
+
 --UPDATE source names
 UPDATE tomap_bn_man b
 SET
@@ -4905,11 +4880,22 @@ JOIN drug_concept_stage c on
 	c.concept_name = t.concept_name AND
 	c.concept_class_id = 'Brand Name'
 WHERE t.mapped_id IS NOT NULL
-;/*
-DROP TABLE IF EXISTS tomap_supplier_man
 ;
+
+/*
+DROP TABLE IF EXISTS tomap_supplier_man;
+
 -- CREATE TABLE tomap_supplier_man as
-SELECT d.concept_code, d.concept_name, c.concept_id as mapped_id, c.concept_name as mapped_name
+SELECT d.concept_code, d.concept_name,
+    c.concept_code AS target_concept_code,
+    c.concept_id as mapped_id,
+	c.concept_name as mapped_name,
+    c.concept_class_id AS concept_class_id,
+    c.standard_concept AS standard_concept,
+    c.invalid_reason AS invalid_reason,
+    c.domain_id,
+	c.vocabulary_id,
+    NULL::int AS precedence
 FROM drug_concept_stage d
 LEFT JOIN concept c on
 	c.concept_class_id = 'Supplier' AND
@@ -4922,23 +4908,14 @@ WHERE
 	and d.concept_code NOT IN (SELECT concept_code FROM tomap_supplier_man)
 order by length (d.concept_name)
 ;
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_supplier_man.csv
-         -type=text
-         -table=tomap_supplier_man
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=concept_code,concept_name,mapped_id,mapped_name
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=1000
+
+ALTER TABLE tomap_supplier_man
+ALTER COLUMN invalid_reason TYPE varchar(50);
+
+ALTER TABLE tomap_supplier_man
+ALTER COLUMN standard_concept TYPE varchar(50);
+
+--TRUNCATE tomap_supplier_man;
 */
 
 UPDATE drug_concept_stage --replace cut name with source-given one
@@ -4983,12 +4960,12 @@ SELECT
 	concept_code,
 	'dm+d',
 	mapped_id,
-	1 as precedence,
+	precedence as precedence,
 	NULL :: int4 as conversion_factor
 FROM tomap_supplier_man
 WHERE mapped_id IS NOT NULL;
 
---dublicates within RxE do this
+--duplicates within RxE do this
 DELETE FROM relationship_to_concept r
 WHERE exists
 	(
@@ -5003,6 +4980,7 @@ WHERE exists
 
 ANALYZE relationship_to_concept;
 ANALYZE internal_relationship_stage;
+
 --some drugs in IRS have duplicating ingredient entries over relationship_to_concept mappings
 with multiing as
 	(
@@ -5025,13 +5003,15 @@ WHERE
 				a.preserve_this != b.concept_code_1
 		);
 
--- 6. Some manual fixes for some drugs inc. vaccines
+
+
+--! Step 12. Some manual fixes for some drugs inc. vaccines
 DROP TABLE IF EXISTS covid_vac;
 
 CREATE TABLE covid_vac AS
 SELECT vpid AS concept_code
 FROM vmps
-WHERE vtmid = '39330711000001103' -- covid vaccines;
+WHERE vtmid = '39330711000001103'; -- covid vaccines;
 
 INSERT INTO covid_vac
 SELECT apid
@@ -5094,24 +5074,6 @@ join covid_vac c on
 where
 	d.concept_code not in (select concept_code from tomap_varicella)
 ;
-
-WbImport -file=/home/ekorchmar/Documents/dmd/tomap_varicella.csv
-         -type=text
-         -table=tomap_varicella
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='\t'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=source_concept_class_id,concept_code,concept_name,ingredient_code,ingredient_name,target_id,target_name
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=true
-         -continueOnError=false
-         -batchSize=10;
 */
 
 DELETE FROM pc_stage WHERE pack_concept_code in (SELECT concept_code FROM tomap_varicella WHERE ingredient_code IS NULL);
@@ -5155,7 +5117,9 @@ SELECT
 	NULL
 FROM internal_relationship_stage
 WHERE concept_code_2 = '19699211000001101'
-;/*
+;
+
+/*
 INSERT INTO relationship_to_concept --H1N1
 SELECT
 	concept_code_1,
@@ -5166,6 +5130,7 @@ SELECT
 FROM internal_relationship_stage
 WHERE concept_code_2 = '16091511000001102'
 ;*/
+
 INSERT INTO relationship_to_concept --Rest
 SELECT
 	concept_code_1,
@@ -5213,7 +5178,10 @@ from
 		SELECT appid FROM vmpps JOIN ampps using (vppid) WHERE vpid in ('3439211000001108','3439311000001100') --AMP
 	) pneum
 ;
--- 7. Final fixes AND shifting OMOP codes to follow sequence in CONCEPT table
+
+
+
+--! Step 13. More fixes AND shifting OMOP codes to follow sequence in CONCEPT table
 
 DELETE FROM internal_relationship_stage
 WHERE concept_code_1 in (SELECT concept_code FROM drug_concept_stage WHERE domain_id = 'Device');
@@ -5227,7 +5195,7 @@ DELETE FROM relationship_to_concept WHERE concept_code_1 NOT IN
 	(SELECT concept_code FROM drug_concept_stage);
 
 
---OMOP replacement: existing OMOP codes AND shift sequence to after last code in devv5.concept
+--OMOP replacement: existing OMOP codes AND shift sequence to after last code in concept
 DROP TABLE IF EXISTS code_replace;
 
 CREATE TABLE code_replace as
@@ -5290,7 +5258,6 @@ SET drug_concept_code = b.new_code
 FROM code_replace b
 WHERE a.drug_concept_code = b.old_code;
 
---FINAL FIXES
 
 --Inherit AMP, VMPP AND AMPP ingredient relations for empty ds_stage entries
 INSERT INTO internal_relationship_stage
@@ -5404,14 +5371,13 @@ FROM internal_relationship_stage
 JOIN only_1_pack on
 	drug_concept_code = concept_code_1;
 
+--Deduplication of internal_relationship_stage
 DROP TABLE IF EXISTS irs_shuffle;
-
 CREATE TABLE irs_shuffle as
 SELECT DISTINCT
 	concept_code_1,
 	concept_code_2
 FROM internal_relationship_stage;
-
 DROP TABLE internal_relationship_stage;
 
 ALTER TABLE irs_shuffle
@@ -5465,6 +5431,8 @@ DELETE FROM ds_stage WHERE ingredient_concept_code = '8203003'; --no universally
 DELETE FROM internal_relationship_stage WHERE concept_code_2 = '8203003';
 --DELETE FROM ds_stage WHERE drug_concept_code in ('8981911000001106','8977811000001101','8977711000001109','8977911000001106')
 
+
+--TODO: either use or delete
 /*UPDATE internal_relationship_stage
 SET
 	concept_code_2 = '385219001'
@@ -5512,8 +5480,6 @@ and concept_code_2 in ('14964511000001102','385229008')*/
 DELETE FROM drug_concept_stage
     WHERE concept_code = '10109701000001106' AND concept_name = 'Lumecare (Carbomer)';
 
-INSERT INTO drug_concept_stage(concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, source_concept_class_id)
-'', 'Drug', 'dm+d', 'Ingredient', 'S', '', '1970-01-01', '2099-12-31', 'Ingredient';
 
 UPDATE ds_stage
 SET box_size = NULL
@@ -5524,6 +5490,80 @@ WHERE
 
 --because of UPDATEs
 DELETE FROM relationship_to_concept WHERE concept_code_1 NOT IN (SELECT concept_code FROM drug_concept_stage);
+
+
+
+--TODO: Check for potential code reuse and naming issues
+--! Step 14. Manual mapping for attributes, that don't have equivalents
+--Manual mapping step
+--Major part of relationships in relationship_to_concept table were created automatically
+--However, there are still missing mappings (relationships to concept) for certain attributes. Mapping is not required for attributes without links in internal_relationship_stage
+--Uploaded for manual mapping
+--File name: relationship_to_concept_attributes
+CREATE TABLE relationship_to_concept_attributes AS
+	(SELECT dcs.concept_code, dcs.concept_name, dcs.concept_class_id,
+	       NULL AS precedence,
+	       c.concept_id AS target_concept_id,
+	       c.concept_code AS target_concept_code,
+	       c.concept_name AS target_concept_name,
+	       c.concept_class_id AS target_concept_class_id,
+	       c.standard_concept AS target_standard_concept,
+	       c.invalid_reason AS target_invalid_reason,
+	       c.domain_id AS target_domain_id,
+	       c.vocabulary_id AS target_vocabulary_id
+	FROM drug_concept_stage dcs
+	LEFT JOIN relationship_to_concept cr ON cr.concept_code_1 = dcs.concept_code
+	LEFT JOIN concept c ON LOWER(c.concept_name) = LOWER(dcs.concept_name)
+				AND c.concept_class_id = dcs.concept_class_id
+				AND c.vocabulary_id LIKE 'RxNorm%'
+				AND c.invalid_reason IS NULL
+	WHERE cr.concept_code_1 IS NULL
+		AND dcs.concept_class_id IN (
+			'Ingredient',
+			'Brand Name',
+			'Dose Form',
+			'Supplier'
+			)
+--If attributes have already been assessed in other manual mapping tables, do not include them
+	  --Only dm+d and not OMOP-like concept codes in manual tomap_ tables
+	AND dcs.concept_code NOT IN (SELECT concept_code FROM tomap_supplier_man)
+	AND dcs.concept_code NOT IN (SELECT source_code FROM tomap_ingreds_man)
+	AND dcs.concept_code NOT IN (SELECT source_code FROM tomap_forms)
+	AND dcs.concept_code NOT IN (SELECT concept_code FROM tomap_bn_man)
+
+	  --For refreshes to avoid processing the same codes twice
+	AND (dcs.concept_name, dcs.concept_class_id) NOT IN (SELECT concept_code, concept_class_id FROM relationship_to_concept_attributes)
+	  --No drugs with these attributes
+	AND dcs.concept_code NOT IN (SELECT concept_code_2 FROM internal_relationship_stage)
+
+ORDER BY dcs.concept_class_id)
+;
+
+--Manually map missing concepts and then reupload the table
+--TRUNCATE relationship_to_concept_attributes
+
+--Insertion of manually mapped attributes into relationship_to_concept
+INSERT INTO relationship_to_concept
+(concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
+SELECT dcs.concept_code, dcs.vocabulary_id, rtca.target_concept_id, rtca.precedence, NULL --Change to conversion factor in the rtca if needed
+FROM relationship_to_concept_attributes rtca
+JOIN drug_concept_stage dcs
+    --Concept code changes every time with sequence recreation, therefore use combination of name and concept class id instead
+    ON rtca.concept_class_id = dcs.concept_class_id AND rtca.concept_name = dcs.concept_name
+WHERE rtca.target_concept_id != 0 AND rtca.target_concept_id IS NOT NULL;
+
+
+--Deduplication of relationship_to_concept
+CREATE TABLE relationship_to_concept_temp AS (SELECT DISTINCT * FROM relationship_to_concept);
+TRUNCATE relationship_to_concept;
+INSERT INTO relationship_to_concept (SELECT * FROM relationship_to_concept_temp);
+DROP TABLE relationship_to_concept_temp;
+
+--Deduplication of drug_concept_stage
+CREATE TABLE drug_concept_stage_temp AS (SELECT DISTINCT * FROM drug_concept_stage);
+TRUNCATE drug_concept_stage;
+INSERT INTO drug_concept_stage (SELECT * FROM drug_concept_stage_temp);
+DROP TABLE drug_concept_stage_temp;
 
 --get supplier relations for packs
 INSERT INTO internal_relationship_stage
@@ -5623,6 +5663,7 @@ WHERE
 			WHERE concept_code_1 in (apid,appid)
 		);
 
+--TODO: tomap_varicella can definately go into dmd_mapped table
 DELETE FROM pc_stage WHERE pack_concept_code IN (SELECT concept_code FROM tomap_varicella);
 DELETE FROM ds_stage WHERE drug_concept_code IN (SELECT concept_code FROM tomap_varicella);
 
@@ -5719,15 +5760,44 @@ WHERE
 		);
 
 
---Some ingredients are missed from the internal_relationship_stage
---This issue should be addressed systematically
---Here we introduce the fix that would add missing links if any at the last step
-INSERT INTO internal_relationship_stage
-SELECT drug_concept_code, ingredient_concept_code
-FROM ds_stage ds
-WHERE NOT EXISTS (
-    SELECT concept_code_1, concept_code_2
-    FROM internal_relationship_stage irs
-    WHERE irs.concept_code_1 = ds.drug_concept_code
-    AND irs.concept_code_2 = ds.ingredient_concept_code
-    );
+--Change Protease to a correct code
+UPDATE internal_relationship_stage
+SET concept_code_2 = '387033008'
+WHERE concept_code_2 = '14677711000001106';
+
+UPDATE ds_stage
+SET ingredient_concept_code = '387033008'
+WHERE ingredient_concept_code = '14677711000001106';
+
+
+--Dropping codes that cause error from pc_stage table
+--Included in manual mapping
+DELETE FROM pc_stage
+WHERE pack_concept_code IN
+	(SELECT  p.pack_concept_code
+	FROM pc_stage p
+	LEFT JOIN ds_stage d ON d.drug_concept_code = p.drug_concept_code
+	WHERE d.drug_concept_code IS NULL);
+
+--Dropping codes that cause error from internal_relationship_stage table
+--Included in manual mapping
+--Manually checked: generic non-real drugs
+DELETE FROM internal_relationship_stage
+WHERE concept_code_1 IN
+	(SELECT concept_code_1
+	FROM internal_relationship_stage
+	WHERE concept_code_2 IS NULL);
+
+
+
+--Integration of manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--Remove relationships to attributes for concepts, processed manually
+DELETE FROM ds_stage WHERE drug_concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual);
+DELETE FROM internal_relationship_stage WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual);
+
+--At this point, everything should be prepared for BuildRxE run

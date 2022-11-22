@@ -20,7 +20,12 @@
 DROP TABLE IF EXISTS SOURCES.CIM10;
 CREATE TABLE SOURCES.CIM10
 (
-   xmlfield           XML,
+   code               TEXT,
+   type_mco           TEXT,
+   profil             TEXT,
+   type_psy           TEXT,
+   lib_court          TEXT,
+   lib_complet        TEXT,
    vocabulary_date    DATE,
    vocabulary_version VARCHAR (200)
 );

@@ -9,12 +9,12 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "*.xml" -d .
+    unzip -oqj "$2" "LIBCIM10MULTI.TXT" -d .
     
     #move result to original folder
     cd "$1"
     rm -f *.*
-    mv work/*.xml "cim10.xml"
+    mv work/*.TXT "cim10.txt"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

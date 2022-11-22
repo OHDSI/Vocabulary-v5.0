@@ -336,16 +336,8 @@ BEGIN
                 cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
             WHEN cVocabularyName = 'CIM10'
             THEN
-                SELECT TO_DATE (SUBSTRING (title, 'CIM-10 FR (\d{4}) à usage PMSI'), 'yyyy'),
-                cVocabularyName||' '||SUBSTRING (title, 'CIM-10 FR (\d{4}) à usage PMSI')
-                INTO cVocabDate, cVocabVer
-                FROM (
-                 SELECT 
-                    UNNEST(xpath ('/rss/channel/item/title/text()', cVocabHTML::xml))::varchar title,
-                    UNNEST(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
-                ) AS t
-                WHERE t.title LIKE '%CIM-10 FR % à usage PMSI%'
-                ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC LIMIT 1;
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?>Les fichiers à télécharger\.\.\.</td>.+"calendar" />(.+?)</td>'),'dd/mm/yyyy');
+                cVocabVer := 'CIM10 '||to_char(cVocabDate,'yyyy-mm-dd');
             WHEN cVocabularyName = 'OMOP INVEST DRUG'
             THEN
                 SELECT TO_DATE(SUBSTRING(i.types->>'text',$$<a href = '.+?-([\d-]+)\..+'><b>Download</b></a>$$), 'yyyy-mm-dd')

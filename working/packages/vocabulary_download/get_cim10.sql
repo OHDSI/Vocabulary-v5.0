@@ -60,21 +60,8 @@ BEGIN
     --get vocabulary_url
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     
-    --getting download link from RSS link
-    select http_content into pContent from py_http_get(url=>pVocabulary_url);
-    select link_str	into pVocabulary_url
-    from (
-     select 
-        unnest(xpath ('/rss/channel/item/title/text()', pContent::xml))::varchar title,
-        unnest(xpath ('/rss/channel/item/link/text()', pContent::xml)) ::varchar link_str,
-        unnest(xpath ('/rss/channel/item/pubdate/text()', pContent::xml)) ::varchar pubdate
-    ) as t
-    where t.title like '%CIM-10 FR % à usage PMSI%'
-    order by to_date (t.pubdate, 'dy dd mon yyyy hh24:mi:ss') desc limit 1;
-    
     --getting working dl link
-    select substring(http_content,'.+<a class="link-attachment-content" href="(.+?claml.+?\.zip)" target="_blank">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    if not coalesce(pDownloadURL,'-') ~* '^(https://www.atih.sante.fr/sites/default/files/public/content/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL is not valid'; end if;
+    select substring(pVocabulary_url,'^(https?://([^/]+))')||substring(http_content,'.+?>Les fichiers à télécharger\.\.\.</td>.+<a href="(.+?)" class="test">NomenclatureCim10.zip</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     
     --start downloading
     pVocabularyOperation:='GET_CIM10 downloading';

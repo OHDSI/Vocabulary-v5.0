@@ -86,6 +86,7 @@ OR resistance_mutation = 'Yes'))
             hgvsp              AS hgvs
     FROM tab
     WHERE LENGTH(hgvsp) > 0
+    AND LENGTH(hgvsp) < 255
 
     UNION
 
@@ -95,6 +96,7 @@ OR resistance_mutation = 'Yes'))
             hgvsc              AS hgvs
     FROM tab
     WHERE LENGTH(genomic_mutation_id) > 0
+    AND LENGTH(hgvsc) < 255
 
     UNION
 
@@ -103,7 +105,9 @@ OR resistance_mutation = 'Yes'))
     genomic_mutation_id AS concept_code,
     hgvsg              AS hgvs
     FROM tab
-    WHERE LENGTH(genomic_mutation_id) > 0));
+    WHERE LENGTH(genomic_mutation_id) > 0
+    AND LENGTH(hgvsg) < 255)
+    );
 
 --4. Fill the concept_stage
 INSERT INTO concept_stage (
@@ -135,9 +139,9 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT concept_code AS synonym_concept_code,
-	vocabulary_pack.CutConceptSynonymName(hgvs) AS synonym_name,
+	hgvs AS synonym_name,
 	vocabulary_id AS synonym_vocabulary_id,
-		33071 AS language_concept_id  -- Genetic nomenclature
+	33071 AS language_concept_id  -- Genetic nomenclature
 FROM cosmic_source;
 
 --6. Clean up

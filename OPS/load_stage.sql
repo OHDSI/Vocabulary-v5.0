@@ -158,7 +158,44 @@ select
 	4182504 --German
 from concept_stage_de
 ;
---6. Fill internal hierarchy in concept_relationship_stage; Mappings come from manual table
+
+-- 6. Insert the automated translation in concept_manual table (2022 temporary solution for translation of the new codes, missing from delta)
+DROP TABLE IF EXISTS ops_translation_auto;
+
+CREATE TABLE ops_translation_auto AS
+SELECT synonym_concept_code AS concept_code,
+    synonym_name AS german_term,
+	NULL::TEXT AS english_term
+FROM dev_ops.concept_synonym_stage
+WHERE language_concept_id = 4182504
+  and synonym_concept_code in (select concept_code from dev_ops.concept_stage where concept_name like 'Placeholder%')
+  ;
+
+  SELECT * FROM ops_translation_auto
+  ;
+
+DO $_$
+BEGIN
+	PERFORM devv5.GTranslate(
+		pInputTable    =>'ops_translation_auto',
+		pInputField    =>'german_term',
+		pOutputField   =>'english_term',
+		pDestLang      =>'en'
+	);
+END $_$
+  ;*/
+
+INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, invalid_reason)
+    (SELECT vocabulary_pack.CutConceptName(english_term) as concept_name,
+            'OPS' as vocabulary_id,
+            t.concept_code as concept_code,
+            'X' as invalid_reason
+     FROM dev_ops.ops_translation_auto t
+        WHERE concept_code
+                  NOT IN (SELECT concept_code FROM dev_ops.concept_manual)
+    )
+;
+--7. Fill internal hierarchy in concept_relationship_stage; Mappings come from manual table
 truncate concept_relationship_stage
 ;
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
@@ -175,7 +212,7 @@ join concept_stage a on
 	h.superclass = a.concept_code
 ;
 
--- 7. Sum lifespans of the duplicative concepts:
+-- 8. Sum lifespans of the duplicative concepts:
 drop table if exists duplicates
 ;
 create unlogged table duplicates as (
@@ -223,7 +260,7 @@ select concept_name,
     from duplicates
 ;
 
---8. Process manual tables
+--9. Process manual tables
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
@@ -235,7 +272,7 @@ BEGIN
 END $_$;
 
 ;
---9. Automated scripts
+--10. Automated scripts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();

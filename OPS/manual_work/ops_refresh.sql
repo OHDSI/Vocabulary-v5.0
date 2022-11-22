@@ -58,44 +58,7 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
     )
 ;
 
--- 7.3.5. Insert the automated translation in concept_manual table (2022 temporary solution for translation of the new codes, missing from delta)
-/*DROP TABLE IF EXISTS ops_translation_auto;
-
-CREATE TABLE ops_translation_auto AS
-SELECT synonym_concept_code AS concept_code,
-    synonym_name AS german_term,
-	NULL::TEXT AS english_term
-FROM dev_ops.concept_synonym_stage
-WHERE language_concept_id = 4182504
-  and synonym_concept_code in (select concept_code from dev_ops.concept_stage where concept_name like 'Placeholder%')
-  ;
-
-  SELECT * FROM ops_translation_auto
-  ;
-
-DO $_$
-BEGIN
-	PERFORM devv5.GTranslate(
-		pInputTable    =>'ops_translation_auto',
-		pInputField    =>'german_term',
-		pOutputField   =>'english_term',
-		pDestLang      =>'en'
-	);
-END $_$
-  ;*/
-
-INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, invalid_reason)
-    (SELECT vocabulary_pack.CutConceptName(english_term) as concept_name,
-            'OPS' as vocabulary_id,
-            t.concept_code as concept_code,
-            'X' as invalid_reason
-     FROM dev_ops.ops_translation_auto t
-        WHERE concept_code
-                  NOT IN (SELECT concept_code FROM dev_ops.concept_manual)
-    )
-;
-
---7.3.6. Create ops_mapped table and pre-populate it with the resulting manual table of the previous OPS refresh.
+--7.3.5. Create ops_mapped table and pre-populate it with the resulting manual table of the previous OPS refresh.
 --DROP TABLE dev_ops.ops_mapped;
 /*CREATE TABLE dev_ops.ops_mapped
 (
@@ -116,17 +79,17 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
     target_vocabulary_id varchar(50)
 );*/
 
---7.3.9 Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
+--7.3.6 Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
 --TRUNCATE TABLE dev_ops.ops_mapped;
 
---7.3.10 Deprecate relationships in CRM, updated in ops_mapped
+--7.3.7 Deprecate relationships in CRM, updated in ops_mapped
 UPDATE dev_ops.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE concept_code_1 IN ('8-713.0', '8-706', '5-543.40', '5-543.42')
 ;
 
---7.3.13 Insert new and corrected mappings into the concept_relationship_manual table.
+--7.3.8 Insert new and corrected mappings into the concept_relationship_manual table.
 WITH mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -159,7 +122,7 @@ INSERT INTO dev_ops.concept_relationship_manual(concept_code_1, concept_code_2, 
     )
 ;
 
---7.3.14 Activate mapping, that became valid again
+--7.3.9 Activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
     valid_end_date = to_date('20991231','yyyymmdd'),

@@ -86,7 +86,7 @@ OR resistance_mutation = 'Yes'))
             hgvsp              AS hgvs
     FROM tab
     WHERE LENGTH(hgvsp) > 0
-    AND LENGTH(hgvsp) < 255
+    AND LENGTH(hgvsp) <= 1000
 
     UNION
 
@@ -96,7 +96,7 @@ OR resistance_mutation = 'Yes'))
             hgvsc              AS hgvs
     FROM tab
     WHERE LENGTH(genomic_mutation_id) > 0
-    AND LENGTH(hgvsc) < 255
+  AND LENGTH(hgvsc) <= 1000
 
     UNION
 
@@ -106,7 +106,7 @@ OR resistance_mutation = 'Yes'))
     hgvsg              AS hgvs
     FROM tab
     WHERE LENGTH(genomic_mutation_id) > 0
-    AND LENGTH(hgvsg) < 255)
+    AND LENGTH(hgvsg) <= 1000)
     );
 
 --4. Fill the concept_stage

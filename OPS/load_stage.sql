@@ -95,6 +95,7 @@ where a.modifier != a.superclass
 and h.valid_start_date <= a.valid_end_date
 and a.valid_start_date <= h.valid_end_date
 ;
+
 --3. Use hierarchy_full to create a single table concept_stage_de with full German concept names
 drop table if exists concept_stage_de
 ;
@@ -129,8 +130,8 @@ select
 from code_full_term
 where superclass like '%...%' -- down to lowest parental level for full name
 ;
+
 --4. Rely on concept_manual and concept_relationship_manual to retrieve correct translated names
-;
 truncate concept_stage
 ;
 insert into concept_stage (concept_name,domain_id,vocabulary_id,concept_class_id,concept_code,valid_start_date,valid_end_date,invalid_reason)
@@ -147,6 +148,7 @@ select distinct
 	end as invalid_reason
 from concept_stage_de
 ;
+
 --5. Fill concept_synonym_stage with original full German names
 truncate concept_synonym_stage
 ;
@@ -159,8 +161,8 @@ select
 from concept_stage_de
 ;
 
--- 6. Insert the automated translation in concept_manual table (2022 temporary solution for translation of the new codes, missing from delta)
-DROP TABLE IF EXISTS ops_translation_auto;
+-- 6. Insert the automated translation in concept_manual table:
+/*DROP TABLE IF EXISTS ops_translation_auto;
 
 CREATE TABLE ops_translation_auto AS
 SELECT synonym_concept_code AS concept_code,
@@ -169,9 +171,6 @@ SELECT synonym_concept_code AS concept_code,
 FROM dev_ops.concept_synonym_stage
 WHERE language_concept_id = 4182504
   and synonym_concept_code in (select concept_code from dev_ops.concept_stage where concept_name like 'Placeholder%')
-  ;
-
-  SELECT * FROM ops_translation_auto
   ;
 
 DO $_$
@@ -183,7 +182,7 @@ BEGIN
 		pDestLang      =>'en'
 	);
 END $_$
-  ;*/
+  ;
 
 INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, invalid_reason)
     (SELECT vocabulary_pack.CutConceptName(english_term) as concept_name,
@@ -195,6 +194,8 @@ INSERT INTO dev_ops.concept_manual (concept_name, vocabulary_id, concept_code, i
                   NOT IN (SELECT concept_code FROM dev_ops.concept_manual)
     )
 ;
+*/
+
 --7. Fill internal hierarchy in concept_relationship_stage; Mappings come from manual table
 truncate concept_relationship_stage
 ;

@@ -16,8 +16,10 @@
 * Authors: Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
-
+DROP TABLE refresh_lookup_done;
+TRUNCATE TABLE refresh_lookup_done
 CREATE TABLE refresh_lookup_done (
+id serial primary key ,
 icd_code VARCHAR,
 icd_name VARCHAR,
 repl_by_relationship VARCHAR,
@@ -25,4 +27,5 @@ repl_by_id INT,
 repl_by_code VARCHAR,
 repl_by_name VARCHAR,
 repl_by_domain VARCHAR,
-repl_by_vocabulary VARCHAR);
+repl_by_vocabulary VARCHAR
+                                 );

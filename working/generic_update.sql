@@ -199,7 +199,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'NCCD' THEN 0
 		WHEN c.vocabulary_id = 'CIViC' THEN 1
 		WHEN c.vocabulary_id = 'CGI' THEN 1
-	    WHEN c.vocabulary_id = 'COSMIC' THEN 1
+    WHEN c.vocabulary_id = 'COSMIC' THEN 1
 		WHEN c.vocabulary_id = 'ClinVar' THEN 0
 		WHEN c.vocabulary_id = 'JAX' THEN 0
 		WHEN c.vocabulary_id = 'NCIt' THEN 0

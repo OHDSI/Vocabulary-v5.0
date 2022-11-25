@@ -79,6 +79,8 @@ SELECT vocabulary_pack.CutConceptName(str),
 			THEN 'Clinical Dose Group'
 		WHEN 'SBDG'
 			THEN 'Branded Dose Group'
+		WHEN 'MIN'
+			THEN 'Multiple Ingredients'
 		END,
 	-- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
 	CASE tty
@@ -93,6 +95,8 @@ SELECT vocabulary_pack.CutConceptName(str),
 		WHEN 'DF'
 			THEN NULL
 		WHEN 'BN'
+			THEN NULL
+		WHEN 'MIN'
 			THEN NULL
 		ELSE 'S'
 		END,
@@ -174,7 +178,8 @@ WHERE sab = 'RXNORM'
 		'PIN',
 		'DFG',
 		'SCDG',
-		'SBDG'
+		'SBDG',
+		'MIN'
 		);
 
 -- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
@@ -282,20 +287,24 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT ON (rxcui) vocabulary_pack.CutConceptName(str) AS concept_name,
+SELECT DISTINCT ON (rxa.rxcui) vocabulary_pack.CutConceptName(rxa.str) AS concept_name,
 	'RxNorm' AS vocabulary_id,
 	'Drug' AS domain_id,
 	'Multiple Ingredients' AS concept_class_id,
 	NULL AS standard_concept,
-	rxcui AS concept_code,
-	TO_TIMESTAMP(created_timestamp, 'mm/dd/yyyy hh:mm:ss pm')::DATE AS valid_start_date,
+	rxa.rxcui AS concept_code,
+	TO_TIMESTAMP(rxa.created_timestamp, 'mm/dd/yyyy hh:mm:ss pm')::DATE AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.rxnatomarchive
-WHERE tty = 'MIN'
-	AND sab = 'RXNORM'
-ORDER BY rxcui,
-	TO_TIMESTAMP(created_timestamp, 'mm/dd/yyyy hh:mm:ss pm');
+FROM sources.rxnatomarchive rxa
+LEFT JOIN sources.rxnconso rx ON rx.rxcui = rxa.rxcui
+	AND rx.sab = 'RXNORM'
+	AND rx.tty = 'MIN'
+WHERE rx.rxcui IS NULL
+	AND rxa.tty = 'MIN'
+	AND rxa.sab = 'RXNORM'
+ORDER BY rxa.rxcui,
+	TO_TIMESTAMP(rxa.created_timestamp, 'mm/dd/yyyy hh:mm:ss pm');
 
 --4. Add synonyms - for all classes except the packs (they use code as concept_code)
 INSERT INTO concept_synonym_stage (

@@ -66,7 +66,7 @@ BEGIN
   if pJumpToOperation='ALL' then
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=5;
     
     --getting raw download link from page
     select s0.cvx_link into pDownloadURL from (

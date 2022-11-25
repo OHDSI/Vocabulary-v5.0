@@ -17,6 +17,7 @@ where old.domain_id != new.domain_id
 SELECT c1.concept_code,
        c1.concept_name,
        c1.concept_class_id,
+       c1.vocabulary_id,
        c1.standard_concept,
        c1.domain_id as new_domain
 FROM concept c1
@@ -162,9 +163,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -180,9 +181,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from devv5.concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2
@@ -216,9 +217,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -233,9 +234,9 @@ select a.concept_id,
        a.standard_concept,
        a.concept_code,
        a.concept_name,
-       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
-       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
-       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from devv5. concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2
@@ -371,6 +372,7 @@ covid_exclusion as (SELECT
 select distinct c.vocabulary_id,
                 c.concept_name,
                 c.concept_class_id,
+                cr.relationship_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.concept_name END as target_concept_name,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
@@ -378,7 +380,7 @@ select distinct c.vocabulary_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.vocabulary_id END as target_vocabulary_id
 from concept c
-left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id IN ('Maps to', 'Maps to value') and cr.invalid_reason is null
 left join concept b on b.concept_id = cr.concept_id_2
 where c.vocabulary_id IN (:your_vocabs)
 
@@ -388,10 +390,37 @@ where c.vocabulary_id IN (:your_vocabs)
 ;
 
 --03. Check we don't add duplicative concepts
-SELECT concept_name
+SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END as when_added,
+       c.concept_name,
+       string_agg (DISTINCT c2.concept_id::text, '-') as concept_id
 FROM concept c
+LEFT JOIN devv5.concept c2
+    ON c.concept_id = c2.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
     AND c.invalid_reason IS NULL
-GROUP BY concept_name
+GROUP BY c.concept_name
 HAVING COUNT (*) >1
+ORDER BY when_added, concept_name
+;
+
+--04. Concepts have replacement link, but miss "Maps to" link
+SELECT DISTINCT cr.concept_id_1, cr.relationship_id, cc.standard_concept
+FROM concept_relationship cr
+JOIN concept c
+    ON c.concept_id = cr.concept_id_1
+LEFT JOIN concept cc
+    ON cc.concept_id = cr.concept_id_2
+WHERE c.vocabulary_id IN (:your_vocabs)
+    AND EXISTS (SELECT concept_id_1
+                FROM concept_relationship cr1
+                WHERE cr1.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+                    AND cr1.invalid_reason IS NULL
+                    AND cr1.concept_id_1 = cr.concept_id_1)
+    AND NOT EXISTS (SELECT concept_id_1
+                    FROM concept_relationship cr2
+                    WHERE cr2.relationship_id IN ('Maps to')
+                        AND cr2.invalid_reason IS NULL
+                        AND cr2.concept_id_1 = cr.concept_id_1)
+    AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;

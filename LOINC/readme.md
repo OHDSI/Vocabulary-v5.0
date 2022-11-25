@@ -14,7 +14,7 @@
 \LoincTable\Loinc.csv and rename to loinc.csv  
 \LoincTable\Mapto.csv and rename to mapto.csv  
 \LoincTable\SourceOrganization.csv and rename to sourceorganization.csv  
-\AccessoryFiles\MultiAxialHierarchy\MultiAxialHierarchy.csv and rename to multiaxialhierarchy.csv  
+\AccessoryFiles\ComponentHierarchyBySystem\ComponentHierarchyBySystem.csv and rename to componenthierarchybysystem.csv  
 \AccessoryFiles\PanelsAndForms\PanelsAndForms.csv and rename to panelsandforms.csv  
 \AccessoryFiles\PanelsAndForms\AnswerList.csv and rename to answerlist.csv  
 \AccessoryFiles\PanelsAndForms\LoincAnswerListLink.csv and rename to loincanswerlistlink.csv  
@@ -40,7 +40,7 @@ SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2
 ##### Filling stage and basic tables
 11. Run FULL FastRecreate:
 ```sql
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true,
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
                                 include_deprecated_rels=> true, include_synonyms=> true);
 ```
 12. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/load_stage.sql).

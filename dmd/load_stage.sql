@@ -1,4 +1,3 @@
---TODO: Assign names and numbers for steps
 --TODO: improve comments coverage
 --TODO: Check all the commented rows
 --TODO: Unite all manual mapping tables in one table
@@ -4111,7 +4110,6 @@ WHERE
 			WHERE concept_id IS NOT NULL
 		);
 
-SELECT * FROM tomap_ingredients;
 
 /*
 DROP TABLE IF EXISTS tomap_units_man
@@ -5533,24 +5531,52 @@ CREATE TABLE relationship_to_concept_attributes AS
 
 	  --For refreshes to avoid processing the same codes twice
 	AND (dcs.concept_name, dcs.concept_class_id) NOT IN (SELECT concept_code, concept_class_id FROM relationship_to_concept_attributes)
-	  --No drugs with these attributes
-	AND dcs.concept_code NOT IN (SELECT concept_code_2 FROM internal_relationship_stage)
+	  --There are drugs with these attributes
+	AND dcs.concept_code IN (SELECT concept_code_2 FROM internal_relationship_stage)
 
 ORDER BY dcs.concept_class_id)
 ;
 
+ALTER TABLE relationship_to_concept_attributes
+ALTER COLUMN target_standard_concept TYPE varchar(50);
+
+ALTER TABLE relationship_to_concept_attributes
+ALTER COLUMN target_invalid_reason TYPE varchar(50);
+
 --Manually map missing concepts and then reupload the table
---TRUNCATE relationship_to_concept_attributes
+--TRUNCATE relationship_to_concept_attributes;
+
+--Clean relationship_to_concept from attributes, manually mapped in relationship_to_concept_attributes
+--TODO: Check for potential code reuse and naming issues
+DELETE FROM relationship_to_concept
+--SELECT * FROM relationship_to_concept
+WHERE concept_code_1 IN (SELECT concept_code FROM relationship_to_concept_attributes)
+AND EXISTS(SELECT
+           FROM drug_concept_stage dcs
+           WHERE dcs.concept_class_id IN (
+                                          'Ingredient',
+                                          'Brand Name',
+                                          'Dose Form',
+                                          'Supplier'
+               )
+    AND dcs.concept_code = relationship_to_concept.concept_code_1
+    )
+;
 
 --Insertion of manually mapped attributes into relationship_to_concept
+--TODO: Fix the duplicates in names with different concept_codes
 INSERT INTO relationship_to_concept
 (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
-SELECT dcs.concept_code, dcs.vocabulary_id, rtca.target_concept_id, rtca.precedence, NULL --Change to conversion factor in the rtca if needed
+SELECT DISTINCT dcs.concept_code, dcs.vocabulary_id, rtca.target_concept_id, rtca.precedence::int, NULL::numeric --Change to conversion factor in the rtca if needed
 FROM relationship_to_concept_attributes rtca
 JOIN drug_concept_stage dcs
     --Concept code changes every time with sequence recreation, therefore use combination of name and concept class id instead
+    --Works even if there are duplicate names with different concept codes, if mapping is identical
     ON rtca.concept_class_id = dcs.concept_class_id AND rtca.concept_name = dcs.concept_name
-WHERE rtca.target_concept_id != 0 AND rtca.target_concept_id IS NOT NULL;
+WHERE rtca.target_concept_id != 0 AND rtca.target_concept_id IS NOT NULL
+  --Double check
+AND rtca.concept_code NOT IN (SELECT concept_code_1 FROM relationship_to_concept)
+;
 
 
 --Deduplication of relationship_to_concept
@@ -5789,6 +5815,35 @@ WHERE concept_code_1 IN
 	WHERE concept_code_2 IS NULL);
 
 
+--Manual deletion of incorrect mappings
+--TODO: Address them before
+DELETE FROM relationship_to_concept WHERE concept_code_1 IN
+(
+'421982008',
+'418373003',
+'398918002',
+'412556009',
+'404830004',
+'418084002',
+'418645008',
+'354276001'
+    );
+
+--Remove relationships to attributes for concepts, processed manually
+DELETE FROM ds_stage WHERE drug_concept_code IN (SELECT source_code FROM dmd_mapped);
+DELETE FROM internal_relationship_stage WHERE concept_code_1 IN (SELECT source_code FROM dmd_mapped);
+DELETE FROM pc_stage WHERE pack_concept_code IN (SELECT source_code FROM dmd_mapped);
+
+
+--Changing column types as they should be for BuildRxE
+ALTER TABLE relationship_to_concept ALTER COLUMN conversion_factor TYPE numeric;
+ALTER TABLE relationship_to_concept ALTER COLUMN precedence TYPE smallint;
+ALTER TABLE pc_stage ALTER COLUMN amount TYPE smallint;
+ALTER TABLE pc_stage ALTER COLUMN box_size TYPE smallint;
+ALTER TABLE ds_stage ALTER COLUMN amount_value TYPE numeric;
+ALTER TABLE ds_stage ALTER COLUMN numerator_value TYPE numeric;
+ALTER TABLE ds_stage ALTER COLUMN denominator_value TYPE numeric;
+ALTER TABLE ds_stage ALTER COLUMN box_size TYPE smallint;
 
 --Integration of manual mappings
 DO $_$
@@ -5796,8 +5851,5 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---Remove relationships to attributes for concepts, processed manually
-DELETE FROM ds_stage WHERE drug_concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual);
-DELETE FROM internal_relationship_stage WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual);
 
 --At this point, everything should be prepared for BuildRxE run

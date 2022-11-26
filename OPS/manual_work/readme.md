@@ -38,22 +38,20 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 7.3.4. Insert the manual translation into the concept_manual table.
 
-7.3.5. Insert the automated translation of the concepts in concept_manual table (2022 temporary solution for translation of the new codes, missing from delta)
+7.3.5. Create OPS_mapped table in the spreadsheet editor pre-populate it with the resulting manual table of the previous OPS refresh.
 
-7.3.6. Create OPS_mapped table in the spreadsheet editor pre-populate it with the resulting manual table of the previous OPS refresh.
+7.3.6. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
 
-7.3.7. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+7.3.7. Select concepts to map and add them to the manual file in the spreadsheet editor.
 
-7.3.8. Select concepts to map and add them to the manual file in the spreadsheet editor.
+7.3.8. Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
 
-7.3.9. Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
+7.3.9. Perform any mapping checks you have set.
 
-7.3.10. Perform any mapping checks you have set.
+7.3.10. Iteratively repeat steps 8.2.3-8.2.6 if found any issues.
 
-7.3.11. Iteratively repeat steps 8.2.3-8.2.6 if found any issues.
+7.3.11. Deprecate all mappings that were updated in manual mapping table.
 
-7.3.12. Deprecate all mappings that were updated in manual mapping table.
+7.3.12. Insert new and corrected mappings into the concept_relationship_manual table.
 
-7.3.13. Insert new and corrected mappings into the concept_relationship_manual table.
-
-7.3.14 Activate mapping, that became valid again.
+7.3.13 Activate mapping, that became valid again.

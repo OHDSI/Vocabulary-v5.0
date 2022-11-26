@@ -15,7 +15,7 @@ $body$;
 --restore concept_relationship_manual table (!!!run it only if something went wrong!!!)
 /*TRUNCATE TABLE dev_ops.concept_relationship_manual;
 INSERT INTO dev_ops.concept_relationship_manual
-SELECT * FROM dev_ops.concept_relationship_manual_backup_2022_09_09;*/
+SELECT * FROM dev_ops.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -33,7 +33,7 @@ $body$;
 --restore concept_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_ops.concept_manual;
 INSERT INTO dev_ops.concept_manual
-SELECT * FROM dev_ops.concept_manual_backup_2022_11_22;*/
+SELECT * FROM dev_ops.concept_manual_backup_YYYY_MM_DD;*/
 
 -- 7.3.2. Create table ops_delta_translated
 --DROP TABLE dev_ops.ops_delta_translated;

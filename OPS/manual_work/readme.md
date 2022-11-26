@@ -46,7 +46,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 7.3.8. Select concepts to map and add them to the manual file in the spreadsheet editor.
 
-7.3.9. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
+7.3.9. Truncate the ops_mapped table. Save the spreadsheet as the ops_mapped table and upload it into the working schema.
 
 7.3.10. Perform any mapping checks you have set.
 

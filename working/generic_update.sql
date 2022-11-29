@@ -76,25 +76,31 @@ BEGIN
 	UPDATE concept_stage
 	SET concept_name = TRIM(TRAILING '\' FROM concept_name)
 	WHERE concept_name LIKE '%\\';
+
 	--7. Clearing the synonym_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_synonym_stage
 	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
 	WHERE synonym_name ~ '[[:cntrl:]]';
+
 	UPDATE concept_synonym_stage
 	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
 	WHERE synonym_name ~ ' {2,}';
+
 	--Remove long dashes
 	UPDATE concept_synonym_stage
 	SET synonym_name = REPLACE(synonym_name, '–', '-')
 	WHERE synonym_name LIKE '%–%';
+
 	--Remove trailing escape character (\)
 	UPDATE concept_synonym_stage
 	SET synonym_name = TRIM(TRAILING '\' FROM synonym_name)
 	WHERE synonym_name LIKE '%\\';
+
 	/***************************
 	* Update the concept table *
 	****************************/
+
 	--8. Update existing concept details from concept_stage.
 	--All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) are updated
 	UPDATE concept c
@@ -111,7 +117,7 @@ BEGIN
 			cs.domain_id,
 			cs.concept_class_id,
 			cs.standard_concept,
-			CASE
+			CASE 
 				WHEN cs.valid_start_date <> v.latest_update --if we have a real date in the concept_stage, use it. If it is only the release date, use the existing
 					THEN cs.valid_start_date
 				ELSE c.valid_start_date
@@ -123,6 +129,7 @@ BEGIN
 	JOIN vocabulary v USING (vocabulary_id)
 	WHERE c.* IS DISTINCT FROM cs.*
 		AND c.concept_id = cs.concept_id;
+
 	--9. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 	--If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
@@ -199,7 +206,6 @@ BEGIN
 		WHEN c.vocabulary_id = 'NCCD' THEN 0
 		WHEN c.vocabulary_id = 'CIViC' THEN 1
 		WHEN c.vocabulary_id = 'CGI' THEN 1
-    WHEN c.vocabulary_id = 'COSMIC' THEN 1
 		WHEN c.vocabulary_id = 'ClinVar' THEN 0
 		WHEN c.vocabulary_id = 'JAX' THEN 0
 		WHEN c.vocabulary_id = 'NCIt' THEN 0
@@ -209,9 +215,11 @@ BEGIN
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
 		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		WHEN c.vocabulary_id = 'OMOP Invest Drug' THEN 1
+		WHEN c.vocabulary_id = 'COSMIC' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
+
 	--9.2. Update the concept for 'special' vocabs
 	UPDATE concept c SET
 		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
@@ -219,6 +227,7 @@ BEGIN
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 	AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') -- not already deprecated
 	AND c.vocabulary_id IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
+
 	--10. Add new concepts from concept_stage
 	--Create sequence after last valid one
 	DO $$
@@ -230,7 +239,7 @@ BEGIN
 		SELECT concept_id + 1 INTO ex FROM (
 			SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
 			FROM (
-				SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM
+				SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM 
 				(
 					SELECT concept_id FROM concept
 					UNION ALL
@@ -390,9 +399,9 @@ BEGIN
 				vocabulary_id_2,
 				relationship_id
 			FROM concept_relationship_stage
-
+			
 			EXCEPT
-
+			
 			(
 				SELECT concept_code_1,
 					concept_code_2,
@@ -400,9 +409,9 @@ BEGIN
 					vocabulary_id_2,
 					relationship_id
 				FROM concept_relationship_manual
-
+				
 				UNION ALL
-
+				
 				--Add reverse mappings for exclude
 				SELECT concept_code_2,
 					concept_code_1,
@@ -428,9 +437,9 @@ BEGIN
 			AND s0.relationship_id NOT IN (
 				SELECT relationship_id
 				FROM relationships
-
+				
 				UNION ALL
-
+				
 				SELECT reverse_relationship_id
 				FROM relationships
 				JOIN relationship USING (relationship_id)
@@ -547,7 +556,7 @@ BEGIN
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
 		AND (
-			crs.vocabulary_id_1=c1.vocabulary_id
+			crs.vocabulary_id_1=c1.vocabulary_id 
 			OR (/*AVOF-459*/
 				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
@@ -637,7 +646,7 @@ BEGIN
 
 	--21. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S'
 	WITH to_be_upserted AS (
-		SELECT c.concept_id, v.latest_update, lat.relationship_id
+		SELECT c.concept_id, v.latest_update, lat.relationship_id 
 		FROM concept c,	vocabulary v, LATERAL (SELECT CASE WHEN GENERATE_SERIES=1 then 'Maps to' ELSE 'Mapped from' END AS relationship_id FROM GENERATE_SERIES(1,2)) lat
 		WHERE v.vocabulary_id = c.vocabulary_id AND v.latest_update IS NOT NULL AND c.standard_concept = 'S' AND invalid_reason IS NULL
 	),
@@ -650,13 +659,13 @@ BEGIN
 		RETURNING cr.*
 	)
 		INSERT INTO concept_relationship
-		SELECT tpu.concept_id, tpu.concept_id, tpu.relationship_id, tpu.latest_update, TO_DATE ('20991231', 'yyyymmdd'), NULL
-		FROM to_be_upserted tpu
-		WHERE (tpu.concept_id, tpu.concept_id, tpu.relationship_id)
+		SELECT tpu.concept_id, tpu.concept_id, tpu.relationship_id, tpu.latest_update, TO_DATE ('20991231', 'yyyymmdd'), NULL 
+		FROM to_be_upserted tpu 
+		WHERE (tpu.concept_id, tpu.concept_id, tpu.relationship_id) 
 		NOT IN (
 			SELECT up.concept_id_1, up.concept_id_2, up.relationship_id FROM to_be_updated up
 			UNION ALL
-			SELECT cr_int.concept_id_1, cr_int.concept_id_2, cr_int.relationship_id FROM concept_relationship cr_int
+			SELECT cr_int.concept_id_1, cr_int.concept_id_2, cr_int.relationship_id FROM concept_relationship cr_int 
 			WHERE cr_int.concept_id_1=cr_int.concept_id_2 AND cr_int.relationship_id IN ('Maps to','Mapped from')
 		);
 
@@ -701,13 +710,13 @@ BEGIN
 	--23. Post-processing (some concepts might be deprecated when they missed in source, so load_stage doesn't know about them and DO NOT deprecate relationships proper)
 	--Deprecate replacement records if target concept was deprecated
 	UPDATE concept_relationship cr
-		SET invalid_reason = 'D',
+		SET invalid_reason = 'D', 
 		valid_end_date = (SELECT MAX (v.latest_update) FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id WHERE c.concept_id IN (cr.concept_id_1, cr.concept_id_2))-1
 	FROM (
 			WITH RECURSIVE hierarchy_concepts (concept_id_1, concept_id_2, relationship_id, full_path) AS
 			(
 				SELECT concept_id_1, concept_id_2, relationship_id, ARRAY [concept_id_1] AS full_path
-				FROM upgraded_concepts
+				FROM upgraded_concepts 
 				WHERE concept_id_2 IN (SELECT concept_id_2 FROM upgraded_concepts WHERE invalid_reason = 'D')
 				UNION ALL
 				SELECT c.concept_id_1, c.concept_id_2, c.relationship_id, hc.full_path || c.concept_id_1 AS full_path
@@ -1068,9 +1077,9 @@ BEGIN
 			GENERATE_SERIES(1, ARRAY_UPPER(a, 1)) AS rownum
 		FROM (
 			SELECT ARRAY(SELECT vocabulary_id FROM vocabulary
-
+				
 				EXCEPT
-
+					
 					SELECT vocabulary_id_v5 FROM vocabulary_conversion) AS a
 			) AS s1
 		) AS s2;

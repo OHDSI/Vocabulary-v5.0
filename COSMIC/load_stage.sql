@@ -38,76 +38,92 @@ TRUNCATE TABLE drug_strength_stage;
 --3. Create temporary table
 DROP TABLE IF EXISTS cosmic_source;
 CREATE UNLOGGED TABLE cosmic_source AS
-    (WITH tab AS
-        (SELECT DISTINCT gene_name,
-                        genomic_mutation_id,
-                        resistance_mutation,
-                        tier,
-                        mutation_description,
-                        mutation_cds,
-                        mutation_aa,
-                        hgvsp,
-                        hgvsc,
-                        hgvsg
-        FROM cosmicmutantexportcensus
-        WHERE genomic_mutation_id NOT IN
-            (SELECT genomic_mutation_id FROM
-                (WITH tab AS (SELECT DISTINCT gene_name,
-                             accession_number,
-                             gene_cds_length,
-                             hgnc_id,
-                             genomic_mutation_id,
-                             mutation_id,
-                             mutation_cds,
-                             mutation_aa,
-                             mutation_description,
-                             loh,
-                             grch,
-                             mutation_genome_position,
-                             mutation_strand,
-                             resistance_mutation,
-                             tier,
-                             hgvsp,
-                             hgvsc,
-                             hgvsg
-                            FROM cosmicmutantexportcensus
-                            WHERE LENGTH(genomic_mutation_id)<>0)
-SELECT genomic_mutation_id FROM tab
-GROUP BY 1
-HAVING COUNT(genomic_mutation_id) > 1
-                                   )c
-    )
-AND LENGTH(genomic_mutation_id) <> 0
-AND (mutation_description <> 'Unknown'
-OR resistance_mutation = 'Yes'))
-    (SELECT concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')') AS concept_name,
-            'COSMIC'           AS vocabulary_id,
-            genomic_mutation_id AS concept_code,
-            hgvsp              AS hgvs
-    FROM tab
-    WHERE LENGTH(hgvsp) > 0
-    AND LENGTH(hgvsp) <= 1000
+	WITH cosmic_concepts AS (
+			SELECT DISTINCT c.gene_name,
+				c.genomic_mutation_id,
+				c.mutation_cds,
+				c.mutation_aa,
+				c.hgvsp,
+				c.hgvsc,
+				c.hgvsg
+			FROM dev_cosmic.cosmicmutantexportcensus c
+			WHERE c.genomic_mutation_id NOT IN (
+					SELECT s0.genomic_mutation_id
+					FROM (
+						SELECT DISTINCT c_int.gene_name,
+							c_int.accession_number,
+							c_int.gene_cds_length,
+							c_int.hgnc_id,
+							c_int.genomic_mutation_id,
+							c_int.mutation_id,
+							c_int.mutation_cds,
+							c_int.mutation_aa,
+							c_int.mutation_description,
+							c_int.loh,
+							c_int.grch,
+							c_int.mutation_genome_position,
+							c_int.mutation_strand,
+							c_int.resistance_mutation,
+							c_int.tier,
+							c_int.hgvsp,
+							c_int.hgvsc,
+							c_int.hgvsg
+						FROM dev_cosmic.cosmicmutantexportcensus c_int
+						WHERE c_int.genomic_mutation_id <> ''
+						) s0
+					GROUP BY s0.genomic_mutation_id
+					HAVING COUNT(s0.genomic_mutation_id) > 1
+					)
+				AND c.genomic_mutation_id <> ''
+				AND (
+					c.mutation_description <> 'Unknown'
+					OR c.resistance_mutation = 'Yes'
+					)
+			)
 
-    UNION
+SELECT CONCAT (
+		gene_name,
+		':',
+		mutation_aa,
+		' (',
+		mutation_cds,
+		')'
+		) AS concept_name,
+	genomic_mutation_id AS concept_code,
+	hgvsp AS hgvs
+FROM cosmic_concepts
+WHERE hgvsp <> ''
+	AND LENGTH(hgvsp) <= 1000
 
-    SELECT concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')') AS concept_name,
-           'COSMIC'           AS vocabulary_id,
-            genomic_mutation_id AS concept_code,
-            hgvsc              AS hgvs
-    FROM tab
-    WHERE LENGTH(genomic_mutation_id) > 0
-  AND LENGTH(hgvsc) <= 1000
+UNION ALL
 
-    UNION
+SELECT CONCAT (
+		gene_name,
+		':',
+		mutation_aa,
+		' (',
+		mutation_cds,
+		')'
+		) AS concept_name,
+	genomic_mutation_id AS concept_code,
+	hgvsc AS hgvs
+FROM cosmic_concepts
+WHERE LENGTH(hgvsc) <= 1000
 
-    SELECT concat(gene_name, ':', mutation_aa, ' (', mutation_cds, ')') AS concept_name,
-    'COSMIC'           AS vocabulary_id,
-    genomic_mutation_id AS concept_code,
-    hgvsg              AS hgvs
-    FROM tab
-    WHERE LENGTH(genomic_mutation_id) > 0
-    AND LENGTH(hgvsg) <= 1000)
-    );
+UNION ALL
+
+SELECT CONCAT (
+		gene_name,
+		':',
+		mutation_aa,
+		' (',
+		mutation_cds,
+		')'
+		) AS concept_name,
+	genomic_mutation_id AS concept_code,
+	hgvsg AS hgvs
+FROM cosmic_concepts
+WHERE LENGTH(hgvsg) <= 1000;
 
 --4. Fill the concept_stage
 INSERT INTO concept_stage (
@@ -122,7 +138,7 @@ INSERT INTO concept_stage (
 	)
 SELECT DISTINCT vocabulary_pack.CutConceptName(c.concept_name) AS concept_name,
 	'Measurement' AS domain_id,
-	c.vocabulary_id AS vocabulary_id,
+	'COSMIC' AS vocabulary_id,
 	'Variant' AS concept_class_id,
 	NULL AS standard_concept,
 	c.concept_code AS concept_code,
@@ -140,8 +156,8 @@ INSERT INTO concept_synonym_stage (
 	)
 SELECT concept_code AS synonym_concept_code,
 	hgvs AS synonym_name,
-	vocabulary_id AS synonym_vocabulary_id,
-	33071 AS language_concept_id  -- Genetic nomenclature
+	'COSMIC' AS synonym_vocabulary_id,
+	33071 AS language_concept_id -- Genetic nomenclature
 FROM cosmic_source;
 
 --6. Clean up

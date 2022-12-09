@@ -2841,6 +2841,7 @@ FROM ings i
 JOIN concept c on
 	c.concept_id = 	cast (ingredient_id as int4);
 
+--May be no ingredients
 INSERT INTO drug_concept_stage
 SELECT
 	NULL as concept_id,
@@ -2854,7 +2855,8 @@ SELECT
 	TO_DATE('20991231', 'yyyymmdd'),
 	NULL as invalid_reason,
 	'Ingredient'
-FROM ds_new_ingreds;
+FROM ds_new_ingreds
+;
 
 --Filling in the ds_prototype table from the manual table
 INSERT INTO ds_prototype (drug_concept_code, drug_name, ingredient_concept_code, ingredient_name, amount_value,
@@ -5547,7 +5549,7 @@ ALTER COLUMN target_invalid_reason TYPE varchar(50);
 --TRUNCATE relationship_to_concept_attributes;
 
 --Clean relationship_to_concept from attributes, manually mapped in relationship_to_concept_attributes
---TODO: Check for potential code reuse and naming issues
+--TODO: Change to delete according to concept_name
 DELETE FROM relationship_to_concept
 --SELECT * FROM relationship_to_concept
 WHERE concept_code_1 IN (SELECT concept_code FROM relationship_to_concept_attributes)

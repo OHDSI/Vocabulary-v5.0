@@ -265,7 +265,9 @@ BEGIN
 END;
 $BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
 
-CREATE type qa_tests.type_get_checks AS (
+CREATE OR REPLACE FUNCTION qa_tests.get_checks (checkid IN INT DEFAULT NULL)
+RETURNS TABLE
+(
 	check_id int4,
 	check_name VARCHAR(1000),
 	concept_id_1 int4,
@@ -274,10 +276,7 @@ CREATE type qa_tests.type_get_checks AS (
 	valid_start_date DATE,
 	valid_end_date DATE,
 	invalid_reason VARCHAR(1)
-	);
-
-CREATE OR REPLACE FUNCTION qa_tests.get_checks (checkid IN INT DEFAULT NULL) RETURNS 
-SETOF qa_tests.type_get_checks
+)
 AS $BODY$
 	--relationships cycle
 	SELECT 1 check_id,
@@ -676,8 +675,7 @@ AS $BODY$
 		AND COALESCE(checkid, 13) = 13;
 
 $BODY$
-language 'sql'
-STABLE PARALLEL RESTRICTED SECURITY INVOKER;
+LANGUAGE 'sql' STABLE PARALLEL RESTRICTED SECURITY INVOKER;
 
 CREATE OR REPLACE FUNCTION qa_tests.check_stage_tables ()
 RETURNS TABLE (

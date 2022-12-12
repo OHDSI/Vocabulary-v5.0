@@ -8,14 +8,13 @@ or: select * from qa_tests.get_newly_concepts_standard_concept_status(pCompareWi
 will show the difference between current schema and devv5 (you can use any schema name)
 */
 
-CREATE TYPE qa_tests.type_get_newly_concepts_sc_status AS (
+CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts_standard_concept_status (pCompareWith VARCHAR DEFAULT 'prodv5')
+RETURNS TABLE
+(
 	vocabulary_id VARCHAR(20),
 	new_standard_concept TEXT,
 	cnt BIGINT
-	);
-
-CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts_standard_concept_status (pCompareWith VARCHAR DEFAULT 'prodv5')
-RETURNS SETOF qa_tests.type_get_newly_concepts_sc_status
+)
 AS $BODY$
 BEGIN
 	RETURN QUERY

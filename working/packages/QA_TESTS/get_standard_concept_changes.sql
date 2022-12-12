@@ -8,15 +8,14 @@ or: select * from qa_tests.get_standard_concept_changes(pCompareWith=>'devv5');
 will show the difference between current schema and devv5 (you can use any schema name)
 */
 
-CREATE TYPE qa_tests.type_get_standard_concept_changes AS (
+CREATE OR REPLACE FUNCTION qa_tests.get_standard_concept_changes (pCompareWith VARCHAR DEFAULT 'prodv5')
+RETURNS TABLE
+(
 	vocabulary_id VARCHAR(20),
 	old_standard_concept TEXT,
 	new_standard_concept TEXT,
 	cnt BIGINT
-	);
-
-CREATE OR REPLACE FUNCTION qa_tests.get_standard_concept_changes (pCompareWith VARCHAR DEFAULT 'prodv5')
-RETURNS SETOF qa_tests.type_get_standard_concept_changes
+)
 AS $BODY$
 BEGIN
 	RETURN QUERY
@@ -60,7 +59,7 @@ BEGIN
 				COUNT(DISTINCT new.concept_id) AS cnt --there can be more than one Maps to, so DISTINCT
 			FROM concept new
 			JOIN %1$I.concept old ON old.concept_id = new.concept_id
-				AND COALESCE(old.standard_concept, 'X') <> COALESCE(new.standard_concept, 'X')
+				AND old.standard_concept IS DISTINCT FROM new.standard_concept
 			LEFT JOIN %1$I.concept_relationship r_old ON r_old.concept_id_1 = new.concept_id
 				AND r_old.relationship_id = 'Maps to'
 				AND r_old.invalid_reason IS NULL

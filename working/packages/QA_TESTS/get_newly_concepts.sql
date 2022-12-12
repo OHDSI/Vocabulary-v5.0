@@ -8,21 +8,20 @@ or: select * from qa_tests.get_newly_concepts(pCompareWith=>'devv5');
 will show the difference between current schema and devv5 (you can use any schema name)
 */
 
-CREATE TYPE qa_tests.type_get_newly_concepts AS (
+CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts (pCompareWith VARCHAR DEFAULT 'prodv5')
+RETURNS TABLE
+(
 	vocabulary_id VARCHAR(20),
 	domain_id VARCHAR(20),
 	cnt BIGINT
-	);
-
-CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts (pCompareWith VARCHAR DEFAULT 'prodv5')
-RETURNS SETOF qa_tests.type_get_newly_concepts
+)
 AS $BODY$
 BEGIN
 	RETURN QUERY
 	EXECUTE FORMAT ($$
 		SELECT new.vocabulary_id,
 			new.domain_id,
-			count(*) AS cnt
+			COUNT(*) AS cnt
 		FROM concept new
 		LEFT JOIN %I.concept old ON old.concept_id = new.concept_id
 		WHERE old.concept_id IS NULL

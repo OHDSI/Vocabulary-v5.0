@@ -16,7 +16,6 @@ CREATE TYPE qa_tests.type_get_newly_concepts_sc_status AS (
 
 CREATE OR REPLACE FUNCTION qa_tests.get_newly_concepts_standard_concept_status (pCompareWith VARCHAR DEFAULT 'prodv5')
 RETURNS SETOF qa_tests.type_get_newly_concepts_sc_status
-SET work_mem='5GB'
 AS $BODY$
 BEGIN
 	RETURN QUERY

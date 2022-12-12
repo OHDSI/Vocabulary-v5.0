@@ -278,8 +278,6 @@ CREATE type qa_tests.type_get_checks AS (
 
 CREATE OR REPLACE FUNCTION qa_tests.get_checks (checkid IN INT DEFAULT NULL) RETURNS 
 SETOF qa_tests.type_get_checks
-SET  max_parallel_workers_per_gather=4
-SET work_mem='4GB'
 AS $BODY$
 	--relationships cycle
 	SELECT 1 check_id,

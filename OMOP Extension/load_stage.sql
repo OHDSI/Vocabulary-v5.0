@@ -81,7 +81,7 @@ END $_$;*/
 DO $$
 DECLARE
 	--v2, AVOF-3703
-	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device']; --order does matter (the first position has the highest priority, then in descending order)
+	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device','Meas Value']; --order does matter (the first position has the highest priority, then in descending order)
 	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Clinical Finding','Event','Observable Entity','Context-dependent','Procedure','Lab Test','Staging / Scales','Substance','Qualifier Value','Social Context','Attribute']; --order does matter (the first position has the highest priority, then in descending order)
 BEGIN
 	--build the ancestor
@@ -137,13 +137,13 @@ BEGIN
 			),
 		concepts
 		AS (
-			SELECT DISTINCT CASE WHEN crs.relationship_id = 'Is a' THEN crs.concept_code_1 ELSE crs.concept_code_2 END AS ancestor_concept_code,
-				CASE WHEN crs.relationship_id = 'Is a' THEN crs.vocabulary_id_1 ELSE crs.vocabulary_id_2 END AS ancestor_vocabulary_id,
-				CASE WHEN crs.relationship_id = 'Is a' THEN crs.concept_code_2 ELSE crs.concept_code_1 END AS descendant_concept_code,
-				CASE WHEN crs.relationship_id = 'Is a' THEN crs.vocabulary_id_2 ELSE crs.vocabulary_id_1 END AS descendant_vocabulary_id,
-				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.domain_id ELSE c_info_1.domain_id END AS descendant_domain_id,
-				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.concept_class_id ELSE c_info_1.concept_class_id END AS descendant_concept_class_id,
-				CASE WHEN crs.relationship_id = 'Is a' THEN c_info_2.standard_concept ELSE c_info_1.standard_concept END AS descendant_standard_concept
+			SELECT DISTINCT CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN crs.concept_code_1 ELSE crs.concept_code_2 END AS ancestor_concept_code,
+				CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN crs.vocabulary_id_1 ELSE crs.vocabulary_id_2 END AS ancestor_vocabulary_id,
+				CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN crs.concept_code_2 ELSE crs.concept_code_1 END AS descendant_concept_code,
+				CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN crs.vocabulary_id_2 ELSE crs.vocabulary_id_1 END AS descendant_vocabulary_id,
+				CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN c_info_2.domain_id ELSE c_info_1.domain_id END AS descendant_domain_id,
+				CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN c_info_2.concept_class_id ELSE c_info_1.concept_class_id END AS descendant_concept_class_id,
+				CASE WHEN crs.relationship_id IN ('Is a','Contained in panel','Precoord pair of') THEN c_info_2.standard_concept ELSE c_info_1.standard_concept END AS descendant_standard_concept
 			FROM concept_relationship_stage crs
 			CROSS JOIN vocabulary_pack.GetActualConceptInfo(crs.concept_code_1, crs.vocabulary_id_1) c_info_1
 			CROSS JOIN vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) c_info_2
@@ -151,7 +151,11 @@ BEGIN
 				AND c_info_2.invalid_reason IS NULL*/
 				WHERE crs.relationship_id IN (
 					'Is a',
-					'Subsumes'
+					'Subsumes',
+				    'Precoord pair of',
+				    'Has precoord pair',
+				    'Contained in panel',
+				    'Panel contains'
 					)
 				AND crs.invalid_reason IS NULL
 			)
@@ -259,7 +263,14 @@ BEGIN
 				cs_int.vocabulary_id
 				) cs_int.concept_code,
 			cs_int.vocabulary_id,
-			CASE
+		    CASE
+		        WHEN cs_int.concept_code IN (select concept_code_1
+		            FROM concept_relationship_manual
+		            WHERE relationship_id = 'Precoord pair of')
+		        THEN 'Precoordinated pair'
+		        WHEN cs_int.domain_id = 'Measurement'
+		               AND an.descendant_concept_class_id = 'Procedure'
+		        THEN 'Lab Test'
 				WHEN an.approved_concept_class_array @> ARRAY_AGG(an.descendant_concept_class_id) OVER (
 						--collect all classes we have
 						PARTITION BY cs_int.concept_code,
@@ -310,16 +321,16 @@ SELECT an.ancestor_concept_code,
 	an.descendant_concept_code,
 	an.descendant_vocabulary_id,
 	an.orig_descendant_standard_concept,
-	/*CASE
+	CASE
 		WHEN NOT an.approved_domains_array @> ARRAY [an.descendant_domain_id]
 			THEN an.descendant_domain_id
-		END AS domain_not_in_list,*/
+		END AS domain_not_in_list,
        an.descendant_domain_id,
 	array_to_string(an.hierarchy_path, ' -> ') AS hierarchy_path
 FROM v_domains_an an
 JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 	AND cs.vocabulary_id = an.ancestor_vocabulary_id
-	--AND cs.domain_id = '-1'
+	AND cs.domain_id = '-1'
 ORDER BY 1, 2, 3, 4;
 
 --same for unassigned classes

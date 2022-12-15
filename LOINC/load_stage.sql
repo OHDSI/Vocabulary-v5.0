@@ -328,12 +328,8 @@ SELECT CASE
                         )
                     ) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
                THEN NULL
-           --AVOF-3562: Panels must be Non-Standard
-           WHEN l.class LIKE '%PANEL%'
-               AND l.component LIKE '%anel%'
-               THEN 'C'
-           ELSE 'S'
-           END         AS standard_concept,
+         ELSE 'S'
+		 END AS standard_concept,
        LOINC_NUM       AS concept_code,
        v.latest_update AS valid_start_date,
        CASE

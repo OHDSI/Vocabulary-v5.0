@@ -92,149 +92,8 @@ CREATE INDEX idx_sna_descendant on ancestor_snomed (descendant_concept_id);
 CREATE INDEX idx_sna_ancestor on ancestor_snomed (ancestor_concept_id);
 ANALYZE ancestor_snomed;
 
---Collecting brand names AND ingredients from RxNorm AND RxNormExtension
---we are only interested to find brand names that have 'stable' ingredient SETs: with one possible ingredient combination
-DROP TABLE IF EXISTS brand_rx;
+--As a result, ancestor_snomed is prepared for future use
 
-CREATE TABLE brand_rx AS
-WITH bn_to_i AS
-	(
-		SELECT
-			c.concept_id AS b_id,
-			r.concept_id_2 AS i_id,
-			c.concept_name AS concept_name,
-			count (r.concept_id_2) OVER (PARTITION BY c.concept_id) AS cnt_direct
-		FROM concept c
-		JOIN concept_relationship r on
-			r.relationship_id = 'Brand name of' AND
-			c.concept_id = r.concept_id_1
-		JOIN concept c2 on
-			c2.concept_class_id = 'Ingredient' AND
-			c2.concept_id = r.concept_id_2 AND
-			c2.standard_concept = 'S'
-		WHERE
-			c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND
-			c.concept_class_id = 'Brand Name' AND
-			c.invalid_reason IS NULL
-	),
-
-bn_to_i_dp AS --what possible ingredient SETs drug products give us
-	(
-		SELECT DISTINCT
-			c.concept_id AS b_id,
-			r.concept_id_2 AS dp_id,
-			d.ingredient_concept_id AS i_id,
-			count (d.ingredient_concept_id) OVER (PARTITION BY r.concept_id_2) AS cnt_drug
-		FROM concept c
-		JOIN concept_relationship r on
-			r.relationship_id = 'Brand name of' AND
-			c.concept_id = r.concept_id_1
-		JOIN concept c2 on
-			c2.concept_class_id != 'Ingredient' AND --only combinations AND ingredient themselves can have brand names;
-			c2.concept_id = r.concept_id_2
-		JOIN drug_strength d on
-			c2.concept_id = d.drug_concept_id
-		JOIN concept c3 on
-			d.ingredient_concept_id = c3.concept_id AND
-			c3.standard_concept = 'S'
-		WHERE
-			c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND
-			c.concept_class_id = 'Brand Name' AND
-			c.invalid_reason IS NULL
-	)
-
-SELECT DISTINCT
-	b.b_id,
-	b.concept_name,
-	b.i_id
-FROM bn_to_i b
-LEFT JOIN bn_to_i_dp d on
-	d.b_id = b.b_id AND
-	b.cnt_direct > d.cnt_drug
-WHERE d.b_id IS NULL;
-
-
-INSERT INTO brand_rx
---preserve also bn that are consistent inside RxN
-WITH bn_to_i AS
-	(
-		SELECT
-			c.concept_id AS b_id,
-			r.concept_id_2 AS i_id,
-			c.concept_name AS concept_name,
-			count (r.concept_id_2) OVER (PARTITION BY c.concept_id) AS cnt_direct
-		FROM concept c
-		JOIN concept_relationship r on
-			r.relationship_id = 'Brand name of' AND
-			c.concept_id = r.concept_id_1
-		JOIN concept c2 on
-			c2.concept_class_id = 'Ingredient' AND
-			c2.concept_id = r.concept_id_2 AND
-			c2.standard_concept = 'S'
-		WHERE
-			c.concept_id NOT IN (SELECT b_id FROM brand_rx) AND --avoid duplication
-			c.vocabulary_id = 'RxNorm' AND
-			c.concept_class_id = 'Brand Name' AND
-			c.invalid_reason IS NULL AND
-			exists
-			-- there are RxNorm Drug products with r.concept_id_2 as an ingredient
-				(
-					SELECT
-					FROM drug_strength d
-					JOIN concept x on
-						d.drug_concept_id = x.concept_id AND
-						x.vocabulary_id = 'RxNorm' AND
-						x.concept_class_id != 'Ingredient' AND
-						d.ingredient_concept_id = r.concept_id_2
-					-- with that brand name AND ingredient
-					JOIN concept_relationship cr on
-						cr.concept_id_1 = x.concept_id AND
-						relationship_id = 'Has brand name' AND
-						cr.concept_id_2 = c.concept_id
-					WHERE d.invalid_reason IS NULL
-				)
-	),
-
-bn_to_i_dp AS --what possible ingredient SETs drug RxN products give us
-	(
-		SELECT DISTINCT
-			c.concept_id AS b_id,
-			r.concept_id_2 AS dp_id,
-			d.ingredient_concept_id as i_id,
-			count (d.ingredient_concept_id) OVER (PARTITION BY r.concept_id_2) AS cnt_drug
-		FROM concept c
-		JOIN concept_relationship r on
-			r.relationship_id = 'Brand name of' AND
-			c.concept_id = r.concept_id_1
-		JOIN concept c2 on
-			c2.concept_class_id != 'Ingredient' AND --only combinations AND ingredient themselves can have brand names;
-			c2.concept_id = r.concept_id_2
-		JOIN drug_strength d on
-			c2.concept_id = d.drug_concept_id
-		JOIN concept c3 on
-			d.ingredient_concept_id = c3.concept_id AND
-			c3.standard_concept = 'S'
-		WHERE
-			c.concept_id NOT IN (SELECT b_id FROM brand_rx) AND --avoid duplication
-			c.vocabulary_id = 'RxNorm' AND
-			c.concept_class_id = 'Brand Name' AND
-			c.invalid_reason IS NULL AND
-			d.invalid_reason IS NULL
-	)
-
-SELECT DISTINCT
-	b.b_id,
-	b.concept_name,
-	b.i_id
-FROM bn_to_i b
-LEFT JOIN bn_to_i_dp d on
-	d.b_id = b.b_id AND
-	b.cnt_direct > d.cnt_drug
-WHERE d.b_id IS NULL
-;
-
---As a result, ancestor_snomed AND brand_rx prepared for future use
-TRUNCATE concept_synonym_stage;
 
 --! Step 1. Extract meaningful data FROM XML source. Manual fix to source data discrepancies
 --TODO: use NHS's own tool to create CSV tables FROM XML
@@ -245,11 +104,11 @@ DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, c
 --vtms: Virtual Therapeutic Moiety
 CREATE TABLE vtms AS
 SELECT
-	devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) NM,
-	unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR VTMID,
-	unnest(xpath('./VTMIDPREV/text()', i.xmlfield))::VARCHAR VTMIDPREV,
-	to_date(unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VTMIDDT,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID
+	devv5.py_unescape(unnest(xpath('/VTM/NM/text()', i.xmlfield))::VARCHAR) NM,
+	unnest(xpath('/VTM/VTMID/text()', i.xmlfield))::VARCHAR VTMID,
+	unnest(xpath('/VTM/VTMIDPREV/text()', i.xmlfield))::VARCHAR VTMIDPREV,
+	to_date(unnest(xpath('/VTM/VTMIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VTMIDDT,
+	unnest(xpath('/VTM/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
 	FROM sources.f_vtm2 i
@@ -272,13 +131,13 @@ WHERE vtmid IN
 --vmpps: Virtual Medicinal Product Pack
 CREATE TABLE vmpps AS
 SELECT
-	devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR VPPID,
-	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./QTYVAL/text()', i.xmlfield))::VARCHAR::numeric QTYVAL,
-	unnest(xpath('./QTY_UOMCD/text()', i.xmlfield))::VARCHAR QTY_UOMCD,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM
+	devv5.py_unescape(unnest(xpath('/VMPP/NM/text()', i.xmlfield))::VARCHAR) nm,
+	unnest(xpath('/VMPP/VPPID/text()', i.xmlfield))::VARCHAR VPPID,
+	unnest(xpath('/VMPP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMPP/QTYVAL/text()', i.xmlfield))::VARCHAR::numeric QTYVAL,
+	unnest(xpath('/VMPP/QTY_UOMCD/text()', i.xmlfield))::VARCHAR QTY_UOMCD,
+	unnest(xpath('/VMPP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	devv5.py_unescape(unnest(xpath('/VMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
 	FROM sources.f_vmpp2 i
@@ -288,8 +147,8 @@ UPDATE vmpps SET invalid = '0' WHERE invalid IS NULL;
 
 CREATE TABLE comb_content_v AS
 SELECT
-	unnest(xpath('./PRNTVPPID/text()', i.xmlfield))::VARCHAR PRNTVPPID,
-	unnest(xpath('./CHLDVPPID/text()', i.xmlfield))::VARCHAR CHLDVPPID
+	unnest(xpath('/CCONTENT/PRNTVPPID/text()', i.xmlfield))::VARCHAR PRNTVPPID,
+	unnest(xpath('/CCONTENT/CHLDVPPID/text()', i.xmlfield))::VARCHAR CHLDVPPID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
 	FROM sources.f_vmpp2 i
@@ -299,22 +158,22 @@ FROM (
 
 --vmps: Virtual Medicinal Product
 CREATE TABLE vmps AS
-SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	to_date(unnest(xpath('./VPIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VPIDDT,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./VPIDPREV/text()', i.xmlfield))::VARCHAR VPIDPREV,
-	unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR VTMID,
-	devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
-	to_date(unnest(xpath('./NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
-	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
-	unnest(xpath('./COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
-	unnest(xpath('./NON_AVAILDT/text()', i.xmlfield))::VARCHAR NON_AVAILDT,
-	unnest(xpath('./DF_INDCD/text()', i.xmlfield))::VARCHAR DF_INDCD,
-	unnest(xpath('./UDFS/text()', i.xmlfield))::VARCHAR::numeric UDFS,
-	unnest(xpath('./UDFS_UOMCD/text()', i.xmlfield))::VARCHAR UDFS_UOMCD,
-	unnest(xpath('./UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
-	unnest(xpath('./PRES_STATCD/text()', i.xmlfield))::VARCHAR PRES_STATCD
+SELECT devv5.py_unescape(unnest(xpath('/VMP/NM/text()', i.xmlfield))::VARCHAR) nm,
+	to_date(unnest(xpath('/VMP/VPIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VPIDDT,
+	unnest(xpath('/VMP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMP/VPIDPREV/text()', i.xmlfield))::VARCHAR VPIDPREV,
+	unnest(xpath('/VMP/VTMID/text()', i.xmlfield))::VARCHAR VTMID,
+	devv5.py_unescape(unnest(xpath('/VMP/NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
+	to_date(unnest(xpath('/VMP/NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
+	devv5.py_unescape(unnest(xpath('/VMP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
+	unnest(xpath('/VMP/COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
+	unnest(xpath('/VMP/NON_AVAILDT/text()', i.xmlfield))::VARCHAR NON_AVAILDT,
+	unnest(xpath('/VMP/DF_INDCD/text()', i.xmlfield))::VARCHAR DF_INDCD,
+	unnest(xpath('/VMP/UDFS/text()', i.xmlfield))::VARCHAR::numeric UDFS,
+	unnest(xpath('/VMP/UDFS_UOMCD/text()', i.xmlfield))::VARCHAR UDFS_UOMCD,
+	unnest(xpath('/VMP/UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
+	unnest(xpath('/VMP/PRES_STATCD/text()', i.xmlfield))::VARCHAR PRES_STATCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -341,13 +200,13 @@ WHERE
 
 
 CREATE TABLE virtual_product_ingredient AS
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
-	unnest(xpath('./STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_NMRTR_VAL,
-	unnest(xpath('./STRNT_NMRTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
-	unnest(xpath('./STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_DNMTR_VAL,
-	unnest(xpath('./STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
+SELECT unnest(xpath('/VPI/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VPI/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	unnest(xpath('/VPI/BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
+	unnest(xpath('/VPI/STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_NMRTR_VAL,
+	unnest(xpath('/VPI/STRNT_NMRTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
+	unnest(xpath('/VPI/STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_DNMTR_VAL,
+	unnest(xpath('/VPI/STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -364,8 +223,8 @@ WHERE strnt_nmrtr_uomcd = '282113003' -- nL
 
 
 CREATE TABLE ont_drug_form AS
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
+SELECT unnest(xpath('/ONT/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/ONT/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/ONT_DRUG_FORM/ONT', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -374,8 +233,8 @@ FROM (
 
 
 CREATE TABLE drug_form AS
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
+SELECT unnest(xpath('/DFORM/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/DFORM/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -385,16 +244,16 @@ FROM (
 
 --amps: Actual Medicinal Product
 CREATE TABLE amps AS
-SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
-	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
-	to_date(unnest(xpath('./NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
-	unnest(xpath('./SUPPCD/text()', i.xmlfield))::VARCHAR SUPPCD,
-	unnest(xpath('./COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
-	unnest(xpath('./LIC_AUTHCD/text()', i.xmlfield))::VARCHAR LIC_AUTHCD
+SELECT devv5.py_unescape(unnest(xpath('/AMP/NM/text()', i.xmlfield))::VARCHAR) nm,
+	unnest(xpath('/AMP/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/AMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/AMP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	devv5.py_unescape(unnest(xpath('/AMP/NMPREV/text()', i.xmlfield))::VARCHAR) NMPREV,
+	devv5.py_unescape(unnest(xpath('/AMP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
+	to_date(unnest(xpath('/AMP/NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
+	unnest(xpath('/AMP/SUPPCD/text()', i.xmlfield))::VARCHAR SUPPCD,
+	unnest(xpath('/AMP/COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
+	unnest(xpath('/AMP/LIC_AUTHCD/text()', i.xmlfield))::VARCHAR LIC_AUTHCD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
@@ -405,10 +264,10 @@ UPDATE amps SET invalid = '0' WHERE invalid IS NULL;
 
 
 CREATE TABLE ap_ingredient AS
-SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	unnest(xpath('./STRNTH/text()', i.xmlfield))::VARCHAR::numeric STRNTH,
-	unnest(xpath('./UOMCD/text()', i.xmlfield))::VARCHAR UOMCD
+SELECT unnest(xpath('/AP_ING/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/AP_ING/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	unnest(xpath('/AP_ING/STRNTH/text()', i.xmlfield))::VARCHAR::numeric STRNTH,
+	unnest(xpath('/AP_ING/UOMCD/text()', i.xmlfield))::VARCHAR UOMCD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AP_INGREDIENT/AP_ING', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
@@ -418,8 +277,8 @@ FROM (
 
 CREATE TABLE licensed_route AS
 SELECT
-	unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('./ROUTECD/text()', i.xmlfield))::VARCHAR ROUTECD
+	unnest(xpath('/LIC_ROUTE/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/LIC_ROUTE/ROUTECD/text()', i.xmlfield))::VARCHAR ROUTECD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
@@ -429,14 +288,14 @@ FROM (
 
 --ampps: Actual Medicinal Product Pack
 	CREATE TABLE ampps AS
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-		unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR APPID,
-		unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
-		unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR VPPID,
-		unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-		unnest(xpath('./COMBPACKCD/text()', i.xmlfield))::VARCHAR COMBPACKCD,
-		to_date(unnest(xpath('./DISCDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') DISCDT
+	SELECT devv5.py_unescape(unnest(xpath('/AMPP/NM/text()', i.xmlfield))::VARCHAR) nm,
+		unnest(xpath('/AMPP/APPID/text()', i.xmlfield))::VARCHAR APPID,
+		unnest(xpath('/AMPP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+		devv5.py_unescape(unnest(xpath('/AMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM,
+		unnest(xpath('/AMPP/VPPID/text()', i.xmlfield))::VARCHAR VPPID,
+		unnest(xpath('/AMPP/APID/text()', i.xmlfield))::VARCHAR APID,
+		unnest(xpath('/AMPP/COMBPACKCD/text()', i.xmlfield))::VARCHAR COMBPACKCD,
+		to_date(unnest(xpath('/AMPP/DISCDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') DISCDT
 	FROM (
 		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
 		FROM sources.f_ampp2 i
@@ -447,8 +306,8 @@ UPDATE ampps SET invalid = '0' WHERE invalid IS NULL;
 
 
 CREATE TABLE comb_content_a AS
-SELECT unnest(xpath('./PRNTAPPID/text()', i.xmlfield))::VARCHAR PRNTAPPID,
-	unnest(xpath('./CHLDAPPID/text()', i.xmlfield))::VARCHAR CHLDAPPID
+SELECT unnest(xpath('/CCONTENT/PRNTAPPID/text()', i.xmlfield))::VARCHAR PRNTAPPID,
+	unnest(xpath('/CCONTENT/CHLDAPPID/text()', i.xmlfield))::VARCHAR CHLDAPPID
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
 	FROM sources.f_ampp2 i
@@ -458,11 +317,11 @@ FROM (
 
 --Ingredients
 CREATE TABLE ingredient_substances AS
-SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
-	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	to_date(unnest(xpath('./ISIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') ISIDDT,
-	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('./ISIDPREV/text()', i.xmlfield))::VARCHAR ISIDPREV
+SELECT devv5.py_unescape(unnest(xpath('/ING/NM/text()', i.xmlfield))::VARCHAR) nm,
+	unnest(xpath('/ING/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	to_date(unnest(xpath('/ING/ISIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') ISIDDT,
+	unnest(xpath('/ING/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/ING/ISIDPREV/text()', i.xmlfield))::VARCHAR ISIDPREV
 FROM (
 	SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
 	FROM sources.f_ingredient2 i
@@ -474,8 +333,8 @@ UPDATE ingredient_substances SET invalid = '0' WHERE invalid IS NULL;
 
 --combination packs
 CREATE TABLE combination_pack_ind AS
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PACK_IND/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -485,8 +344,8 @@ FROM (
 
 --combination products
 CREATE TABLE combination_prod_ind AS
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PROD_IND/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -496,9 +355,9 @@ FROM (
 
 --Units
 CREATE TABLE unit_of_measure AS
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD,
-	to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
 FROM (
 	SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -508,9 +367,9 @@ FROM (
 
 --Forms
 CREATE TABLE forms AS
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD,
-	to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
 FROM (
 	SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -522,10 +381,10 @@ FROM (
 CREATE TABLE supplier AS
 WITH supp_temp AS
 	(
-		SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-			unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD,
-			to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT,
-			unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID
+		SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+			unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+			to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT,
+			unnest(xpath('/INFO/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 		FROM (
 			SELECT unnest(xpath('/LOOKUP/SUPPLIER/INFO', i.xmlfield)) xmlfield
 			FROM sources.f_lookup2 i
@@ -583,8 +442,8 @@ WHERE
 
 --df_indicator
 CREATE TABLE df_indicator AS
-SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
-	unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR CD
+SELECT devv5.py_unescape(unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR) INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/DF_INDICATOR/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -594,8 +453,8 @@ FROM (
 --TODO: May be used in future
 /*
 CREATE TABLE dmd2atc AS
-SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./ATC/text()', i.xmlfield))::VARCHAR ATC
+SELECT unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMP/ATC/text()', i.xmlfield))::VARCHAR ATC
 FROM (
 	SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
 	FROM sources.dmdbonus i
@@ -605,18 +464,18 @@ FROM (
 --TODO: May be used in future
 CREATE TABLE dmd2bnf AS
 	(
-		SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
-			unnest(xpath('./BNF/text()', i.xmlfield))::VARCHAR BNF,
+		SELECT unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
+			unnest(xpath('/VMP/BNF/text()', i.xmlfield))::VARCHAR BNF,
 			'VMP' as concept_class_id
 		FROM (
 			SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
 			FROM sources.dmdbonus i
 			) AS i
 
-			UNION
+			UNION ALL
 
-		SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
-			unnest(xpath('./BNF/text()', i.xmlfield))::VARCHAR BNF,
+		SELECT unnest(xpath('/AMP/VPID/text()', i.xmlfield))::VARCHAR DMD_ID,
+			unnest(xpath('/AMP/BNF/text()', i.xmlfield))::VARCHAR BNF,
 			'AMP' as concept_class_id
 		FROM (
 			SELECT unnest(xpath('/BNF_DETAILS/AMPS/AMP', i.xmlfield)) xmlfield
@@ -2842,9 +2701,8 @@ JOIN concept c on
 	c.concept_id = 	cast (ingredient_id as int4);
 
 --May be no ingredients
-INSERT INTO drug_concept_stage
+INSERT INTO drug_concept_stage(concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 SELECT
-	NULL as concept_id,
 	concept_name,
 	'Drug' AS domain_id,
 	'dm+d' AS vocabulary_id,
@@ -2853,8 +2711,7 @@ SELECT
 	concept_code,
 	to_date ('1970-01-01','YYYY-MM-DD'),
 	TO_DATE('20991231', 'yyyymmdd'),
-	NULL as invalid_reason,
-	'Ingredient'
+	NULL as invalid_reason
 FROM ds_new_ingreds
 ;
 
@@ -5501,7 +5358,7 @@ DELETE FROM relationship_to_concept WHERE concept_code_1 NOT IN (SELECT concept_
 --Uploaded for manual mapping
 --File name: relationship_to_concept_attributes
 CREATE TABLE relationship_to_concept_attributes AS
-	(SELECT dcs.concept_code, dcs.concept_name, dcs.concept_class_id,
+	(SELECT dcs.concept_name, dcs.concept_class_id,
 	       NULL AS precedence,
 	       c.concept_id AS target_concept_id,
 	       c.concept_code AS target_concept_code,
@@ -5550,9 +5407,15 @@ ALTER COLUMN target_invalid_reason TYPE varchar(50);
 
 --Clean relationship_to_concept from attributes, manually mapped in relationship_to_concept_attributes
 --TODO: Change to delete according to concept_name
+with mapping AS (SELECT dcs.concept_code, dcs.concept_name, dcs.concept_class_id
+    FROM relationship_to_concept_attributes rtca
+    JOIN drug_concept_stage dcs
+    ON dcs.concept_name = rtca.concept_name AND dcs.concept_class_id = rtca.concept_class_id
+    )
+
 DELETE FROM relationship_to_concept
 --SELECT * FROM relationship_to_concept
-WHERE concept_code_1 IN (SELECT concept_code FROM relationship_to_concept_attributes)
+WHERE concept_code_1 IN (SELECT concept_code FROM mapping)
 AND EXISTS(SELECT
            FROM drug_concept_stage dcs
            WHERE dcs.concept_class_id IN (
@@ -5576,8 +5439,6 @@ JOIN drug_concept_stage dcs
     --Works even if there are duplicate names with different concept codes, if mapping is identical
     ON rtca.concept_class_id = dcs.concept_class_id AND rtca.concept_name = dcs.concept_name
 WHERE rtca.target_concept_id != 0 AND rtca.target_concept_id IS NOT NULL
-  --Double check
-AND rtca.concept_code NOT IN (SELECT concept_code_1 FROM relationship_to_concept)
 ;
 
 

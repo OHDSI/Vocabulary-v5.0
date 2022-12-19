@@ -14,9 +14,9 @@ $body$;
 
 
 --restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
+TRUNCATE TABLE dev_cpt4.concept_relationship_manual;
 INSERT INTO dev_cpt4.concept_relationship_manual
-SELECT * FROM dev_cpt4.concept_relationship_manual_backup_2022_08_12;*/
+SELECT * FROM dev_cpt4.concept_relationship_manual_backup_2022_11_03;*/
 
 DO
 $body$
@@ -147,11 +147,3 @@ AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manua
     )
 ;
 
---9.2.9 Deprecate cyclic relationships in concept_relationship_manual table (once)
-UPDATE dev_cpt4.concept_relationship_manual
-SET invalid_reason = 'D',
-    valid_end_date = current_date
-WHERE concept_code_1 IN ('36221', '36222', '36223', '36224', '36225', '36226', '36227', '36228')
-    AND concept_code_2 = '1006630'
-    AND vocabulary_id_1 = 'CPT4'
-    AND vocabulary_id_2 = 'CPT4';

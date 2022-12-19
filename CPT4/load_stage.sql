@@ -629,7 +629,11 @@ FROM (
 						THEN 4
 					WHEN 'Device'
 						THEN 5
-					ELSE 6
+					WHEN 'Visit'
+			            THEN 6
+			        WHEN 'Provider'
+			            THEN 7
+					ELSE 8
 					END
 			) AS domain_id
 	FROM concept_relationship_stage crs
@@ -658,7 +662,11 @@ FROM (
 						THEN 4
 					WHEN 'Device'
 						THEN 5
-					ELSE 6
+			        WHEN 'Visit'
+			            THEN 6
+			        WHEN 'Provider'
+			            THEN 7
+					ELSE 8
 					END
 			)
 	FROM concept_relationship cr

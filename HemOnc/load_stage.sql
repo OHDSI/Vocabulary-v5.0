@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Dmitry Dymshyts, Timur Vakhitov
 * Date: 2019
 **************************************************************************/
@@ -39,7 +39,7 @@ TRUNCATE TABLE drug_strength_stage;
 INSERT INTO concept_stage
 SELECT NULL AS concept_id,
 	concept_name,
-	CASE 
+	CASE
 		WHEN h.concept_class_id IN (
 				'Procedure',
 				'Context'
@@ -64,7 +64,7 @@ SELECT NULL AS concept_id,
 		END AS domain_id,
 	h.vocabulary_id,
 	h.concept_class_id,
-	CASE 
+	CASE
 		WHEN h.concept_class_id = 'Regimen Class'
 			THEN 'C'
 		WHEN concept_class_id = 'Modality'
@@ -215,40 +215,40 @@ FROM (
 			'Has support med Rx'
 			)
 	--Clinical Drug Forms Picked up manually
-	
+
 	UNION ALL
-	
+
 	SELECT '1552344',
 		'RxNorm',
 		'2044421',
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '1670317',
 		'RxNorm',
 		'1670309',
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '794048',
 		'RxNorm',
 		'1942741',
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '2119715',
 		'RxNorm',
 		'2119717', -- Herceptin Hylecta , Hyaluronidase / trastuzumab Injection [Herceptin Hylecta]
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '1927886',
 		'RxNorm',
-		'1927888', -- Rituxan Hycela , Hyaluronidase / rituximab Injection [Rituxan Hycela] 
+		'1927888', -- Rituxan Hycela , Hyaluronidase / rituximab Injection [Rituxan Hycela]
 		'RxNorm'
 	) i
 WHERE crs.concept_code_2 = i.old_code
@@ -272,7 +272,7 @@ SELECT cs.concept_code,
 	'Maps to' AS relationship_id,
 	cs.valid_start_date,
 	cs.valid_end_date,
-	CASE 
+	CASE
 		WHEN cs.valid_end_date = TO_DATE('20991231', 'yyyymmdd')
 			THEN NULL
 		ELSE 'D'
@@ -337,7 +337,7 @@ FROM (
 			END AS relationship_id,
 		cs1.valid_start_date,
 		cs1.valid_end_date,
-		CASE 
+		CASE
 			WHEN cs1.valid_end_date = TO_DATE('20991231', 'yyyymmdd')
 				THEN NULL
 			ELSE 'D'
@@ -429,7 +429,20 @@ JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 AND css.synonym_name not ilike '%\\>%' --\\>   fall2022 release brings synonyms with URL structure for regimens
 ;
 
---11.1 Working with manual synonyms
+--11.1 Concept synonym cleanup
+--delete rows not existing in CS
+DELETE
+FROM concept_synonym_manual csm
+    WHERE exists(SELECT 1
+     FROM concept_synonym_manual csm1
+        LEFT JOIN concept_stage cs
+              on csm1.synonym_concept_code=cs.concept_code
+         WHERE cs.concept_code is null
+            AND csm.synonym_concept_code=csm1.synonym_concept_code)
+;
+;
+
+--11.2 Working with manual synonyms
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();

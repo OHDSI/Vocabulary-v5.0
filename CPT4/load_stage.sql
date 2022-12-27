@@ -646,6 +646,7 @@ FROM (
 		AND c2.vocabulary_id <> 'CPT4'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
+	    AND cs1.concept_code not in ('99502', '99504', '99505', '99506', '99508', '99511', '99512')
 	
 	UNION ALL
 	
@@ -679,6 +680,7 @@ FROM (
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
 		AND cr.invalid_reason IS NULL
+	    AND cs1.concept_code not in ('99502', '99504', '99505', '99506', '99508', '99511', '99512')
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs_int

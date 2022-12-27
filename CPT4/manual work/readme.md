@@ -1,7 +1,7 @@
 ### STEP 9 of the refresh:
 
 9.1. Upload concept_relationship_manual into the working schema (skip this step if implementing on the Pallas vocabulary server).
-Extract the [respective csv file] (https://drive.google.com/drive/u/0/folders/10Gg84mN7tc8d2ByQ9XHNe23rY-w9XBMk) into the concept_relationship_manual table.
+Extract the [respective csv file] (https://drive.google.com/drive/u/0/folders/1TWGdyVy95AT-9GfK7KaKY2HQA4rDqxrH) into the concept_relationship_manual table.
 The file was generated using the query:
 ```sql
 SELECT concept_code_1,

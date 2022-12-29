@@ -1550,7 +1550,7 @@ FROM (
 						THEN 4
 			         WHEN 'Visit'
 			             THEN 5
-			         WHEN 'Provoder'
+			         WHEN 'Provider'
 			             THEN 6
 					WHEN 'Device'
 						THEN 7
@@ -1583,7 +1583,7 @@ FROM (
 						THEN 4
 			         WHEN 'Visit'
 			             THEN 5
-			         WHEN 'Provoder'
+			         WHEN 'Provider'
 			             THEN 6
 					WHEN 'Device'
 						THEN 7

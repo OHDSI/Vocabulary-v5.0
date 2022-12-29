@@ -1067,6 +1067,58 @@ FROM t_domains t
 WHERE cs.concept_code = t.concept_code
 	AND cs.concept_class_id <> 'HCPCS Class';
 
+--4.3. Insert other existing HCPCS concepts that are absent in the source (should be outdated but alive)
+INSERT INTO concept_stage (
+	concept_name,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT CASE
+		WHEN c.concept_name LIKE '% (Deprecated)'
+			THEN c.concept_name -- to support subsequent source deprecations
+		WHEN (
+				COALESCE(c.invalid_reason, 'D') = 'D'
+				OR (
+					c.standard_concept = 'S'
+					AND c.valid_end_date < TO_DATE('20991231', 'YYYYMMDD')
+					)
+				)
+			AND LENGTH(c.concept_name) <= 242
+			THEN c.concept_name || ' (Deprecated)'
+		WHEN LENGTH(c.concept_name) > 242
+			THEN LEFT(c.concept_name, 239) || '... (Deprecated)' -- to get no more than 255 characters in total and highlight concept_names which were cut
+		ELSE c.concept_name -- for alive concepts
+		END AS concept_name,
+	c.vocabulary_id,
+	c.concept_class_id,
+	CASE
+		WHEN COALESCE(c.invalid_reason, 'D') = 'D'
+			AND COALESCE(c.standard_concept, 'S') <> 'C'
+			THEN 'S'
+		WHEN c.concept_class_id = 'HCPCS Class'
+			AND c.invalid_reason IS NOT NULL
+			AND standard_concept IS NULL
+			THEN 'C'
+		ELSE c.standard_concept
+		END AS standard_concept,
+	c.concept_code,
+	c.valid_start_date,
+	c.valid_end_date,
+	NULLIF(c.invalid_reason, 'D') AS invalid_reason
+FROM concept c
+WHERE c.vocabulary_id = 'HCPCS'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs_int
+		WHERE cs_int.concept_code = c.concept_code
+		);
+
+
 
 --if some codes does not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs
@@ -1083,14 +1135,15 @@ UPDATE concept_stage
 SET domain_id = 'Procedure'
 WHERE domain_id = 'Procedure Drug';
 
---4.3. Insert missing codes from manual extraction and assign domains to those concepts can't be assigned automatically
+--4.4. Insert missing codes from manual extraction and assign domains to those concepts can't be assigned automatically
 --ProcessManualConcepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---4.4. Since nobody really cares about Modifiers domain, in case it's not covered by the concept_manual, set it to Observation
+
+--4.5. Since nobody really cares about Modifiers domain, in case it's not covered by the concept_manual, set it to Observation
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL
@@ -1404,7 +1457,7 @@ BEGIN
 END $_$;
 
 --15. Add mapping from deprecated to fresh concepts
-/*DO $_$
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;*/
@@ -1479,70 +1532,83 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'HCPCS';
 
---19. All concepts mapped to Visit, Provider, Device domains should get the respective domain_id:
+--16. Update domain_id  and standard concept value for CPT4 according to mappings:
 UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (WITH crs1 AS
-        (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, invalid_reason,
-            count(concept_code_2) OVER (PARTITION BY concept_code_1) as num
-            from concept_relationship_stage
-            where vocabulary_id_1 = 'HCPCS'
-            and relationship_id = 'Maps to'
-            and invalid_reason is null)
-
-  SELECT DISTINCT cs1.concept_code,
+SET domain_id = i.domain_id,
+	standard_concept = NULL
+FROM (
+	SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Visit'
+					WHEN 'Drug'
 						THEN 1
-					WHEN 'Provider'
+					WHEN 'Measurement'
 						THEN 2
-			        WHEN 'Device'
-			            THEN 3
-					ELSE 4
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Observation'
+						THEN 4
+			         WHEN 'Visit'
+			             THEN 5
+			         WHEN 'Provoder'
+			             THEN 6
+					WHEN 'Device'
+						THEN 7
+					ELSE 8
 					END
 			) AS domain_id
-	FROM crs1
-	JOIN concept_stage cs1 ON cs1.concept_code = crs1.concept_code_1
-		AND cs1.vocabulary_id = crs1.vocabulary_id_1
-		AND cs1.vocabulary_id = 'HCPCS'
-	JOIN concept c2 ON c2.concept_code = crs1.concept_code_2
-		AND c2.vocabulary_id = crs1.vocabulary_id_2
-		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
-	WHERE crs1.relationship_id = 'Maps to'
-		AND crs1.num = 1
+	FROM concept_relationship_stage crs
+	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+		AND cs1.vocabulary_id = crs.vocabulary_id_1
+		AND cs1.vocabulary_id = 'CPT4'
+	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+		AND c2.vocabulary_id = crs.vocabulary_id_2
+		AND c2.standard_concept = 'S'
+		AND c2.vocabulary_id <> 'HCPCS'
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
 
 	UNION ALL
 
-SELECT DISTINCT cs1.concept_code,
+	SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Visit'
+					WHEN 'Drug'
 						THEN 1
-					WHEN 'Provider'
+					WHEN 'Measurement'
 						THEN 2
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Observation'
+						THEN 4
+			         WHEN 'Visit'
+			             THEN 5
+			         WHEN 'Provoder'
+			             THEN 6
 					WHEN 'Device'
-			            THEN 3
-					ELSE 4
+						THEN 7
+					ELSE 8
 					END
 			)
-	FROM concept_relationship cr1
-	JOIN concept c1 ON c1.concept_id = cr1.concept_id_1
-		AND c1.vocabulary_id = 'HCPCS'
-	JOIN concept c2 ON c2.concept_id = cr1.concept_id_2
-		AND c2.domain_id IN ('Visit', 'Provider', 'Device')
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+		AND c1.vocabulary_id = 'CPT4'
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		AND c2.standard_concept = 'S'
+		AND c2.vocabulary_id <> 'HCPCS'
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr1.relationship_id = 'Maps to'
+	WHERE cr.relationship_id = 'Maps to'
+		AND cr.invalid_reason IS NULL
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs_int
 			WHERE crs_int.concept_code_1 = cs1.concept_code
 				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr1.relationship_id)
+				AND crs_int.relationship_id = cr.relationship_id
+			)
 	) i
-WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'HCPCS';
+WHERE i.concept_code = cs.concept_code;
 
 --20. All (not only the drugs) concepts having mappings should be NON-standard
 UPDATE concept_stage cs

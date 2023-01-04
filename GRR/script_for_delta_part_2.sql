@@ -535,7 +535,7 @@ SELECT CONCAT(denominator_value,' ',denominator_unit) AS quant,
          WHEN therapy_name ~ '\d+\.?\d+?(MG|G|Y|K)\s\/(\d+)?(ML|G)' 
              THEN CONCAT (i.concept_name,' ',TRIM(TRAILING '.' FROM TO_CHAR(COALESCE(amount_value,numerator_value) /COALESCE(denominator_value,1), 'FM9999999999999999999990.999999999999999999999')),' ',COALESCE(amount_unit,numerator_unit),COALESCE('/' ||denominator_unit))
          ELSE CONCAT (i.concept_name,' ',
-                     TRIM(TRAILING '.' FROM TO_CHAR(ROUND((COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1))),(1 - FLOOR(LOG(COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))) -1)::INT), 'FM9999999999999999999990.999999999999999999999')))
+                     TRIM(TRAILING '.' FROM TO_CHAR(ROUND((COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))::numeric,(1 - FLOOR(LOG(COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))) -1)::INT), 'FM9999999999999999999990.999999999999999999999')))
                       
        END AS dosage_name
 FROM ds_stage

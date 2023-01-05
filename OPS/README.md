@@ -10,7 +10,7 @@ Sequence of actions:
 2. Use Python processing script (OPS_convert.py) to extract source files and fill in the source tables. 
 Append resulting tables to ops_src_agg and modifiers_append with version year as last field.
 
-3. Run FULL FastRecreate:
+3. Run FastRecreate:
 
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
                                 include_deprecated_rels=> true, include_synonyms=> true);

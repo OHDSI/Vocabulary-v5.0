@@ -15,7 +15,7 @@ FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name
 
 7.2 Upload concept_relationship_manual into the working schema (skip this step if implementing on the Pallas vocabulary server).
-    Extract the [respective csv file](https://drive.google.com/drive/u/1/folders/1P2dJ9PDMDuu03K-EqzAR8QgmLj72kEB0) into the concept_relationship_manual table. The file was generated using the query:
+    Extract the [respective csv file](https://drive.google.com/drive/u/0/folders/1P2dJ9PDMDuu03K-EqzAR8QgmLj72kEB0) into the concept_relationship_manual table. The file was generated using the query:
 
 SELECT concept_code_1,
        concept_code_2,

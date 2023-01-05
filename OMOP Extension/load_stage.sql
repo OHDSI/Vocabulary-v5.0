@@ -316,7 +316,7 @@ END $$;
 --We are waiting nothing as the result
 --run this if you have domain/class assignment error
 --get specific concept_codes for unassigned domains
-SELECT an.ancestor_concept_code,
+/*SELECT an.ancestor_concept_code,
 	an.ancestor_vocabulary_id,
 	an.descendant_concept_code,
 	an.descendant_vocabulary_id,
@@ -331,10 +331,10 @@ FROM v_domains_an an
 JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 	AND cs.vocabulary_id = an.ancestor_vocabulary_id
 	AND cs.domain_id = '-1'
-ORDER BY 1, 2, 3, 4;
+ORDER BY 1, 2, 3, 4;*/
 
 --same for unassigned classes
-SELECT an.ancestor_concept_code,
+/*SELECT an.ancestor_concept_code,
 	an.ancestor_vocabulary_id,
 	an.descendant_concept_code,
 	an.descendant_vocabulary_id,
@@ -348,7 +348,7 @@ FROM v_classes_an an
 JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 	AND cs.vocabulary_id = an.ancestor_vocabulary_id
 	AND cs.concept_class_id = '-1'
-ORDER BY 1, 2, 3, 4;
+ORDER BY 1, 2, 3, 4;*/
 
 
 --Clean up

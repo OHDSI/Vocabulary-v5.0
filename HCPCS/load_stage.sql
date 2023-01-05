@@ -1480,59 +1480,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---18. All the codes that have mapping to Drug domain should get domain_id='Drug'
-UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Drug'
-						THEN 1
-					ELSE 2
-					END
-			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'HCPCS'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.domain_id = 'Drug'
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-
-	UNION ALL
-
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Drug'
-						THEN 1
-					ELSE 2
-					END
-			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'HCPCS'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.domain_id = 'Drug'
-	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
-		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_1 = cs1.concept_code
-				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
-	) i
-WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'HCPCS';
-
---16. Update domain_id  and standard concept value for CPT4 according to mappings:
+--18. Update domain_id and standard concept value for HCPCS according to mappings:
 UPDATE concept_stage cs
 SET domain_id = i.domain_id,
 	standard_concept = NULL
@@ -1546,13 +1494,13 @@ FROM (
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Observation'
-						THEN 4
-			         WHEN 'Visit'
-			             THEN 5
+					WHEN 'Visit'
+			            THEN 4
 			         WHEN 'Provider'
-			             THEN 6
+			            THEN 5
 					WHEN 'Device'
+						THEN 6
+			        WHEN 'Observation'
 						THEN 7
 					ELSE 8
 					END
@@ -1579,13 +1527,13 @@ FROM (
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Observation'
-						THEN 4
-			         WHEN 'Visit'
-			             THEN 5
-			         WHEN 'Provider'
-			             THEN 6
+					WHEN 'Visit'
+			            THEN 4
+			        WHEN 'Provider'
+			            THEN 5
 					WHEN 'Device'
+						THEN 6
+			        WHEN 'Observation'
 						THEN 7
 					ELSE 8
 					END

@@ -14,6 +14,7 @@ Append resulting tables to ops_src_agg and modifiers_append with version year as
 
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
                                 include_deprecated_rels=> true, include_synonyms=> true);
+				
 4. Run load_stage.sql.
 
 5. Run check_stage_tables function (should retrieve NULL):

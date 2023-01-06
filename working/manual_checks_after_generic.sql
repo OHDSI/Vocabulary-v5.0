@@ -424,3 +424,29 @@ WHERE c.vocabulary_id IN (:your_vocabs)
     AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
+
+--05. 1-to-many mapping to the descendant and its ancestor
+--* We expect this check to return nothing.
+
+SELECT a.concept_id_1,
+       c.concept_code,
+       c.concept_name,
+       a.concept_id_2 as descendant_concept_id,
+      -- a.target_concept_code as descendant_concept_code,
+      -- a.target_concept_name as descendant_concept_name,
+      -- a.target_vocabulary_id as descendant_vocabulary_id,
+       b.concept_id_2 as ancestor_concept_id
+      -- b.target_concept_code as ancestor_concept_code,
+      -- b.target_concept_name as ancestor_concept_name,
+      -- b.target_vocabulary_id as ancestor_vocabulary_id
+    FROM concept_relationship a
+    JOIN concept_relationship b on a.concept_id_1 = b.concept_id_1
+    JOIN devv5.concept_ancestor ca on a.concept_id_2 = ca.descendant_concept_id
+    JOIN concept c on c.concept_id = a.concept_id_1
+         AND b.concept_id_2 = ca.ancestor_concept_id
+WHERE a.concept_id_2 != b.concept_id_2
+AND c.vocabulary_id IN (:your_vocabs)
+AND a.relationship_id = 'Maps to'
+AND a.invalid_reason IS NULL
+AND b.invalid_reason IS NULL
+;

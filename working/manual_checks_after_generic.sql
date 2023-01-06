@@ -432,13 +432,7 @@ SELECT a.concept_id_1,
        c.concept_code,
        c.concept_name,
        a.concept_id_2 as descendant_concept_id,
-      -- a.target_concept_code as descendant_concept_code,
-      -- a.target_concept_name as descendant_concept_name,
-      -- a.target_vocabulary_id as descendant_vocabulary_id,
        b.concept_id_2 as ancestor_concept_id
-      -- b.target_concept_code as ancestor_concept_code,
-      -- b.target_concept_name as ancestor_concept_name,
-      -- b.target_vocabulary_id as ancestor_vocabulary_id
     FROM concept_relationship a
     JOIN concept_relationship b on a.concept_id_1 = b.concept_id_1
     JOIN devv5.concept_ancestor ca on a.concept_id_2 = ca.descendant_concept_id

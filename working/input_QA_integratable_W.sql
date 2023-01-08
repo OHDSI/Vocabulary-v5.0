@@ -15,7 +15,16 @@
 * 
 * Authors: Christian Reich, Dmitry Dymshyts, Anna Ostropolets
 * Date: 2020
-**************************************************************************/ 
+**************************************************************************/
+
+--ds_stage: 7
+--internal_relationship_stage: 2
+--drug_concept_stage: 3
+--relationship_to_concept: 2
+--concept_synonym_stage 1
+--drug_concept_stage: 2
+--relationship_to_concept:1
+
 --this algorithm shows you concept_code and an error type related to this code
 --for ds_stage
 SELECT error_type, affected_table, COUNT(*) AS cnt

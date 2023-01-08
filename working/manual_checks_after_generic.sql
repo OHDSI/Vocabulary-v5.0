@@ -1,5 +1,14 @@
 --01. Concept changes
+
 --01.1. Concepts changed their Domain
+--In this check we manually review the changes of concept's Domain to make sure they are expected, correct and in line with the current conventions and approaches.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id, vocabulary_id fields as well as old vs new domain_id pairs. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), Domain changes may be caused, and, therefore, explained by multiple reasons, e.g.:
+-- - based on Domain of the target concept and script logic on top of that;
+-- - source hierarchy change;
+-- - manual curation of the content by the vocabulary folks;
+-- - Domain assigning script change or its unexpected behaviour.
+
 select new.concept_code,
        new.concept_name as concept_name,
        new.concept_class_id as concept_class_id,
@@ -14,6 +23,14 @@ where old.domain_id != new.domain_id
 ;
 
 --01.2. Domain of newly added concepts
+--In this check we manually review the assignment of new concept's Domain to make sure they are expected, correct and in line with the current conventions and approaches.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id, vocabulary_id fields as well as domain_id. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), Domain assignment logic may be different, e.g.:
+-- - based on Domain of the target concept and script logic on top of that;
+-- - source hierarchy;
+-- - manual curation of the content by the vocabulary folks;
+-- - hardcoded.
+
 SELECT c1.concept_code,
        c1.concept_name,
        c1.concept_class_id,
@@ -27,6 +44,12 @@ WHERE c2.vocabulary_id IS NULL
 ;
 
 --01.3. Concepts changed their names
+--In this check we manually review the name change of the concepts. Similarity rate to be used for prioritizing more significant changes and, depending on the volume of content, for defining a review threshold.
+--Serious changes in concept semantics are not allowed and may indicate the code reuse by the source.
+--Structural changes may be a reason to reconsider the source name processing.
+--Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
+--This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
+
 SELECT c.concept_code,
        c.vocabulary_id,
        c2.concept_name as old_name,
@@ -40,8 +63,13 @@ WHERE c.vocabulary_id IN (:your_vocabs)
 ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 ;
 
-
 --01.4. Concepts changed their synonyms
+--In this check we manually review the synonym change of the concepts. Similarity rate to be used for prioritizing more significant changes and, depending on the volume of content, for defining a review threshold.
+--Serious changes in synonym semantics are not allowed and may indicate the code reuse by the source.
+--Structural changes or significant changes in the content volume (synonyms of additional language, sort or property) may be a reason to reconsider the synonyms processing.
+--Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
+--This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
+
 with old_syn as (
 
 SELECT c.concept_code,
@@ -90,9 +118,17 @@ WHERE o.old_synonym != n.new_synonym OR n.new_synonym IS NULL
 ORDER BY devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
 ;
 
-
 --02. Mapping of concepts
+
 --02.1. looking at new concepts and their mapping -- 'Maps to' absent
+--In this check we manually review new concepts that don't have "Maps to" links to the Standard equivalent concepts.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), vocabulary importance and its maturity level, effort and resources available, result should be critically analyzed and may represent multiple scenarios, e.g.:
+-- - concepts of some concept classes doesn't require "Maps to" links because the targets are not set as Standard concepts by design (brand names, drug forms, etc.);
+-- - new NDC or vaccine concepts are not yet represented in the RxNorm/CVX vocabulary, and, therefore, can't be mapped;
+-- - OMOP-generated invalidated concepts are not used as the source concepts, and, therefore, replacement links are not supported;
+-- - concepts that were wrongly designed by the author (e.g. SNOMED) can't be explicitly mapped to the Standard target.
+
 select a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
        a.vocabulary_id as vocabulary_id_source,
@@ -109,6 +145,15 @@ and c.concept_id is null and b.concept_id is null
 ;
 
 --02.2. looking at new concepts and their mapping -- 'Maps to', 'Maps to value' present
+--In this check we manually review new concepts that have "Maps to", "Maps to value" links to the Standard equivalent concepts or themselves.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), result should be critically analyzed and may represent multiple scenarios, e.g.:
+-- - new SNOMED "Clinical finding" concepts are mapped to themselves;
+-- - new unit concepts of any vocabulary are mapped to 'UCUM' vocabulary;
+-- - new Devices of any source drug vocabulary are mapped to themselves, some of them are also mapped to the oxygen Ingredient;
+-- - new HCPCS/CPT4 COVID-19 vaccines are mapped to CVX or RxNorm.
+--In this check we are not aiming on reviewing the semantics or quality of mapping. The completeness of content (versus 02.1 check) and alignment of the source use cases and mapping scenarios is the subject matter in this check.
+
 select a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
        a.vocabulary_id as vocabulary_id_source,
@@ -135,7 +180,21 @@ order by a.concept_code
 ;
 
 --02.3. looking at new concepts and their ancestry -- 'Is a' absent
-select a.concept_code, a.concept_name, a.concept_class_id, a.domain_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+--In this check we manually review new concepts that don't have "Is a" hierarchical links to the parental concepts.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), vocabulary importance and its maturity level, effort and resources available, result should be critically analyzed and may represent multiple scenarios, e.g.:
+-- - Standard or non-Standard concepts of the source vocabulary that doesn't provide hierarchical links, and we don't build them (source drug vocabularies);
+-- - concepts of the concept classes that can't be hierarchically linked (units, methods, scales);
+-- - top level concepts.
+
+select a.concept_code as concept_code_source,
+       a.concept_name as concept_name_source,
+       a.vocabulary_id as vocabulary_id_source,
+       a.concept_class_id as concept_class_id_source,
+       a.domain_id as domain_id_source,
+       b.concept_name as concept_name_target,
+       b.concept_class_id as concept_class_id_target,
+       b.vocabulary_id as vocabulary_id_target
 from concept a
 left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
 left join concept b on b.concept_id = r.concept_id_2
@@ -145,7 +204,21 @@ and c.concept_id is null and b.concept_id is null
 ;
 
 --02.4. looking at new concepts and their ancestry -- 'Is a' present
-select a.concept_code, a.concept_name, a.concept_class_id, a.domain_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+--In this check we manually review new concepts that have "Is a" hierarchical links to the parental concepts.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), result should be critically analyzed and may represent multiple scenarios, e.g.:
+--TODO: add scenarios
+--In this check we are not aiming on reviewing the semantics or quality of relationships. The completeness of content (versus 02.3 check) and alignment of the source use cases and mapping scenarios is the subject matter in this check.
+
+
+select a.concept_code as concept_code_source,
+       a.concept_name as concept_name_source,
+       a.vocabulary_id as vocabulary_id_source,
+       a.concept_class_id as concept_class_id_source,
+       a.domain_id as domain_id_source,
+       b.concept_name as concept_name_target,
+       b.concept_class_id as concept_class_id_target,
+       b.vocabulary_id as vocabulary_id_target
 from concept a
 join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
 join concept  b on b.concept_id = r.concept_id_2
@@ -154,8 +227,15 @@ where a.vocabulary_id IN (:your_vocabs)
 and c.concept_id is null
 ;
 
---02.5. concepts changed their mapping ('Maps to'), this includes 2 scenarios: mapping changed; mapping present in one version, absent in another;
---to detect the absent mappings cases, sort by the respective code_agg to get the NULL values first.
+--02.5. concepts changed their mapping ('Maps to', 'Maps to value')
+--In this check we manually review the changes of concept's mapping to make sure they are expected, correct and in line with the current conventions and approaches.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
+--This occurrence includes 2 possible scenarios: (i) mapping changed; (ii) mapping present in one version, absent in another. To review the absent mappings cases, sort by the respective code_agg to get the NULL values first.
+--In this check we review the actual concept-level content and mapping quality, and for prioritization purposes more artifacts can be found in the following scenarios:
+-- - mapping presented before, but is missing now;
+-- - multiple 'Maps to' and/or 'Maps to value' links (sort by relationship_id to find such cases);
+-- - frequent target concept (sort by new_code_agg or old_code_agg fields to find such cases).
+
 with new_map as (
 select a.concept_id,
        a.vocabulary_id,
@@ -208,8 +288,15 @@ on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.co
 order by a.concept_code
 ;
 
---02.6. Concepts changed their ancestry ('Is a'), this includes 2 scenarios: Ancestor(s) changed; ancestor(s) present in one version, absent in another;
---to detect the absent ancestry cases, sort by the respective code_agg to get the NULL values first.
+--02.6. Concepts changed their ancestry ('Is a')
+--In this check we manually review the changes of concept's ancestry to make sure they are expected, correct and in line with the current conventions and approaches.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id, vocabulary_id fields. Then the content to be reviewed separately within the groups.
+--This occurrence includes 2 possible scenarios: (i) ancestor(s) changed; (ii) ancestor(s) present in one version, absent in another. To review the absent ancestry cases, sort by the respective code_agg to get the NULL values first.
+--In this check we review the actual concept-level content, and for prioritization purposes more artifacts can be found in the following scenarios:
+-- - ancestor(s) presented before, but is missing now;
+-- - multiple 'Is a' links (sort by relationship_id to find such cases);
+-- - frequent target concept (sort by new_relat_agg or old_relat_agg fields to find such cases).
+
 with new_map as (
 select a.concept_id,
        a.vocabulary_id,
@@ -261,6 +348,12 @@ order by a.concept_code
 ;
 
 --02.7. Concepts with 1-to-many mapping -- multiple 'Maps to' present
+--In this check we manually review the concepts mapped to multiple Standard targets to make sure they are expected, correct and in line with the current conventions and approaches.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case) result should be critically analyzed and may represent multiple scenarios, e.g.:
+-- - source complex (e.g. procedure) concepts are split up and mapped over to multiple targets;
+-- - oxygen-containing devices are mapped to itself and oxygen ingredient.
+
 select a.vocabulary_id,
        a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
@@ -297,6 +390,13 @@ where a.vocabulary_id IN (:your_vocabs)
 ;
 
 --02.8. Concepts became non-Standard with no mapping replacement
+--In this check we manually review the changes of concept's Standard status to non-Standard where 'Maps to' mapping replacement link is missing to make sure changes are expected, correct and in line with the current conventions and approaches.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--Depending on the logical group (use case), vocabulary importance and its maturity level, effort and resources available, result should be critically analyzed and may represent multiple scenarios, e.g.:
+-- - vocabulary authors deprecated previously Standard concepts without replacement mapping. [Zombie](https://github.com/OHDSI/Vocabulary-v5.0/wiki/Standard-but-deprecated-(by-the-source)-%E2%80%9Czombie%E2%80%9D-concepts) concepts may be considered;
+-- - concepts that were previously wrongly designed by the author (e.g. SNOMED) are deprecated now and can't be explicitly mapped to the Standard target;
+-- - scripts unexpected behavior.
+
 select a.concept_code,
        a.concept_name,
        a.concept_class_id,
@@ -317,7 +417,9 @@ where a.vocabulary_id IN (:your_vocabs)
     )
 ;
 
---02.9. Concepts are presented in CRM with "Maps to" link, but end up with no valid "Maps to"
+--02.9. Concepts are presented in CRM with "Maps to" link, but end up with no valid "Maps to" in basic tables
+-- This check controls that concepts that are manually mapped withing the concept_relationship_manual table have Standard target concepts, and links are properly processed by the vocabulary machinery.
+
 SELECT *
 FROM concept c
 WHERE c.vocabulary_id IN (:your_vocabs)
@@ -334,6 +436,8 @@ AND NOT EXISTS (SELECT 1
 ;
 
 --02.10. Mapping of vaccines
+-- This check retrieves the mapping of vaccine concepts to Standard targets.
+-- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
 --move to the project-specific QA folder and adjust exclusion criteria in there
 --adjust inclusion criteria here if needed: https://github.com/OHDSI/Vocabulary-v5.0/blob/master/RxNorm_E/manual_work/specific_qa/vaccine%20selection.sql
 with vaccine_exclusion as (SELECT
@@ -359,7 +463,10 @@ where c.vocabulary_id IN (:your_vocabs)
         (b.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and b.concept_name !~* (select vaccine_exclusion from vaccine_exclusion)))
 ;
 
---02.11. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
+--02.11. Mapping of COVID-19 concepts
+-- This check retrieves the mapping of COVID-19 concepts to Standard targets.
+-- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
+-- Please adjust inclusion/exclusion in the master branch if found something)
 with covid_inclusion as (SELECT
         'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
     ),
@@ -390,6 +497,8 @@ where c.vocabulary_id IN (:your_vocabs)
 ;
 
 --03. Check we don't add duplicative concepts
+-- This check retrieves the list of duplicative concepts with the same names and the flag indicator whether the concepts are new.
+-- This may be indication on the source wrong processing or duplication of content in it, and has to be further investigated.
 SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END as when_added,
        c.concept_name,
        string_agg (DISTINCT c2.concept_id::text, '-') as concept_id
@@ -404,6 +513,9 @@ ORDER BY when_added, concept_name
 ;
 
 --04. Concepts have replacement link, but miss "Maps to" link
+-- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
+--TODO: at the moment it's not resolved in SNOMED and some other places and requires additional attention. Review p.5 of "What's New" chapter [here](https://github.com/OHDSI/Vocabulary-v5.0/releases/tag/v20220829_1661776786)
+
 SELECT DISTINCT cr.concept_id_1, cr.relationship_id, cc.standard_concept
 FROM concept_relationship cr
 JOIN concept c

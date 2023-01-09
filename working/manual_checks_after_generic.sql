@@ -443,6 +443,9 @@ AND NOT EXISTS (SELECT 1
 with vaccine_exclusion as (SELECT
     'placeholder|placeholder' as vaccine_exclusion
     )
+,
+     vaccine_inclusion as (
+         SELECT  unnest(regexp_split_to_array(vaccine_inclusion,  '\|(?![^(]*\))')) as mask from  dev_rxe.vaccine_inclusion)
 
 select distinct c.vocabulary_id,
                 c.concept_name,
@@ -452,15 +455,28 @@ select distinct c.vocabulary_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.concept_class_id END as target_concept_class_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
-                    ELSE b.vocabulary_id END as target_vocabulary_id
+                    ELSE b.vocabulary_id END as target_vocabulary_id,
+                array_agg(DISTINCT coalesce(vi.mask,vi2.mask )) as mask_array
 from concept c
 left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
 left join concept b on b.concept_id = cr.concept_id_2
+left join vaccine_inclusion vi on c.concept_name ~* vi.mask
+left join vaccine_inclusion vi2 on b.concept_name ~* vi2.mask
 where c.vocabulary_id IN (:your_vocabs)
-
     and ((c.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and c.concept_name !~* (select vaccine_exclusion from vaccine_exclusion))
         or
         (b.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and b.concept_name !~* (select vaccine_exclusion from vaccine_exclusion)))
+
+GROUP BY
+c.vocabulary_id,
+                c.concept_name,
+                c.concept_class_id,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.concept_name END ,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.concept_class_id END ,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.vocabulary_id END
 ;
 
 --02.11. Mapping of COVID-19 concepts

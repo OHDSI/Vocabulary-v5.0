@@ -425,7 +425,7 @@ WHERE c.vocabulary_id IN (:your_vocabs)
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
 
--- 05. Mapping of visit concepts
+-- 06. Mapping of visit concepts
 --In this check we manually review the mapping of visits to the 'Visit' domain.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag and flag_visit_should_be. Then the content to be reviewed separately within the groups.
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.

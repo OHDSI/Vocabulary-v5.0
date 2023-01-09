@@ -23,10 +23,12 @@ Append resulting tables to ops_src_agg and modifiers_append with version year as
 `
 6. Run generic_update:
 
-`DO $_$
+```sql
+DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
-END $_$;`
+END $_$;
+```
 
 7. Run basic tables check (should retrieve NULL):
 

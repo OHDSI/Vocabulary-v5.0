@@ -36,16 +36,18 @@ END $_$;`
 
 Repeat steps 3-8.
 
-9. Clear cache:
+9. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+
+10. Clear cache:
 
 `SELECT * FROM qa_tests.purge_cache();
 `
-10. Run scripts to get summary, and interpret the results:
+11. Run scripts to get summary, and interpret the results:
 
 `SELECT DISTINCT * FROM qa_tests.get_summary('concept');`
 `SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');`
 
-11. Run scripts to collect statistics, and interpret the results:
+12. Run scripts to collect statistics, and interpret the results:
 
 `SELECT DISTINCT * FROM qa_tests.get_domain_changes();`
 `SELECT DISTINCT * FROM qa_tests.get_newly_concepts();`
@@ -53,11 +55,7 @@ Repeat steps 3-8.
 `SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();`
 `SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();`
 
-12. Run manual_checks_after_generic.sql, and interpret the results.
-
-13. Run project_specific_manual_checks_after_generic.sql, and interpret the results.
-
-14. If no problems, enjoy!
+13. If no problems, enjoy!
 
 Manual tables directory permalink:
 https://drive.google.com/drive/u/1/folders/1P2dJ9PDMDuu03K-EqzAR8QgmLj72kEB0

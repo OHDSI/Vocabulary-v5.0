@@ -436,7 +436,7 @@ WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
     telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') as telehealth),
-    other_visit AS (SELECT ('clinic(?!(al))|center|institution|encounter|rehab|hospice|nurs') AS other_visit),
+    other_visit AS (SELECT ('clinic(?!(al))|center|(\W)facility|visit|institution|encounter|rehab|hospice|nurs') AS other_visit),
 
 flag AS (SELECT DISTINCT c.concept_code,
                 c.concept_name,

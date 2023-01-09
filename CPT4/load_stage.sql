@@ -611,10 +611,9 @@ WHERE (
 		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
 		);
 
---17. Update domain_id and standard concept value for CPT4 according to mappings
+--17. Update domain_id value for CPT4 according to mappings
 UPDATE concept_stage cs
-SET domain_id = i.domain_id,
-	standard_concept = NULL
+SET domain_id = i.domain_id
 FROM (
 	SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
@@ -690,5 +689,25 @@ FROM (
 			)
 	) i
 WHERE i.concept_code = cs.concept_code;
+
+--18. All concepts having mappings should be NON-standard
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage r,
+			concept c2
+		WHERE r.concept_code_1 = cs.concept_code
+			AND r.vocabulary_id_1 = cs.vocabulary_id
+			AND r.concept_code_2 = c2.concept_code
+			AND r.vocabulary_id_2 = c2.vocabulary_id
+			AND r.invalid_reason IS NULL
+			AND r.relationship_id = 'Maps to'
+			AND NOT (
+				r.concept_code_1 = r.concept_code_2
+				AND r.vocabulary_id_1 = r.vocabulary_id_2
+				) --exclude mappings to self
+		)
+	AND cs.standard_concept IS NOT NULL;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

@@ -11,16 +11,18 @@ Sequence of actions:
 Append resulting tables to ops_src_agg and modifiers_append with version year as last field.
 
 3. Run FastRecreate:
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
+                                include_deprecated_rels=> true, include_synonyms=> true);
+```
 
-`SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
-                                include_deprecated_rels=> true, include_synonyms=> true);`
-				
 4. Run load_stage.sql.
 
 5. Run check_stage_tables function (should retrieve NULL):
 
-`SELECT * FROM qa_tests.check_stage_tables();
-`
+```sql
+SELECT * FROM qa_tests.check_stage_tables();
+```
 6. Run generic_update:
 
 ```sql
@@ -31,9 +33,9 @@ END $_$;
 ```
 
 7. Run basic tables check (should retrieve NULL):
-
-`SELECT * FROM qa_tests.get_checks();
-`
+```sql
+SELECT * FROM qa_tests.get_checks();
+```
 8. Perform manual work described in the readme.md file in the 'manual_work' folder.
 
 Repeat steps 3-8.
@@ -42,20 +44,35 @@ Repeat steps 3-8.
 
 10. Clear cache:
 
-`SELECT * FROM qa_tests.purge_cache();
-`
+```sql
+SELECT * FROM qa_tests.purge_cache();
+```
 11. Run scripts to get summary, and interpret the results:
 
-`SELECT DISTINCT * FROM qa_tests.get_summary('concept');`
-`SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');`
+```sql
+SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+```
+```sql
+SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
+```
 
 12. Run scripts to collect statistics, and interpret the results:
 
-`SELECT DISTINCT * FROM qa_tests.get_domain_changes();`
-`SELECT DISTINCT * FROM qa_tests.get_newly_concepts();`
-`SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();`
-`SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();`
-`SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();`
+```sql
+SELECT DISTINCT * FROM qa_tests.get_domain_changes();
+```
+```sql
+SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+```
+```sql
+SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+```
+```sql
+SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+```
+```sql
+SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+```
 
 13. If no problems, enjoy!
 

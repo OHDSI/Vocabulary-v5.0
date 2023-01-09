@@ -510,7 +510,7 @@ SELECT CASE WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_conc
             WHEN ca_old.descendant_concept_id IS NULL     AND ca.descendant_concept_id IS NOT NULL  THEN 'current'
                 END AS problem_schema,
        LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
-    a.concept_id_1,
+       a.concept_id_1,
        c.concept_code,
        c.concept_name,
        a.concept_id_2 as descendant_concept_id,
@@ -533,8 +533,11 @@ LEFT JOIN concept c_des
 LEFT JOIN concept c_anc
     ON b.concept_id_2 = c_anc.concept_id
 WHERE a.concept_id_2 != b.concept_id_2
+    AND a.concept_id_1 != a.concept_id_2
+    AND b.concept_id_1 != b.concept_id_2
     AND c.vocabulary_id IN (:your_vocabs)
     AND a.relationship_id = 'Maps to'
+    AND b.relationship_id = 'Maps to'
     AND a.invalid_reason IS NULL
     AND b.invalid_reason IS NULL
     AND (ca_old.descendant_concept_id IS NOT NULL OR ca.descendant_concept_id IS NOT NULL)

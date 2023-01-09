@@ -431,7 +431,7 @@ ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
 WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_visit),
     outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance))|office(?!(r))') as outpatient_visit),
-    ambulance_visit AS (SELECT ('ambulance|transport') AS ambulance_visit),
+    ambulance_visit AS (SELECT ('ambulance|transport(?!(er))') AS ambulance_visit),
     emergency_room_visit AS (SELECT ('emerg|(\W)ER(\W)') AS emergency_room_visit),
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h))') AS inpatient_visit),
@@ -466,7 +466,6 @@ flag AS (SELECT DISTINCT c.concept_code,
                                   WHEN c.concept_name ~* (select other_visit from other_visit)
                                         THEN 'other visit'
                                   END AS flag_visit_should_be
-
 FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
@@ -476,7 +475,7 @@ AND relationship_id = 'Maps to'
 
 SELECT * FROM flag WHERE flag_visit_should_be IS NOT NULL
 
-UNION
+UNION ALL
 
 SELECT DISTINCT c.concept_code,
                 c.concept_name,
@@ -490,7 +489,8 @@ FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-AND b.domain_id = 'Visit'
+  --and b.domain_id = 'Visit'
+AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
 
 ORDER BY flag,
     flag_visit_should_be

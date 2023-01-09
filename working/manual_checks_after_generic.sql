@@ -434,9 +434,9 @@ WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_
     ambulance_visit AS (SELECT ('ambulance|transport(?!(er))') AS ambulance_visit),
     emergency_room_visit AS (SELECT ('emerg|(\W)ER(\W)') AS emergency_room_visit),
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
-    inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h))') AS inpatient_visit),
+    inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
     telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') as telehealth),
-    other_visit AS (SELECT ('clinic(?!(al))|center|visit|service|srv|facility|institution|consultation|encounter|rehab|hospice|nurs') AS other_visit),
+    other_visit AS (SELECT ('clinic(?!(al))|center|institution|encounter|rehab|hospice|nurs') AS other_visit),
 
 flag AS (SELECT DISTINCT c.concept_code,
                 c.concept_name,
@@ -445,7 +445,7 @@ flag AS (SELECT DISTINCT c.concept_code,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.concept_name END as target_concept_name,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
-                    ELSE b.concept_name END as target_vocabulary_id,
+                    ELSE b.vocabulary_id END as target_vocabulary_id,
                 CASE WHEN b.domain_id != 'Visit' THEN 'incorrect mapping'
                     WHEN b.domain_id = 'Visit' THEN 'review mapping to visit'
                     END AS flag,
@@ -471,13 +471,9 @@ LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relation
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
 AND relationship_id = 'Maps to'
-)
+),
 
-SELECT * FROM flag WHERE flag_visit_should_be IS NOT NULL
-
-UNION ALL
-
-SELECT DISTINCT c.concept_code,
+correct_mapping AS (SELECT DISTINCT c.concept_code,
                 c.concept_name,
                 c.vocabulary_id,
                 b.concept_id AS target_concept_id,
@@ -489,8 +485,16 @@ FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-  --and b.domain_id = 'Visit'
-AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
+and b.domain_id = 'Visit'
+--AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
+)
+
+SELECT * FROM correct_mapping
+
+UNION ALL
+
+SELECT * FROM flag
+         WHERE flag_visit_should_be IS NOT NULL
 
 ORDER BY flag,
     flag_visit_should_be

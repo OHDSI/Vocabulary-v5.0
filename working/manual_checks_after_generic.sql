@@ -476,7 +476,7 @@ AND relationship_id = 'Maps to'
 
 SELECT * FROM flag WHERE flag_visit_should_be IS NOT NULL
 
-UNION ALL
+UNION
 
 SELECT DISTINCT c.concept_code,
                 c.concept_name,

@@ -426,15 +426,16 @@ ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
 
 -- 05. Mapping of visit concepts
--- we expect this check to return concepts that could be mapped to 'Visit' domain with the potential target concept mentioned under "flag_visit_should_be". You should review them and fix your mapping respectively
--- below concepts mapped to 'Visit' domain are retrieved. You should review their mapping and fix it as needed.
-WITH home_visit AS (SELECT ('home(?!(opath))|domiciliary') as home_visit),
+--In this check we manually review the mapping of visits to the 'Visit' domain.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag and flag_visit_should_be. Then the content to be reviewed separately within the groups.
+-- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
+WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_visit),
     outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance))|office(?!(r))') as outpatient_visit),
     ambulance_visit AS (SELECT ('ambulance|transport') AS ambulance_visit),
     emergency_room_visit AS (SELECT ('emerg|(\W)ER(\W)') AS emergency_room_visit),
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h))') AS inpatient_visit),
-    telehealth AS (SELECT ('(?!(pla))tele(?!(t))|remote|video') as telehealth),
+    telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') as telehealth),
     other_visit AS (SELECT ('clinic(?!(al))|center|visit|service|srv|facility|institution|consultation|encounter|rehab|hospice|nurs') AS other_visit),
 
 -- query for a check QA
@@ -443,6 +444,7 @@ WITH home_visit AS (SELECT ('home(?!(opath))|domiciliary') as home_visit),
                               target_concept_id,
                               c.concept_name,
                               target_vocabulary_id,
+                            'incorrect mapping' AS flag,
                               CASE WHEN source_code_description ~* (select home_visit from home_visit) AND
                                        target_concept_id != '581476' THEN 'home visit'
                                   WHEN source_code_description ~* (select outpatient_visit from outpatient_visit) AND
@@ -467,19 +469,21 @@ WHERE c.domain_id != 'Visit')
 SELECT * FROM flag WHERE flag_visit_should_be IS NOT NULL
 
 
-UNION ALL
+UNION
 
 SELECT DISTINCT source_code_description,
                               source_vocabulary_id,
                               target_concept_id,
                               c.concept_name,
                               target_vocabulary_id,
+                              'mapped to visit domain' AS flag,
                               NULL AS flag_visit_should_be
 FROM dev_etl.all_projects_mapping m
 JOIN concept c ON c.concept_id = m.target_concept_id
 WHERE c.domain_id = 'Visit'
 
-ORDER BY flag_visit_should_be
+ORDER BY flag,
+    flag_visit_should_be
 ;
  */
 
@@ -491,6 +495,9 @@ flag AS (SELECT DISTINCT c.concept_code,
                     ELSE b.concept_name END as target_concept_name,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.concept_name END as target_vocabulary_id,
+                CASE WHEN b.domain_id != 'Visit' THEN 'incorrect mapping'
+                    WHEN b.domain_id = 'Visit' THEN 'review mapping to visit'
+                    END AS flag,
                               CASE WHEN c.concept_name ~* (select home_visit from home_visit) AND
                                        b.concept_id != '581476' THEN 'home visit'
                                   WHEN c.concept_name ~* (select outpatient_visit from outpatient_visit) AND
@@ -508,11 +515,13 @@ flag AS (SELECT DISTINCT c.concept_code,
                                   WHEN c.concept_name ~* (select other_visit from other_visit)
                                         THEN 'other visit'
                                   END AS flag_visit_should_be
+
 FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-AND relationship_id = 'Maps to')
+AND relationship_id = 'Maps to'
+)
 
 SELECT * FROM flag WHERE flag_visit_should_be IS NOT NULL
 
@@ -524,6 +533,7 @@ SELECT DISTINCT c.concept_code,
                 b.concept_id AS target_concept_id,
                 b.concept_name AS target_concept_name,
                 b.vocabulary_id AS target_vocabulary_id,
+                'review mapping to visit' AS flag,
                 NULL AS flag_visit_should_be
 FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
@@ -531,5 +541,6 @@ LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
 AND b.domain_id = 'Visit'
 
-ORDER BY flag_visit_should_be
+ORDER BY flag,
+    flag_visit_should_be
 ;

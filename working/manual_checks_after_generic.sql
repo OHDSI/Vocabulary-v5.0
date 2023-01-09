@@ -484,7 +484,7 @@ SELECT DISTINCT c.concept_code,
                 b.concept_id AS target_concept_id,
                 b.concept_name AS target_concept_name,
                 b.vocabulary_id AS target_vocabulary_id,
-                'review mapping to visit' AS flag,
+                'correct mapping' AS flag,
                 NULL AS flag_visit_should_be
 FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL

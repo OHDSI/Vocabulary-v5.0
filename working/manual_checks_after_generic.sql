@@ -438,55 +438,6 @@ WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_
     telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') as telehealth),
     other_visit AS (SELECT ('clinic(?!(al))|center|visit|service|srv|facility|institution|consultation|encounter|rehab|hospice|nurs') AS other_visit),
 
--- query for a check QA
-/*flag AS (SELECT DISTINCT source_code_description,
-                              source_vocabulary_id,
-                              target_concept_id,
-                              c.concept_name,
-                              target_vocabulary_id,
-                            'incorrect mapping' AS flag,
-                              CASE WHEN source_code_description ~* (select home_visit from home_visit) AND
-                                       target_concept_id != '581476' THEN 'home visit'
-                                  WHEN source_code_description ~* (select outpatient_visit from outpatient_visit) AND
-                                       target_concept_id != '9202' THEN 'outpatient visit'
-                                  WHEN source_code_description ~* (select ambulance_visit from ambulance_visit) AND
-                                       target_concept_id != '581478' THEN 'ambulance visit'
-                                  WHEN source_code_description ~* (select emergency_room_visit from emergency_room_visit) AND
-                                       target_concept_id != '9203' THEN 'emergency room visit'
-                                  WHEN source_code_description ~* (select pharmacy_visit from pharmacy_visit) AND
-                                       target_concept_id != '581458' THEN 'pharmacy visit'
-                                  WHEN source_code_description ~* (select inpatient_visit from inpatient_visit) AND
-                                       target_concept_id != '9201' THEN 'inpatient visit'
-                                  WHEN source_code_description ~* (select telehealth from telehealth) AND
-                                       target_concept_id != '5083' THEN 'telehealth'
-                                  WHEN source_code_description ~* (select other_visit from other_visit)
-                                        THEN 'other visit'
-                                  END AS flag_visit_should_be
-FROM dev_etl.all_projects_mapping m
-JOIN concept c ON c.concept_id = m.target_concept_id
-WHERE c.domain_id != 'Visit')
-
-SELECT * FROM flag WHERE flag_visit_should_be IS NOT NULL
-
-
-UNION
-
-SELECT DISTINCT source_code_description,
-                              source_vocabulary_id,
-                              target_concept_id,
-                              c.concept_name,
-                              target_vocabulary_id,
-                              'mapped to visit domain' AS flag,
-                              NULL AS flag_visit_should_be
-FROM dev_etl.all_projects_mapping m
-JOIN concept c ON c.concept_id = m.target_concept_id
-WHERE c.domain_id = 'Visit'
-
-ORDER BY flag,
-    flag_visit_should_be
-;
- */
-
 flag AS (SELECT DISTINCT c.concept_code,
                 c.concept_name,
                 c.vocabulary_id,

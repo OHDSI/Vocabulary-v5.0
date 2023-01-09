@@ -496,6 +496,51 @@ where c.vocabulary_id IN (:your_vocabs)
         (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
 ;
 
+--02.12. 1-to-many mapping to the descendant and its ancestor
+--We expect this check to return nothing because in most of the cases such mapping is not consistent since any concept implies the semantics of its every ancestor.
+--In some cases it may be consistent and done by the purpose:
+-- - if the concept implies 2 or more different diseases, and you don't just split up the source concept into the pieces;
+-- - if you want to emphasis some aspects that are not follow from the hierarchy naturally;
+-- - if the hierarchy of affected concepts is wrong.
+-- problem_schema field reflects the schema in which the problem occurs (devv5, current or both). If you expect concept_ancestor changes in your development process, please run concept_ancestor builder appropriately.
+-- Use valid_start_date field to prioritize the current mappings under the old ones.
+
+SELECT CASE WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NOT NULL  THEN 'both'
+            WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NULL      THEN 'devv5'
+            WHEN ca_old.descendant_concept_id IS NULL     AND ca.descendant_concept_id IS NOT NULL  THEN 'current'
+                END AS problem_schema,
+       LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
+    a.concept_id_1,
+       c.concept_code,
+       c.concept_name,
+       a.concept_id_2 as descendant_concept_id,
+       b.concept_id_2 as ancestor_concept_id,
+       c_des.concept_name as descendant_concept_name,
+       c_anc.concept_name as ancestor_concept_name
+FROM concept_relationship a
+JOIN concept_relationship b
+    ON a.concept_id_1 = b.concept_id_1
+JOIN concept c
+    ON c.concept_id = a.concept_id_1
+LEFT JOIN devv5.concept_ancestor ca_old
+    ON a.concept_id_2 = ca_old.descendant_concept_id
+        AND b.concept_id_2 = ca_old.ancestor_concept_id
+LEFT JOIN concept_ancestor ca
+    ON a.concept_id_2 = ca.descendant_concept_id
+        AND b.concept_id_2 = ca.ancestor_concept_id
+LEFT JOIN concept c_des
+    ON a.concept_id_2 = c_des.concept_id
+LEFT JOIN concept c_anc
+    ON b.concept_id_2 = c_anc.concept_id
+WHERE a.concept_id_2 != b.concept_id_2
+    AND c.vocabulary_id IN (:your_vocabs)
+    AND a.relationship_id = 'Maps to'
+    AND a.invalid_reason IS NULL
+    AND b.invalid_reason IS NULL
+    AND (ca_old.descendant_concept_id IS NOT NULL OR ca.descendant_concept_id IS NOT NULL)
+ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC
+;
+
 --03. Check we don't add duplicative concepts
 -- This check retrieves the list of duplicative concepts with the same names and the flag indicator whether the concepts are new.
 -- This may be indication on the source wrong processing or duplication of content in it, and has to be further investigated.

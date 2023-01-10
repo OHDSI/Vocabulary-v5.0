@@ -624,14 +624,14 @@ FROM (
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Observation'
-						THEN 4
 					WHEN 'Device'
-						THEN 5
+						THEN 4
 					WHEN 'Visit'
-			            THEN 6
+			            THEN 5
 			        WHEN 'Provider'
-			            THEN 7
+			            THEN 6
+			    WHEN 'Observation'
+						THEN 7
 					ELSE 8
 					END
 			) AS domain_id
@@ -645,8 +645,7 @@ FROM (
 		AND c2.vocabulary_id <> 'CPT4'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
-	    AND cs1.concept_code not in ('99502', '99504', '99505', '99506', '99508', '99511', '99512')
-	
+
 	UNION ALL
 	
 	SELECT DISTINCT cs1.concept_code,
@@ -658,14 +657,14 @@ FROM (
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Observation'
-						THEN 4
 					WHEN 'Device'
-						THEN 5
-			        WHEN 'Visit'
-			            THEN 6
+						THEN 4
+					WHEN 'Visit'
+			            THEN 5
 			        WHEN 'Provider'
-			            THEN 7
+			            THEN 6
+			    WHEN 'Observation'
+						THEN 7
 					ELSE 8
 					END
 			)

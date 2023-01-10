@@ -436,7 +436,7 @@ ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
 -- Please adjust inclusion/exclusion in the master branch if found something
 WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_visit),
-    outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance))|office(?!(r))') as outpatient_visit),
+    outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance|ation))|office(?!(r))') as outpatient_visit),
     ambulance_visit AS (SELECT ('ambulance|transport(?!(er))') AS ambulance_visit),
     emergency_room_visit AS (SELECT ('emerg|(\W)ER(\W)') AS emergency_room_visit),
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),

@@ -525,8 +525,8 @@ AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
 
 SELECT * FROM incorrect_mapping
          WHERE flag_visit_should_be IS NOT NULL
-             AND concept_code NOT IN (SELECT concept_code from review_mapping_to_visit)
-             AND concept_code NOT IN (SELECT concept_code FROM correct_mapping)
+             AND concept_code NOT IN (SELECT concept_code from review_mapping_to_visit) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
+             AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
 
 UNION ALL
 

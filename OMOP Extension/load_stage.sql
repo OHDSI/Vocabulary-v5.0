@@ -17,6 +17,7 @@
 * Date: 2020
 **************************************************************************/
 
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -27,7 +28,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -152,10 +153,10 @@ BEGIN
 				WHERE crs.relationship_id IN (
 					'Is a',
 					'Subsumes',
-				    'Precoord pair of',
-				    'Has precoord pair',
-				    'Contained in panel',
-				    'Panel contains'
+					'Precoord pair of',
+					'Has precoord pair',
+					'Contained in panel',
+					'Panel contains'
 					)
 				AND crs.invalid_reason IS NULL
 			)
@@ -263,14 +264,16 @@ BEGIN
 				cs_int.vocabulary_id
 				) cs_int.concept_code,
 			cs_int.vocabulary_id,
-		    CASE
-		        WHEN cs_int.concept_code IN (select concept_code_1
-		            FROM concept_relationship_manual
-		            WHERE relationship_id = 'Precoord pair of')
-		        THEN 'Precoordinated pair'
-		        WHEN cs_int.domain_id = 'Measurement'
-		               AND an.descendant_concept_class_id = 'Procedure'
-		        THEN 'Lab Test'
+			CASE 
+				WHEN cs_int.concept_code IN (
+						SELECT concept_code_1
+						FROM concept_relationship_stage
+						WHERE relationship_id = 'Precoord pair of'
+						)
+					THEN 'Precoordinated pair'
+				WHEN cs_int.domain_id = 'Measurement'
+					AND an.descendant_concept_class_id = 'Procedure'
+					THEN 'Lab Test'
 				WHEN an.approved_concept_class_array @> ARRAY_AGG(an.descendant_concept_class_id) OVER (
 						--collect all classes we have
 						PARTITION BY cs_int.concept_code,
@@ -325,7 +328,7 @@ END $$;
 		WHEN NOT an.approved_domains_array @> ARRAY [an.descendant_domain_id]
 			THEN an.descendant_domain_id
 		END AS domain_not_in_list,
-       an.descendant_domain_id,
+		an.descendant_domain_id,
 	array_to_string(an.hierarchy_path, ' -> ') AS hierarchy_path
 FROM v_domains_an an
 JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
@@ -351,15 +354,18 @@ JOIN concept_stage cs ON cs.concept_code = an.ancestor_concept_code
 ORDER BY 1, 2, 3, 4;*/
 
 
---Clean up
+--11. Clean up
 DROP TABLE omop_ext_ancestor CASCADE;
 
 --12. Workaround to drop the relationships between the vocabularies that are not affected by the SetLatestUpdate
 DELETE
-FROM concept_relationship_stage
-WHERE vocabulary_id_1 = vocabulary_id_2
-    AND vocabulary_id_1 IN ('SNOMED')
-;
+FROM concept_relationship_stage crs
+USING vocabulary v1,
+	vocabulary v2
+WHERE v1.vocabulary_id = crs.vocabulary_id_1
+	AND v2.vocabulary_id = crs.vocabulary_id_2
+	AND v1.latest_update IS NULL
+	AND v2.latest_update IS NULL;
 
 --13. "History of" / replacement mapping fix
 

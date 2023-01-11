@@ -1,6 +1,6 @@
 --insert relationship_to_concept_manual  into r_t_c which contains mappings of relationship_to_concept_to_map table created in a first part
 --insert all manual work into r_t_c, do it 1 time, if you are using this script more than 1 time
-/*insert into relationship_to_concept
+insert into relationship_to_concept
 (
 concept_code_1,
 vocabulary_id_1,
@@ -12,9 +12,10 @@ select dcs.concept_code, dcs.vocabulary_id, mt.target_concept_id, mt.precedence,
 from drug_concept_stage dcs
 join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
 where target_concept_id is not null;
-*/
+
 --delete attributes they aren't mapped to RxNorm% and which we don't want to create RxNorm Extension from
 DELETE
+SELECT *
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT concept_code
                        FROM drug_concept_stage dcs
@@ -793,6 +794,12 @@ ALTER COLUMN amount_value TYPE numeric,
 ALTER COLUMN numerator_value TYPE numeric,
   ALTER COLUMN denominator_value TYPE numeric,
       ALTER COLUMN box_size TYPE smallint;
+
+--SET PROPER value for denominators
+UPDATE ds_stage
+SET denominator_unit = NULL
+-- SELECT * FROM ds_stage
+WHERE denominator_unit =' '
 
 --Emulate LU statement
 DO $_$

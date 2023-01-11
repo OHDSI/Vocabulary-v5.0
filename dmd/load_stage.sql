@@ -5355,6 +5355,19 @@ DELETE FROM relationship_to_concept WHERE concept_code_1 NOT IN (SELECT concept_
 --Manual mapping step
 --Major part of relationships in relationship_to_concept table were created automatically
 --However, there are still missing mappings (relationships to concept) for certain attributes. Mapping is not required for attributes without links in internal_relationship_stage
+
+--Adding missing mappings from previous iterations
+INSERT INTO relationship_to_concept(concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
+SELECT dcs.concept_code, dcs.vocabulary_id, r_to_c_all.concept_id,
+       coalesce(precedence, 1),
+       conversion_factor
+FROM r_to_c_all
+JOIN drug_concept_stage dcs
+ON dcs.concept_name = r_to_c_all.concept_name
+    AND dcs.concept_class_id = r_to_c_all.concept_class_id
+WHERE dcs.concept_code NOT IN (SELECT concept_code_1 FROM relationship_to_concept);
+
+
 --Uploaded for manual mapping
 --File name: relationship_to_concept_attributes
 CREATE TABLE relationship_to_concept_attributes AS

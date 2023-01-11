@@ -784,3 +784,23 @@ SELECT  CASE
 		ELSE TRIM(concept_name) end from drug_concept_stage c where c.concept_code = x.concept_code)
 		where concept_code in (select distinct concept_code from drug_concept_stage c where c.concept_code = x.concept_code);
 		
+--SET APPROPRIATE DATA TYPES
+ALTER TABLE relationship_to_concept
+ALTER COLUMN precedence TYPE smallint,
+ALTER COLUMN conversion_factor TYPE numeric;
+ALTER TABLE ds_stage
+ALTER COLUMN amount_value TYPE numeric,
+ALTER COLUMN numerator_value TYPE numeric,
+  ALTER COLUMN denominator_value TYPE numeric,
+      ALTER COLUMN box_size TYPE smallint;
+
+--Emulate LU statement
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'GRR',
+	pVocabularyDate			=> (SELECT max(to_date(product_launch_date,'DD.MM.YYYY'))  from source  LIMIT 1),
+	pVocabularyVersion		=>  (SELECT 'GRR ' || max(to_date(product_launch_date,'DD.MM.YYYY'))::varchar from source  LIMIT 1),
+	pVocabularyDevSchema	=> 'DEV_GRR'
+);
+END $_$;

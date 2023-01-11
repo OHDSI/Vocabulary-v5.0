@@ -15,7 +15,7 @@ where target_concept_id is not null;
 
 --delete attributes they aren't mapped to RxNorm% and which we don't want to create RxNorm Extension from
 DELETE
-SELECT *
+--SELECT *
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT concept_code
                        FROM drug_concept_stage dcs

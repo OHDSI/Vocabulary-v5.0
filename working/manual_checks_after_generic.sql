@@ -492,7 +492,7 @@ GROUP BY
 --02.11. Mapping of COVID-19 concepts
 -- This check retrieves the mapping of COVID-19 concepts to Standard targets.
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
--- Please adjust inclusion/exclusion in the master branch if found something)
+-- Please adjust inclusion/exclusion in the master branch if found some flaws
 -- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings).
 
 with covid_inclusion as (SELECT
@@ -583,60 +583,19 @@ WHERE a.concept_id_2 != b.concept_id_2
 ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
          c.vocabulary_id,
          c.concept_code
-
 ;
 
---03. Check we don't add duplicative concepts
--- This check retrieves the list of duplicative concepts with the same names and the flag indicator whether the concepts are new.
--- This may be indication on the source wrong processing or duplication of content in it, and has to be further investigated.
-SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END as when_added,
-       c.concept_name,
-       string_agg (DISTINCT c2.concept_id::text, '-') as concept_id
-FROM concept c
-LEFT JOIN devv5.concept c2
-    ON c.concept_id = c2.concept_id
-WHERE c.vocabulary_id IN (:your_vocabs)
-    AND c.invalid_reason IS NULL
-GROUP BY c.concept_name
-HAVING COUNT (*) >1
-ORDER BY when_added, concept_name
-;
-
---04. Concepts have replacement link, but miss "Maps to" link
--- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
---TODO: at the moment it's not resolved in SNOMED and some other places and requires additional attention. Review p.5 of "What's New" chapter [here](https://github.com/OHDSI/Vocabulary-v5.0/releases/tag/v20220829_1661776786)
-
-SELECT DISTINCT cr.concept_id_1, cr.relationship_id, cc.standard_concept
-FROM concept_relationship cr
-JOIN concept c
-    ON c.concept_id = cr.concept_id_1
-LEFT JOIN concept cc
-    ON cc.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id IN (:your_vocabs)
-    AND EXISTS (SELECT concept_id_1
-                FROM concept_relationship cr1
-                WHERE cr1.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
-                    AND cr1.invalid_reason IS NULL
-                    AND cr1.concept_id_1 = cr.concept_id_1)
-    AND NOT EXISTS (SELECT concept_id_1
-                    FROM concept_relationship cr2
-                    WHERE cr2.relationship_id IN ('Maps to')
-                        AND cr2.invalid_reason IS NULL
-                        AND cr2.concept_id_1 = cr.concept_id_1)
-    AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
-ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
-;
-
--- 06. Mapping of visit concepts
+-- 02.13. Mapping of visit concepts
 --In this check we manually review the mapping of visits to the 'Visit' domain.
---To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag and flag_visit_should_be. Then the content to be reviewed separately within the groups.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag, flag_visit_should_be and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 -- -- Three flags are used:
 -- -- - 'incorrect mapping' - indicates the concepts that are probably visits but mapped to domains other than 'Visit';
 -- -- - 'review mapping to visit' - indicates concepts that are mapped to the 'Visit' domain but the target_concept_id differs from the reference;
--- -- - 'correct mapping' - indicates the concepts mapped to the reference target visits.
+-- -- - 'correct mapping' - indicates the concepts mapped to the expected target visits.
 -- -- The flag_visit_should_be field contains the most commonly used types of visits that could be the target for your mapping, and also flag 'other visit' that may indicate the relatively rarely used concepts in the 'Visit' domain.
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
--- Please adjust inclusion/exclusion in the master branch if found something
+-- Please adjust inclusion/exclusion in the master branch if found some flaws
+
 WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_visit),
     outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance|ation))|office(?!(r))') as outpatient_visit),
     ambulance_visit AS (SELECT ('ambulance|transport(?!(er))') AS ambulance_visit),
@@ -756,4 +715,48 @@ ORDER BY flag,
     flag_visit_should_be,
     vocabulary_id,
     concept_code
+;
+
+
+
+
+--03. Check we don't add duplicative concepts
+-- This check retrieves the list of duplicative concepts with the same names and the flag indicator whether the concepts are new.
+-- This may be indication on the source wrong processing or duplication of content in it, and has to be further investigated.
+SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END as when_added,
+       c.concept_name,
+       string_agg (DISTINCT c2.concept_id::text, '-') as concept_id
+FROM concept c
+LEFT JOIN devv5.concept c2
+    ON c.concept_id = c2.concept_id
+WHERE c.vocabulary_id IN (:your_vocabs)
+    AND c.invalid_reason IS NULL
+GROUP BY c.concept_name
+HAVING COUNT (*) >1
+ORDER BY when_added, concept_name
+;
+
+--04. Concepts have replacement link, but miss "Maps to" link
+-- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
+--TODO: at the moment it's not resolved in SNOMED and some other places and requires additional attention. Review p.5 of "What's New" chapter [here](https://github.com/OHDSI/Vocabulary-v5.0/releases/tag/v20220829_1661776786)
+
+SELECT DISTINCT cr.concept_id_1, cr.relationship_id, cc.standard_concept
+FROM concept_relationship cr
+JOIN concept c
+    ON c.concept_id = cr.concept_id_1
+LEFT JOIN concept cc
+    ON cc.concept_id = cr.concept_id_2
+WHERE c.vocabulary_id IN (:your_vocabs)
+    AND EXISTS (SELECT concept_id_1
+                FROM concept_relationship cr1
+                WHERE cr1.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+                    AND cr1.invalid_reason IS NULL
+                    AND cr1.concept_id_1 = cr.concept_id_1)
+    AND NOT EXISTS (SELECT concept_id_1
+                    FROM concept_relationship cr2
+                    WHERE cr2.relationship_id IN ('Maps to')
+                        AND cr2.invalid_reason IS NULL
+                        AND cr2.concept_id_1 = cr.concept_id_1)
+    AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;

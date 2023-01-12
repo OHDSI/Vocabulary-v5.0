@@ -64,7 +64,8 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 ;
 
 --01.4. Concepts changed their synonyms
---In this check we manually review the synonym change of the concepts. Similarity rate to be used for prioritizing more significant changes and, depending on the volume of content, for defining a review threshold.
+--In this check we manually review the synonym change of the concepts.
+--Similarity rate to be used for prioritizing more significant changes and, depending on the volume of content, for defining a review threshold. NULL similarity implies the absence of one of the synonyms.
 --Serious changes in synonym semantics are not allowed and may indicate the code reuse by the source.
 --Structural changes or significant changes in the content volume (synonyms of additional language, sort or property) may be a reason to reconsider the synonyms processing.
 --Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.

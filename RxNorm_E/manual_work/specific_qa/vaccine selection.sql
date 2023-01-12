@@ -3,7 +3,7 @@ DROP TABLE dev_rxe.vaccine_inclusion;
 CREATE TABLE dev_rxe.vaccine_inclusion AS (
 SELECT
         --general
-        'vaccine|virus|Microb|Micr(o|)org|Bacter|Booster|antigen|serum|sera|antiserum|globin|globulin|strain|antibody|conjugate|split|live|attenuate|Adjuvant|cellular|inactivate|antitoxin|toxoid|Rho|whole( |-|)cell|polysaccharide'
+        'vaccine|virus|Microb|Micr(o|)org|(?<!(anti(| |\-)))Bacter|Booster|antigen|serum|sera|antiserum|globin|globulin|strain|antibody|conjugate|split|live|attenuate|Adjuvant|cellular|inactivate|antitoxin|toxoid|Rho|whole( |-|)cell|polysaccharide'
         || '|' ||
         --vaccine abbrevations
         'DTaP|dTpa|tDPP|Tdap|MMR'

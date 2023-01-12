@@ -216,6 +216,7 @@ select a.concept_code as concept_code_source,
        a.vocabulary_id as vocabulary_id_source,
        a.concept_class_id as concept_class_id_source,
        a.domain_id as domain_id_source,
+       r.relationship_id,
        b.concept_name as concept_name_target,
        b.concept_class_id as concept_class_id_target,
        b.vocabulary_id as vocabulary_id_target
@@ -450,6 +451,7 @@ with vaccine_exclusion as (SELECT
          SELECT  unnest(regexp_split_to_array(vaccine_inclusion,  '\|(?![^(]*\))')) as mask FROM dev_rxe.vaccine_inclusion)
 
 SELECT DISTINCT array_agg(DISTINCT coalesce(vi.mask,vi2.mask )) as mask_array,
+                c.concept_code,
                 c.vocabulary_id,
                 c.concept_name,
                 c.concept_class_id,
@@ -475,7 +477,8 @@ WHERE c.vocabulary_id IN (:your_vocabs)
         (b.concept_name ~* (SELECT vaccine_inclusion FROM dev_rxe.vaccine_inclusion) AND b.concept_name !~* (SELECT vaccine_exclusion FROM vaccine_exclusion)))
 
 GROUP BY
-c.vocabulary_id,
+                c.concept_code,
+                c.vocabulary_id,
                 c.concept_name,
                 c.concept_class_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
@@ -490,6 +493,8 @@ c.vocabulary_id,
 -- This check retrieves the mapping of COVID-19 concepts to Standard targets.
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
 -- Please adjust inclusion/exclusion in the master branch if found something)
+-- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings).
+
 with covid_inclusion as (SELECT
         'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
     ),
@@ -499,7 +504,10 @@ covid_exclusion as (SELECT
     )
 
 
-select distinct c.vocabulary_id,
+select distinct
+                MAX(cr2.valid_start_date) as valid_start_date,
+                c.vocabulary_id,
+                c.concept_code,
                 c.concept_name,
                 c.concept_class_id,
                 cr.relationship_id,
@@ -508,15 +516,23 @@ select distinct c.vocabulary_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.concept_class_id END as target_concept_class_id,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.domain_id END as target_domain_id,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.vocabulary_id END as target_vocabulary_id
 from concept c
-left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id IN ('Maps to', 'Maps to value') and cr.invalid_reason is null
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ('Maps to', 'Maps to value') and cr.invalid_reason is null
 left join concept b on b.concept_id = cr.concept_id_2
+left join concept_relationship cr2 on cr2.concept_id_1 = c.concept_id and cr2.relationship_id IN ('Maps to', 'Maps to value') and cr2.invalid_reason is null
 where c.vocabulary_id IN (:your_vocabs)
 
     and ((c.concept_name ~* (select covid_inclusion from covid_inclusion) and c.concept_name !~* (select covid_exclusion from covid_exclusion))
         or
         (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
+GROUP BY 2,3,4,5,6,7,8,9,10
+ORDER BY MAX(cr2.valid_start_date) DESC,
+         c.vocabulary_id,
+         c.concept_code,
+         relationship_id
 ;
 
 --02.12. 1-to-many mapping to the descendant and its ancestor
@@ -526,14 +542,14 @@ where c.vocabulary_id IN (:your_vocabs)
 -- - if you want to emphasis some aspects that are not follow from the hierarchy naturally;
 -- - if the hierarchy of affected concepts is wrong.
 -- problem_schema field reflects the schema in which the problem occurs (devv5, current or both). If you expect concept_ancestor changes in your development process, please run concept_ancestor builder appropriately.
--- Use valid_start_date field to prioritize the current mappings under the old ones.
+-- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings)
 
 SELECT CASE WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NOT NULL  THEN 'both'
             WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NULL      THEN 'devv5'
             WHEN ca_old.descendant_concept_id IS NULL     AND ca.descendant_concept_id IS NOT NULL  THEN 'current'
                 END AS problem_schema,
        LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
-       a.concept_id_1,
+       c.vocabulary_id,
        c.concept_code,
        c.concept_name,
        a.concept_id_2 as descendant_concept_id,
@@ -564,7 +580,10 @@ WHERE a.concept_id_2 != b.concept_id_2
     AND a.invalid_reason IS NULL
     AND b.invalid_reason IS NULL
     AND (ca_old.descendant_concept_id IS NOT NULL OR ca.descendant_concept_id IS NOT NULL)
-ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC
+ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
+         c.vocabulary_id,
+         c.concept_code
+
 ;
 
 --03. Check we don't add duplicative concepts

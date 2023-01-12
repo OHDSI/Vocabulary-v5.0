@@ -512,21 +512,46 @@ WHERE c.vocabulary_id IN (:your_vocabs)
 AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
 )
 
-SELECT * FROM incorrect_mapping
-         WHERE flag_visit_should_be IS NOT NULL
+SELECT vocabulary_id,
+       concept_code,
+       concept_name,
+       flag,
+       flag_visit_should_be,
+       target_concept_id,
+       target_concept_name,
+       target_vocabulary_id
+FROM incorrect_mapping
+WHERE flag_visit_should_be IS NOT NULL
              AND concept_code NOT IN (SELECT concept_code from review_mapping_to_visit) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
              AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
 
 UNION ALL
 
-SELECT * FROM review_mapping_to_visit
+SELECT vocabulary_id,
+       concept_code,
+       concept_name,
+       flag,
+       flag_visit_should_be,
+       target_concept_id,
+       target_concept_name,
+       target_vocabulary_id
+FROM review_mapping_to_visit
         WHERE flag_visit_should_be IS NOT NULL
 
 UNION ALL
 
-SELECT * FROM correct_mapping
+SELECT vocabulary_id,
+       concept_code,
+       concept_name,
+       flag,
+       flag_visit_should_be,
+       target_concept_id,
+       target_concept_name,
+       target_vocabulary_id
+FROM correct_mapping
 
 ORDER BY flag,
     flag_visit_should_be,
+    vocabulary_id,
     concept_code
 ;

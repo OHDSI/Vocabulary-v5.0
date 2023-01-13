@@ -45,13 +45,15 @@ WHERE c2.vocabulary_id IS NULL
 
 --01.3. Concepts changed their names
 --In this check we manually review the name change of the concepts. Similarity rate to be used for prioritizing more significant changes and, depending on the volume of content, for defining a review threshold.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 --Serious changes in concept semantics are not allowed and may indicate the code reuse by the source.
 --Structural changes may be a reason to reconsider the source name processing.
 --Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
 --This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
 
-SELECT c.concept_code,
-       c.vocabulary_id,
+SELECT c.vocabulary_id,
+       c.concept_class_id,
+       c.concept_code,
        c2.concept_name as old_name,
        c.concept_name as new_name,
        devv5.similarity (c2.concept_name, c.concept_name)
@@ -438,10 +440,11 @@ AND NOT EXISTS (SELECT 1
 ;
 
 --02.10. Mapping of vaccines
--- This check retrieves the mapping of vaccine concepts to Standard targets.
--- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
+--This check retrieves the mapping of vaccine concepts to Standard targets.
+--It's highly sensitive and adjusted for the Drug vocabularies only. Other vocabularies (Conditions, Measurements, Procedure) will end up in huge number of false positive results.
+--Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
 --move to the project-specific QA folder and adjust exclusion criteria in there
---use mask_array field for prioritization
+--use mask_array field for prioritization and filtering out the false positive results
 --adjust inclusion criteria here if needed: https://github.com/OHDSI/Vocabulary-v5.0/blob/master/RxNorm_E/manual_work/specific_qa/vaccine%20selection.sql
 
 with vaccine_exclusion as (SELECT
@@ -588,6 +591,7 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 
 -- 02.13. Mapping of visit concepts
 --In this check we manually review the mapping of visits to the 'Visit' domain.
+--It's highly sensitive and adjusted for the Procedure vocabularies only. Other vocabularies (Conditions, Measurements, Drug) will end up in huge number of false positive results.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag, flag_visit_should_be and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 -- -- Three flags are used:
 -- -- - 'incorrect mapping' - indicates the concepts that are probably visits but mapped to domains other than 'Visit';
@@ -717,9 +721,6 @@ ORDER BY flag,
     vocabulary_id,
     concept_code
 ;
-
-
-
 
 --03. Check we don't add duplicative concepts
 -- This check retrieves the list of duplicative concepts with the same names and the flag indicator whether the concepts are new.

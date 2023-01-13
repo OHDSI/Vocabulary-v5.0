@@ -210,7 +210,7 @@ and c.concept_id is null and b.concept_id is null
 
 --02.4. looking at new concepts and their ancestry -- 'Is a' present
 --In this check we manually review new concepts that have "Is a" hierarchical links to the parental concepts.
---To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id, domain_id and vocabulary_id_target fields. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case), result should be critically analyzed and may represent multiple scenarios, e.g.:
 --TODO: add scenarios
 --In this check we are not aiming on reviewing the semantics or quality of relationships. The completeness of content (versus 02.3 check) and alignment of the source use cases and mapping scenarios is the subject matter in this check.

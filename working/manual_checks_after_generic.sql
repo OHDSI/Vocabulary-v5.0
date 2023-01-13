@@ -20,6 +20,7 @@ from concept new
 join devv5.concept old
     using (concept_id)
 where old.domain_id != new.domain_id
+    AND new.vocabulary_id IN (:your_vocabs)
 ;
 
 --01.2. Domain of newly added concepts
@@ -41,6 +42,7 @@ FROM concept c1
 LEFT JOIN devv5.concept c2
     ON c1.concept_id = c2.concept_id
 WHERE c2.vocabulary_id IS NULL
+    AND c1.vocabulary_id IN (:your_vocabs)
 ;
 
 --01.3. Concepts changed their names

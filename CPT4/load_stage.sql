@@ -436,13 +436,13 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---14. Update domain_id in concept_stage 
+--14. Update domain_id in concept_stage
 UPDATE concept_stage cs
 SET domain_id = t1.domain_id
 FROM (
 	SELECT DISTINCT cs.concept_code,
 		CASE -- word patterns defined according to the frequency of the occurrence in the existing domains
-			WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation'
+			WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation|endoscopy|insertion'
 				AND m2.tui NOT IN (
 					'T033',
 					'T034'
@@ -485,21 +485,50 @@ FROM (
 					AND cs.concept_name NOT ILIKE '%modifier%'
 					)
 				THEN 'Meas Value'
+		      WHEN m2.tui = 'T059'
+		        AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|' ||
+		                                      'consultation|collection|fertilization|insemination|sampling')
+		        AND cs.concept_code NOT IN ('86960',
+                                            '86965',
+                                            '86985',
+		                                    '86890',
+		                                    '86891',
+		                                    '1011136',
+		                                    '1011189',
+		                                    '1012112',
+		                                    '1012123',
+		                                    '1012127',
+                                            '1012348',
+                                            '1012534',
+                                            '1012537',
+                                            '1012546',
+                                            '1012559',
+                                            '1012564',
+                                            '1014644',
+                                            '1018504',
+                                            '1019105'
+		                                   )
+
+	        THEN 'Measurement'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|'||
 					'assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
-						cs.concept_name ~* 'documented|^patient|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
-						OR LENGTH(cs.concept_code) <= 2
-						)
+						cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
+						OR LENGTH(cs.concept_code) <= 2)
+
 					)
 				OR (
 					m2.tui = 'T093'
-					AND tty <> 'POS'
+					AND m1.tty <> 'POS'
 					)
+			    OR (m2.tui = 'T058'
+			      AND cs.concept_name ~* ('documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered')
+                   AND m1.tty != 'ETCLIN'
+			        )
 				OR (
 					m2.tui = 'T033'
-				AND cs.concept_code NOT IN (
+					AND cs.concept_code NOT IN (
 						'80346',
 						'80347',
 						'1014978',
@@ -523,7 +552,7 @@ FROM (
 			ELSE 'Procedure'
 			END AS domain_id -- preserve existing domains for all other cases
 	FROM concept_stage cs
-	LEFT JOIN concept c ON c.concept_code = cs.concept_code
+	LEFT JOIN devv5.concept c ON c.concept_code = cs.concept_code
 		AND c.vocabulary_id = 'CPT4'
 	LEFT JOIN sources.mrconso m1 ON m1.code = cs.concept_code
 		AND m1.sab IN (
@@ -533,6 +562,7 @@ FROM (
 	LEFT JOIN sources.mrsty m2 ON m2.cui = m1.cui
 	) t1
 WHERE t1.concept_code = cs.concept_code;
+
 
 --15. Add everything from the Manual tables
 --Working with manual concepts

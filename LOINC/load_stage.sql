@@ -170,7 +170,19 @@ SELECT CASE
 					'98371-8',
 					'97504-5',
 					'96749-7',
-					'98075-5'
+					'98075-5',
+				    '100218-7',
+				    '100219-5',
+				    '100220-3',
+				    '100221-1',
+				    '100222-9',
+				    '100223-7',
+				    '100282-3',
+				    '100302-9',
+				    '100878-8',
+				    '100967-9',
+				    '100875-4',
+				    '100876-2'
 					)
 				OR (long_common_name ~* 'note|summary|notification|Letter|Checklist|instructions')
 				)
@@ -411,7 +423,8 @@ UPDATE concept_stage cs
 SET domain_id = 'Procedure'
 FROM sources.loinc l
 WHERE cs.concept_code = l.loinc_num
-	AND l.class = 'RAD' --Radiology concepts
+	AND (l.class = 'RAD' --Radiology concepts
+    OR loinc_num IN ('100877-0'))
 	--Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
 	AND NOT EXISTS (
 		SELECT 1
@@ -2238,7 +2251,9 @@ SET domain_id = 'Procedure'
 WHERE cs.concept_code IN (
 		'LG85-3', --Radiology
 		'LG41849-7', --Region imaged: Lower extremity
-		'LG41814-1' --Radiology
+		'LG41814-1', --Radiology
+        'LG51408-9', --US|Breast|Guidance for cryoablation|Any Laterality
+        'LG51409-7' --MR|Kidney|Guidance for percutaneous biopsy|Any Laterality
 		);
 
 --29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups

@@ -741,11 +741,14 @@ ORDER BY when_added, concept_name
 ;
 
 --04. Concepts have replacement link, but miss "Maps to" link
---This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
---In some cases this behaviour is expected (if target concepts are not Standard by design), e.g.: HemOnc Procedures.
+-- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
 --TODO: at the moment it's not resolved in SNOMED and some other places and requires additional attention. Review p.5 of "What's New" chapter [here](https://github.com/OHDSI/Vocabulary-v5.0/releases/tag/v20220829_1661776786)
 
-SELECT DISTINCT c.vocabulary_id, cr.concept_id_1, cr.relationship_id, cc.standard_concept
+SELECT DISTINCT c.vocabulary_id,
+                c.concept_class_id,
+                cr.concept_id_1,
+                cr.relationship_id,
+                cc.standard_concept
 FROM concept_relationship cr
 JOIN concept c
     ON c.concept_id = cr.concept_id_1

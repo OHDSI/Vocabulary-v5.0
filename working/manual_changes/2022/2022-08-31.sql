@@ -36,7 +36,7 @@ BEGIN
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Current adult indication for (HemOnc)',
-	pReverse_relationship_id		=>'Curr adult ind for',
+	pReverse_relationship_id		=>'Curr adult indic for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -50,7 +50,7 @@ BEGIN
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Current pediatric indication for (HemOnc)',
-	pReverse_relationship_id		=>'Curr ped ind for',
+	pReverse_relationship_id		=>'Curr ped indic for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -64,7 +64,7 @@ BEGIN
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Historical adult indication for (HemOnc)',
-	pReverse_relationship_id		=>'Hist adult ind for',
+	pReverse_relationship_id		=>'Hist adult indic for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -120,7 +120,7 @@ BEGIN
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Historical pediatric indication for (HemOnc)',
-	pReverse_relationship_id		=>'Hist ped ind for',
+	pReverse_relationship_id		=>'Hist ped indic for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );

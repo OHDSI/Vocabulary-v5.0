@@ -32,11 +32,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Is current in adult (HemOnc)',
-	pRelationship_id			=>'Is current in adult',
+	pRelationship_id			=>'Is curr in adult',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Current adult indication for (HemOnc)',
-	pReverse_relationship_id		=>'Currnt adlt indc for',
+	pReverse_relationship_id		=>'Curr adult ind for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -46,11 +46,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Is current in pediatric (HemOnc)',
-	pRelationship_id			=>'Is current in pdtrc',
+	pRelationship_id			=>'Is curr in ped',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Current pediatric indication for (HemOnc)',
-	pReverse_relationship_id		=>'Currnt pdtrc ind for',
+	pReverse_relationship_id		=>'Curr ped ind for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -60,11 +60,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Is historical in adult (HemOnc)',
-	pRelationship_id			=>'Is hstrcl in adlt',
+	pRelationship_id			=>'Is hist in adult',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Historical adult indication for (HemOnc)',
-	pReverse_relationship_id		=>'Hstrcl adlt indc for',
+	pReverse_relationship_id		=>'Hist adult ind for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -88,11 +88,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has investigational use (HemOnc)',
-	pRelationship_id			=>'Has invstg use',
+	pRelationship_id			=>'Has investig use',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Investigational use for (HemOnc)',
-	pReverse_relationship_id		=>'Invstg use for',
+	pReverse_relationship_id		=>'Investig use for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -116,11 +116,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Is historical in pediatric (HemOnc)',
-	pRelationship_id			=>'Is hstrcl in pdtrc',
+	pRelationship_id			=>'Is hist in ped',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Historical pediatric indication for (HemOnc)',
-	pReverse_relationship_id		=>'Hstrcl pdtr indc for',
+	pReverse_relationship_id		=>'Hist ped ind for',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );

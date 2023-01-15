@@ -110,13 +110,15 @@ SELECT DISTINCT r.concept_code_1,
 	r.vocabulary_id_2,
 	CASE
 		WHEN r.relationship_id = 'Is historical in adult'
-			THEN 'Is hstrcl in adlt'
+			THEN 'Is hist in adult'
+	    WHEN r.relationship_id = 'Is current in adult'
+			THEN 'Is curr in adult'
 		WHEN r.relationship_id = 'Is current in pediatric'
-			THEN 'Is current in pdtrc'
-		WHEN r.relationship_id = 'Has investigational use'
-			THEN 'Has invstg use'
+			THEN 'Is curr in ped'
+		WHEN r.relationship_id IN ( 'Has investigational use','Has invstg use')
+			THEN 'Has investig use'
 		WHEN r.relationship_id = 'Is historical in pediatric'
-			THEN 'Is hstrcl in pdtrc'
+			THEN 'Is hist in ped'
 		ELSE r.relationship_id
 		END AS relationship_id,
 	(

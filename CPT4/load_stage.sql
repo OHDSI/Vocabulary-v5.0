@@ -485,47 +485,46 @@ FROM (
 					AND cs.concept_name NOT ILIKE '%modifier%'
 					)
 				THEN 'Meas Value'
-		      WHEN m2.tui = 'T059'
-		        AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|' ||
-		                                      'consultation|collection|fertilization|insemination|sampling')
-		        AND cs.concept_code NOT IN ('86960',
-                                            '86965',
-                                            '86985',
-		                                    '86890',
-		                                    '86891',
-		                                    '1011136',
-		                                    '1011189',
-		                                    '1012112',
-		                                    '1012123',
-		                                    '1012127',
-                                            '1012348',
-                                            '1012534',
-                                            '1012537',
-                                            '1012546',
-                                            '1012559',
-                                            '1012564',
-                                            '1014644',
-                                            '1018504',
-                                            '1019105'
-		                                   )
-
-	        THEN 'Measurement'
+			WHEN m2.tui = 'T059'
+				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling')
+				AND cs.concept_code NOT IN (
+					'86960',
+					'86965',
+					'86985',
+					'86890',
+					'86891',
+					'1011136',
+					'1011189',
+					'1012112',
+					'1012123',
+					'1012127',
+					'1012348',
+					'1012534',
+					'1012537',
+					'1012546',
+					'1012559',
+					'1012564',
+					'1014644',
+					'1018504',
+					'1019105'
+					)
+				THEN 'Measurement'
 			WHEN (
-					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|'||
-					'assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
+					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
 						cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
-						OR LENGTH(cs.concept_code) <= 2)
-
+						OR LENGTH(cs.concept_code) <= 2
+						)
 					)
 				OR (
 					m2.tui = 'T093'
 					AND m1.tty <> 'POS'
 					)
-			    OR (m2.tui = 'T058'
-			      AND cs.concept_name ~* ('documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered')
-                   AND m1.tty != 'ETCLIN'
-			        )
+				OR (
+					m2.tui = 'T058'
+					AND cs.concept_name ~* ('documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered')
+					AND m1.tty <> 'ETCLIN'
+					)
 				OR (
 					m2.tui = 'T033'
 					AND cs.concept_code NOT IN (
@@ -552,7 +551,7 @@ FROM (
 			ELSE 'Procedure'
 			END AS domain_id -- preserve existing domains for all other cases
 	FROM concept_stage cs
-	LEFT JOIN devv5.concept c ON c.concept_code = cs.concept_code
+	LEFT JOIN concept c ON c.concept_code = cs.concept_code
 		AND c.vocabulary_id = 'CPT4'
 	LEFT JOIN sources.mrconso m1 ON m1.code = cs.concept_code
 		AND m1.sab IN (
@@ -562,7 +561,6 @@ FROM (
 	LEFT JOIN sources.mrsty m2 ON m2.cui = m1.cui
 	) t1
 WHERE t1.concept_code = cs.concept_code;
-
 
 --15. Add everything from the Manual tables
 --Working with manual concepts
@@ -607,29 +605,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. HCPCS <-> Visit, but currently we are updating CPT4)
---This is because we have HCPCS <-> CPT4 in concept_relationship_stage, but AddFreshMAPSTO adds HCPCS <-> Visit from concept_relationship
-DELETE
-FROM concept_relationship_stage crs_o
-WHERE (
-		crs_o.concept_code_1,
-		crs_o.vocabulary_id_1,
-		crs_o.concept_code_2,
-		crs_o.vocabulary_id_2
-		) IN (
-		SELECT crs.concept_code_1,
-			crs.vocabulary_id_1,
-			crs.concept_code_2,
-			crs.vocabulary_id_2
-		FROM concept_relationship_stage crs
-		LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
-			AND v1.latest_update IS NOT NULL
-		LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2
-			AND v2.latest_update IS NOT NULL
-		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
-		);
-
---17. Update domain_id value for CPT4 according to mappings
+--16. Update domain_id value for CPT4 according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -645,10 +621,10 @@ FROM (
 					WHEN 'Device'
 						THEN 4
 					WHEN 'Visit'
-			            THEN 5
-			        WHEN 'Provider'
-			            THEN 6
-			    WHEN 'Observation'
+						THEN 5
+					WHEN 'Provider'
+						THEN 6
+					WHEN 'Observation'
 						THEN 7
 					ELSE 8
 					END
@@ -663,7 +639,7 @@ FROM (
 		AND c2.vocabulary_id <> 'CPT4'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
-
+	
 	UNION ALL
 	
 	SELECT DISTINCT cs1.concept_code,
@@ -678,10 +654,10 @@ FROM (
 					WHEN 'Device'
 						THEN 4
 					WHEN 'Visit'
-			            THEN 5
-			        WHEN 'Provider'
-			            THEN 6
-			    WHEN 'Observation'
+						THEN 5
+					WHEN 'Provider'
+						THEN 6
+					WHEN 'Observation'
 						THEN 7
 					ELSE 8
 					END
@@ -696,7 +672,15 @@ FROM (
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
 		AND cr.invalid_reason IS NULL
-	    AND cs1.concept_code not in ('99502', '99504', '99505', '99506', '99508', '99511', '99512')
+		AND cs1.concept_code NOT IN (
+			'99502',
+			'99504',
+			'99505',
+			'99506',
+			'99508',
+			'99511',
+			'99512'
+			)
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs_int
@@ -707,7 +691,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---18. All concepts having mappings should be NON-standard
+--17. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

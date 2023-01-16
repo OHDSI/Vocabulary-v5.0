@@ -374,7 +374,7 @@ WHERE NOT EXISTS (
 			AND crs.vocabulary_id_2 = 'CPT4'
 		);
 
---12. Extract "hiden" CPT4 codes inside concept_names of another CPT4 codes.
+--12. Extract "hidden" CPT4 codes inside concept_names of another CPT4 codes.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -436,13 +436,13 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---14. Update domain_id in concept_stage 
+--14. Update domain_id in concept_stage
 UPDATE concept_stage cs
 SET domain_id = t1.domain_id
 FROM (
 	SELECT DISTINCT cs.concept_code,
 		CASE -- word patterns defined according to the frequency of the occurrence in the existing domains
-			WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation'
+			WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation|endoscopy|insertion'
 				AND m2.tui NOT IN (
 					'T033',
 					'T034'
@@ -485,17 +485,45 @@ FROM (
 					AND cs.concept_name NOT ILIKE '%modifier%'
 					)
 				THEN 'Meas Value'
+			WHEN m2.tui = 'T059'
+				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling')
+				AND cs.concept_code NOT IN (
+					'86960',
+					'86965',
+					'86985',
+					'86890',
+					'86891',
+					'1011136',
+					'1011189',
+					'1012112',
+					'1012123',
+					'1012127',
+					'1012348',
+					'1012534',
+					'1012537',
+					'1012546',
+					'1012559',
+					'1012564',
+					'1014644',
+					'1018504',
+					'1019105'
+					)
+				THEN 'Measurement'
 			WHEN (
-					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|'||
-					'assessment|recording|screening|\ycare\y|counseling|insertion|abotrion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
+					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
-						cs.concept_name ~* 'documented|^patient|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
+						cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
 						OR LENGTH(cs.concept_code) <= 2
 						)
 					)
 				OR (
 					m2.tui = 'T093'
-					AND tty <> 'POS'
+					AND m1.tty <> 'POS'
+					)
+				OR (
+					m2.tui = 'T058'
+					AND cs.concept_name ~* ('documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered')
+					AND m1.tty <> 'ETCLIN'
 					)
 				OR (
 					m2.tui = 'T033'
@@ -577,10 +605,9 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id  and standard concept value for CPT4 according to mappings
+--16. Update domain_id value for CPT4 according to mappings
 UPDATE concept_stage cs
-SET domain_id = i.domain_id,
-	standard_concept = NULL
+SET domain_id = i.domain_id
 FROM (
 	SELECT DISTINCT cs1.concept_code,
 		FIRST_VALUE(c2.domain_id) OVER (
@@ -591,11 +618,15 @@ FROM (
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Observation'
-						THEN 4
 					WHEN 'Device'
+						THEN 4
+					WHEN 'Visit'
 						THEN 5
-					ELSE 6
+					WHEN 'Provider'
+						THEN 6
+					WHEN 'Observation'
+						THEN 7
+					ELSE 8
 					END
 			) AS domain_id
 	FROM concept_relationship_stage crs
@@ -620,11 +651,15 @@ FROM (
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Observation'
-						THEN 4
 					WHEN 'Device'
+						THEN 4
+					WHEN 'Visit'
 						THEN 5
-					ELSE 6
+					WHEN 'Provider'
+						THEN 6
+					WHEN 'Observation'
+						THEN 7
+					ELSE 8
 					END
 			)
 	FROM concept_relationship cr
@@ -637,6 +672,15 @@ FROM (
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
 		AND cr.invalid_reason IS NULL
+		AND cs1.concept_code NOT IN (
+			'99502',
+			'99504',
+			'99505',
+			'99506',
+			'99508',
+			'99511',
+			'99512'
+			)
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs_int
@@ -646,5 +690,25 @@ FROM (
 			)
 	) i
 WHERE i.concept_code = cs.concept_code;
+
+--17. All concepts having mappings should be NON-standard
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage r,
+			concept c2
+		WHERE r.concept_code_1 = cs.concept_code
+			AND r.vocabulary_id_1 = cs.vocabulary_id
+			AND r.concept_code_2 = c2.concept_code
+			AND r.vocabulary_id_2 = c2.vocabulary_id
+			AND r.invalid_reason IS NULL
+			AND r.relationship_id = 'Maps to'
+			AND NOT (
+				r.concept_code_1 = r.concept_code_2
+				AND r.vocabulary_id_1 = r.vocabulary_id_2
+				) --exclude mappings to self
+		)
+	AND cs.standard_concept IS NOT NULL;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

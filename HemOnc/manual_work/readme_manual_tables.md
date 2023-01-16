@@ -16,7 +16,7 @@ FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name`
 
 2.Extract the following csv file into the concept_synonym_manual table:
-
+https://docs.google.com/spreadsheets/d/17C887UjOZxPPJ0_H58AUU7mFuEq2wVD_EHQLpW2vth8/edit#gid=0
 `SELECT synonym_name,
        synonym_concept_code,
        synonym_vocabulary_id,
@@ -36,5 +36,3 @@ ORDER BY synonym_vocabulary_id, synonym_concept_code, language_concept_id, synon
 FROM concept_relationship_manual
 ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, concept_code_2, invalid_reason, valid_start_date, valid_end_date
 ;`
-
-

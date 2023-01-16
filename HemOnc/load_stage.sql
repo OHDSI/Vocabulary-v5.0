@@ -108,14 +108,17 @@ SELECT DISTINCT r.concept_code_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	CASE
+	CASE 
 		WHEN r.relationship_id = 'Is historical in adult'
 			THEN 'Is hist in adult'
-	    WHEN r.relationship_id = 'Is current in adult'
+		WHEN r.relationship_id = 'Is current in adult'
 			THEN 'Is curr in adult'
 		WHEN r.relationship_id = 'Is current in pediatric'
 			THEN 'Is curr in ped'
-		WHEN r.relationship_id IN ( 'Has investigational use','Has invstg use')
+		WHEN r.relationship_id IN (
+				'Has investigational use',
+				'Has invstg use'
+				)
 			THEN 'Has investig use'
 		WHEN r.relationship_id = 'Is historical in pediatric'
 			THEN 'Is hist in ped'
@@ -284,7 +287,7 @@ LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
 	AND crs.vocabulary_id_1 = cs.vocabulary_id
 	AND crs.vocabulary_id_2 LIKE 'Rx%'
 	AND crs.relationship_id = 'Maps to'
-JOIN concept c ON lower(c.concept_name) = lower(cs.concept_name)
+JOIN concept c ON LOWER(c.concept_name) = LOWER(cs.concept_name)
 	AND c.standard_concept = 'S'
 	AND c.vocabulary_id LIKE 'Rx%'
 WHERE cs.concept_class_id = 'Component'
@@ -421,28 +424,27 @@ INSERT INTO concept_synonym_stage (
 	)
 SELECT css.synonym_concept_code,
 	css.synonym_vocabulary_id,
-	regexp_replace(css.synonym_name,'<sup>','','gi') as synonym_name, -- 	fall2022 brings <syp>  is curated manually to make synonyms more reliable
+	REPLACE(css.synonym_name, '<sup>', '') AS synonym_name, -- fall2022 brings <syp>  is curated manually to make synonyms more reliable
 	css.language_concept_id
 FROM sources.hemonc_css css
 JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND cs.vocabulary_id = css.synonym_vocabulary_id
 	-- 15704 has empty name, typo, I suppose
 	AND css.synonym_name IS NOT NULL
-AND css.synonym_name not ilike '%\\>%' --\\>   fall2022 release brings synonyms with URL structure for regimens
-;
+	AND css.synonym_name NOT ILIKE '%\\>%'; --\\>  fall2022 release brings synonyms with URL structure for regimens
+
 
 --11.1 Concept synonym cleanup
 --delete rows not existing in CS
 DELETE
 FROM concept_synonym_manual csm
-    WHERE exists(SELECT 1
-     FROM concept_synonym_manual csm1
-        LEFT JOIN concept_stage cs
-              on csm1.synonym_concept_code=cs.concept_code
-         WHERE cs.concept_code is null
-            AND csm.synonym_concept_code=csm1.synonym_concept_code)
-;
-;
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_synonym_manual csm1
+		LEFT JOIN concept_stage cs ON csm1.synonym_concept_code = cs.concept_code
+		WHERE cs.concept_code IS NULL
+			AND csm.synonym_concept_code = csm1.synonym_concept_code
+		);
 
 --11.2 Working with manual synonyms
 DO $_$
@@ -499,7 +501,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---Osimertinib monotherapy -	Has antineoplastic -	Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
+--Osimertinib monotherapy -	Has antineoplastic - Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
 DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 = '10746'

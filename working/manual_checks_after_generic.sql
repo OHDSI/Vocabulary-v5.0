@@ -454,21 +454,21 @@ flag AS (SELECT DISTINCT c.concept_code,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.vocabulary_id END AS target_vocabulary_id,
                 b.domain_id AS target_domain_id,
-                              CASE WHEN c.concept_name ~* (SELECT home_visit from home_visit) AND
+                              CASE WHEN c.concept_name ~* (SELECT home_visit FROM home_visit) AND
                                        b.concept_id != '581476' THEN 'home visit'
-                                  WHEN c.concept_name ~* (SELECT outpatient_visit from outpatient_visit) AND
+                                  WHEN c.concept_name ~* (SELECT outpatient_visit FROM outpatient_visit) AND
                                        b.concept_id != '9202' THEN 'outpatient visit'
-                                  WHEN c.concept_name ~* (SELECT ambulance_visit from ambulance_visit) AND
+                                  WHEN c.concept_name ~* (SELECT ambulance_visit FROM ambulance_visit) AND
                                        b.concept_id != '581478' THEN 'ambulance visit'
-                                  WHEN c.concept_name ~* (SELECT emergency_room_visit from emergency_room_visit) AND
+                                  WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit) AND
                                        b.concept_id != '9203' THEN 'emergency room visit'
-                                  WHEN c.concept_name ~* (SELECT pharmacy_visit from pharmacy_visit) AND
+                                  WHEN c.concept_name ~* (SELECT pharmacy_visit FROM pharmacy_visit) AND
                                        b.concept_id != '581458' THEN 'pharmacy visit'
-                                  WHEN c.concept_name ~* (SELECT inpatient_visit from inpatient_visit) AND
+                                  WHEN c.concept_name ~* (SELECT inpatient_visit FROM inpatient_visit) AND
                                        b.concept_id != '9201' THEN 'inpatient visit'
-                                  WHEN c.concept_name ~* (SELECT telehealth from telehealth) AND
+                                  WHEN c.concept_name ~* (SELECT telehealth FROM telehealth) AND
                                        b.concept_id != '5083' THEN 'telehealth'
-                                  WHEN c.concept_name ~* (SELECT other_visit from other_visit)
+                                  WHEN c.concept_name ~* (SELECT other_visit FROM other_visit)
                                         THEN 'other visit'
                                   END AS flag_visit_should_be
 FROM concept c

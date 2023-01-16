@@ -441,8 +441,9 @@ WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_
     emergency_room_visit AS (SELECT ('emerg|(\W)ER(\W)') AS emergency_room_visit),
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
-    telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') as telehealth),
+    telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') AS telehealth),
     other_visit AS (SELECT ('clinic(?!(al))|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)') AS other_visit),
+    visit_exclusion AS (SELECT 'estrogen' AS visit_exclusion),
 
 flag AS (SELECT DISTINCT c.concept_code,
                 c.concept_name,
@@ -453,27 +454,28 @@ flag AS (SELECT DISTINCT c.concept_code,
                 CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
                     ELSE b.vocabulary_id END AS target_vocabulary_id,
                 b.domain_id AS target_domain_id,
-                              CASE WHEN c.concept_name ~* (select home_visit from home_visit) AND
+                              CASE WHEN c.concept_name ~* (SELECT home_visit from home_visit) AND
                                        b.concept_id != '581476' THEN 'home visit'
-                                  WHEN c.concept_name ~* (select outpatient_visit from outpatient_visit) AND
+                                  WHEN c.concept_name ~* (SELECT outpatient_visit from outpatient_visit) AND
                                        b.concept_id != '9202' THEN 'outpatient visit'
-                                  WHEN c.concept_name ~* (select ambulance_visit from ambulance_visit) AND
+                                  WHEN c.concept_name ~* (SELECT ambulance_visit from ambulance_visit) AND
                                        b.concept_id != '581478' THEN 'ambulance visit'
-                                  WHEN c.concept_name ~* (select emergency_room_visit from emergency_room_visit) AND
+                                  WHEN c.concept_name ~* (SELECT emergency_room_visit from emergency_room_visit) AND
                                        b.concept_id != '9203' THEN 'emergency room visit'
-                                  WHEN c.concept_name ~* (select pharmacy_visit from pharmacy_visit) AND
+                                  WHEN c.concept_name ~* (SELECT pharmacy_visit from pharmacy_visit) AND
                                        b.concept_id != '581458' THEN 'pharmacy visit'
-                                  WHEN c.concept_name ~* (select inpatient_visit from inpatient_visit) AND
+                                  WHEN c.concept_name ~* (SELECT inpatient_visit from inpatient_visit) AND
                                        b.concept_id != '9201' THEN 'inpatient visit'
-                                  WHEN c.concept_name ~* (select telehealth from telehealth) AND
+                                  WHEN c.concept_name ~* (SELECT telehealth from telehealth) AND
                                        b.concept_id != '5083' THEN 'telehealth'
-                                  WHEN c.concept_name ~* (select other_visit from other_visit)
+                                  WHEN c.concept_name ~* (SELECT other_visit from other_visit)
                                         THEN 'other visit'
                                   END AS flag_visit_should_be
 FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id IN (:your_vocabs)),
+WHERE c.vocabulary_id IN (:your_vocabs)
+AND c.concept_name !~* (SELECT visit_exclusion FROM visit_exclusion)),
 
 incorrect_mapping AS (SELECT concept_code,
                 concept_name,

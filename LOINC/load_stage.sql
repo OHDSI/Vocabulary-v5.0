@@ -50,7 +50,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE
+SELECT CASE 
 		WHEN loinc_num = '66678-4'
 			AND property = 'Hx'
 			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
@@ -61,7 +61,7 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	CASE
+	CASE 
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -171,18 +171,18 @@ SELECT CASE
 					'97504-5',
 					'96749-7',
 					'98075-5',
-				    '100218-7',
-				    '100219-5',
-				    '100220-3',
-				    '100221-1',
-				    '100222-9',
-				    '100223-7',
-				    '100282-3',
-				    '100302-9',
-				    '100878-8',
-				    '100967-9',
-				    '100875-4',
-				    '100876-2'
+					'100218-7',
+					'100219-5',
+					'100220-3',
+					'100221-1',
+					'100222-9',
+					'100223-7',
+					'100282-3',
+					'100302-9',
+					'100878-8',
+					'100967-9',
+					'100875-4',
+					'100876-2'
 					)
 				OR (long_common_name ~* 'note|summary|notification|Letter|Checklist|instructions')
 				)
@@ -209,7 +209,7 @@ SELECT CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE
+	CASE 
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -320,57 +320,57 @@ SELECT CASE
 		WHEN classtype = '1'
 			THEN 'Lab Test'
 		WHEN classtype = '2'
-            THEN 'Clinical Observation'
-        WHEN classtype = '3'
-            THEN 'Claims Attachment'
-        WHEN classtype = '4'
-            THEN 'Survey'
-           END         AS concept_class_id,
-       CASE
-           WHEN l.STATUS IN ('DEPRECATED')
-               THEN NULL
-           WHEN l.STATUS IN ('DISCOURAGED')
-               AND (
-                        l.loinc_num = ANY (cj_1map.arr_loinc)
-                        OR l.loinc_num = ANY (cj_part.arr_loincnumber)
-                        OR l.class = 'PANEL.HEDIS'
-                        OR l.classtype IN (
-                                           '3',
-                                           '4'
-                        )
-                    ) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-               THEN NULL
-         ELSE 'S'
-		 END AS standard_concept,
-       LOINC_NUM       AS concept_code,
-       v.latest_update AS valid_start_date,
-       CASE
-           WHEN l.STATUS IN ('DEPRECATED')
-               THEN CASE
-                        WHEN c.valid_end_date > v.latest_update
-                            OR c.valid_end_date IS NULL
-                            THEN v.latest_update
-                        ELSE c.valid_end_date
-               END
+			THEN 'Clinical Observation'
+		WHEN classtype = '3'
+			THEN 'Claims Attachment'
+		WHEN classtype = '4'
+			THEN 'Survey'
+		END AS concept_class_id,
+	CASE 
+		WHEN l.STATUS IN ('DEPRECATED')
+			THEN NULL
 		WHEN l.STATUS IN ('DISCOURAGED')
 			AND (
 				l.loinc_num = ANY (cj_1map.arr_loinc)
 				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
 				OR l.class = 'PANEL.HEDIS'
 				OR l.classtype IN (
-                                   '3',
-                                   '4'
-                     )
-                 ) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-               THEN CASE
-                        WHEN c.valid_end_date > v.latest_update
-                            OR c.valid_end_date IS NULL
-                            THEN v.latest_update
-                        ELSE c.valid_end_date
-            END
-           ELSE TO_DATE('20991231', 'yyyymmdd')
-           END AS valid_end_date,
-	CASE
+					'3',
+					'4'
+					)
+				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+			THEN NULL
+		ELSE 'S'
+		END AS standard_concept,
+	LOINC_NUM AS concept_code,
+	v.latest_update AS valid_start_date,
+	CASE 
+		WHEN l.STATUS IN ('DEPRECATED')
+			THEN CASE 
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+		WHEN l.STATUS IN ('DISCOURAGED')
+			AND (
+				l.loinc_num = ANY (cj_1map.arr_loinc)
+				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+				OR l.class = 'PANEL.HEDIS'
+				OR l.classtype IN (
+					'3',
+					'4'
+					)
+				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+			THEN CASE 
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+		ELSE TO_DATE('20991231', 'yyyymmdd')
+		END AS valid_end_date,
+	CASE 
 		WHEN (
 				l.STATUS IN ('DISCOURAGED')
 				AND (
@@ -423,8 +423,10 @@ UPDATE concept_stage cs
 SET domain_id = 'Procedure'
 FROM sources.loinc l
 WHERE cs.concept_code = l.loinc_num
-	AND (l.class = 'RAD' --Radiology concepts
-    OR loinc_num IN ('100877-0'))
+	AND (
+		l.class = 'RAD' --Radiology concepts
+		OR l.loinc_num = '100877-0'
+		)
 	--Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
 	AND NOT EXISTS (
 		SELECT 1
@@ -1616,7 +1618,7 @@ WITH ax_1 AS (
 SELECT lc_code AS concept_code_1,
 	--lc_name,
 	sn_code AS concept_code_2,
-	--   sn_name,
+	--sn_name,
 	'LOINC' AS vocabulary_id_1,
 	'SNOMED' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
@@ -2252,8 +2254,8 @@ WHERE cs.concept_code IN (
 		'LG85-3', --Radiology
 		'LG41849-7', --Region imaged: Lower extremity
 		'LG41814-1', --Radiology
-        'LG51408-9', --US|Breast|Guidance for cryoablation|Any Laterality
-        'LG51409-7' --MR|Kidney|Guidance for percutaneous biopsy|Any Laterality
+		'LG51408-9', --US|Breast|Guidance for cryoablation|Any Laterality
+		'LG51409-7' --MR|Kidney|Guidance for percutaneous biopsy|Any Laterality
 		);
 
 --29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups

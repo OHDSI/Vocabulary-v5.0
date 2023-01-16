@@ -443,7 +443,7 @@ WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
     telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') AS telehealth),
     other_visit AS (SELECT ('clinic(?!(al))|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)') AS other_visit),
-    visit_exclusion AS (SELECT 'estrogen' AS visit_exclusion),
+    ER_exclusion AS (SELECT 'estrogen' AS ER_exclusion),
 
 flag AS (SELECT DISTINCT c.concept_code,
                 c.concept_name,
@@ -460,8 +460,9 @@ flag AS (SELECT DISTINCT c.concept_code,
                                        b.concept_id != '9202' THEN 'outpatient visit'
                                   WHEN c.concept_name ~* (SELECT ambulance_visit FROM ambulance_visit) AND
                                        b.concept_id != '581478' THEN 'ambulance visit'
-                                  WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit) AND
-                                       b.concept_id != '9203' THEN 'emergency room visit'
+                                  WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit) 
+                                           AND c.concept_name !~* (SELECT ER_exclusion FROM ER_exclusion)
+                                           AND b.concept_id != '9203' THEN 'emergency room visit'
                                   WHEN c.concept_name ~* (SELECT pharmacy_visit FROM pharmacy_visit) AND
                                        b.concept_id != '581458' THEN 'pharmacy visit'
                                   WHEN c.concept_name ~* (SELECT inpatient_visit FROM inpatient_visit) AND
@@ -475,7 +476,7 @@ FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-AND c.concept_name !~* (SELECT visit_exclusion FROM visit_exclusion)),
+),
 
 incorrect_mapping AS (SELECT concept_code,
                 concept_name,

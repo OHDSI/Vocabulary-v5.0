@@ -507,8 +507,9 @@ GROUP BY
 -- Please adjust inclusion/exclusion in the master branch if found some flaws
 -- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings).
 
-with covid_inclusion as (SELECT
-        'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
+with covid_inclusion as (SELECT covid_inclusion,unnest(regexp_split_to_array(covid_inclusion,  '\|(?![^(]*\))')) as mask
+                         FROM (SELECT 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' AS covid_inclusion
+                                       ) as t
     ),
 
 covid_exclusion as (SELECT
@@ -535,11 +536,15 @@ from concept c
 left join concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ('Maps to', 'Maps to value') and cr.invalid_reason is null
 left join concept b on b.concept_id = cr.concept_id_2
 left join concept_relationship cr2 on cr2.concept_id_1 = c.concept_id and cr2.relationship_id IN ('Maps to', 'Maps to value') and cr2.invalid_reason is null
+LEFT JOIN covid_inclusion vi
+    ON c.concept_name ~* vi.mask
+LEFT JOIN covid_inclusion vi2
+    ON b.concept_name ~* vi2.mask
 where c.vocabulary_id IN (:your_vocabs)
 
-    and ((c.concept_name ~* (select covid_inclusion from covid_inclusion) and c.concept_name !~* (select covid_exclusion from covid_exclusion))
+    and ((c.concept_name ~* (select DISTINCT covid_inclusion from covid_inclusion) and c.concept_name !~* (select covid_exclusion from covid_exclusion))
         or
-        (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
+        (b.concept_name ~* (select DISTINCT covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
 GROUP BY 2,3,4,5,6,7,8,9,10
 ORDER BY MAX(cr2.valid_start_date) DESC,
          c.vocabulary_id,

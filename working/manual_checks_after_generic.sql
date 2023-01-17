@@ -517,7 +517,7 @@ covid_exclusion as (SELECT
     )
 
 
-select distinct
+select distinct array_agg(DISTINCT coalesce(vi.mask,vi2.mask )) as mask_array,
                 MAX(cr2.valid_start_date) as valid_start_date,
                 c.vocabulary_id,
                 c.concept_code,
@@ -545,7 +545,7 @@ where c.vocabulary_id IN (:your_vocabs)
     and ((c.concept_name ~* (select DISTINCT covid_inclusion from covid_inclusion) and c.concept_name !~* (select covid_exclusion from covid_exclusion))
         or
         (b.concept_name ~* (select DISTINCT covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
-GROUP BY 2,3,4,5,6,7,8,9,10
+GROUP BY 3,4,5,6,7,8,9,10,11
 ORDER BY MAX(cr2.valid_start_date) DESC,
          c.vocabulary_id,
          c.concept_code,

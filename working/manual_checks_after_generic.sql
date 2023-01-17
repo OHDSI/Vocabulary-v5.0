@@ -287,11 +287,14 @@ select b.vocabulary_id as vocabulary_id,
        a.name_agg as old_name_agg,
        b.relationship_agg as new_relat_agg,
        b.code_agg as new_code_agg,
-       b.name_agg as new_name_agg
+       b.name_agg as new_name_agg,
+       devv5.similarity(  a.name_agg,b.name_agg) as old_new_similarity,
+       devv5.similarity(  a.name_agg,b.concept_name) as old_source_similarity,
+       devv5.similarity(  b.name_agg,b.concept_name) as new_source_similarity
 from old_map a
 join new_map b
 on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) or (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
-order by a.concept_code
+order by a.concept_code,old_new_similarity NULLS FIRST,old_source_similarity NULLS FIRST,new_source_similarity NULLS FIRST
 ;
 
 --02.6. Concepts changed their ancestry ('Is a')
@@ -346,11 +349,14 @@ select b.vocabulary_id as vocabulary_id,
        a.name_agg as old_name_agg,
        b.relationship_agg as new_relat_agg,
        b.code_agg as new_code_agg,
-       b.name_agg as new_name_agg
+       b.name_agg as new_name_agg,
+       devv5.similarity(  a.name_agg,b.name_agg) as old_new_similarity,
+       devv5.similarity(  a.name_agg,b.concept_name) as old_source_similarity,
+       devv5.similarity(  b.name_agg,b.concept_name) as new_source_similarity
 from old_map  a
 join new_map b
 on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) or (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
-order by a.concept_code
+order by a.concept_code,old_new_similarity NULLS FIRST,old_source_similarity NULLS FIRST,new_source_similarity NULLS FIRST
 ;
 
 --02.7. Concepts with 1-to-many mapping -- multiple 'Maps to' present

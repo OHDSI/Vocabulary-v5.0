@@ -442,7 +442,7 @@ WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath))|domiciliary') as home_
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
     telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop))|remote|video') AS telehealth),
-    other_visit AS (SELECT ('clinic(?!(al))|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)') AS other_visit),
+    other_visit AS (SELECT ('clinic(?!(al))|esrd|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)') AS other_visit),
     ER_exclusion AS (SELECT 'estrogen' AS ER_exclusion),
 
 flag AS (SELECT DISTINCT c.concept_code,

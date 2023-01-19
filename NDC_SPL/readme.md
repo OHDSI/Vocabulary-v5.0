@@ -52,13 +52,10 @@ SELECT * FROM QA_TESTS.GET_CHECKS();
 
 15. Get_summary - changes in tables between dev-schema (current) and devv5/prodv5/any other schema
 
---15.1. first clean cache
-select * from qa_tests.purge_cache();
-
---15.2. summary (table to check, schema to compare)
+--15.1. summary (table to check, schema to compare)
 select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 
---15.3. summary (table to check, schema to compare)
+--15.2. summary (table to check, schema to compare)
 select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
 
 

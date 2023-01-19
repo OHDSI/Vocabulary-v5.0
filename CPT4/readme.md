@@ -28,32 +28,28 @@ Repeat steps 1-5
 
 6. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
 
-7. Clean cache:
+7. Run scripts to get summary, and interpret the results:
 ```sql
-SELECT * FROM qa_tests.purge_cache();
-```
-8. Run scripts to get summary, and interpret the results:
-```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
+SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
-9. Run scripts to collect statistics, and interpret the results:
+8. Run scripts to collect statistics, and interpret the results:
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_domain_changes();
-```
-```sql
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+SELECT * FROM qa_tests.get_domain_changes();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+SELECT * FROM qa_tests.get_newly_concepts();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+SELECT * FROM qa_tests.get_standard_concept_changes();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+```
+```sql
+SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 9. If no problems, enjoy!
 

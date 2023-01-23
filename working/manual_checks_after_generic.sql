@@ -186,15 +186,17 @@ order by a.concept_code
 
 --02.3. looking at new concepts and their ancestry -- 'Is a' absent
 --In this check we manually review new concepts that don't have "Is a" hierarchical links to the parental concepts.
---To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
+--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case), vocabulary importance and its maturity level, effort and resources available, result should be critically analyzed and may represent multiple scenarios, e.g.:
 -- - Standard or non-Standard concepts of the source vocabulary that doesn't provide hierarchical links, and we don't build them (source drug vocabularies);
 -- - concepts of the concept classes that can't be hierarchically linked (units, methods, scales);
+-- - concepts of the source vocabularies deStandardized and mapped over to the Standard concepts instead of added to the hierarchy;
 -- - top level concepts.
 
 select a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
        a.vocabulary_id as vocabulary_id_source,
+       a.standard_concept as standard_concept_source,
        a.concept_class_id as concept_class_id_source,
        a.domain_id as domain_id_source,
        b.concept_name as concept_name_target,

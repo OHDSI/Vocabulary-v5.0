@@ -1,4 +1,4 @@
---9.2.1. Backup concept_relationship_manual table and concept_manual table.
+--9.2.1. Backup concept_relationship_manual table, concept_manual table and concept_synonym_manual.
 DO
 $body$
     DECLARE
@@ -35,6 +35,24 @@ $body$;
 /*TRUNCATE TABLE dev_cpt4.concept_manual;
 INSERT INTO dev_cpt4.concept_manual
 SELECT * FROM dev_cpt4.concept_manual_backup_YYYY_MM_DD;*/
+
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE FORMAT('create table %I as select * from concept_synonym_manual',
+                       'concept_synonym_manual_backup_' || update);
+
+    END
+$body$;
+
+--restore concept_synonym_manual table (run it only if something went wrong)
+/*TRUNCATE TABLE dev_cpt4.concept_synonym_manual;
+INSERT INTO dev_cpt4.concept_synonym_manual
+SELECT * FROM dev_cpt4.concept_synonym_manual_backup_YYYY_MM_DD;*/
 
 --9.2.2 Create cpt4_mapped table and pre-populate it with the resulting manual table of the previous CPT4 refresh.
 

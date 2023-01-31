@@ -595,8 +595,8 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 
 -- 02.13. Mapping of visit concepts
 --In this check we manually review the mapping of visits to the 'Visit' domain.
---It's highly sensitive and adjusted for the Procedure vocabularies only. Other vocabularies (Conditions, Measurements, Drug) will end up in huge number of false positive results.
---To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag, flag_visit_should_be and vocabulary_id fields. Then the content to be reviewed separately within the groups.
+--The first script is highly sensitive and adjusted for the Procedure vocabularies only.
+-- For other vocabularies (Conditions, Measurements, Drug) please use the second script provided below. It's less sensitive and more specific.--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag, flag_visit_should_be and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 -- -- Three flags are used:
 -- -- - 'incorrect mapping' - indicates the concepts that are probably visits but mapped to domains other than 'Visit';
 -- -- - 'review mapping to visit' - indicates concepts that are mapped to the 'Visit' domain but the target_concept_id differs from the reference;

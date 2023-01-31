@@ -13,33 +13,47 @@ Prerequisites:
 3. Download the latest file https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets/HCPCS-Quarterly-Update file name Mon-YYYY-Alpha-Numeric-HCPCS-File.zip
 4. Extract HCPCYYYY_CONTR_ANWEB.xlsx and rename to HCPC_CONTR_ANWEB.xlsx
 5. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('HCPCS',TO_DATE('20171106','YYYYMMDD'),'2018 Alpha Numeric HCPCS File');
-6. Run FULL FastRecreate: 
+6. Run FULL FastRecreate:
+```sql
    SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false, include_deprecated_rels=> true, include_synonyms=> true);
+   ```
 7. Run load_stage.sql.
 8. Run check_stage_tables function (should retrieve NULL):
-   SELECT * FROM qa_tests.check_stage_tables();
+   ```sql
+    SELECT * FROM qa_tests.check_stage_tables();
+   ```
 9. Run generic_update:
+   ```sql
    DO $_$
    BEGIN
        PERFORM devv5.GenericUpdate();
    END $_$;
+   ```
 10. Run basic tables check (should retrieve NULL):
-   SELECT * FROM qa_tests.get_checks();
+   ```sql
+    SELECT * FROM qa_tests.get_checks();
+```
 11. Perform manual work described in the readme.md file in the 'manual_work' folder.
 
 Repeat steps 6-11.
 
 12. Clear cache: 
+    ```sql
     SELECT * FROM qa_tests.purge_cache();
+    ```
 13. Run scripts to get summary, and interpret the results:
+    ```sql
     SELECT DISTINCT * FROM qa_tests.get_summary('concept');
     SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
+    ```
 14. Run scripts to collect statistics, and interpret the results:
+    ```sql
     SELECT DISTINCT * FROM qa_tests.get_domain_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
     SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
     SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+    ```
 15. Run manual_checks_after_generic.sql, and interpret the results.
 16. Run project_specific_manual_checks_after_generic.sql, and interpret the results.
 17. If no problems, enjoy!

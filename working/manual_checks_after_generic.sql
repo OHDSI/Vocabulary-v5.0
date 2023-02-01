@@ -770,3 +770,20 @@ WHERE c.vocabulary_id IN (:your_vocabs)
     AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
+
+--05. Check the presence of symmetric relationships in the manual tables.
+--- We expect this check to return nothing. Normally we don't store symmetric relationships in manual tables since they're created by generic_update.sql.
+--- Otherwise you should find out why these relationships are stored in manual tables and consider dropping them if they're useless.
+
+SELECT crm1.concept_code_1, crm1.vocabulary_id_1, crm1.relationship_id, crm1.concept_code_2, crm1.vocabulary_id_2,
+        crm2.concept_code_1, crm2.vocabulary_id_1, crm2.relationship_id, crm2.concept_code_2, crm2.vocabulary_id_2
+FROM concept_relationship_manual crm1
+         JOIN concept_relationship_manual crm2 ON crm1.concept_code_1 = crm2.concept_code_2
+         AND crm1.concept_code_2 = crm2.concept_code_1
+WHERE (crm1.relationship_id = 'Maps to' AND crm2.relationship_id = 'Mapped from')
+OR (crm1.relationship_id = 'Is a' AND crm2.relationship_id = 'Subsumes')
+OR (crm1.relationship_id = 'Maps to value' AND crm2.relationship_id = 'Value mapped from')
+AND crm1.vocabulary_id_1 = crm2.vocabulary_id_2
+AND crm2.vocabulary_id_1 = crm1.vocabulary_id_2
+AND crm1.vocabulary_id_1 IN (:your_vocabs)
+ORDER BY crm1.concept_code_1;

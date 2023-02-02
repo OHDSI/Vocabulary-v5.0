@@ -1281,7 +1281,7 @@ WHERE NOT EXISTS (
 		);
 
 --9. Create hierarchical relationships between HCPCS AND HCPCS class
-INSERT INTO concept_relationship_stage (
+/*INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
 	relationship_id,
@@ -1309,7 +1309,7 @@ FROM sources.anweb_v2 a
 JOIN concept c ON c.concept_code = a.betos
 	AND c.concept_class_id = 'HCPCS Class'
 	AND c.vocabulary_id = 'HCPCS'
-	AND c.invalid_reason IS NULL;
+	AND c.invalid_reason IS NULL;*/
 
 --10. Add all other 'Concept replaced by' relationships
 --!! still need to be investigated
@@ -1508,7 +1508,7 @@ FROM (
 	FROM concept_relationship_stage crs
 	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'CPT4'
+		AND cs1.vocabulary_id = 'HCPCS'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
 		AND c2.standard_concept = 'S'
@@ -1540,7 +1540,7 @@ FROM (
 			)
 	FROM concept_relationship cr
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'CPT4'
+		AND c1.vocabulary_id = 'HCPCS'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 		AND c2.standard_concept = 'S'
 		AND c2.vocabulary_id <> 'HCPCS'

@@ -595,8 +595,6 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 
 -- 02.13. Mapping of visit concepts
 --In this check we manually review the mapping of visits to the 'Visit' domain.
---The first script (02.13.01) is highly sensitive and adjusted for the Procedure vocabularies only.
--- For other vocabularies (Conditions, Measurements, Drug) please use the second script (02.13.02) provided below. It's less sensitive and more specific.--To prioritize and make the review process more structured, the logical groups to be identified using the sorting by flag, flag_visit_should_be and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 -- -- Three flags are used:
 -- -- - 'incorrect mapping' - indicates the concepts that are probably visits but mapped to domains other than 'Visit';
 -- -- - 'review mapping to visit' - indicates concepts that are mapped to the 'Visit' domain but the target_concept_id differs from the reference;
@@ -605,7 +603,7 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 -- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
 -- Please adjust inclusion/exclusion in the master branch if found some flaws
 
---- 02.13.01 Check for Procedure vocabs
+--- 02.13.01 This check is highly sensitive and adjusted for the Procedure vocabularies only.
 
 WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath|less|ria|ostasis))|domiciliary') as home_visit),
     outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance|ation|ism))|office(?!(r))') as outpatient_visit),
@@ -733,7 +731,7 @@ ORDER BY flag,
     concept_code
 ;
 
---- 02.13.02 Check for non-Procedure vocabs
+--- 02.13.02 This check presents higher specificity, and it's adjusted for non-Procedure vocabs (Conditions, Measurements, Drugs, etc.)
 
 WITH home_visit AS (SELECT ('home visit|home care|home service|home assessment|home therapy|home health aide|(\W)at.home|domiciliary') as home_visit),
     outpatient_visit AS (SELECT ('outpatient(\s)|(\s)out.patient|ambul(?!(ance|ation|ism|ant|ating))') as outpatient_visit),

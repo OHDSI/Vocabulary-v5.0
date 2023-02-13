@@ -289,7 +289,7 @@ BEGIN
                 from (
                   select s0.vocabulary_version, s0.release_date from (
                     with t as (select json_array_elements(cVocabHTML::json) as json_content)
-                    select trim(replace(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0'),'CDM v5.4','CDM v5.4.0')) as vocabulary_version, 
+                    select trim(regexp_replace(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0'),'^CDM v5.4$','CDM v5.4.0')) as vocabulary_version, 
                     (t.json_content->>'published_at')::timestamp as release_date
                     from t
                     where (t.json_content->>'prerelease')::boolean = false

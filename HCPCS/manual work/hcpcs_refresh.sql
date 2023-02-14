@@ -15,7 +15,7 @@ $body$;
 --restore concept_relationship_manual table (!!!run it only if something went wrong!!!)
 /*TRUNCATE TABLE dev_hcpcs.concept_relationship_manual;
 INSERT INTO dev_hcpcs.concept_relationship_manual
-SELECT * FROM dev_hcpcs.concept_relationship_manual_backup_2022_10_26;*/
+SELECT * FROM dev_hcpcs.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -58,7 +58,7 @@ SELECT * FROM dev_hcpcs.concept_manual_backup_YYYY_MM_DD;*/
 );*/
 
 --8.2.4. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
-TRUNCATE TABLE dev_hcpcs.hcpcs_mapped;*/
+/*TRUNCATE TABLE dev_hcpcs.hcpcs_mapped;*/
 
 --8.2.5. Deprecate all mappings that differ from the new version of resulting mapping file.
 UPDATE dev_hcpcs.concept_relationship_manual

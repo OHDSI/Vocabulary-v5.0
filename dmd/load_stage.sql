@@ -4387,7 +4387,7 @@ SELECT
 	concept_code,
 	concept_name,
 	NULL :: int4 as brand_id,
-	trim (regexp_replace (concept_name, ' .*$','')) :: varchar as brand_name,
+	trim (regexp_replace (concept_name, ' .*$','')) :: varchar as brand_name
 
 FROM tofind_brands
 WHERE concept_code NOT IN (SELECT concept_code FROM tofind_brands_man)
@@ -5402,7 +5402,7 @@ CREATE TABLE relationship_to_concept_attributes AS
 	AND dcs.concept_code NOT IN (SELECT concept_code FROM tomap_bn_man)
 
 	  --For refreshes to avoid processing the same codes twice
-	AND (dcs.concept_name, dcs.concept_class_id) NOT IN (SELECT concept_code, concept_class_id FROM relationship_to_concept_attributes)
+	AND (dcs.concept_name, dcs.concept_class_id) NOT IN (SELECT concept_name, concept_class_id FROM relationship_to_concept_attributes)
 	  --There are drugs with these attributes
 	AND dcs.concept_code IN (SELECT concept_code_2 FROM internal_relationship_stage)
 
@@ -5419,7 +5419,6 @@ ALTER COLUMN target_invalid_reason TYPE varchar(50);
 --TRUNCATE relationship_to_concept_attributes;
 
 --Clean relationship_to_concept from attributes, manually mapped in relationship_to_concept_attributes
---TODO: Change to delete according to concept_name
 with mapping AS (SELECT dcs.concept_code, dcs.concept_name, dcs.concept_class_id
     FROM relationship_to_concept_attributes rtca
     JOIN drug_concept_stage dcs

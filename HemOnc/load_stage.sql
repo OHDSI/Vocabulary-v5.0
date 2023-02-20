@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Dmitry Dymshyts, Timur Vakhitov
 * Date: 2019
 **************************************************************************/
@@ -28,7 +28,6 @@ BEGIN
 );
 END $_$;
 
-
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
@@ -36,11 +35,11 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Create concept_stage. Take only the folowing concept classes in the first iteration
+--3. Create concept_stage. Take only the following concept classes in the first iteration
 INSERT INTO concept_stage
 SELECT NULL AS concept_id,
 	concept_name,
-	CASE 
+	CASE
 		WHEN h.concept_class_id IN (
 				'Procedure',
 				'Context'
@@ -65,7 +64,7 @@ SELECT NULL AS concept_id,
 		END AS domain_id,
 	h.vocabulary_id,
 	h.concept_class_id,
-	CASE 
+	CASE
 		WHEN h.concept_class_id = 'Regimen Class'
 			THEN 'C'
 		WHEN concept_class_id = 'Modality'
@@ -96,20 +95,41 @@ WHERE h.concept_class_id IN (
 	AND h.concept_name IS NOT NULL;
 
 --4. Create concept_relationship_stage
-INSERT INTO concept_relationship_stage
-SELECT DISTINCT NULL::int4 AS concept_id_1,
-	NULL::int4 AS concept_id_2,
-	r.concept_code_1,
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT r.concept_code_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	r.relationship_id,
-	( SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'HemOnc'
-			) AS valid_start_date,
- TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	 null as invalid_reason
+	CASE 
+		WHEN r.relationship_id = 'Is historical in adult'
+			THEN 'Is hist in adult'
+		WHEN r.relationship_id = 'Is current in adult'
+			THEN 'Is curr in adult'
+		WHEN r.relationship_id = 'Is current in pediatric'
+			THEN 'Is curr in ped'
+		WHEN r.relationship_id IN (
+				'Has investigational use',
+				'Has invstg use'
+				)
+			THEN 'Has investig use'
+		WHEN r.relationship_id = 'Is historical in pediatric'
+			THEN 'Is hist in ped'
+		ELSE r.relationship_id
+		END AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'HemOnc'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM sources.hemonc_crs r
 JOIN concept_stage cs ON cs.concept_code = r.concept_code_1
 	AND cs.vocabulary_id = r.vocabulary_id_1
@@ -123,12 +143,13 @@ LEFT JOIN concept_stage cs2 ON cs2.concept_code = r.concept_code_2
 	AND cs2.vocabulary_id = r.vocabulary_id_2
 WHERE r.relationship_id NOT IN (
 		-- these aren't investigated well yet
+		'Was studied in', --looks irrelevant and non-needed as it's combined
 		'Has been compared to',
 		'Can be preceded by',
 		'Can be followed by',
 		'May require',
 		'Has major class',
-    'Has minor class'
+		'Has minor class'
 		)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
@@ -199,57 +220,64 @@ FROM (
 			'Has support med Rx'
 			)
 	--Clinical Drug Forms Picked up manually
-	
+
 	UNION ALL
-	
+
 	SELECT '1552344',
 		'RxNorm',
 		'2044421',
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '1670317',
 		'RxNorm',
 		'1670309',
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '794048',
 		'RxNorm',
 		'1942741',
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '2119715',
 		'RxNorm',
 		'2119717', -- Herceptin Hylecta , Hyaluronidase / trastuzumab Injection [Herceptin Hylecta]
 		'RxNorm'
-	
+
 	UNION ALL
-	
+
 	SELECT '1927886',
 		'RxNorm',
-		'1927888', -- Rituxan Hycela , Hyaluronidase / rituximab Injection [Rituxan Hycela] 
+		'1927888', -- Rituxan Hycela , Hyaluronidase / rituximab Injection [Rituxan Hycela]
 		'RxNorm'
 	) i
 WHERE crs.concept_code_2 = i.old_code
 	AND crs.vocabulary_id_2 = i.old_vocab;
 
 --7. Build mappings to missing RxNorm, RxNorm Extension, need to do this because of RxNorm updates and adds new ingredients
-INSERT INTO concept_relationship_stage
-SELECT NULL AS concept_id_1,
-	NULL AS concept_id_2,
-	cs.concept_code,
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT cs.concept_code,
 	c.concept_code,
 	cs.vocabulary_id,
 	c.vocabulary_id,
 	'Maps to' AS relationship_id,
 	cs.valid_start_date,
 	cs.valid_end_date,
-	CASE 
+	CASE
 		WHEN cs.valid_end_date = TO_DATE('20991231', 'yyyymmdd')
 			THEN NULL
 		ELSE 'D'
@@ -259,7 +287,7 @@ LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
 	AND crs.vocabulary_id_1 = cs.vocabulary_id
 	AND crs.vocabulary_id_2 LIKE 'Rx%'
 	AND crs.relationship_id = 'Maps to'
-JOIN concept c ON lower(c.concept_name) = lower(cs.concept_name)
+JOIN concept c ON LOWER(c.concept_name) = LOWER(cs.concept_name)
 	AND c.standard_concept = 'S'
 	AND c.vocabulary_id LIKE 'Rx%'
 WHERE cs.concept_class_id = 'Component'
@@ -267,21 +295,28 @@ WHERE cs.concept_class_id = 'Component'
 
 --8. Build relationship from Regimen to Standard concepts
 --only for newly added mappings between HemOnc and RxNorm (E)
-INSERT INTO concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
 SELECT *
 FROM (
-	SELECT NULL::int4 AS concept_id_1,
-		NULL::int4 AS concept_id_2,
-		cs1.concept_code AS concept_code_1,
+	SELECT cs1.concept_code AS concept_code_1,
 		r2.concept_code_2,
 		cs1.vocabulary_id AS vocabulary_id_1,
 		r2.vocabulary_id_2,
 		CASE r.relationship_id
-		WHEN 'Has antineoplastic'
+			WHEN 'Has antineoplastic'
 				THEN 'Has antineopl Rx'
 			WHEN 'Has immunosuppressor'
 				THEN 'Has immunosuppr Rx'
-			when 'Has local therapy'
+			WHEN 'Has local therapy'
 				THEN 'Has local therap Rx'
 			WHEN 'Has supportive med'
 				THEN 'Has support med Rx'
@@ -289,25 +324,25 @@ FROM (
 				THEN 'Has AB-drug cjgt Rx'
 			WHEN 'Has immunotherapy'
 				THEN 'Has immunotherapy Rx'
-			when 'Has targeted therapy'
+			WHEN 'Has targeted therapy'
 				THEN 'Has targeted tx Rx'
-			when 'Has cytotoxic chemo'
+			WHEN 'Has cytotoxic chemo'
 				THEN 'Has cytotox chemo Rx'
-			when 'Has radioconjugate'
+			WHEN 'Has radioconjugate'
 				THEN 'Has radiocjgt Rx'
-			when 'Has Has radioconjugate Rx'
+			WHEN 'Has Has radioconjugate Rx'
 				THEN 'Has radiocjgt Rx'
-			when 'Has endocrine tx'
+			WHEN 'Has endocrine tx'
 				THEN 'Has endocrine tx Rx'
-			when 'Has radiotherapy'
+			WHEN 'Has radiotherapy'
 				THEN 'Has radiotherapy Rx'
-			when 'Has pept-drug cjgt'
+			WHEN 'Has pept-drug cjgt'
 				THEN 'Has pept-drg cjg Rx'
-			ELSE null
+			ELSE NULL
 			END AS relationship_id,
 		cs1.valid_start_date,
 		cs1.valid_end_date,
-		CASE 
+		CASE
 			WHEN cs1.valid_end_date = TO_DATE('20991231', 'yyyymmdd')
 				THEN NULL
 			ELSE 'D'
@@ -353,14 +388,21 @@ WHERE EXISTS (
 		);
 
 --10. To build hierarchy relationships from RxNorm (E) concepts
-INSERT INTO concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
 SELECT DISTINCT --results in  Duplications, which should be fine as we can have different ways to go through
-	NULL::int4 AS concept_id_1,
-	NULL::int4 AS concept_id_2,
-	rb.concept_code_2,
-	ra.concept_code_2,
-	rb.vocabulary_id_2,
-	ra.vocabulary_id_2,
+	rb.concept_code_2 AS concept_code_1,
+	ra.concept_code_2 AS concept_code_2,
+	rb.vocabulary_id_2 AS vocabulary_id_1,
+	ra.vocabulary_id_2 AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
 	ra.valid_start_date,
 	ra.valid_end_date,
@@ -374,13 +416,41 @@ WHERE ra.relationship_id = 'Maps to'
 	AND ra.invalid_reason IS NULL;
 
 --11. Concept synonym
-INSERT INTO concept_synonym_stage(synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
-SELECT css.synonym_concept_id,css.synonym_name,css.synonym_concept_code,synonym_vocabulary_id,language_concept_id
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	synonym_name,
+	language_concept_id
+	)
+SELECT css.synonym_concept_code,
+	css.synonym_vocabulary_id,
+	REPLACE(css.synonym_name, '<sup>', '') AS synonym_name, -- fall2022 brings <syp>  is curated manually to make synonyms more reliable
+	css.language_concept_id
 FROM sources.hemonc_css css
 JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND cs.vocabulary_id = css.synonym_vocabulary_id
 	-- 15704 has empty name, typo, I suppose
-	AND css.synonym_name IS NOT NULL;
+	AND css.synonym_name IS NOT NULL
+	AND css.synonym_name NOT ILIKE '%\\>%'; --\\>  fall2022 release brings synonyms with URL structure for regimens
+
+
+--11.1 Concept synonym cleanup
+--delete rows not existing in CS
+DELETE
+FROM concept_synonym_manual csm
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_synonym_manual csm1
+		LEFT JOIN concept_stage cs ON csm1.synonym_concept_code = cs.concept_code
+		WHERE cs.concept_code IS NULL
+			AND csm.synonym_concept_code = csm1.synonym_concept_code
+		);
+
+--11.2 Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
 
 --12. Replace 'Was replaced by' to 'Concept replaced by' (need to tell Jeremy)
 UPDATE concept_relationship_stage
@@ -431,10 +501,13 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---Osimertinib monotherapy -	Has antineoplastic -	Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
-delete from concept_relationship_stage
- where concept_code_1 ='10746' and relationship_id ='Has antineoplastic' and concept_code_2 ='14051' 
-;
+--Osimertinib monotherapy -	Has antineoplastic - Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
+DELETE
+FROM concept_relationship_stage
+WHERE concept_code_1 = '10746'
+	AND relationship_id = 'Has antineoplastic'
+	AND concept_code_2 = '14051';
+
 --18. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -503,4 +576,5 @@ WHERE 'HemOnc' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

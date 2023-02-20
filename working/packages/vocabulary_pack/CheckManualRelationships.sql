@@ -18,7 +18,7 @@ BEGIN
 				WHEN ((crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE('20991231', 'yyyymmdd'))
 					OR (crm.invalid_reason IS NOT NULL AND crm.valid_end_date = TO_DATE('20991231', 'yyyymmdd'))) THEN 'wrong invalid_reason: '||COALESCE(crm.invalid_reason,'NULL')||' for '||TO_CHAR(crm.valid_end_date,'YYYYMMDD')
 				WHEN COALESCE(crm.invalid_reason, 'D') NOT IN ('D','U') THEN 'wrong value for invalid_reason: '||crm.invalid_reason
-				WHEN crm.relationship_id IN ('Mapped from','Value mapped from','Concept replaces') THEN 'it is better to use '||rl.reverse_relationship_id||' instead of '||crm.relationship_id
+				WHEN crm.relationship_id IN ('Mapped from','Value mapped from','Concept replaces','Concept same_as from','Concept alt_to from','Concept was_a from') THEN 'it is better to use '||rl.reverse_relationship_id||' instead of '||crm.relationship_id
 				ELSE NULL
 			END AS reason
 		FROM concept_relationship_manual crm

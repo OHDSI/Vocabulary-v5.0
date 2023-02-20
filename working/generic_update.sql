@@ -215,6 +215,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
 		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		WHEN c.vocabulary_id = 'OMOP Invest Drug' THEN 1
+		WHEN c.vocabulary_id = 'COSMIC' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);

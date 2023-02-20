@@ -14,7 +14,7 @@ begin
   case pVocabularyID
   when 'UMLS' THEN
       truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel, sources.mrsty;
-      alter table sources.mrconso drop constraint x_mrconso_pk;
+      drop index sources.x_mrconso_aui;
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
       drop index sources.x_mrconso_cui;
@@ -37,11 +37,10 @@ begin
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
       CREATE INDEX x_mrconso_code ON sources.mrconso (code);
       CREATE INDEX x_mrconso_cui ON sources.mrconso (cui);
-      CREATE UNIQUE INDEX x_mrconso_pk ON sources.mrconso (aui);
+      CREATE INDEX x_mrconso_aui ON sources.mrconso (aui);
       CREATE INDEX x_mrconso_sab_tty ON sources.mrconso (sab, tty);
       CREATE INDEX x_mrconso_scui ON sources.mrconso (scui);
       CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
-      ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;
       analyze sources.mrhier;
       analyze sources.mrmap;
@@ -786,7 +785,7 @@ begin
       alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
       execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
       execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
-      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id HEADER';
+      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id,valid_start_date,valid_end_date,invalid_reason HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
       alter table sources.hemonc_cs alter column valid_end_date type date using valid_end_date::date; --return proper type
@@ -813,7 +812,7 @@ begin
       update sources.cim10 set code=trim(code), vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'OMOP INVEST DRUG' then
       truncate table sources.invdrug_antineopl, sources.invdrug_pharmsub, sources.invdrug_inxight;
-      execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-15'' HEADER';
       insert into sources.invdrug_pharmsub select concept_id, trim(pt), trim(sy), trim(cas_registry), trim(fda_unii_code), COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from sources.py_xlsparse_ncit(pVocabularyPath||'/ncit_pharmsub.xlsx');
       execute 'COPY sources.invdrug_inxight FROM '''||pVocabularyPath||'dump-public.gsrs'' delimiter E''\b'' csv quote E''\f''';
   when 'CIVIC' then

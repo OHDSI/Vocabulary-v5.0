@@ -1,7 +1,6 @@
-CREATE OR REPLACE FUNCTION vocabulary_pack.AddFreshMAPSTO (
-)
+CREATE OR REPLACE FUNCTION vocabulary_pack.AddFreshMAPSTO (pVocabulary VARCHAR DEFAULT NULL)
 RETURNS void AS
-$body$
+$BODY$
 /*
 The function works with chains like A 'Maps to' B 'Maps to' C ... 'Maps to' Z, adding a new mapping A 'Maps to' Z to concept_relationship_stage
 For example, there was a mapping A 'Maps to' B. Then another mapping B 'Maps to' C was added. The function will build a new mapping A 'Maps to' C.
@@ -27,6 +26,14 @@ For example, if there are mappings in crs
 A 'Maps to' A1 'Maps to' A2
 A 'Maps to' B1 'Maps to' B2
 then both chains will be processed independently and the output will be two mappings: A 'Maps to' A2 and A 'Maps to' B2 (of course, in compliance with the above rules)
+
+Changes:
+#20230116
+1. Previously, the function extended relationships only for those concepts that were present in the concept_relationship_stage in the concept_code_1 field.
+This led to the fact that the "old" relationships were not eventually processed for possible errors (for example, in DeleteAmbiguousMAPSTO). Now the function takes these relationships from the base tables in any case, even if the updated vocabulary is in vocabulary_id_2.
+2. In some cases, the function could put a relationship where both fields vocabulary_id_1 and vocabulary_id_2 do not match SetLatestUpdate. Now this behavior has been corrected, one of the fields must be one of the updated vocabularies.
+3. As a consequence of the operation of p1 and p2, a new parameter has been added (pVocabulary). It can be useful if several vocabularies are being updated, and we want to receive relationships sequentially for each vocabulary separately. 
+For example, this is relevant for NDC/SPL, since the first time the function is called for SPL and at this stage we do not need relationships for NDC yet.
 */
 BEGIN
 	WITH to_be_upserted
@@ -141,32 +148,33 @@ BEGIN
 			concept_code_2,
 			root_vocabulary_id_1,
 			vocabulary_id_2,
-			'Maps to'::VARCHAR AS relationship_id,
+			'Maps to' AS relationship_id,
 			(
 				SELECT MAX(latest_update)
 				FROM vocabulary
 				WHERE latest_update IS NOT NULL
 				) AS valid_start_date,
 			TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-			NULL::VARCHAR AS invalid_reason
+			NULL AS invalid_reason
 		FROM (
-			SELECT DISTINCT root_concept_code_1,
-				root_vocabulary_id_1,
-				concept_code_2,
-				vocabulary_id_2
+			SELECT DISTINCT r.root_concept_code_1,
+				r.root_vocabulary_id_1,
+				r.concept_code_2,
+				r.vocabulary_id_2
 			FROM rec r
-			WHERE NOT EXISTS (
+			JOIN vocabulary v1 ON v1.vocabulary_id = r.root_vocabulary_id_1
+			JOIN vocabulary v2 ON v2.vocabulary_id = r.vocabulary_id_2
+			WHERE COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
+				AND COALESCE(pVocabulary, r.root_vocabulary_id_1) IN (
+					r.root_vocabulary_id_1,
+					r.vocabulary_id_2
+					)
+				AND NOT EXISTS (
 					/*same as oracle's CONNECT_BY_ISLEAF*/
 					SELECT 1
 					FROM rec r_int
 					WHERE r_int.concept_code_1 = r.concept_code_2
 						AND r_int.vocabulary_id_1 = r.vocabulary_id_2
-					)
-				AND EXISTS (
-					SELECT 1
-					FROM concept_relationship_stage crs
-					WHERE crs.concept_code_1 = r.root_concept_code_1
-						AND crs.vocabulary_id_1 = r.root_vocabulary_id_1
 					)
 			) AS s3
 		WHERE EXISTS (--check if target concept is valid and standard (first in concept_stage, then concept)
@@ -214,9 +222,5 @@ BEGIN
 			FROM updated up
 			);
 END;
-$body$
-LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER
-COST 100;
+$BODY$
+LANGUAGE 'plpgsql';

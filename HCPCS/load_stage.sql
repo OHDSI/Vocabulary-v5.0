@@ -1349,7 +1349,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;*/
+END $_$;
 
 --13. Append manual relationships
 DO $_$

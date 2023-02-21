@@ -32,7 +32,7 @@ SELECT count(*) FROM concept_manual_backup_2023_02_08;
 
 --Upload https://docs.google.com/spreadsheets/d/1OLvyc4cSKHKNAo6jJy6EGIJUSOhaIRY4M1faG4y_bCY/edit#gid=0
 --It is slightly modified version of https://github.com/OHDSI/Vocabulary-v5.0/issues/740
-TRUNCATE concept_relationship_manual_refresh
+TRUNCATE concept_relationship_manual_refresh;
 CREATE TABLE concept_relationship_manual_refresh
 (
     concept_code_1   varchar(50),
@@ -46,7 +46,8 @@ CREATE TABLE concept_relationship_manual_refresh
 )
 ;
 
-UPDATE concept_relationship_manual_refresh SET valid_start_date= CURRENT_DATE-1;
+UPDATE concept_relationship_manual_refresh
+SET valid_start_date= CURRENT_DATE-1;
 
 
 --CM population
@@ -68,7 +69,25 @@ WHERE EXISTS (
     and crmr.relationship_id=crmb.relationship_id
           )
 and crmb.invalid_reason IS NULL
+and crmb.concept_code_1<>crmb.concept_code_2
+and crmb.vocabulary_id_1<>crmb.vocabulary_id_2
 ;
+
+--1toM check
+-- 334 rows including simultaneous maps to Descendant and Ancestor- TBD
+--Clinically relevant
+SELECT DISTINCT *
+   FROM concept_relationship_manual_refresh
+JOIN concept c ON concept_relationship_manual_refresh.concept_code_2 = c.concept_code
+and c.vocabulary_id='Cancer Modifier'
+    WHERE (concept_code_1,relationship_id) IN (
+        SELECT concept_code_1,relationship_id
+   FROM concept_relationship_manual_refresh
+   GROUP BY concept_code_1,relationship_id HAVING count(DISTINCT concept_code_2)>1
+        )
+;
+
+
 
 
 --CRM process
@@ -85,17 +104,16 @@ SELECT DISTINCT
        concept_code_2,
        vocabulary_id_2
 FROM concept_relationship_manual_backup_2023_02_08
--- where (concept_code_1,relationship_id,concept_code_2)  IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual_refresh where invalid_reason IS NULL) -- adjust the filtering rules according to
 ;
 
 
---Detect codes not existing as naaccrr values
+--Detect codes not existing as naaccr values
 SELECT *
 FROM concept_relationship_manual_refresh
 WHERE concept_code_1 not in (SELECT concept_code from concept where concept_class_id='NAACCR Value')
 ;
 
---CHeck thant NAACCR Values are not target for other codes
+--CHeck that NAACCR Values are not target for other codes
 SELECT *
 FROM concept_relationship_manual_refresh a
 JOIN concept b

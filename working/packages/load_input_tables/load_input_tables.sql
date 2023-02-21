@@ -529,7 +529,7 @@ begin
       	RAISE EXCEPTION 'For current vocabulary (%) you must set the pVocabularyDate!', pVocabularyID;
       end if;
       truncate table sources.cvx, sources.cvx_cpt, sources.cvx_vaccine;
-      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
+      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),TRIM(vaccinestatus),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
         sources.py_xlsparse_cvx_codes(pVocabularyPath||'/web_cvx.xlsx');
       insert into sources.cvx_cpt select TRIM(CPT_CODE),TRIM(CPT_DESCRIPTION),TRIM(CVX_SHORT_DESCRIPTION),TRIM(CVX_CODE),TRIM(MAP_COMMENT),LAST_UPDATED_DATE, TRIM(CPT_CODE_ID) from 
         sources.py_xlsparse_cvx_cpt(pVocabularyPath||'/web_cpt.xlsx');

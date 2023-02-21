@@ -37,16 +37,12 @@ Prerequisites:
 
 Repeat steps 6-11.
 
-12. Clear cache: 
-    ```sql
-    SELECT * FROM qa_tests.purge_cache();
-    ```
-13. Run scripts to get summary, and interpret the results:
+12. Run scripts to get summary, and interpret the results:
     ```sql
     SELECT DISTINCT * FROM qa_tests.get_summary('concept');
     SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
     ```
-14. Run scripts to collect statistics, and interpret the results:
+13. Run scripts to collect statistics, and interpret the results:
     ```sql
     SELECT DISTINCT * FROM qa_tests.get_domain_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
@@ -54,9 +50,9 @@ Repeat steps 6-11.
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
     SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
     ```
-15. Run manual_checks_after_generic.sql, and interpret the results.
-16. Run project_specific_manual_checks_after_generic.sql, and interpret the results.
-17. If no problems, enjoy!
+14. Run manual_checks_after_generic.sql, and interpret the results. 
+15. Run project_specific_manual_checks_after_generic.sql, and interpret the results.
+16. If no problems, enjoy!
 
 CSV sources for CONCEPT_MANUAL and CONCEPT_RELATIONSHIP_MANUAL are available here:
 https://drive.google.com/drive/u/2/folders/1mvXzaXW9294RaDC2DgnM1qBi1agCwxHJ

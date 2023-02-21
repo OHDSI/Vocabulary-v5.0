@@ -400,7 +400,7 @@ AS (
 			WHEN concept_code = 'G0459'
 				THEN 'Procedure' -- Inpatient telehealth pharmacologic management, including prescription, use, AND review of medication with no more than minimal medical psychotherapy
 			WHEN concept_code = 'G0460'
-				THEN 'Procedure' -- Autologous platelet rich plasma for chronic wounds/ulcers, incuding phlebotomy, centrifugation, AND all other preparatory procedures, administration AND dressings, per treatment
+				THEN 'Procedure' -- Autologous platelet rich plasma for chronic wounds/ulcers, including phlebotomy, centrifugation, AND all other preparatory procedures, administration AND dressings, per treatment
 			WHEN concept_code IN (
 					'G0461',
 					'G0462'
@@ -1162,21 +1162,21 @@ FROM (
 	FROM sources.anweb_v2
 	) AS s0;
 
---5.1 add synonyms from the manual table (concept_synonym_manual)
+--5.1 Add synonyms from the manual table (concept_synonym_manual)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
+
+-- The scripts below are now disabled due to changes in mapping logic.
 -- 6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
--- TO DO: --!! still need to be investigated
 /*DO $_$
  BEGIN
 	PERFORM dev_hcpcs.ProcedureDrug();
 END $_$;
 
 --7. Run the HCPCS/MapDrugVocabulary.sql. This will produce a concept_relationship_stage with HCPCS to Rx RxNorm/RxNorm Extension relationships
--- TO DO: --!! still need to be investigated
   DO $_$
 BEGIN
 	PERFORM dev_hcpcs.MapDrugVocabulary();
@@ -1270,7 +1270,39 @@ WHERE NOT EXISTS (
 			AND crs_int.relationship_id = 'Concept replaced by'
 		);
 
---9. Add all other 'Concept replaced by' relationships
+--9. Create hierarchical relationships between HCPCS AND HCPCS class
+--TO DO! Investigate, why it doesn't work.
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	relationship_id,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT a.hcpc AS concept_code_1,
+	a.betos AS concept_code_2,
+	'Is a' AS relationship_id,
+	'HCPCS' AS vocabulary_id_1,
+	'HCPCS' AS vocabulary_id_2,
+	coalesce(a.add_date, a.act_eff_dt) AS valid_start_date,
+	coalesce(a.term_dt, to_date('20991231', 'yyyymmdd')) AS valid_end_date,
+	CASE
+		WHEN term_dt IS NULL
+			THEN NULL
+		WHEN xref1 IS NULL
+			THEN 'D' -- deprecated
+		ELSE NULL -- upgraded
+		END AS invalid_reason
+FROM sources.anweb_v2 a
+JOIN concept c ON c.concept_code = a.betos
+	AND c.concept_class_id = 'HCPCS Class'
+	AND c.vocabulary_id = 'HCPCS'
+	AND c.invalid_reason IS NULL;
+
+--10. Add all other 'Concept replaced by' relationships
 --!! still need to be investigated
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1318,7 +1350,7 @@ WHERE c.concept_id = r.concept_id_1
 			AND crs.relationship_id = r.relationship_id
 		);
 
---10. Temporary solution: make concepts that are replaced by the non-existing concepts standard
+--11. Temporary solution: make concepts that are replaced by the non-existing concepts standard
 --CPT4 doesn't have these concepts in sources yet somehow
 UPDATE concept_stage cs
 SET invalid_reason = NULL,
@@ -1339,37 +1371,37 @@ WHERE NOT EXISTS (
 		)
 	AND cs.invalid_reason = 'U';
 
---11. Working with replacement mappings
+--12. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---12. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---13. Append manual relationships
+--14. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---15. Delete ambiguous 'Maps to' mappings
+--16. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id and standard concept value for HCPCS according to mappings:
+--17. Update domain_id and standard concept value for HCPCS according to mappings:
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -1401,7 +1433,7 @@ FROM (
 ) i
 WHERE cs.concept_code = i.concept_code_1;
 
---17. All (not only the drugs) concepts having mappings should be NON-standard
+--18. All (not only the drugs) concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

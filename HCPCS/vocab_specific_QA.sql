@@ -1,10 +1,13 @@
 -- Check if there are any known drug Brand names missed in the mapping:
 -- This check allows to retrieve target brand names from manual mapping and brand names that correspond to the ingredients, mentioned in the source,
 --- and compare them. Our aim is to reveal so called 'stable' brand names, when only one RxNorm brand corresponds to one ingredient/combination.
--- Three flags are used:
+-- Three flags are used in the 'flag' field:
+--- definite brand - in case when the source concepts contains a particular brand name
+--- possible brand - when the brand is defined according to RxNorm hierarchy
+--- no ing detected - in case when ingredient name in the source differs from the standard ingredient (typos, alternative spelling, etc.)
+-- Following flags are used in the 'mapping' field:
 --- correct mapping - in case when source and target brands are equal
 --- review mapping - in case when source and target concept differ
---- no ing detected - in case when ingredient name in the source differs from the standard ingredient (typos, alternative spelling, etc.)
 -- The 'brand' field indicates brand names that correspond to the source ingredients.
 --- If there are several brands for one ingredient/combination then 'Multiple brands' flag is used.
 --- If there no RxNorm brand name corresponds to the ingredient then 'No brand' flag is used.
@@ -20,7 +23,7 @@ WITH mapped_brand AS
     FROM concept_relationship cr
     JOIN concept c ON c.concept_id = cr.concept_id_1
     JOIN concept c1 ON c1.concept_id = cr.concept_id_2
-    JOIN devv5.concept_relationship cr2 ON cr.concept_id_2 = cr2.concept_id_1
+    JOIN concept_relationship cr2 ON cr.concept_id_2 = cr2.concept_id_1
     JOIN concept c2 ON c2.concept_id = cr2.concept_id_2
     WHERE cr.relationship_id = 'Maps to'
     AND cr.invalid_reason IS NULL
@@ -37,14 +40,14 @@ definite_brand AS
          'definite_brand' AS flag,
          cc.concept_name AS brand
           FROM concept c
-    JOIN devv5.concept cc
+    JOIN concept cc
           ON (UPPER (c.concept_name) LIKE '%(' || UPPER (cc.concept_name) || '%'
           OR UPPER (c.concept_name) LIKE '%' || UPPER (cc.concept_name) || '/%'
           OR UPPER (c.concept_name) LIKE '%, ' || UPPER (cc.concept_name) || ', %'
           OR UPPER (c.concept_name) LIKE '% ' || UPPER (cc.concept_name) || ' %'
           OR UPPER (c.concept_name) LIKE '% ' || UPPER (cc.concept_name))
     JOIN concept_relationship cr ON c.concept_id = cr.concept_id_1
-    JOIN devv5.concept cc2 ON cc2.concept_id = cr.concept_id_2
+    JOIN concept cc2 ON cc2.concept_id = cr.concept_id_2
     WHERE cc.vocabulary_id = 'RxNorm'
     AND cc.concept_class_id = 'Brand Name'
     AND cc.invalid_reason IS NULL
@@ -61,7 +64,7 @@ precise_ing AS
             cc.concept_id AS ing_id,
             cc.concept_name AS ingredient
     FROM concept c
-    LEFT JOIN devv5.concept cc
+    LEFT JOIN concept cc
             ON (UPPER (c.concept_name) LIKE '% ' || UPPER (cc.concept_name) || ' %'
             OR UPPER (c.concept_name) LIKE  '% ' || UPPER (cc.concept_name) || ',%'
             OR UPPER (c.concept_name) LIKE  '% ' || UPPER (cc.concept_name) || '/%'
@@ -102,10 +105,26 @@ precise_to_ing AS
 hcpcs_ing AS
        (SELECT c.concept_code AS hcpcs_code,
                c.concept_name AS hcpcs_name,
-               cc.concept_id AS ing_id,
-              cc.concept_name AS ingredient
+               CASE WHEN LOWER(c.concept_name) LIKE '%estradiol%'
+                        THEN '1548195'
+                   WHEN LOWER(c.concept_name) LIKE '%aripiprazole%'
+                       THEN '757688'
+                    WHEN LOWER(c.concept_name) LIKE '%aprotonin%'
+                       THEN '19000729'
+                   WHEN LOWER(c.concept_name) LIKE '%melphalan%'
+                       THEN '1301267'
+                   ELSE cc.concept_id END AS ing_id,
+               CASE WHEN LOWER(c.concept_name) LIKE '%estradiol%'
+                       THEN 'estradiol'
+                   WHEN LOWER(c.concept_name) LIKE '%aripiprazole%'
+                       THEN 'aripiprazole'
+                   WHEN LOWER(c.concept_name) LIKE '%aprotonin%'
+                       THEN 'aprotinin'
+                   WHEN LOWER(c.concept_name) LIKE '%melphalan%'
+                       THEN 'melphalan'
+                   ELSE cc.concept_name END AS ingredient
             FROM concept c
-            LEFT JOIN devv5.concept cc
+            LEFT JOIN concept cc
             ON (UPPER (c.concept_name) LIKE '% ' || UPPER (cc.concept_name) || ' %'
             OR UPPER (c.concept_name) LIKE  '% ' || UPPER (cc.concept_name) || ',%'
             OR UPPER (c.concept_name) LIKE  '% ' || UPPER (cc.concept_name) || '/%'
@@ -119,11 +138,11 @@ hcpcs_ing AS
             OR UPPER (c.concept_name) LIKE '%/' || UPPER (cc.concept_name)
             OR UPPER (c.concept_name) LIKE '% ' || UPPER (cc.concept_name) || ' %'
             OR UPPER (c.concept_name) LIKE '% ' || UPPER (cc.concept_name))
-       JOIN devv5.concept_relationship cr ON cc.concept_id = cr.concept_id_1
+       JOIN concept_relationship cr ON cc.concept_id = cr.concept_id_1
        WHERE c.vocabulary_id = 'HCPCS'
        AND c.domain_id = 'Drug'
-       AND cc.vocabulary_id IN ('RxNorm', 'CVX')
-       AND cc.concept_class_id IN ('Ingredient', 'CVX')
+       AND cc.vocabulary_id IN ('RxNorm')
+       AND cc.concept_class_id IN ('Ingredient')
        AND cc.concept_name NOT IN ('lactate', 'calcium', 'acetate', 'sodium', 'sodium phosphate', 'sodium succinate', 'succinate',
                                          'magnesium', 'potassium', 'gluconate', 'citrate', 'pyrophosphate', 'calcium', 'edetate', 'valerate',
                                          'oleate', 'sucrose', 'iron', 'pyrophosphate', 'oxygen', 'sulfur', 'amphotericin', 'mesylate', 'tartrate',
@@ -162,9 +181,9 @@ cr_Brand AS
             array_agg(c1.concept_name ORDER BY c1.concept_name ASC) AS ingredient,
             concept_id_2 AS brand_id,
             c.concept_name AS brand_name
-    FROM devv5.concept_relationship cr
-    JOIN devv5.concept c ON c.concept_id = cr.concept_id_2
-    JOIN devv5.concept c1 ON c1.concept_id = cr.concept_id_1
+    FROM concept_relationship cr
+    JOIN concept c ON c.concept_id = cr.concept_id_2
+    JOIN concept c1 ON c1.concept_id = cr.concept_id_1
     WHERE relationship_id IN ('Has brand name')
     AND c1. concept_class_id = 'Ingredient'
     AND c.vocabulary_id = 'RxNorm'

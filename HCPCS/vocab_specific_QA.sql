@@ -163,8 +163,8 @@ joined_ing AS
 ing_agg AS
     (SELECT hcpcs_code,
             hcpcs_name,
-            array_agg(i.ing_id ORDER BY i.ing_id ASC) AS ing_id,
-            array_agg(i.ingredient ORDER BY i.ingredient ASC) AS ingredient
+            array_agg(i.ing_id ORDER BY i.ing_id) AS ing_id,
+            array_agg(i.ingredient ORDER BY i.ingredient) AS ingredient
     FROM joined_ing i
     WHERE i.ing_id NOT IN (SELECT j1.ing_id
                            FROM joined_ing j
@@ -177,8 +177,8 @@ ing_agg AS
 
 -- extract RxN Brands AND its ingredients AND combinations:
 cr_Brand AS
-    (SELECT array_agg(cr.concept_id_1 ORDER BY concept_id_1 ASC) AS ing_id,
-            array_agg(c1.concept_name ORDER BY c1.concept_name ASC) AS ingredient,
+    (SELECT array_agg(cr.concept_id_1 ORDER BY concept_id_1) AS ing_id,
+            array_agg(c1.concept_name ORDER BY c1.concept_name) AS ingredient,
             concept_id_2 AS brand_id,
             c.concept_name AS brand_name
     FROM concept_relationship cr

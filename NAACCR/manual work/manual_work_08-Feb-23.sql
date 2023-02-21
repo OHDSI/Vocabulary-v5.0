@@ -57,11 +57,36 @@ SELECT concept_name, domain_id, vocabulary_id, concept_class_id, standard_concep
 FROM concept_manual_backup_2023_02_08
 ;
 
+--CHECK THE # OF CODES OVERLAPPING BETWEEN MANUAL REFRESH AND PREVIOUS CRM version in case of identical relationships and thier validities
+SELECT *
+FROM concept_relationship_manual_backup_2023_02_08 crmb
+WHERE EXISTS (
+    SELECT 1
+    from concept_relationship_manual_refresh crmr
+    WHERE crmr.concept_code_1=crmb.concept_code_1
+    and crmr.vocabulary_id_1=crmb.vocabulary_id_1
+    and crmr.relationship_id=crmb.relationship_id
+          )
+and crmb.invalid_reason IS NULL
+;
+
+
 --CRM process
 TRUNCATE concept_relationship_manual;
-INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
-SELECT concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
-FROM concept_relationship_manual_backup_2023_02_08;
+INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1, relationship_id, valid_start_date,
+                                         valid_end_date, invalid_reason, concept_code_2, vocabulary_id_2)
+SELECT DISTINCT
+       concept_code_1,
+       vocabulary_id_1,
+       relationship_id,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason,
+       concept_code_2,
+       vocabulary_id_2
+FROM concept_relationship_manual_backup_2023_02_08
+-- where (concept_code_1,relationship_id,concept_code_2)  IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual_refresh where invalid_reason IS NULL) -- adjust the filtering rules according to
+;
 
 
 --Detect codes not existing as naaccrr values
@@ -88,7 +113,7 @@ and r.concept_id_2<>r.concept_id_1;
 INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
 SELECT concept_code_1, vocabulary_id_1,  relationship_id, CURRENT_DATE as valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
 FROM concept_relationship_manual_refresh
-where (concept_code_1,relationship_id,concept_code_2) NOT IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual);
+where (concept_code_1,relationship_id,concept_code_2) NOT IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual where invalid_reason IS NULL);
 ;
 
 --Set Non-standard concept class

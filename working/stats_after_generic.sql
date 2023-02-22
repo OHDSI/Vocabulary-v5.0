@@ -6,16 +6,13 @@ select * from QA_TESTS.GET_CHECKS();
 --2. get_summary - changes in tables between dev-schema (current) and devv5/prodv5/any other schema
 --supported tables: concept, concept_relationship, concept_ancestor
 
---2.1. first clean cache
-select * from qa_tests.purge_cache();
-
---2.2. summary (table to check, schema to compare)
+--2.1. summary (table to check, schema to compare)
 select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 
---2.3. summary (table to check, schema to compare)
+--2.2. summary (table to check, schema to compare)
 select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
 
---2.4. summary (table to check, schema to compare) 
+--2.3. summary (table to check, schema to compare) 
 /* run only in cases when ancestor was included in fast recreate and manual concept_ancestor was run
 select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
 */

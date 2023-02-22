@@ -16,7 +16,7 @@ SELECT sources.load_input_tables('ICD10GM',TO_DATE('20200101','YYYYMMDD'),'2020 
 ```
 5. Run FULL FastRecreate:
 ```sql
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 ```
 6. As described in the "manual_work" folder, upload concept_manual.csv, concept_relationship_manual.csv and concept_synonym_manual.csv into eponymous tables, which exist by default in the dev schema after the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
 7. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/load_stage.sql) for the first time to define problems in mapping

@@ -169,18 +169,16 @@ TABLE (
 )
 AS
 $BODY$
-import xlrd
+from openpyxl import load_workbook
 res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_index(sheet_id)
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid)
-  src_code=row[0] if row[0] else None
-  src_desc=row[1] if row[1] else None
-  target_code=row[2] if row[2] else None
-  target_desc=row[3] if row[3] else None
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[sheet_id]
+for row in sheet.iter_rows(min_row=2):
+  src_code=row[0].value if row[0].value else None
+  src_desc=row[1].value if row[1].value else None
+  target_code=row[2].value if row[2].value else None
+  target_desc=row[3].value if row[3].value else None
   res.append((src_code,src_desc,target_code,target_desc))
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;

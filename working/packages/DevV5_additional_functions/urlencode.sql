@@ -3,12 +3,8 @@ CREATE OR REPLACE FUNCTION devv5.urlencode (
 )
 RETURNS text AS
 $body$
-	from urllib import quote_plus
+	from urllib.parse import quote_plus
 	return quote_plus (txt_string)
 $body$
-LANGUAGE 'plpythonu'
-IMMUTABLE
-RETURNS NULL ON NULL INPUT
-SECURITY DEFINER
-PARALLEL SAFE
-COST 10;
+LANGUAGE 'plpython3u'
+IMMUTABLE STRICT PARALLEL SAFE;

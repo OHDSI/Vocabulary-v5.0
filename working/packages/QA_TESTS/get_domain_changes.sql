@@ -8,30 +8,28 @@ or: select * from qa_tests.get_domain_changes(pCompareWith=>'devv5');
 will show the difference between current schema and devv5 (you can use any schema name)
 */
 
-CREATE TYPE qa_tests.type_get_domain_changes AS (
+CREATE OR REPLACE FUNCTION qa_tests.get_domain_changes (pCompareWith VARCHAR DEFAULT 'prodv5')
+RETURNS TABLE
+(
 	vocabulary_id VARCHAR(20),
 	old_domain_id VARCHAR(20),
 	new_domain_id VARCHAR(20),
 	cnt BIGINT
-	);
-
-CREATE OR REPLACE FUNCTION qa_tests.get_domain_changes (pCompareWith VARCHAR DEFAULT 'PRODV5')
-RETURNS SETOF qa_tests.type_get_domain_changes
-SET work_mem='5GB'
+)
 AS $BODY$
 BEGIN
 	RETURN QUERY
-	EXECUTE $$
+	EXECUTE FORMAT ($$
 		SELECT new.vocabulary_id,
 			old.domain_id AS old_domain_id,
 			new.domain_id AS new_domain_id,
-			count(*) AS cnt
+			COUNT(*) AS cnt
 		FROM concept new
-		JOIN $$||pCompareWith||$$.concept old ON old.concept_id = new.concept_id
+		JOIN %I.concept old ON old.concept_id = new.concept_id
 			AND new.domain_id <> old.domain_id
 		GROUP BY new.vocabulary_id,
 			old.domain_id,
-			new.domain_id$$;
+			new.domain_id$$, LOWER(pCompareWith));
 END;
 $BODY$
 LANGUAGE 'plpgsql' STABLE SECURITY INVOKER;

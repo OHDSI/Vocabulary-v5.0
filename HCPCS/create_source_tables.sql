@@ -54,26 +54,24 @@ TABLE (
 )
 AS
 $BODY$
-import xlrd
+from openpyxl import load_workbook
 res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_index(0)
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid)
-  HCPC=row[0] if row[0] else None
-  LONG_DESCRIPTION=row[3] if row[3] else None
-  SHORT_DESCRIPTION=row[4] if row[4] else None
-  XREF1=row[25] if row[25] else None
-  XREF2=row[26] if row[26] else None
-  XREF3=row[27] if row[27] else None
-  XREF4=row[28] if row[28] else None
-  XREF5=row[29] if row[29] else None
-  BETOS=row[37] if row[37] else None
-  ADD_DATE=row[44] if row[44] else None
-  ACT_EFF_DT=row[45] if row[45] else None
-  TERM_DT=row[46] if row[46] else None
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[0]
+for row in sheet.iter_rows(min_row=2):
+  HCPC=row[0].value if row[0].value else None
+  LONG_DESCRIPTION=row[3].value if row[3].value else None
+  SHORT_DESCRIPTION=row[4].value if row[4].value else None
+  XREF1=row[25].value if row[25].value else None
+  XREF2=row[26].value if row[26].value else None
+  XREF3=row[27].value if row[27].value else None
+  XREF4=row[28].value if row[28].value else None
+  XREF5=row[29].value if row[29].value else None
+  BETOS=row[37].value if row[37].value else None
+  ADD_DATE=row[44].value if row[44].value else None
+  ACT_EFF_DT=row[45].value if row[45].value else None
+  TERM_DT=row[46].value if row[46].value else None
   res.append((HCPC,LONG_DESCRIPTION,SHORT_DESCRIPTION,XREF1,XREF2,XREF3,XREF4,XREF5,BETOS,ADD_DATE,ACT_EFF_DT,TERM_DT))
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;

@@ -204,8 +204,8 @@ BEGIN
 		WHEN c.vocabulary_id = 'OMOP Extension' THEN 0
 		WHEN c.vocabulary_id = 'CIM10' THEN 1
 		WHEN c.vocabulary_id = 'NCCD' THEN 0
-		WHEN c.vocabulary_id = 'CIViC' THEN 0
-		WHEN c.vocabulary_id = 'CGI' THEN 0
+		WHEN c.vocabulary_id = 'CIViC' THEN 1
+		WHEN c.vocabulary_id = 'CGI' THEN 1
 		WHEN c.vocabulary_id = 'ClinVar' THEN 0
 		WHEN c.vocabulary_id = 'JAX' THEN 0
 		WHEN c.vocabulary_id = 'NCIt' THEN 0
@@ -215,6 +215,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
 		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		WHEN c.vocabulary_id = 'OMOP Invest Drug' THEN 1
+		WHEN c.vocabulary_id = 'COSMIC' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
@@ -853,7 +854,7 @@ BEGIN
 				AND css_int.ctid > css.ctid
 			);
 
-	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage
+	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage, but only for English
 	DELETE
 	FROM concept_synonym_stage css
 	WHERE EXISTS (
@@ -862,6 +863,7 @@ BEGIN
 			WHERE cs.concept_code = css.synonym_concept_code
 				AND cs.vocabulary_id = css.synonym_vocabulary_id
 				AND LOWER(cs.concept_name) = LOWER(css.synonym_name)
+				AND css.language_concept_id = 4180186
 			);
 
 	--26. Update synonym_concept_id

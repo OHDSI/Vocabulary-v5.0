@@ -324,16 +324,17 @@ AS (
 			WHEN concept_code = 'G0337'
 				THEN 'Observation' -- Level 2: G0337-G0337 previously 'Hospice'
 			WHEN concept_code IN (
-			    'G9481',
-			    'G9482',
-			    'G9486',
-			    'G9487',
-			    'G9488',
-			    'G9489')
-			    THEN 'Visit'
-		    WHEN concept_code IN ('G0025')
-		        THEN 'Device'
-		    WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
+					'G9481',
+					'G9482',
+					'G9486',
+					'G9487',
+					'G9488',
+					'G9489'
+					)
+				THEN 'Visit'
+			WHEN concept_code = 'G0025'
+				THEN 'Device'
+			WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
 				THEN 'Observation' -- Level 2: G0378-G0384
 			WHEN l2.str = 'Trauma Response Team'
 				THEN 'Observation' -- Level 2: G0390-G0390
@@ -695,10 +696,10 @@ AS (
 					'M0075', --Cellular therapy
 					'M0076', --Prolotherapy
 					'M0100', --Intragastric hypothermia using gastric freezing
-			        'M0201', -- Covid-19 vaccine administration
+					'M0201', -- Covid-19 vaccine administration
 					'M0300', --Iv chelation therapy (chemical endarterectomy)
 					'M0301' --Fabric wrapping of abdominal aneurysm
-			        					)
+					)
 				THEN 'Procedure'
 			WHEN l1.str = 'Other Medical Services'
 				THEN 'Observation' -- Level 1: M0000-M0301
@@ -1104,7 +1105,7 @@ SELECT CASE
 	c.valid_start_date,
 	c.valid_end_date,
 	c.invalid_reason
-FROM devv5.concept c
+FROM concept c
 WHERE c.vocabulary_id = 'HCPCS'
 	AND NOT EXISTS (
 		SELECT 1
@@ -1205,8 +1206,8 @@ SELECT DISTINCT concept_code_1,
 FROM (
 	SELECT a.hcpc AS concept_code_1,
 		a.xref1 AS concept_code_2,
-		coalesce(a.add_date, a.act_eff_dt) AS valid_start_date,
-		to_date('20991231', 'yyyymmdd') AS valid_end_date
+		COALESCE(a.add_date, a.act_eff_dt) AS valid_start_date,
+		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref1 = b.hcpc
@@ -1217,8 +1218,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref2,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref2 = b.hcpc
@@ -1229,8 +1230,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref3,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref3 = b.hcpc
@@ -1241,8 +1242,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref4,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref4 = b.hcpc
@@ -1253,8 +1254,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref5,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref5 = b.hcpc
@@ -1288,8 +1289,8 @@ SELECT DISTINCT a.hcpc AS concept_code_1,
 	'Is a' AS relationship_id,
 	'HCPCS' AS vocabulary_id_1,
 	'HCPCS' AS vocabulary_id_2,
-	coalesce(a.add_date, a.act_eff_dt) AS valid_start_date,
-	coalesce(a.term_dt, to_date('20991231', 'yyyymmdd')) AS valid_end_date,
+	COALESCE(a.add_date, a.act_eff_dt) AS valid_start_date,
+	COALESCE(a.term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	CASE
 		WHEN term_dt IS NULL
 			THEN NULL
@@ -1379,16 +1380,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---13. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---14. Append manual relationships
+--13. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--14. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
 --15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -1403,36 +1404,38 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---17. Update domain_id and standard concept value for HCPCS according to mappings:
+--17. Update domain_id and standard concept value for HCPCS according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
+	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1,
+		c.domain_id
 	FROM concept_relationship_stage crs
-	JOIN concept c on c.concept_code=crs.concept_code_2 AND c.vocabulary_id=crs.vocabulary_id_2
-	WHERE crs.relationship_id='Maps to'
-	AND crs.invalid_reason IS NULL
-	AND crs.vocabulary_id_1='HCPCS'
+	JOIN concept c ON c.concept_code = crs.concept_code_2
+		AND c.vocabulary_id = crs.vocabulary_id_2
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
+		AND crs.vocabulary_id_1 = 'HCPCS'
 	ORDER BY crs.concept_code_1,
-	         CASE c.domain_id
-	             WHEN 'Drug'
-	                 THEN 1
-	             WHEN 'Procedure'
-	                THEN 2
-	             WHEN 'Condition'
-	                THEN 3
-	             WHEN 'Measurement'
-	                THEN 4
-                 WHEN 'Observation'
-	                THEN 5
-	             WHEN 'Visit'
-	                 THEN 6
-	             WHEN 'Provider'
-	                 THEN 7
-	             WHEN 'Device'
-	                 THEN 8
-	             END
-) i
+		CASE c.domain_id
+			WHEN 'Drug'
+				THEN 1
+			WHEN 'Procedure'
+				THEN 2
+			WHEN 'Condition'
+				THEN 3
+			WHEN 'Measurement'
+				THEN 4
+			WHEN 'Observation'
+				THEN 5
+			WHEN 'Visit'
+				THEN 6
+			WHEN 'Provider'
+				THEN 7
+			WHEN 'Device'
+				THEN 8
+			END
+	) i
 WHERE cs.concept_code = i.concept_code_1;
 
 --18. All (not only the drugs) concepts having mappings should be NON-standard

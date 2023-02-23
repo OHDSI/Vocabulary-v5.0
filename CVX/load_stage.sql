@@ -51,7 +51,7 @@ SELECT CASE
     WHEN vaccinestatus = 'Non-US'
              AND full_vaccine_name not like '%Non-US%'
              AND full_vaccine_name not like '%non-US%'
-        THEN concat(SUBSTR(full_vaccine_name, 1, 255), ' (non-US)')
+        THEN concat(SUBSTR(full_vaccine_name, 1, 246), ' (non-US)')
        ELSE SUBSTR(full_vaccine_name, 1, 255)
     END AS concept_name,
 	'CVX' AS vocabulary_id,

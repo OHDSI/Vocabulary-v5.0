@@ -47,7 +47,13 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(full_vaccine_name, 1, 255) AS concept_name,
+SELECT CASE
+    WHEN vaccinestatus = 'Non-US'
+             AND full_vaccine_name not like '%Non-US%'
+             AND full_vaccine_name not like '%non-US%'
+        THEN concat(SUBSTR(full_vaccine_name, 1, 255), ' (non-US)')
+       ELSE SUBSTR(full_vaccine_name, 1, 255)
+    END AS concept_name,
 	'CVX' AS vocabulary_id,
 	'Drug' AS domain_id,
 	'CVX' AS concept_class_id,

@@ -155,7 +155,40 @@ WHERE crs.relationship_id = 'RxNorm - CVX'
 			AND c.invalid_reason = 'D'
 		);
 
---8. Make concepts that have relationship 'Maps to' non-standard
+--8. Add relationships to the Vaccine Groups
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT cv.cvx_code AS concept_code_1,
+	cv.cvx_vaccine_group AS concept_code_2,
+	'CVX' AS vocabulary_id_1,
+	'CVX' AS vocabulary_id_2,
+	'Has vaccine group' AS relationship_id,
+	(
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = 'CVX'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.cvx_vaccine cv
+JOIN concept_stage cs ON cs.concept_code = cv.cvx_code
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = cv.cvx_code
+			AND crs.concept_code_2 = cv.cvx_vaccine_group
+			AND crs.relationship_id = 'Has vaccine group'
+		);
+
+--9. Make concepts that have relationship 'Maps to' non-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM concept_relationship_stage crs

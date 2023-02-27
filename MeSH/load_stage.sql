@@ -211,7 +211,7 @@ INSERT INTO concept_relationship_stage (
 	vocabulary_id_2,
 	relationship_id,
 	valid_start_date,
-	valid_end_date,
+	valid_end_date
 	)
 SELECT concept_code AS concept_code_1,
 	target_concept_code AS concept_code_2,

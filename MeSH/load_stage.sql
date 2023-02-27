@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2022
+* Authors: Timur Vakhitov, Christian Reich, Oleg Zhuk
+* Date: 2023
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -124,6 +124,7 @@ FROM mesh_source;
 ANALYZE concept_stage;
 
 --5. Fill empty domains [AVOF-3594]
+--5.1 Assign domains through the mappings and ancestry
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -199,6 +200,95 @@ FROM (
 	) i
 WHERE cs.concept_code = i.descendant_concept_code;
 
+--Even with assignment of domains through the mappings and ancestry, some codes do not get domain
+--Assign domains to them through semantic tags according to the following logic:
+--If all semantics tags for the concept share the manually assigned domain, then assign this domain, otherwise assign 'Observation'
+--5.2 Manually create table with Semantic tags
+DROP TABLE IF EXISTS semantic_tags;
+CREATE UNLOGGED TABLE semantic_tags
+    (
+        stn varchar(50),
+        sty varchar(255),
+        domain_id varchar(50)
+    );
+
+--5.3 Fill in the various tags concepts
+--Note, that only peaks with domains other than Observation are included
+INSERT INTO semantic_tags
+SELECT *
+FROM (VALUES ('A1','Physical Object', 'Device'),
+             ('A1.2', 'Anatomical Structure', 'Spec Anatomic Site'),
+             ('A1.2.1', 'Embryonic Structure', 'Spec Anatomic Site'),
+             ('A1.2.2', 'Anatomical Abnormality', 'Spec Anatomic Site'),
+             ('A1.2.2.1', 'Congenital Abnormality', 'Spec Anatomic Site'),
+             ('A1.2.2.2', 'Acquired Abnormality', 'Spec Anatomic Site'),
+             ('A1.2.3', 'Fully Formed Anatomical Structure', 'Spec Anatomic Site'),
+             ('A1.2.3.1', 'Body Part, Organ, or Organ Component', 'Spec Anatomic Site'),
+             ('A1.2.3.2', 'Tissue', 'Spec Anatomic Site'),
+             ('A1.2.3.3', 'Cell', 'Spec Anatomic Site'),
+             ('A1.2.3.4', 'Cell Component', 'Spec Anatomic Site'),
+             ('A1.2.3.5', 'Gene or Genome', 'Spec Anatomic Site'),
+             ('A1.3', 'Manufactured Object', 'Device'),
+             ('A1.3.1', 'Medical Device', 'Device'),
+             ('A1.3.1.1', 'Drug Delivery Device', 'Device'),
+             ('A1.3.2', 'Research Device', 'Device'),
+             ('A1.3.3', 'Clinical Drug', 'Drug'),
+             ('A1.4.1.1.1', 'Pharmacologic Substance', 'Drug'),
+             ('A1.4.1.1.1.1', 'Antibiotic', 'Drug'),
+             ('A1.4.1.1.2', 'Biomedical or Dental Material', 'Device'),
+             ('A1.4.1.1.3.2', 'Hormone', 'Drug'),
+             ('A1.4.1.1.3.4', 'Vitamin', 'Drug'),
+             ('A1.4.1.1.3.5', 'Immunologic Factor', 'Drug'),
+             ('A1.4.1.1.4', 'Indicator, Reagent, or Diagnostic Aid', 'Device'),
+             ('A2.1.4.1', 'Body System', 'Spec Anatomic Site'),
+             ('A2.1.5', 'Spatial Concept', 'Spec Anatomic Site'),
+             ('A2.1.5.1', 'Body Space or Junction', 'Spec Anatomic Site'),
+             ('A2.1.5.2', 'Body Location or Region', 'Spec Anatomic Site'),
+             ('A2.1.5.4', 'Geographic Area', 'Geography'),
+             ('A2.5', 'Language', 'Language'),
+             ('B1.3.1.1', 'Laboratory Procedure', 'Measurement'),
+             ('B1.3.1.2', 'Diagnostic Procedure', 'Procedure'),
+             ('B1.3.1.3', 'Therapeutic or Preventive Procedure', 'Procedure'),
+             ('B2.2.1.2.1', 'Disease or Syndrome', 'Condition'),
+             ('B2.2.1.2.1.2', 'Neoplastic Process', 'Condition'),
+             ('B2.3', 'Injury or Poisoning', 'Condition')) a
+;
+
+--5.4 Assign domains other than Observation according to the described above algorithm
+with new_domains_all AS
+    (
+SELECT concept_code, coalesce(st.domain_id, 'Observation') AS domain_id
+FROM dev_mesh.concept_stage cs
+--Getting CUI from code
+JOIN sources.mrconso
+ON cs.concept_code = mrconso.code
+--Getting semantics tags
+JOIN sources.mrsty
+ON mrconso.cui = mrsty.cui
+--Domain assignment table
+LEFT JOIN dev_mesh.semantic_tags st
+ON st.stn = mrsty.stn
+    ),
+
+    new_domains AS (
+        SELECT DISTINCT concept_code, domain_id
+        FROM new_domains_all
+        WHERE concept_code NOT IN (SELECT concept_code FROM new_domains_all GROUP BY concept_code HAVING count(DISTINCT domain_id) > 1)
+    )
+
+UPDATE concept_stage
+SET domain_id = new_domains.domain_id
+FROM new_domains
+WHERE concept_stage.domain_id IS NULL
+AND concept_stage.concept_code = new_domains.concept_code
+AND new_domains.domain_id IS NOT NULL AND new_domains.domain_id != 'Observation'
+;
+
+--5.5 Assign 'Observation' for the rest of the concepts
+UPDATE concept_stage
+    SET domain_id = 'Observation'
+WHERE domain_id IS NULL;
+
 --6. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
@@ -265,5 +355,6 @@ END $_$;
 
 --12. Clean up
 DROP TABLE mesh_source;
+DROP TABLE semantic_tags;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

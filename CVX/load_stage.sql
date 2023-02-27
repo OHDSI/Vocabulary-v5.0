@@ -47,13 +47,12 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE
-    WHEN vaccinestatus = 'Non-US'
-             AND full_vaccine_name not like '%Non-US%'
-             AND full_vaccine_name not like '%non-US%'
-        THEN concat(SUBSTR(full_vaccine_name, 1, 246), ' (non-US)')
-       ELSE SUBSTR(full_vaccine_name, 1, 255)
-    END AS concept_name,
+SELECT CASE 
+		WHEN d.vaccinestatus = 'Non-US'
+			AND d.full_vaccine_name NOT ILIKE '%Non-US%'
+			THEN LEFT(d.full_vaccine_name, 245) || ' (non-US)'
+		ELSE vocabulary_pack.CutConceptName(d.full_vaccine_name)
+		END AS concept_name,
 	'CVX' AS vocabulary_id,
 	'Drug' AS domain_id,
 	'CVX' AS concept_class_id,

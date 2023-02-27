@@ -82,6 +82,8 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
                         WHERE source_code = crm_old.concept_code_1
                           AND target_concept_code = crm_old.concept_code_2
                           AND target_vocabulary_id = crm_old.vocabulary_id_2
+                          AND to_value NOT IN ('CVX - RxNorm',
+                                                         'Maps to itself')
                           AND CASE
                                   WHEN to_value ~* 'value' THEN 'Maps to value'
                     WHEN to_value ~* 'Is a' THEN 'Is a'
@@ -108,7 +110,8 @@ with mapping AS
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
         FROM dev_cvx.cvx_mapped
-        WHERE target_concept_id != 0
+        WHERE target_concept_id != 0 AND to_value NOT IN ('CVX - RxNorm',
+                                                         'Maps to itself')
     )
 
 INSERT INTO dev_cvx.concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)

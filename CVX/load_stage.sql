@@ -47,7 +47,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE 
+SELECT CASE
 		WHEN d.vaccinestatus = 'Non-US'
 			AND d.full_vaccine_name NOT ILIKE '%Non-US%'
 			THEN LEFT(d.full_vaccine_name, 245) || ' (non-US)'
@@ -55,7 +55,12 @@ SELECT CASE
 		END AS concept_name,
 	'CVX' AS vocabulary_id,
 	'Drug' AS domain_id,
-	'CVX' AS concept_class_id,
+		CASE
+	     WHEN d.cvx_code IN (SELECT DISTINCT cvx_vaccine_group
+	        FROM sources.cvx_vaccine)
+	        THEN 'Vaccine Group'
+	     ELSE 'CVX'
+	     END AS concept_class_id,
 	'S' AS standard_concept,
 	d.cvx_code AS concept_code,
 	COALESCE(cd.concept_date, d.last_updated_date) AS valid_start_date, --get concept date from true source

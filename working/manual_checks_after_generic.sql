@@ -243,6 +243,7 @@ and c.concept_id is null
 -- - mapping presented before, but is missing now;
 -- - multiple 'Maps to' and/or 'Maps to value' links (sort by relationship_id to find such cases);
 -- - frequent target concept (sort by new_code_agg or old_code_agg fields to find such cases).
+--TODO: add logical groups for suspicious target domains
 
 with new_map as (
 select a.concept_id,
@@ -304,6 +305,7 @@ order by a.concept_code
 -- - ancestor(s) presented before, but is missing now;
 -- - multiple 'Is a' links (sort by relationship_id to find such cases);
 -- - frequent target concept (sort by new_relat_agg or old_relat_agg fields to find such cases).
+--TODO: add logical groups for suspicious target domains
 
 with new_map as (
 select a.concept_id,
@@ -361,6 +363,7 @@ order by a.concept_code
 --Depending on the logical group (use case) result should be critically analyzed and may represent multiple scenarios, e.g.:
 -- - source complex (e.g. procedure) concepts are split up and mapped over to multiple targets;
 -- - oxygen-containing devices are mapped to itself and oxygen ingredient.
+--TODO: add logical groups for suspicious target domains
 
 select a.vocabulary_id,
        a.concept_code as concept_code_source,

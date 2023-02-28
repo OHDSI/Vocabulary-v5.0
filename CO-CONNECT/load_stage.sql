@@ -1,3 +1,6 @@
+--Schema preparation
+--SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5');
+
 --Potential Vocabulary released through Athena
 
 DO $_$
@@ -31,6 +34,10 @@ ALTER TABLE concept_stage
 ALTER COLUMN concept_code TYPE varchar(255);
 ALTER TABLE concept_stage
 ALTER COLUMN concept_class_id TYPE varchar(255);
+ALTER TABLE concept_stage
+ALTER COLUMN vocabulary_id TYPE varchar(255);
+ALTER TABLE concept_relationship_stage
+ALTER COLUMN vocabulary_id_1 TYPE varchar(255);
 
 --Modification of the data to fit into OMOP CDM
 UPDATE concept_stage SET invalid_reason = NULL WHERE invalid_reason = '';
@@ -40,3 +47,18 @@ UPDATE concept_stage SET standard_concept = NULL WHERE standard_concept = 'N';
 --Modification of the table to fit the data:
 ALTER TABLE concept_relationship_stage
 ALTER COLUMN concept_code_1 TYPE varchar(255);
+ALTER TABLE concept_relationship_stage
+ALTER COLUMN vocabulary_id_1 TYPE varchar(255);
+
+
+--Automatic QA
+SELECT * FROM qa_tests.check_stage_tables();
+
+
+
+SELECT DISTINCT crs.concept_code_2, crs.vocabulary_id_2, c.*
+FROM dev_co_connect.concept_relationship_stage crs
+LEFT JOIN dev_co_connect.concept c
+ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id_2 = c.vocabulary_id
+WHERE c.concept_id IS NULL
+;

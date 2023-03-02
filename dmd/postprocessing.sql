@@ -32,6 +32,12 @@ where
 	relationship_id = 'Mapped from'*/
 ; -- old mappings to RxN* are not deprecated automatically
 
+--CREATE TABLE concept_relationship_stage_backup AS (SELECT * FROM concept_relationship_stage);
+TRUNCATE concept_relationship_stage;
+INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_backup);
+
+SELECT * FROM concept_relationship_stage WHERE concept_code_1 = '10365411000001107';
+
 
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
@@ -80,6 +86,15 @@ JOIN concept c ON
 		c.vocabulary_id = 'CVX' OR
 		c.concept_class_id ~ '(Drug|Pack)'
 	)
+    --Avoiding duplication
+WHERE NOT EXISTS
+(
+    SELECT * FROM concept_relationship_stage crs1
+    WHERE r.concept_code_1 = crs1.concept_code_1
+        AND c.concept_code = crs1.concept_code_2
+        AND c.vocabulary_id = crs1.vocabulary_id_2
+        AND crs1.invalid_reason IS NULL
+    )
 ;
 
 
@@ -107,6 +122,15 @@ JOIN concept x ON
 
 	c.vocabulary_id = 'dm+d' AND
 	c.domain_id = 'Device'
+    --Avoiding duplication
+WHERE NOT EXISTS
+(
+    SELECT * FROM concept_relationship_stage crs1
+    WHERE c.concept_code = crs1.concept_code_1
+        AND x.concept_code = crs1.concept_code_2
+        AND crs1.vocabulary_id_2 = 'SNOMED'
+        AND crs1.invalid_reason IS NULL
+    )
 ;
 
 
@@ -306,3 +330,9 @@ WHERE
 --Final manual changes
 UPDATE concept_stage SET concept_name = trim(concept_name);
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = '8203003' AND invalid_reason IS NULL;
+
+--Deduplication of concept_relationship_stage table
+CREATE TABLE concept_relationship_stage_temp AS (SELECT DISTINCT * FROM concept_relationship_stage);
+TRUNCATE concept_relationship_stage;
+INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_temp);
+DROP TABLE concept_relationship_stage_temp;

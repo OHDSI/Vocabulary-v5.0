@@ -145,7 +145,7 @@ WHERE sab IN (
 		)
 	AND tty = 'MP';--Preferred names of modifiers
 
---6. Add Hierarchical CPT terms, which are considered to be Classificaton (do not appear in patient data, only for hierarchical search)
+--6. Add Hierarchical CPT terms, which are considered to be Classification (do not appear in patient data, only for hierarchical search)
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -208,7 +208,9 @@ SELECT CASE
 		ELSE c.concept_name -- for alive concepts
 		END AS concept_name,
 	c.vocabulary_id,
-	c.concept_class_id,
+	CASE WHEN length(c.concept_code) = 2
+	    THEN 'CPT4 Modifier'
+	    ELSE c.concept_class_id END AS concept_class_id,
 	CASE 
 		WHEN COALESCE(c.invalid_reason, 'D') = 'D'
 			AND COALESCE(c.standard_concept, 'S') <> 'C'

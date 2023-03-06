@@ -164,7 +164,7 @@ BEGIN
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
-              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<h1.*?class="page-title">.*?hcpcs quarterly update.*?<li><a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs file">'),'month yyyy');
+              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<h1.*?class="page-title">.*?hcpcs quarterly update.*?<li>.*?<a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs file">'),'month yyyy');
               cVocabVer := to_char(cVocabDate,'YYYYMMDD')||' Alpha Numeric HCPCS File';
             WHEN cVocabularyName IN ('ICD9CM', 'ICD9PROC')
             THEN

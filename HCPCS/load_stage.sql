@@ -160,6 +160,10 @@ AS (
 			WHEN concept_code LIKE 'C%'
 				AND concept_name LIKE '%Trans% echocardiography%'
 				THEN 'Procedure' -- Echocardiography
+		    WHEN concept_code BETWEEN 'C7500' AND 'C7555'
+		        THEN 'Procedure'
+		    WHEN concept_code BETWEEN 'C7900' AND 'C7902'
+		        THEN 'Observation'
 			WHEN concept_code IN (
 					'C8953',
 					'C8954',
@@ -740,7 +744,10 @@ AS (
 				THEN 'Drug'
 			WHEN concept_code IN (
 					'Q1001',
-					'Q1002'
+					'Q1002',
+			        'Q4262',
+			        'Q4263',
+			        'Q4264'
 					)
 				THEN 'Device'
 			WHEN l2.str = 'Cardiokymography (CMS Temporary Codes)'

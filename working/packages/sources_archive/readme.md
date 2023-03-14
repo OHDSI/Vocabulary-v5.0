@@ -63,3 +63,4 @@ NOTE: don't forget to change date/version in SetLatestUpdate to hardcoded values
 
 ### Restrictions
 1. If the vocabulary needs to be renamed, then you need to replace its name in the archive_conversion table, and manually reassign the policy to all tables related to it (remove the old one, assign a new one with a new vocabulary name in the argument)
+2. Parameters (versions) for vocabularies are saved during your current session in which you run SetArchiveParams. Therefore, if the connection is interrupted, you need to repeat setting the parameters

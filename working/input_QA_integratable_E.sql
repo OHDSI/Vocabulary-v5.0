@@ -15,6 +15,17 @@
 * 
 * Authors: Christian Reich, Dmitry Dymshyts, Anna Ostropolets, Eduard Korchmar
 * Date: 2020
+
+
+--relationship_to_concept: 8
+--internal_relationship_stage: 5
+--ds_stage: 17
+--drug_concept_stage: 12
+--pc_stage: 7
+--concept_synonym_stage: 2
+--concept_relationship_manual: 1
+
+
 **************************************************************************/
 SELECT affected_table, error_type, COUNT(*) AS cnt
 FROM (

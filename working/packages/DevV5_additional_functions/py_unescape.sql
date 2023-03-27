@@ -6,9 +6,5 @@ $body$
 	from xml.sax.saxutils import unescape
 	return unescape (txt_string)
 $body$
-LANGUAGE 'plpythonu'
-IMMUTABLE
-RETURNS NULL ON NULL INPUT
-SECURITY DEFINER
-PARALLEL SAFE
-COST 10;
+LANGUAGE 'plpython3u'
+IMMUTABLE STRICT PARALLEL SAFE;

@@ -56,19 +56,17 @@ TABLE (
 )
 AS
 $BODY$
-import xlrd
+from openpyxl import load_workbook
 res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_index(0)
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid)
-  concept_id=row[1] if row[1] else None
-  pt=row[2] if row[2] else None
-  sy=row[3] if row[3] else None
-  cas_registry=row[5] if row[5] else None
-  fda_unii_code=row[6] if row[6] else None
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[0]
+for row in sheet.iter_rows(min_row=2):
+  concept_id=row[1].value if row[1].value else None
+  pt=row[2].value if row[2].value else None
+  sy=row[3].value if row[3].value else None
+  cas_registry=row[5].value if row[5].value else None
+  fda_unii_code=row[6].value if row[6].value else None
   res.append((concept_id,pt,sy,cas_registry,fda_unii_code))
 return res
 $BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+LANGUAGE 'plpython3u' STRICT;

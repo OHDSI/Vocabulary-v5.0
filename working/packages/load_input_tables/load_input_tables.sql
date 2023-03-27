@@ -14,7 +14,7 @@ begin
   case pVocabularyID
   when 'UMLS' THEN
       truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel, sources.mrsty;
-      alter table sources.mrconso drop constraint x_mrconso_pk;
+      drop index sources.x_mrconso_aui;
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
       drop index sources.x_mrconso_cui;
@@ -37,11 +37,10 @@ begin
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
       CREATE INDEX x_mrconso_code ON sources.mrconso (code);
       CREATE INDEX x_mrconso_cui ON sources.mrconso (cui);
-      CREATE UNIQUE INDEX x_mrconso_pk ON sources.mrconso (aui);
+      CREATE INDEX x_mrconso_aui ON sources.mrconso (aui);
       CREATE INDEX x_mrconso_sab_tty ON sources.mrconso (sab, tty);
       CREATE INDEX x_mrconso_scui ON sources.mrconso (scui);
       CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
-      ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;
       analyze sources.mrhier;
       analyze sources.mrmap;
@@ -398,8 +397,8 @@ begin
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_date;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_version;
       execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER FORCE NULL loinc_num, component, property, time_aspct, system, scale_typ, method_typ, class, versionlastchanged, 
-         chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, submitted_units, relatednames2, shortname, 
-         order_obs, cdisc_common_tests, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, unitsandrange, example_ucum_units, example_si_ucum_units, status_reason, 
+         chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, relatednames2, shortname, 
+         order_obs, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, example_ucum_units, status_reason, 
          status_text, change_reason_public, common_test_rank, common_order_rank, common_si_test_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
          versionfirstreleased, validhl7attachmentrequest, displayname';
       alter table sources.loinc ADD COLUMN vocabulary_date date;
@@ -407,7 +406,7 @@ begin
       update sources.loinc set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       execute 'COPY sources.map_to FROM '''||pVocabularyPath||'mapto.csv'' delimiter '','' csv HEADER';
       execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'sourceorganization.csv'' delimiter '','' csv HEADER';
-      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'multiaxialhierarchy.csv'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
+      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'componenthierarchybysystem.csv'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
       truncate table sources.loinc_answerslist, sources.loinc_answerslistlink, sources.loinc_forms;
       execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'answerlist.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
          extdefinedanswerlistcodesystem, extdefinedanswerlistlink, answerstringid, localanswercode, localanswercodesystem, sequencenumber, displaytext, extcodeid, extcodedisplayname, extcodesystem, 
@@ -530,7 +529,7 @@ begin
       	RAISE EXCEPTION 'For current vocabulary (%) you must set the pVocabularyDate!', pVocabularyID;
       end if;
       truncate table sources.cvx, sources.cvx_cpt, sources.cvx_vaccine;
-      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
+      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),TRIM(vaccinestatus),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
         sources.py_xlsparse_cvx_codes(pVocabularyPath||'/web_cvx.xlsx');
       insert into sources.cvx_cpt select TRIM(CPT_CODE),TRIM(CPT_DESCRIPTION),TRIM(CVX_SHORT_DESCRIPTION),TRIM(CVX_CODE),TRIM(MAP_COMMENT),LAST_UPDATED_DATE, TRIM(CPT_CODE_ID) from 
         sources.py_xlsparse_cvx_cpt(pVocabularyPath||'/web_cpt.xlsx');
@@ -786,7 +785,7 @@ begin
       alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
       execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
       execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
-      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id HEADER';
+      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id,valid_start_date,valid_end_date,invalid_reason HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
       alter table sources.hemonc_cs alter column valid_end_date type date using valid_end_date::date; --return proper type
@@ -816,9 +815,22 @@ begin
       update sources.cim10 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'OMOP INVEST DRUG' then
       truncate table sources.invdrug_antineopl, sources.invdrug_pharmsub, sources.invdrug_inxight;
-      execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-15'' HEADER';
       insert into sources.invdrug_pharmsub select concept_id, trim(pt), trim(sy), trim(cas_registry), trim(fda_unii_code), COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from sources.py_xlsparse_ncit(pVocabularyPath||'/ncit_pharmsub.xlsx');
       execute 'COPY sources.invdrug_inxight FROM '''||pVocabularyPath||'dump-public.gsrs'' delimiter E''\b'' csv quote E''\f''';
+  when 'CIVIC' then
+      truncate table sources.civic_variantsummaries_raw, sources.civic_variantsummaries;
+      --CIViC has a problem with assertion_civic_urls field, it contains TABs without escaping
+      execute 'COPY sources.civic_variantsummaries_raw FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\b'' csv quote E''\f'' HEADER';
+      --so we just parse by TAB before this field (we don't need it and the subsequent ones)
+      insert into sources.civic_variantsummaries
+      select nullif(arr[1],''),nullif(arr[2],''),nullif(arr[3],''),nullif(arr[4],''),nullif(arr[5],''),nullif(arr[6],''),nullif(arr[7],''),nullif(arr[8],''),nullif(arr[9],''),nullif(arr[10],''),nullif(arr[11],''),
+        nullif(arr[12],''),nullif(arr[13],''),nullif(arr[14],''),nullif(arr[15],''),nullif(arr[16],''),nullif(arr[17],''),nullif(arr[18],''),nullif(arr[19],''),nullif(arr[20],''),nullif(arr[21],''),
+        nullif(arr[22],''),nullif(arr[23],''),nullif(arr[24],''),nullif(arr[25],''),nullif(arr[26],''),nullif(arr[27],''),COALESCE(pVocabularyDate,current_date),COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from (
+        select regexp_split_to_array(civic_variantsummaries_tsv,'\t') arr from sources.civic_variantsummaries_raw
+      ) s0;
+      --execute 'COPY sources.civic_variantsummaries (variant_id,variant_civic_url,gene,entrez_id,variant,summary,variant_groups,chromosome,start,stop,reference_bases,variant_bases,representative_transcript,ensembl_version,reference_build,chromosome2,start2,stop2,representative_transcript2,variant_types,hgvs_expressions,last_review_date,civic_variant_evidence_score,allele_registry_id,clinvar_ids,variant_aliases,assertion_ids,assertion_civic_urls,is_flagged) FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --update sources.civic_variantsummaries set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

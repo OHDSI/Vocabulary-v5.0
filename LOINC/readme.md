@@ -14,7 +14,7 @@
 \LoincTable\Loinc.csv and rename to loinc.csv  
 \LoincTable\Mapto.csv and rename to mapto.csv  
 \LoincTable\SourceOrganization.csv and rename to sourceorganization.csv  
-\AccessoryFiles\MultiAxialHierarchy\MultiAxialHierarchy.csv and rename to multiaxialhierarchy.csv  
+\AccessoryFiles\ComponentHierarchyBySystem\ComponentHierarchyBySystem.csv and rename to componenthierarchybysystem.csv  
 \AccessoryFiles\PanelsAndForms\PanelsAndForms.csv and rename to panelsandforms.csv  
 \AccessoryFiles\PanelsAndForms\AnswerList.csv and rename to answerlist.csv  
 \AccessoryFiles\PanelsAndForms\LoincAnswerListLink.csv and rename to loincanswerlistlink.csv  
@@ -40,7 +40,7 @@ SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2
 ##### Filling stage and basic tables
 11. Run FULL FastRecreate:
 ```sql
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true,
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
                                 include_deprecated_rels=> true, include_synonyms=> true);
 ```
 12. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/load_stage.sql).
@@ -63,34 +63,30 @@ SELECT * FROM qa_tests.get_checks();
 
 17. Repeat steps 11-15.
 
-18. Clear cache:
+18. Run scripts to get summary, and interpret the results:
 ```sql
-SELECT * FROM qa_tests.purge_cache();
-```
-19. Run scripts to get summary, and interpret the results:
-```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
+SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
-20. Run scripts to collect statistics, and interpret the results:
+19. Run scripts to collect statistics, and interpret the results:
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_domain_changes();
-```
-```sql
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+SELECT * FROM qa_tests.get_domain_changes();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+SELECT * FROM qa_tests.get_newly_concepts();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+SELECT * FROM qa_tests.get_standard_concept_changes();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+```
+```sql
+SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 
-21. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
-22. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql), and interpret the results.
-23. If no problems, enjoy!
+20. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+21. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql), and interpret the results.
+22. If no problems, enjoy!

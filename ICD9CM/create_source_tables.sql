@@ -27,8 +27,7 @@ DROP TABLE IF EXISTS SOURCES.CMS_DESC_LONG_DX;
 CREATE TABLE SOURCES.CMS_DESC_LONG_DX
 (
    code   VARCHAR (8),
-   name   VARCHAR (256),
-   PRIMARY KEY (code)
+   name   VARCHAR (256)
 );
 
 DROP TABLE IF EXISTS SOURCES.CMS_DESC_SHORT_DX;
@@ -37,6 +36,5 @@ CREATE TABLE SOURCES.CMS_DESC_SHORT_DX
    code   VARCHAR (8),
    name   VARCHAR (256),
    vocabulary_date      DATE,
-   vocabulary_version   VARCHAR (200),
-   PRIMARY KEY (code)
+   vocabulary_version   VARCHAR (200)
 );

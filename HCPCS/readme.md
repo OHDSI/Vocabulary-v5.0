@@ -5,7 +5,6 @@ Prerequisites:
 - Schema UMLS
 - SNOMED must be loaded first
 - Updated RxNorm and RxNorm Extension (for ProcedureDrug.sql and MapDrugVocabulary.sql)
-- Fresh concept_ancestor (for MapDrugVocabulary.sql)
 - Working directory HCPCS.
 
 1. Run create_source_tables.sql

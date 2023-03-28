@@ -32,13 +32,20 @@ where
 	relationship_id = 'Mapped from'*/
 ; -- old mappings to RxN* are not deprecated automatically
 
+--DROP TABLE concept_relationship_stage_backup, concept_stage_backup, drug_concept_stage_backup;
 --CREATE TABLE concept_relationship_stage_backup AS (SELECT * FROM concept_relationship_stage);
-TRUNCATE concept_relationship_stage;
-INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_backup);
+--CREATE TABLE concept_stage_backup AS (SELECT * FROM concept_stage);
+--CREATE TABLE drug_concept_stage_backup AS (SELECT * FROM drug_concept_stage);
 
-SELECT * FROM concept_relationship_stage WHERE concept_code_1 = '10365411000001107';
+--TRUNCATE concept_relationship_stage, concept_stage, drug_concept_stage;
+
+--INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_backup);
+--INSERT INTO concept_stage (SELECT * FROM concept_stage_backup);
+--INSERT INTO drug_concept_stage (SELECT * FROM drug_concept_stage_backup);
 
 
+
+--Save CVX mappings from relationship_to_concept
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
 	NULL :: int4,
@@ -64,7 +71,7 @@ JOIN concept cx ON
 JOIN concept c2 ON
 	c2.concept_id = r.concept_id_2
 WHERE c2.vocabulary_id LIKE 'RxN%'
-;--save CVX mappings from relationship_to_concept
+;
 
 
 INSERT INTO concept_relationship_stage
@@ -112,16 +119,15 @@ SELECT DISTINCT
 	to_date ('20991231','yyyymmdd') as valid_end_date,
 	NULL as invalid_reason
 FROM concept_stage c
-JOIN concept x ON
-	x.concept_code = c.concept_code AND
-
-	x.invalid_reason IS NULL AND
-	x.vocabulary_id = 'SNOMED' AND
-	x.standard_concept = 'S' AND
-	x.domain_id = 'Device' AND -- some are Observations, we don't want them
-
-	c.vocabulary_id = 'dm+d' AND
-	c.domain_id = 'Device'
+JOIN concept x
+    ON x.concept_code = c.concept_code
+    AND x.invalid_reason IS NULL
+    AND x.vocabulary_id = 'SNOMED'
+    AND x.standard_concept = 'S'
+    AND x.domain_id = 'Device'
+    AND -- some are Observations, we don't want them
+        c.vocabulary_id = 'dm+d'
+    AND c.domain_id = 'Device'
     --Avoiding duplication
 WHERE NOT EXISTS
 (
@@ -161,6 +167,7 @@ WHERE
 ;
 
 
+--Destandardise devices, that are mapped to SNOMED
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE
@@ -181,7 +188,7 @@ WHERE
 ANALYZE concept_relationship_stage;
 
 
---delete useless deprecations (non-existent relations)
+--Delete useless deprecations (non-existent relations)
 DELETE FROM concept_relationship_stage i
 WHERE
 	(concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2/*, relationship_id*/) NOT IN
@@ -298,18 +305,9 @@ BEGIN
 END $_$;
 
 --deprecate old ingredient mappings
-INSERT INTO concept_relationship_stage
-SELECT
-	NULL :: int4,
-	NULL :: int4,
-	c.concept_code,
-	c2.concept_code,
-	c.vocabulary_id,
-	c2.vocabulary_id,
-	'Maps to',
-	r.valid_start_date,
-	current_date - 1,
-	'D'
+UPDATE concept_relationship_stage crs
+SET invalid_reason = 'D',
+    valid_end_date = current_date
 FROM concept c
 JOIN concept_relationship r ON
 	r.concept_id_1 = c.concept_id AND
@@ -324,15 +322,29 @@ LEFT JOIN internal_relationship_stage i ON
 WHERE
 	i.concept_code_2 IS NULL AND
 	c.concept_class_id NOT IN
-		('VMP','AMP','VMPP','AMPP');
+		('VMP','AMP','VMPP','AMPP')
+
+AND crs.concept_code_1 = c.concept_code
+AND crs.concept_code_2 = c2.concept_code
+AND crs.vocabulary_id_1 = c.vocabulary_id
+AND crs.vocabulary_id_2 = c2.vocabulary_id
+AND crs.relationship_id = 'Maps to'
+;
+
 
 
 --Final manual changes
 UPDATE concept_stage SET concept_name = trim(concept_name);
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = '8203003' AND invalid_reason IS NULL;
 
---Deduplication of concept_relationship_stage table
+--Deduplication of concept_stage, concept_relationship_stage table
 CREATE TABLE concept_relationship_stage_temp AS (SELECT DISTINCT * FROM concept_relationship_stage);
 TRUNCATE concept_relationship_stage;
 INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_temp);
 DROP TABLE concept_relationship_stage_temp;
+
+
+CREATE TABLE concept_stage_temp AS (SELECT DISTINCT * FROM concept_stage);
+TRUNCATE concept_stage;
+INSERT INTO concept_stage (SELECT * FROM concept_stage_temp);
+DROP TABLE concept_stage_temp;

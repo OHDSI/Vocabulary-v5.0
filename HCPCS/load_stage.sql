@@ -1089,7 +1089,7 @@ WHERE NOT EXISTS (
 		);
 
 --10. Create hierarchical relationships between HCPCS AND HCPCS class
-INSERT INTO concept_relationship_stage (
+/*INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
 	relationship_id,
@@ -1111,10 +1111,9 @@ FROM sources.anweb_v2 a
 JOIN concept_stage c ON c.concept_code = a.betos
 	AND c.concept_class_id = 'HCPCS Class'
 	AND c.vocabulary_id = 'HCPCS'
-	AND c.invalid_reason IS NULL;
+	AND c.invalid_reason IS NULL;*/
 
---11. Add all other 'Concept replaced by' relationships
---!! still need to be investigated
+--11. Add all other 'Concept replaced by' and hierarchical relationships for zombie concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1138,12 +1137,14 @@ FROM concept_relationship r,
 	concept c1
 WHERE c.concept_id = r.concept_id_1
 	AND c.vocabulary_id = 'HCPCS'
+	AND c1.vocabulary_id = 'HCPCS'
 	AND c1.concept_id = r.concept_id_2
 	AND r.relationship_id IN (
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
-		'Concept was_a to'
+		'Concept was_a to',
+		'Is a'
 		)
 	AND r.invalid_reason IS NULL
 	AND (
@@ -1188,16 +1189,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---14. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---15. Append manual relationships
+--14. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--15. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
 --16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts

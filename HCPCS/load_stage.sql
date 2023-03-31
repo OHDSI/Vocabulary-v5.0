@@ -191,8 +191,14 @@ AS (
 			WHEN concept_code LIKE 'C%'
 				AND concept_name LIKE '%Trans% echocardiography%'
 				THEN 'Procedure' -- Echocardiography
+			WHEN concept_code IN ('C1360', 'C1450')
+				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'C7500' AND 'C7555'
 			       THEN 'Procedure'
+			WHEN concept_code IN (	'C9702',
+									'C9708',
+									'C9711')
+					THEN 'Device'
 		    WHEN concept_code BETWEEN 'C7900' AND 'C7902'
 			       THEN 'Procedure'
 		    WHEN concept_code IN (
@@ -213,10 +219,11 @@ AS (
 					'C9060',
 			        'C9067',
 			        'C9068',
+					'C9100',
+					'C9102',
+					'C9123',
 			        'C9200',
 					'C9201',
-					'C9123',
-					'C9102',
 					'C9458',
 					'C9459',
 					'C9461'
@@ -274,21 +281,25 @@ AS (
 				THEN 'Device' -- D-codes device
 			WHEN concept_code BETWEEN 'D0260'
 					AND 'D9242'
-				THEN 'Procedure' -- D-code prcedures
+				THEN 'Procedure' -- D-code procedures
 					-- E codes
 			WHEN l1.str = 'E-codes'
 				THEN 'Device' -- all of them Level 1: E0100-E9999
 					-- G codes
 			WHEN l2.str = 'Vaccine Administration' -- hard to say why it was Procedure but not a drug?
 				THEN 'Drug' -- Level 2: G0008-G0010
-			WHEN concept_code = 'G0027'
+			WHEN concept_code = 'G0002'
+				THEN 'Device'
+			WHEN concept_code IN ('G0026', 'G0027')
 				THEN 'Measurement' -- Level 2: G0027-G0027
 			WHEN concept_code BETWEEN 'G0048'
 			       AND 'G0067'
 		        THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
 		    WHEN concept_code IN (
 					'G0101',
-					'G0102'
+					'G0102',
+					'G0165',
+					'G0166'
 					)
 				THEN 'Procedure'
 			WHEN concept_code = 'G0103'
@@ -305,7 +316,7 @@ AS (
 					AND 'G0148'
 				THEN 'Measurement' -- G0141-G0148 Screening cytopathology
 			WHEN concept_code BETWEEN 'G0151'
-					AND 'G0166'
+					AND 'G0164'
 				THEN 'Observation' -- Level 2: G0151-G0166 previously 'Services, Allied Health'
 			WHEN concept_code = 'G0175'
 				THEN 'Observation' -- Level 2: G0175-G0175 previously 'Team Conference'
@@ -426,7 +437,13 @@ AS (
 			WHEN concept_code = 'G0473'
 				THEN 'Procedure' -- Face-to-face behavioral counseling for obesity, group (2-10), 30 minutes
 			WHEN concept_code BETWEEN 'G0908' AND 'G2252'
+			       AND concept_code NOT BETWEEN 'G2067' AND 'G2075'
+			       AND concept_code NOT IN ('G2000', 'G2010', 'G2011', 'G2102', 'G2170', 'G2171')
 				THEN 'Observation' -- various documented levels AND assessments
+			WHEN concept_code BETWEEN 'G2067' AND 'G2075'
+		       THEN 'Procedure' -- Medication assisted treatment
+			WHEN concept_code IN ('G2000', 'G2010', 'G2011', 'G2102', 'G2170', 'G2171')
+		       THEN 'Procedure'
 			WHEN concept_code = 'G3001'
 				THEN 'Drug' -- Administration and supply of tositumomab, 450 mg
 		    WHEN concept_code BETWEEN 'G4000'
@@ -573,10 +590,29 @@ AS (
 				THEN 'Drug' -- Level 1: J0100-J9999
 					-- K codes
 			WHEN concept_code LIKE 'K%'
+			       AND concept_code NOT IN ('K0124', 'K0285', 'K0449')
 		        THEN 'Device' -- Durable Medical Equipment For Medicare Administrative Contractors
+			WHEN concept_code = 'K0124'
+		       THEN 'Drug' -- Monoclonal antibodies
+			WHEN concept_code IN ('K0285', 'K0449')
+		       	THEN 'Observation'
 					-- L codes
 			WHEN l1.str = 'L Codes'
+			       AND concept_code NOT IN ('L4200',
+											'L5310',
+											'L5311',
+											'L5330',
+											'L5340',
+											'L7500',
+											'L9999')
 				THEN 'Device' -- Level 1: L0000-L9999
+			WHEN concept_code IN ('L4200', 'L7500', 'L9999')
+				THEN 'Observation'
+			WHEN concept_code IN ('L5310',
+			                      'L5311',
+			                      'L5330',
+			                      'L5340')
+		       THEN 'Procedure'
 					-- M codes
 			WHEN concept_code IN (
 					'M0075', --Cellular therapy
@@ -584,8 +620,7 @@ AS (
 					'M0100', --Intragastric hypothermia using gastric freezing
 			        'M0201', -- Covid-19 vaccine administration
 					'M0300', --Iv chelation therapy (chemical endarterectomy)
-					'M0301' --Fabric wrapping of abdominal aneurysm
-			        					)
+					'M0301') --Fabric wrapping of abdominal aneurysm
 				THEN 'Procedure'
 			WHEN l1.str = 'Other Medical Services'
 				THEN 'Observation' -- Level 1: M0000-M0301
@@ -644,12 +679,26 @@ AS (
 			WHEN l2.str = 'Laboratory (CMS Temporary Codes)'
 				THEN 'Measurement' -- Level 2: Q0111-Q0115
 			WHEN l2.str = 'Drugs (CMS Temporary Codes)'
-				THEN 'Drug' -- Level 2: Q0138-Q0181
+			       AND concept_code NOT IN (
+					'Q0182',
+					'Q0183',
+					'Q0183',
+					'Q0184',
+					'Q0185',
+					'Q0188',
+					'Q4078'
+					)
+				THEN 'Drug' -- Level 2: Q0138-Q0249
 			WHEN concept_code IN (
 					'Q0182',
-					'Q0183'
+					'Q0183',
+					'Q0183',
+					'Q0184',
+					'Q0185'
 					)
 				THEN 'Device'
+			WHEN concept_code IN ('Q0188', 'Q4078')
+		       THEN 'Procedure'
 			WHEN l2.str = 'Ventricular Assist Devices (CMS Temporary Codes)'
 				THEN 'Device' -- Level 2: Q0477-Q0509
 			WHEN l2.str = 'Fee, Pharmacy (CMS Temporary Codes)'
@@ -677,8 +726,8 @@ AS (
 				THEN 'Drug' -- Injection, Interferon beta
 			WHEN l2.str = 'Additional Drugs (CMS Temporary Codes)'
 				THEN 'Drug' -- Level 2: Q3027-Q3028
-			WHEN l2.str = 'Test, Skin (CMS Temporary Codes)'
-				THEN 'Measurement' -- Level 2: Q3031-Q3031
+			WHEN concept_code = 'Q3031'
+				THEN 'Measurement' -- Collagen skin test
 			WHEN l2.str = 'Supplies, Cast (CMS Temporary Codes)'
 				THEN 'Device' -- Level 2: Q4001-Q4051
 			WHEN l2.str = 'Additional Drug Codes (CMS Temporary Codes)'
@@ -753,7 +802,7 @@ AS (
 				THEN 'Device'
 			WHEN concept_code = 'S1090'
 				THEN 'Drug' -- Mometasone furoate sinus implant, 370 micrograms
-			WHEN concept_code BETWEEN 'S2053'
+			WHEN concept_code BETWEEN 'S2052'
 					AND 'S3000'
 				THEN 'Procedure'
 			WHEN concept_code IN (
@@ -776,8 +825,13 @@ AS (
 					AND 'S4042'
 				THEN 'Procedure' -- IVF procedures
 			WHEN concept_code BETWEEN 'S4981'
-					AND 'S5014'
+			       AND 'S5014'
+			       AND concept_code NOT IN ('S5002', 'S5003')
 				THEN 'Drug' -- various
+			WHEN concept_code IN ('S5002', 'S5003')
+		       THEN 'Device' -- parenteral nutrition
+			WHEN concept_code = 'S5022'
+		       THEN 'Procedure'
 			WHEN concept_code BETWEEN 'S5035'
 					AND 'S5036'
 				THEN 'Observation'
@@ -789,10 +843,12 @@ AS (
 				THEN 'Procedure' -- Home infusion therapy
 			WHEN concept_code BETWEEN 'S5550'
 					AND 'S5553'
-				THEN 'Drug' -- various Insulin forms-- !!discuss with Christian why he decided, it's a Procuderure Drug -> Procedure
+				THEN 'Drug' -- various Insulin forms
 			WHEN concept_code BETWEEN 'S5560'
 					AND 'S5571'
 				THEN 'Device' -- various Insulin delivery devices
+			WHEN concept_code IN ('S8001', 'S8002', 'S8003')
+					THEN 'Procedure'
 			WHEN concept_code = 'S8030'
 				THEN 'Procedure' --Scleral application of tantalum ring(s) for localization of lesions for proton beam therapy
 			WHEN concept_code BETWEEN 'S8032'

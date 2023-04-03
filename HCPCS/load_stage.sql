@@ -35,7 +35,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Create concept_stage from HCPCS:
+--3. Create concept_stage from HCPCS
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -60,7 +60,7 @@ SELECT vocabulary_pack.cutconceptname(long_description)   AS concept_name,
 					 AND xref1 IS NOT NULL -- !!means the concept is updated
 					 THEN NULL
 			  ELSE 'S' -- in other cases it's standard
-			  END  AS standard_concept,
+			  END AS standard_concept,
 	   hcpc AS concept_code,
 	   COALESCE(add_date, act_eff_dt) AS valid_start_date,
 	   COALESCE(term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
@@ -70,7 +70,7 @@ SELECT vocabulary_pack.cutconceptname(long_description)   AS concept_name,
 			  WHEN xref1 IS NULL
 					 THEN NULL -- zombie concepts
 			  ELSE 'U' -- upgraded
-			  END                                         AS invalid_reason
+			  END AS invalid_reason
 FROM sources.anweb_v2 a
 			JOIN vocabulary v ON v.vocabulary_id = 'HCPCS'
 			LEFT JOIN concept c ON c.concept_code = a.betos
@@ -1275,10 +1275,11 @@ SET domain_id = i.domain_id
 FROM (
 	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
 	FROM concept_relationship_stage crs
-	JOIN concept c on c.concept_code=crs.concept_code_2 AND c.vocabulary_id=crs.vocabulary_id_2
+	JOIN concept c ON c.concept_code=crs.concept_code_2
+		AND c.vocabulary_id=crs.vocabulary_id_2
 	WHERE crs.relationship_id='Maps to'
-	AND crs.invalid_reason IS NULL
-	AND crs.vocabulary_id_1='HCPCS'
+		AND crs.invalid_reason IS NULL
+		AND crs.vocabulary_id_1='HCPCS'
 	ORDER BY crs.concept_code_1,
 	         CASE c.domain_id
 	             WHEN 'Drug'

@@ -51,3 +51,5 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 11.3.8. Deprecate all mappings that differ from the new version of resulting mapping file.
 
 11.3.9. Insert new and corrected mappings into the concept_relationship_manual table.
+
+11.3.10 Activate mapping, that became valid again.

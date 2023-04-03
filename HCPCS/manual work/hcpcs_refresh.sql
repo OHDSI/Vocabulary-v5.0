@@ -1,4 +1,4 @@
---8.2.1. Backup concept_relationship_manual table and concept_manual table.
+--11.3.1. Backup concept_relationship_manual table and concept_manual table.
 DO
 $body$
     DECLARE
@@ -35,7 +35,7 @@ $body$;
 INSERT INTO concept_manual
 SELECT * FROM concept_manual_backup_YYYY_MM_DD;*/
 
---8.2.2. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous HCPCS refresh.
+--11.3.2. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous HCPCS refresh.
 --DROP TABLE hcpcs_mapped;
 /* CREATE TABLE hcpcs_mapped
 (
@@ -57,10 +57,10 @@ SELECT * FROM concept_manual_backup_YYYY_MM_DD;*/
     target_vocabulary_id varchar(50)
 );*/
 
---8.2.4. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
+--11.3.5. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
 /*TRUNCATE TABLE hcpcs_mapped;*/
 
---8.2.5. Deprecate all mappings that differ from the new version of resulting mapping file.
+--11.3.8. Deprecate all mappings that differ from the new version of resulting mapping file.
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -92,7 +92,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
     )
 ;
 
---8.2.6. Insert new and corrected mappings into the concept_relationship_manual table.
+--11.3.9. Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -126,7 +126,7 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
---8.2.7 Activate mapping, that became valid again
+--11.3.10 Activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
 valid_end_date = to_date('20991231','yyyymmdd'),

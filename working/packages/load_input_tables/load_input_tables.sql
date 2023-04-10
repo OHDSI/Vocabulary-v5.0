@@ -632,7 +632,6 @@ begin
       drop index sources.idx_amt_concept_id;
       drop index sources.idx_amt_descr_id;
       drop index sources.idx_amt_rela_id;
-      drop index sources.idx_amt_rela2_id;
       drop index sources.idx_amt_lang_refid;
       execute 'COPY sources.amt_full_descr_drug_only FROM '''||pVocabularyPath||'sct2_Description_Full-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_sct2_concept_full_au (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';

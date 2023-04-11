@@ -1,7 +1,7 @@
 --Schema preparation
---SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5');
+--SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
 
---Potential Vocabulary released through Athena
+--Final realisation consists of 3 separate vocabularies, coming in one pack: CO-CONNECT, CO-CONNECT MIABIS, CO-CONNECT TWINS
 
 DO $_$
 BEGIN
@@ -12,7 +12,37 @@ BEGIN
 	pVocabulary_version		=> NULL,
 	pOMOP_req				=> NULL,
 	pClick_default			=> NULL, --NULL or 'Y'
-	pAvailable				=> NULL, --NULL, 'Currently not available','License required' or 'EULA required'
+	pAvailable				=> 'License required', --NULL, 'Currently not available','License required' or 'EULA required'
+	pURL					=> NULL,
+	pClick_disabled			=> NULL --NULL or 'Y'
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewVocabulary(
+	pVocabulary_id			=> 'CO-CONNECT MIABIS',
+	pVocabulary_name		=> 'IQVIA CO-CONNECT MIABIS',
+	pVocabulary_reference	=> 'To be populated',
+	pVocabulary_version		=> NULL,
+	pOMOP_req				=> NULL,
+	pClick_default			=> NULL, --NULL or 'Y'
+	pAvailable				=> 'License required', --NULL, 'Currently not available','License required' or 'EULA required'
+	pURL					=> NULL,
+	pClick_disabled			=> NULL --NULL or 'Y'
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewVocabulary(
+	pVocabulary_id			=> 'CO-CONNECT TWINS',
+	pVocabulary_name		=> 'IQVIA CO-CONNECT TWINS',
+	pVocabulary_reference	=> 'To be populated',
+	pVocabulary_version		=> NULL,
+	pOMOP_req				=> NULL,
+	pClick_default			=> NULL, --NULL or 'Y'
+	pAvailable				=> 'License required', --NULL, 'Currently not available','License required' or 'EULA required'
 	pURL					=> NULL,
 	pClick_disabled			=> NULL --NULL or 'Y'
 );
@@ -28,48 +58,82 @@ BEGIN
 	);
 	END $_$;
 
---concept_stage
---Modification of the table to fit the data:
-ALTER TABLE concept_stage
-ALTER COLUMN concept_code TYPE varchar(255);
-ALTER TABLE concept_stage
-ALTER COLUMN concept_class_id TYPE varchar(255);
-ALTER TABLE concept_stage
-ALTER COLUMN vocabulary_id TYPE varchar(255);
-ALTER TABLE concept_relationship_stage
-ALTER COLUMN vocabulary_id_1 TYPE varchar(255);
+DO $_$
+BEGIN
+    PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'CO-CONNECT MIABIS',
+    pVocabularyDate			=> to_date ('2018-03-02', 'yyyy-mm-dd'),
+	pVocabularyVersion		=> 'CO-CONNECT test',
+	pVocabularyDevSchema	=> 'dev_co_connect',
+    pAppendVocabulary		=> TRUE
+	);
+	END $_$;
 
---Modification of the data to fit into OMOP CDM
-UPDATE concept_stage SET invalid_reason = NULL WHERE invalid_reason = '';
-UPDATE concept_stage SET standard_concept = NULL WHERE standard_concept = 'N';
 
---concept_relationship_stage
---Modification of the table to fit the data:
-ALTER TABLE concept_relationship_stage
-ALTER COLUMN concept_code_1 TYPE varchar(255);
-ALTER TABLE concept_relationship_stage
-ALTER COLUMN vocabulary_id_1 TYPE varchar(255);
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'CO-CONNECT TWINS',
+    pVocabularyDate			=> to_date ('2018-03-02', 'yyyy-mm-dd'),
+	pVocabularyVersion		=> 'CO-CONNECT test',
+	pVocabularyDevSchema	=> 'dev_co_connect',
+	pAppendVocabulary		=> TRUE
+	);
+	END $_$;
+
+
+--Truncating manual tables
+--TRUNCATE concept_manual, concept_relationship_manual, concept_synonym_manual;
+
+--Preprocessing of manual tables
+--Bad format in source data, dates for relationships are lost
+DROP TABLE IF EXISTS concept_relationship_manual_iqvia;
+CREATE TABLE concept_relationship_manual_iqvia AS
+SELECT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id
+FROM concept_relationship_manual;
+
+
+INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       TO_DATE ('19700101', 'YYYYMMDD'),
+       TO_DATE ('20991231', 'YYYYMMDD'),
+       NULL
+FROM concept_relationship_manual_iqvia;
+
+UPDATE concept_manual SET standard_concept = NULL
+WHERE standard_concept = '';
+
+
+
+
+--Processing manual concepts
+--Append manual concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--Append manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 
 --Automatic QA of stage tables
 SELECT * FROM qa_tests.check_stage_tables();
 
 
---Fixes to run a generic update to check basic tables
---Concept_stage
-UPDATE concept_stage SET vocabulary_id = 'CO-CONNECT';
-UPDATE concept_relationship_stage SET vocabulary_id_1 = 'CO-CONNECT';
-UPDATE concept_stage SET concept_class_id = 'Precoordinated pair' WHERE concept_class_id = 'precoordinated pair';
-UPDATE concept_stage SET standard_concept = NULL WHERE standard_concept IS NOT NULL;
-UPDATE concept_stage SET concept_name = vocabulary_pack.cutconceptname(concept_name);
-
---Concept_relationship_stage
---quick deduplication
-CREATE TABLE concept_relationship_stage_dedup AS (SELECT DISTINCT * FROM concept_relationship_stage);
-TRUNCATE concept_relationship_stage;
-INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_Stage_dedup);
-DROP TABLE concept_relationship_stage_dedup;
-
+--Clean up
+DROP TABLE concept_relationship_manual_iqvia;
 
 
 DO $_$

@@ -1,7 +1,6 @@
 --TODO: improve comments coverage
 --TODO: Check all the commented rows
---TODO: Unite all manual mapping tables in one table
---TODO: Chek BuildRxE thing. Check all the concepts to be created, incl. attributes.
+--TODO: Check BuildRxE thing. Check all the concepts to be created, incl. attributes.
 --TODO: Do not create (and probably map) attributes (incl. Suppliers) related to devices
 --TODO: Replace all the unnecessary inserts into stage tables with manual table (presumably with _mapped format)
 
@@ -744,7 +743,15 @@ WHERE
     lower (v.nm) LIKE '%mo-99%' OR
 	lower (v.nm) LIKE '%catheter%' OR
 	lower (v.nm) LIKE '%radiopharm%' OR
-    lower (v.nm) LIKE '%radionuclide generator%';
+    lower (v.nm) LIKE '%radionuclide generator%' OR
+    lower(v.nm) LIKE '%gluten free bread%' OR
+    lower(v.nm) LIKE '%cardioplegia%' OR
+    lower(v.nm) LIKE '%gadodiamide%' OR
+    lower(v.nm) LIKE '%catheter maintenance%' OR
+    lower(v.nm) LIKE '%artificial%' OR
+    lower(v.nm) LIKE '%industrial%' OR
+    lower(v.nm) LIKE '%urea c13%'
+;
 
 --homeopathic products are not worth analyzing if source does not provide ingredients
 INSERT INTO devices
@@ -803,6 +810,7 @@ WHERE
 						36694441, --Sodium chloride 0.9% catheter maintenance solution pre-filled syringes
 						35626947 --NHS dm+d appliance
 					)
+			AND c.domain_id = 'Device'
 		);
 
 -- if at least one vmp per amp is a drug, treat everything as drug

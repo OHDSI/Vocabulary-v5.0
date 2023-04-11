@@ -212,6 +212,7 @@ WHERE
 
 
 --add replacements for VMPs, replaced by source
+--these concepts are absent in sources, but already available in Athena from previous releases
 INSERT INTO concept_stage
 SELECT
 	NULL :: int4 AS concept_id,
@@ -243,16 +244,14 @@ SELECT DISTINCT
 	NULL :: int4,
 	NULL :: int4,
 	v.vpidprev,
-	r.concept_code_2,
+	v.vpid,
 	'dm+d',
-	r.vocabulary_id_2,
+	'dm+d',
 	'Maps to',
 	(SELECT vocabulary_date FROM sources.f_lookup2 LIMIT 1),
 	TO_DATE('20991231','yyyymmdd'),
 	NULL
 FROM vmps v
-JOIN concept_relationship_stage r ON
-	v.vpid = r.concept_code_1
 WHERE vpidprev IS NOT NULL AND
 	vpidprev NOT IN (SELECT concept_code_1 FROM concept_relationship_stage WHERE invalid_reason IS NULL)
 ;
@@ -289,6 +288,8 @@ WHERE
 				concept_code_2 = c2.concept_code AND
 				vocabulary_id_2 = c2.vocabulary_id
 		)
+  --Except for relationships between deprecated and fresh concepts inside dm+d
+AND c2.vocabulary_id != 'dm+d'
 ;
 
 
@@ -296,6 +297,12 @@ WHERE
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+-- Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
 -- Deprecate 'Maps to' mappings to deprecated and upgraded concepts

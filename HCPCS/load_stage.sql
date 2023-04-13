@@ -47,35 +47,35 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT vocabulary_pack.cutconceptname(long_description)   AS concept_name,
-	   c.domain_id AS domain_id,
-	   v.vocabulary_id,
-	   CASE
-			  WHEN LENGTH(hcpc) = 2
-					 THEN 'HCPCS Modifier'
-			  ELSE 'HCPCS'
-			  END AS concept_class_id,
-	   CASE
-			  WHEN term_dt IS NOT NULL
-					 AND xref1 IS NOT NULL -- !!means the concept is updated
-					 THEN NULL
-			  ELSE 'S' -- in other cases it's standard
-			  END AS standard_concept,
-	   hcpc AS concept_code,
-	   COALESCE(add_date, act_eff_dt) AS valid_start_date,
-	   COALESCE(term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
-	   CASE
-			  WHEN term_dt IS NULL
-					 THEN NULL
-			  WHEN xref1 IS NULL
-					 THEN NULL -- zombie concepts
-			  ELSE 'U' -- upgraded
-			  END AS invalid_reason
+SELECT vocabulary_pack.CutConceptName(long_description)   AS concept_name,
+	c.domain_id AS domain_id,
+	v.vocabulary_id,
+	CASE
+			WHEN LENGTH(hcpc) = 2
+					THEN 'HCPCS Modifier'
+			ELSE 'HCPCS'
+			END AS concept_class_id,
+	CASE
+			WHEN term_dt IS NOT NULL
+					AND xref1 IS NOT NULL -- !!means the concept is updated
+					THEN NULL
+			ELSE 'S' -- in other cases it's standard
+			END AS standard_concept,
+	hcpc AS concept_code,
+	COALESCE(add_date, act_eff_dt) AS valid_start_date,
+	COALESCE(term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
+	CASE
+			WHEN term_dt IS NULL
+					THEN NULL
+			WHEN xref1 IS NULL
+					THEN NULL -- zombie concepts
+			ELSE 'U' -- upgraded
+			END AS invalid_reason
 FROM sources.anweb_v2 a
 			JOIN vocabulary v ON v.vocabulary_id = 'HCPCS'
 			LEFT JOIN concept c ON c.concept_code = a.betos
-	   AND c.concept_class_id = 'HCPCS Class'
-	   AND c.vocabulary_id = 'HCPCS'
+	AND c.concept_class_id = 'HCPCS Class'
+	AND c.vocabulary_id = 'HCPCS'
 ;
 
 --4. Insert other existing HCPCS concepts that are absent in the source (zombie concepts)
@@ -1251,24 +1251,25 @@ FROM (SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'HCPCS'
 	ORDER BY crs.concept_code_1,
-			CASE c.domain_id
-				WHEN 'Drug'
-					THEN 1
-				WHEN 'Procedure'
-					THEN 2
-				WHEN 'Condition'
-					THEN 3
-				WHEN 'Measurement'
-					THEN 4
-				WHEN 'Observation'
-					THEN 5
-				WHEN 'Visit'
-					THEN 6
-				WHEN 'Provider'
-					THEN 7
-				WHEN 'Device'
-					THEN 8
-				END) i
+		CASE c.domain_id
+		WHEN 'Drug'
+			THEN 1
+			WHEN 'Procedure'
+				THEN 2
+			WHEN 'Condition'
+				THEN 3
+			WHEN 'Measurement'
+				THEN 4
+			WHEN 'Observation'
+				THEN 5
+			WHEN 'Visit'
+				THEN 6
+			WHEN 'Provider'
+				THEN 7
+			WHEN 'Device'
+				THEN 8
+			END
+	) i
 WHERE cs.concept_code = i.concept_code_1;
 
 --17. All (not only the drugs) concepts having mappings should be NON-standard

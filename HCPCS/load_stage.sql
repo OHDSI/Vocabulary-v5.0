@@ -47,7 +47,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT vocabulary_pack.CutConceptName(long_description)   AS concept_name,
+SELECT vocabulary_pack.CutConceptName(long_description) AS concept_name,
 	c.domain_id AS domain_id,
 	v.vocabulary_id,
 	CASE
@@ -59,8 +59,8 @@ SELECT vocabulary_pack.CutConceptName(long_description)   AS concept_name,
 		WHEN term_dt IS NOT NULL
 			AND xref1 IS NOT NULL -- !!means the concept is updated
 			THEN NULL
-			ELSE 'S' -- in other cases it's standard
-			END AS standard_concept,
+		ELSE 'S' -- in other cases it's standard
+		END AS standard_concept,
 	hcpc AS concept_code,
 	COALESCE(add_date, act_eff_dt) AS valid_start_date,
 	COALESCE(term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
@@ -1242,17 +1242,18 @@ END $_$;
 --16. Update domain_id and standard concept value for HCPCS according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
-FROM (SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
+FROM (
+	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
 	FROM concept_relationship_stage crs
-			JOIN concept c ON c.concept_code = crs.concept_code_2
-			AND c.vocabulary_id = crs.vocabulary_id_2
+	JOIN concept c ON c.concept_code = crs.concept_code_2
+		AND c.vocabulary_id = crs.vocabulary_id_2
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'HCPCS'
 	ORDER BY crs.concept_code_1,
 		CASE c.domain_id
-		WHEN 'Drug'
-			THEN 1
+			WHEN 'Drug'
+				THEN 1
 			WHEN 'Procedure'
 				THEN 2
 			WHEN 'Condition'

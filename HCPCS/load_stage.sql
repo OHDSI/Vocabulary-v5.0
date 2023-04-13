@@ -586,13 +586,13 @@ AS (
 				THEN 'Drug' -- Level 1: J0100-J9999
 					-- K codes
 			WHEN concept_code LIKE 'K%'
-			       AND concept_code NOT IN ('K0124', 'K0285', 'K0449')
-		        THEN 'Device' -- Durable Medical Equipment For Medicare Administrative Contractors
+					AND concept_code NOT IN ('K0124', 'K0285', 'K0449')
+				THEN 'Device' -- Durable Medical Equipment For Medicare Administrative Contractors
 			WHEN concept_code = 'K0124'
-		       THEN 'Drug' -- Monoclonal antibodies
+				THEN 'Drug' -- Monoclonal antibodies
 			WHEN concept_code IN ('K0285', 'K0449')
-		       	THEN 'Observation'
-					-- L codes
+				THEN 'Observation'
+			-- L codes
 			WHEN l1.str = 'L Codes'
 			       AND concept_code NOT IN ('L4200',
 											'L5310',
@@ -611,16 +611,16 @@ AS (
 		       THEN 'Procedure'
 					-- M codes
 			WHEN concept_code IN (
-					'M0075', --Cellular therapy
-					'M0076', --Prolotherapy
-					'M0100', --Intragastric hypothermia using gastric freezing
-			        'M0201', -- Covid-19 vaccine administration
-					'M0300', --Iv chelation therapy (chemical endarterectomy)
-					'M0301') --Fabric wrapping of abdominal aneurysm
+								'M0075', --Cellular therapy
+								'M0076', --Prolotherapy
+								'M0100', --Intragastric hypothermia using gastric freezing
+								'M0201', -- Covid-19 vaccine administration
+								'M0300', --Iv chelation therapy (chemical endarterectomy)
+								'M0301') --Fabric wrapping of abdominal aneurysm
 				THEN 'Procedure'
 			WHEN l1.str = 'Other Medical Services'
 				THEN 'Observation' -- Level 1: M0000-M0301
-					-- P codes
+		-- P codes
 			WHEN concept_code = 'P9012'
 				THEN 'Drug' -- Cryoprecipitate, each unit should have domain_id = 'Drug'
 			WHEN concept_code LIKE 'P90%'
@@ -1074,8 +1074,8 @@ SELECT DISTINCT concept_code_1,
 FROM (
 	SELECT a.hcpc AS concept_code_1,
 		a.xref1 AS concept_code_2,
-		coalesce(a.add_date, a.act_eff_dt) AS valid_start_date,
-		to_date('20991231', 'yyyymmdd') AS valid_end_date
+		COALESCE(a.add_date, a.act_eff_dt) AS valid_start_date,
+		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref1 = b.hcpc
@@ -1086,8 +1086,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref2,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref2 = b.hcpc
@@ -1098,8 +1098,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref3,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref3 = b.hcpc
@@ -1110,8 +1110,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref4,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref4 = b.hcpc
@@ -1122,8 +1122,8 @@ FROM (
 	
 	SELECT a.hcpc AS concept_code_1,
 		a.xref5,
-		coalesce(a.add_date, a.act_eff_dt),
-		to_date('20991231', 'yyyymmdd')
+		COALESCE(a.add_date, a.act_eff_dt),
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM sources.anweb_v2 a,
 		sources.anweb_v2 b
 	WHERE a.xref5 = b.hcpc
@@ -1240,37 +1240,35 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id and standard concept value for HCPCS according to mappings:
+--16. Update domain_id and standard concept value for HCPCS according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
+FROM (SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
 	FROM concept_relationship_stage crs
-	JOIN concept c ON c.concept_code=crs.concept_code_2
-		AND c.vocabulary_id=crs.vocabulary_id_2
-	WHERE crs.relationship_id='Maps to'
+			JOIN concept c ON c.concept_code = crs.concept_code_2
+			AND c.vocabulary_id = crs.vocabulary_id_2
+	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
-		AND crs.vocabulary_id_1='HCPCS'
+		AND crs.vocabulary_id_1 = 'HCPCS'
 	ORDER BY crs.concept_code_1,
-	         CASE c.domain_id
-	             WHEN 'Drug'
-	                 THEN 1
-	             WHEN 'Procedure'
-	                THEN 2
-	             WHEN 'Condition'
-	                THEN 3
-	             WHEN 'Measurement'
-	                THEN 4
-                 WHEN 'Observation'
-	                THEN 5
-	             WHEN 'Visit'
-	                 THEN 6
-	             WHEN 'Provider'
-	                 THEN 7
-	             WHEN 'Device'
-	                 THEN 8
-	             END
-) i
+			CASE c.domain_id
+				WHEN 'Drug'
+					THEN 1
+				WHEN 'Procedure'
+					THEN 2
+				WHEN 'Condition'
+					THEN 3
+				WHEN 'Measurement'
+					THEN 4
+				WHEN 'Observation'
+					THEN 5
+				WHEN 'Visit'
+					THEN 6
+				WHEN 'Provider'
+					THEN 7
+				WHEN 'Device'
+					THEN 8
+				END) i
 WHERE cs.concept_code = i.concept_code_1;
 
 --17. All (not only the drugs) concepts having mappings should be NON-standard

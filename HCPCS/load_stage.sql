@@ -1197,7 +1197,6 @@ WHERE c.concept_id = r.concept_id_1
 		'Concept same_as to',
 		'Concept alt_to to',
 		'Concept was_a to',
-		'Is a'
 		)
 	AND r.invalid_reason IS NULL
 	AND (

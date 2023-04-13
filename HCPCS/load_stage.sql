@@ -51,32 +51,31 @@ SELECT vocabulary_pack.CutConceptName(long_description)   AS concept_name,
 	c.domain_id AS domain_id,
 	v.vocabulary_id,
 	CASE
-			WHEN LENGTH(hcpc) = 2
-					THEN 'HCPCS Modifier'
-			ELSE 'HCPCS'
-			END AS concept_class_id,
+		WHEN LENGTH(hcpc) = 2
+			THEN 'HCPCS Modifier'
+		ELSE 'HCPCS'
+		END AS concept_class_id,
 	CASE
-			WHEN term_dt IS NOT NULL
-					AND xref1 IS NOT NULL -- !!means the concept is updated
-					THEN NULL
+		WHEN term_dt IS NOT NULL
+			AND xref1 IS NOT NULL -- !!means the concept is updated
+			THEN NULL
 			ELSE 'S' -- in other cases it's standard
 			END AS standard_concept,
 	hcpc AS concept_code,
 	COALESCE(add_date, act_eff_dt) AS valid_start_date,
 	COALESCE(term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	CASE
-			WHEN term_dt IS NULL
-					THEN NULL
-			WHEN xref1 IS NULL
-					THEN NULL -- zombie concepts
-			ELSE 'U' -- upgraded
-			END AS invalid_reason
+		WHEN term_dt IS NULL
+			THEN NULL
+		WHEN xref1 IS NULL
+			THEN NULL -- zombie concepts
+		ELSE 'U' -- upgraded
+		END AS invalid_reason
 FROM sources.anweb_v2 a
-			JOIN vocabulary v ON v.vocabulary_id = 'HCPCS'
-			LEFT JOIN concept c ON c.concept_code = a.betos
+JOIN vocabulary v ON v.vocabulary_id = 'HCPCS'
+LEFT JOIN concept c ON c.concept_code = a.betos
 	AND c.concept_class_id = 'HCPCS Class'
-	AND c.vocabulary_id = 'HCPCS'
-;
+	AND c.vocabulary_id = 'HCPCS';
 
 --4. Insert other existing HCPCS concepts that are absent in the source (zombie concepts)
 INSERT INTO concept_stage (

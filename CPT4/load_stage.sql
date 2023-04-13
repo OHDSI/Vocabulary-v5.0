@@ -453,7 +453,8 @@ FROM (
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
 			WHEN (
-					m2.tui = 'T074'
+					(m2.tui = 'T074'
+					    AND m1.code != '44015')
 					OR (
 						m2.tui = 'T073'
 						AND tty <> 'POS'

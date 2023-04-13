@@ -97,12 +97,8 @@ SELECT c.concept_name AS concept_name,
 	       ELSE c.standard_concept END AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
-	CASE WHEN c.concept_class_id = 'HCPCS Class'
-	       THEN to_date('20991231', 'yyyymmdd')
-	       ELSE c.valid_end_date END AS valid_end_date,
-	CASE WHEN c.concept_class_id = 'HCPCS Class'
-	       THEN NULL
-	       ELSE c.invalid_reason END AS invalid_reason
+	c.valid_end_date,
+	c.invalid_reason
 FROM devv5.concept c
 WHERE c.vocabulary_id = 'HCPCS'
 	AND NOT EXISTS (
@@ -1144,32 +1140,7 @@ WHERE NOT EXISTS (
 			AND crs_int.relationship_id = 'Concept replaced by'
 		);
 
---10. Create hierarchical relationships between HCPCS AND HCPCS class
-/*INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	relationship_id,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT DISTINCT a.hcpc AS concept_code_1,
-	a.betos AS concept_code_2,
-	'Is a' AS relationship_id,
-	'HCPCS' AS vocabulary_id_1,
-	'HCPCS' AS vocabulary_id_2,
-	coalesce(a.add_date, a.act_eff_dt) AS valid_start_date,
-	to_date('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM sources.anweb_v2 a
-JOIN concept_stage c ON c.concept_code = a.betos
-	AND c.concept_class_id = 'HCPCS Class'
-	AND c.vocabulary_id = 'HCPCS'
-	AND c.invalid_reason IS NULL;*/
-
---11. Add all other 'Concept replaced by' and hierarchical relationships for zombie concepts
+--9. Add all other 'Concept replaced by' and hierarchical relationships for zombie concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1218,7 +1189,7 @@ WHERE c.concept_id = r.concept_id_1
 			AND crs.relationship_id = r.relationship_id
 		);
 
---12. Make concepts that are replaced by the non-existing concepts standard
+--10. Make concepts that are replaced by the non-existing concepts standard
 --- Use Case: CPT4 doesn't have these concepts in sources yet somehow
 UPDATE concept_stage cs
 SET invalid_reason = NULL,
@@ -1239,37 +1210,37 @@ WHERE NOT EXISTS (
 		)
 	AND cs.invalid_reason = 'U';
 
---13. Working with replacement mappings
+--11. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---14. Append manual relationships
+--12. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---15. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---17. Delete ambiguous 'Maps to' mappings
+--15. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---18. Update domain_id and standard concept value for HCPCS according to mappings:
+--16. Update domain_id and standard concept value for HCPCS according to mappings:
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -1302,7 +1273,7 @@ FROM (
 ) i
 WHERE cs.concept_code = i.concept_code_1;
 
---19. All (not only the drugs) concepts having mappings should be NON-standard
+--17. All (not only the drugs) concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

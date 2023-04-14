@@ -235,4 +235,4 @@ BEGIN
 			);
 END;
 $BODY$
-LANGUAGE 'plpgsql' STABLE;
+LANGUAGE 'plpgsql';

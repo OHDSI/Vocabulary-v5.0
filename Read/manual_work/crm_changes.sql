@@ -33,7 +33,7 @@ $body$;
 --restore concept_relationship_manual table (run it only if something went wrong)
 TRUNCATE TABLE dev_read.concept_relationship_manual;
 INSERT INTO dev_read.concept_relationship_manual
-SELECT * FROM dev_read.concept_relationship_manual_backup_2022_05_26;
+SELECT * FROM dev_read.concept_relationship_manual_backup_2023_03_10;
 
 DO
 $body$
@@ -84,7 +84,7 @@ WHERE invalid_reason = 'D' -- activate only deprecated mappings
 
     AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
                     FROM refresh_lookup_done rl
-                    WHERE rl.icd_code = crm.concept_code_1 --the same source_code is mapped
+                    WHERE rl.read_code = crm.concept_code_1 --the same source_code is mapped
                         AND rl.repl_by_code = crm.concept_code_2 --to the same concept_code
                         AND rl.repl_by_vocabulary = crm.vocabulary_id_2 --of the same vocabulary
                         AND rl.repl_by_relationship = crm.relationship_id --with the same relationship

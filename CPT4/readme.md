@@ -7,11 +7,17 @@ Prerequisites:
 - Working directory CPT4
 
 
-1. Run SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
-
+1. Run 
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+```
 2. Run load_stage.sql (The pVocabularyDate will be automatically retrieved from the UMLS [SOURCES.MRSMAP.vocabulary_date])
 
-3. Run generic_update:
+3. Run check_stage_tables function (should retrieve NULL):
+   ```sql
+    SELECT * FROM qa_tests.check_stage_tables();
+   ```
+4. Run generic_update:
 ```sql
 DO $_$
 BEGIN

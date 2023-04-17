@@ -452,19 +452,11 @@ FROM (
 				THEN 'Procedure'
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
-			WHEN (
-					(m2.tui = 'T074'
-					    AND m1.code != '44015')
-					OR (
-						m2.tui = 'T073'
-						AND tty <> 'POS'
-						)
-					)
-				AND cs.concept_code NOT IN (
-					'1022193',
-					'1022194'
-					)
+			WHEN m2.sty = 'Medical Device'
+				AND cs.concept_code != '44015'
 				THEN 'Device'
+			WHEN cs.concept_code = '44015'
+					THEN 'Procedure' -- Tube or needle catheter jejunostomy
 			WHEN m2.tui IN (
 					'T121',
 					'T109',
@@ -473,6 +465,11 @@ FROM (
 				AND cs.concept_code <> '86789'
 				THEN 'Drug'
 			WHEN tty = 'POS'
+				AND cs.concept_code NOT IN (
+					'1022193',
+					'1022194',
+					'44015'
+					)
 				THEN 'Visit'
 			WHEN m2.tui IN (
 					'T081',

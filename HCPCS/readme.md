@@ -15,33 +15,29 @@ Prerequisites:
 6. Run FULL FastRecreate:
 ```sql
    SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false, include_deprecated_rels=> true, include_synonyms=> true);
-   ```
+```
 7. Run load_stage.sql.
-8. Run check_stage_tables function (should retrieve NULL):
-   ```sql
-    SELECT * FROM qa_tests.check_stage_tables();
-   ```
-9. Run generic_update:
+8.  Run generic_update:
    ```sql
    DO $_$
    BEGIN
        PERFORM devv5.GenericUpdate();
    END $_$;
    ```
-10. Run basic tables check (should retrieve NULL):
-   ```sql
-    SELECT * FROM qa_tests.get_checks();
+9. Run basic tables check (should retrieve NULL):
+```sql
+   SELECT * FROM qa_tests.get_checks();
 ```
-11. Perform manual work described in the readme.md file in the 'manual_work' folder.
+10. Perform manual work described in the readme.md file in the 'manual_work' folder.
 
 Repeat steps 6-11.
 
-12. Run scripts to get summary, and interpret the results:
+11. Run scripts to get summary, and interpret the results:
     ```sql
     SELECT DISTINCT * FROM qa_tests.get_summary('concept');
     SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
     ```
-13. Run scripts to collect statistics, and interpret the results:
+12. Run scripts to collect statistics, and interpret the results:
     ```sql
     SELECT DISTINCT * FROM qa_tests.get_domain_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
@@ -49,9 +45,9 @@ Repeat steps 6-11.
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
     SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
     ```
-14. Run manual_checks_after_generic.sql, and interpret the results. 
-15. Run project_specific_manual_checks_after_generic.sql, and interpret the results.
-16. If no problems, enjoy!
+13. Run manual_checks_after_generic.sql, and interpret the results. 
+14. Run project_specific_manual_checks_after_generic.sql, and interpret the results.
+15. If no problems, enjoy!
 
 CSV sources for CONCEPT_MANUAL and CONCEPT_RELATIONSHIP_MANUAL are available here:
 https://drive.google.com/drive/u/2/folders/1mvXzaXW9294RaDC2DgnM1qBi1agCwxHJ

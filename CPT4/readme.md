@@ -13,11 +13,7 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 ```
 2. Run load_stage.sql (The pVocabularyDate will be automatically retrieved from the UMLS [SOURCES.MRSMAP.vocabulary_date])
 
-3. Run check_stage_tables function (should retrieve NULL):
-   ```sql
-    SELECT * FROM qa_tests.check_stage_tables();
-   ```
-4. Run generic_update:
+3. Run generic_update:
 ```sql
 DO $_$
 BEGIN
@@ -37,24 +33,14 @@ Repeat steps 1-5
 7. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept');
-```
-```sql
 SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
 8. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_domain_changes();
-```
-```sql
 SELECT * FROM qa_tests.get_newly_concepts();
-```
-```sql
 SELECT * FROM qa_tests.get_standard_concept_changes();
-```
-```sql
 SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
-```
-```sql
 SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 9. If no problems, enjoy!

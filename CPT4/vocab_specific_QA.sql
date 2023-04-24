@@ -1,5 +1,5 @@
 -- Our aim is to build a unique hierarchy of Procedures with CPT4 embedded in SNOMED/OMOP Ext hierarchy.
---- The script below retrieves the number of concepts in hierarchy against the number of concepts that are not yet in hierarchy.
+--- The script below retrieves the number of concepts in hierarchy through either 'Is a' or 'Maps to' relationships against the number of concepts that are not yet in hierarchy.
 --- Use this counts for analysis and renew respective numbers in https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
 
 WITH concepts_in_hierarchy AS (SELECT DISTINCT cr.concept_id_1

@@ -3,7 +3,13 @@ RETURNS VOID AS
 $BODY$
 /*
  Adds mapping from deprecated to fresh concepts for 'Maps to value'
- Works the same as the AddFreshMAPSTO function, except it doesn't automatically add the 'Maps to value' for replacement relationships
+ Works similar to AddFreshMAPSTO function, but with differences:
+ 1. The function doesn't automatically add the 'Maps to value' for replacement relationships (they are not used at all)
+ 2. The function can use both 'Maps to value' and 'Maps to' relationships
+ For example, if we have A 'Maps to' B 'Maps to value' C, then A 'Maps to value' C will be created
+ 
+ Also, if there is already 'Maps to' between the target concepts, then 'Maps to value' will not be created
+ For example, if we have A 'Maps to' B 'Maps to value' C, and A 'Maps to' C, then A 'Maps to value' C will NOT be created
 */
 BEGIN
 	WITH to_be_upserted
@@ -15,7 +21,7 @@ BEGIN
 					u.vocabulary_id_2,
 					u.concept_code_1 AS root_concept_code_1,
 					u.vocabulary_id_1 AS root_vocabulary_id_1,
-					ARRAY [ ROW (u.concept_code_2, u.vocabulary_id_2) ] AS full_path
+					ARRAY [ROW (u.concept_code_2, u.vocabulary_id_2)] AS full_path
 				FROM upgraded_concepts u
 				
 				UNION ALL
@@ -26,59 +32,39 @@ BEGIN
 					uc.vocabulary_id_2,
 					r.root_concept_code_1,
 					r.root_vocabulary_id_1,
-					r.full_path || ROW(uc.concept_code_2, uc.vocabulary_id_2)
+					r.full_path || ROW (uc.concept_code_2, uc.vocabulary_id_2)
 				FROM upgraded_concepts uc
 				JOIN rec r ON r.concept_code_2 = uc.concept_code_1
 					AND r.vocabulary_id_2 = uc.vocabulary_id_1
-				WHERE ROW(uc.concept_code_2, uc.vocabulary_id_2) <> ALL (full_path) --excluding loops
+				WHERE ROW (uc.concept_code_2, uc.vocabulary_id_2) <> ALL (full_path) --excluding loops
 				),
 			upgraded_concepts AS (
 				SELECT *
 				FROM (
-					SELECT DISTINCT concept_code_1,
+					SELECT DISTINCT s1.concept_code_1,
 						CASE 
-							WHEN rel_id <> 6
-								THEN FIRST_VALUE(concept_code_2) OVER (
-										PARTITION BY concept_code_1 ORDER BY rel_id, in_base_tables
-										)
-							ELSE
-								CASE 
-									WHEN in_base_tables = MIN(in_base_tables) OVER (PARTITION BY concept_code_1)
-										THEN concept_code_2
-									ELSE NULL
-									END
+							WHEN s1.in_base_tables = MIN(s1.in_base_tables) OVER (PARTITION BY s1.concept_code_1)
+								THEN s1.concept_code_2
 							END AS concept_code_2,
-						vocabulary_id_1,
-						vocabulary_id_2
+						s1.vocabulary_id_1,
+						s1.vocabulary_id_2
 					FROM (
 						SELECT crs.concept_code_1,
 							crs.concept_code_2,
 							crs.vocabulary_id_1,
 							crs.vocabulary_id_2,
-							--if concepts have more than one relationship_id, then we take only the one with following precedence
-							CASE 
-								WHEN crs.relationship_id = 'Concept replaced by'
-									THEN 1
-								WHEN crs.relationship_id = 'Concept same_as to'
-									THEN 2
-								WHEN crs.relationship_id = 'Concept alt_to to'
-									THEN 3
-								WHEN crs.relationship_id = 'Concept was_a to'
-									THEN 5
-								WHEN crs.relationship_id = 'Maps to value'
-									THEN 6
-								END AS rel_id,
 							0 AS in_base_tables
 						FROM concept_relationship_stage crs
 						WHERE crs.relationship_id IN (
-								'Concept replaced by',
-								'Concept same_as to',
-								'Concept alt_to to',
-								'Concept was_a to',
+								'Maps to',
 								'Maps to value'
 								)
 							AND crs.invalid_reason IS NULL
-							AND crs.concept_code_1 <> crs.concept_code_2
+							AND NOT (
+								--exclude mappings to self
+								crs.concept_code_1 = crs.concept_code_2
+								AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+								)
 						
 						UNION ALL
 						
@@ -87,30 +73,14 @@ BEGIN
 							c2.concept_code,
 							c1.vocabulary_id,
 							c2.vocabulary_id,
-							--if concepts have more than one relationship_id, then we take only the one with following precedence
-							CASE 
-								WHEN r.relationship_id = 'Concept replaced by'
-									THEN 1
-								WHEN r.relationship_id = 'Concept same_as to'
-									THEN 2
-								WHEN r.relationship_id = 'Concept alt_to to'
-									THEN 3
-								WHEN r.relationship_id = 'Concept was_a to'
-									THEN 5
-								WHEN r.relationship_id = 'Maps to value'
-									THEN 6
-								END AS rel_id,
 							1 AS in_base_tables
 						FROM concept_relationship r
 						JOIN concept c1 ON c1.concept_id = r.concept_id_1
 						JOIN concept c2 ON c2.concept_id = r.concept_id_2
 						WHERE r.invalid_reason IS NULL
-							AND r.concept_id_1 <> r.concept_id_2
+							AND r.concept_id_1 <> r.concept_id_2 --exclude mappings to self
 							AND r.relationship_id IN (
-								'Concept replaced by',
-								'Concept same_as to',
-								'Concept alt_to to',
-								'Concept was_a to',
+								'Maps to',
 								'Maps to value'
 								)
 							--don't use already deprecated relationships
@@ -159,12 +129,6 @@ BEGIN
 						FROM rec r_int
 						WHERE r_int.concept_code_1 = r.concept_code_2
 							AND r_int.vocabulary_id_1 = r.vocabulary_id_2
-						)
-				AND EXISTS (
-					SELECT 1
-					FROM concept_relationship_stage crs
-					WHERE crs.concept_code_1 = r.root_concept_code_1
-						AND crs.vocabulary_id_1 = r.root_vocabulary_id_1
 					)
 			) AS s3
 		WHERE EXISTS (
@@ -174,24 +138,16 @@ BEGIN
 				WHERE a.standard_concept = 'S'
 					AND a.invalid_reason IS NULL
 				)
-			AND (
-				EXISTS (
-					SELECT 1
-					FROM concept_relationship_stage crs_int
-					WHERE crs_int.concept_code_1 = s3.root_concept_code_1
-						AND crs_int.vocabulary_id_1 = s3.root_vocabulary_id_1
-						AND crs_int.relationship_id = 'Maps to value'
-						AND crs_int.invalid_reason IS NULL
-					)
-				OR EXISTS (
-					SELECT 1
-					FROM concept_relationship cr_int
-					JOIN concept c_int ON c_int.concept_id = cr_int.concept_id_1
-					WHERE c_int.concept_code = s3.root_concept_code_1
-						AND c_int.vocabulary_id = s3.root_vocabulary_id_1
-						AND cr_int.relationship_id = 'Maps to value'
-						AND cr_int.invalid_reason IS NULL
-					)
+			AND NOT EXISTS (
+				--relationship 'Maps to value' must not duplicate an existing 'Maps to'
+				SELECT 1
+				FROM concept_relationship_stage crs_int
+				WHERE crs_int.concept_code_1 = s3.root_concept_code_1
+					AND crs_int.vocabulary_id_1 = s3.root_vocabulary_id_1
+					AND crs_int.concept_code_2 = s3.concept_code_2
+					AND crs_int.vocabulary_id_2 = s3.vocabulary_id_2
+					AND crs_int.relationship_id = 'Maps to'
+					AND crs_int.invalid_reason IS NULL
 				)
 		),
 	updated

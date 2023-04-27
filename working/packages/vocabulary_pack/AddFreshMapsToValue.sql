@@ -10,8 +10,12 @@ $BODY$
  
  Also, if there is already 'Maps to' between the target concepts, then 'Maps to value' will not be created
  For example, if we have A 'Maps to' B 'Maps to value' C, and A 'Maps to' C, then A 'Maps to value' C will NOT be created
+ 
+ NOTE: for the function to work correctly, it must be launched after AddFreshMAPSTO
 */
 BEGIN
+	ANALYZE concept_relationship_stage;
+
 	WITH to_be_upserted
 	AS (
 		WITH RECURSIVE rec AS (

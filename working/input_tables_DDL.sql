@@ -62,8 +62,8 @@ CREATE TABLE pc_stage
 (
    pack_concept_code VARCHAR(50),
    drug_concept_code VARCHAR(50),
-   amount            FLOAT,
-   box_size          INT
+   amount            SMALLINT,
+   box_size          SMALLINT
 );
 
 CREATE TABLE relationship_to_concept

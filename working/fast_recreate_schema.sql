@@ -35,30 +35,33 @@ $body$
     SELECT devv5.FastRecreateSchema(drop_concept_ancestor=>false); --preserve old concept_ancestor, but it will be ignored if the include_concept_ancestor is set to true
   */
   BEGIN
+    main_schema_name:=LOWER(main_schema_name);
     IF CURRENT_SCHEMA = 'devv5' THEN RAISE EXCEPTION 'You cannot use this script in the ''devv5''!'; END IF;
     
     DROP TABLE IF EXISTS concept, concept_relationship, concept_synonym, vocabulary, relationship, drug_strength, pack_content CASCADE;
     IF drop_concept_ancestor OR include_concept_ancestor THEN DROP TABLE IF EXISTS concept_ancestor; END IF;
     TRUNCATE TABLE concept_stage, concept_relationship_stage, concept_synonym_stage, concept_class, domain, vocabulary_conversion, drug_strength_stage, pack_content_stage;
-    EXECUTE 'INSERT INTO concept_class SELECT * FROM '||main_schema_name||'.concept_class';
-    EXECUTE 'INSERT INTO domain SELECT * FROM '||main_schema_name||'.domain';
-    EXECUTE 'INSERT INTO vocabulary_conversion SELECT * FROM '||main_schema_name||'.vocabulary_conversion';
-    EXECUTE 'CREATE TABLE concept (LIKE '||main_schema_name||'.concept INCLUDING CONSTRAINTS)'; 
-    EXECUTE 'INSERT INTO concept SELECT * FROM '||main_schema_name||'.concept';
-    EXECUTE 'CREATE TABLE concept_relationship (LIKE '||main_schema_name||'.concept_relationship INCLUDING CONSTRAINTS)';
-    EXECUTE 'INSERT INTO concept_relationship SELECT * FROM '||main_schema_name||'.concept_relationship WHERE $1=TRUE OR ($1=FALSE AND invalid_reason IS NULL)' USING include_deprecated_rels;
-    EXECUTE 'CREATE TABLE concept_synonym (LIKE '||main_schema_name||'.concept_synonym INCLUDING CONSTRAINTS)';
-    EXECUTE 'INSERT INTO concept_synonym SELECT * FROM '||main_schema_name||'.concept_synonym WHERE $1=TRUE' USING include_synonyms;
-    EXECUTE 'CREATE TABLE vocabulary (LIKE '||main_schema_name||'.vocabulary)';
-    EXECUTE 'INSERT INTO vocabulary SELECT * FROM '||main_schema_name||'.vocabulary';
-    EXECUTE 'CREATE TABLE relationship (LIKE '||main_schema_name||'.relationship)';
-    EXECUTE 'INSERT INTO relationship SELECT * FROM '||main_schema_name||'.relationship';
-    EXECUTE 'CREATE TABLE drug_strength (LIKE '||main_schema_name||'.drug_strength)';
-    EXECUTE 'INSERT INTO drug_strength SELECT * FROM '||main_schema_name||'.drug_strength';
-    EXECUTE 'CREATE TABLE pack_content (LIKE '||main_schema_name||'.pack_content)';
-    EXECUTE 'INSERT INTO pack_content SELECT * FROM '||main_schema_name||'.pack_content';
-    EXECUTE 'CREATE TABLE IF NOT EXISTS concept_ancestor (LIKE '||main_schema_name||'.concept_ancestor)';
-    EXECUTE 'INSERT INTO concept_ancestor SELECT * FROM '||main_schema_name||'.concept_ancestor WHERE $1=TRUE' USING include_concept_ancestor;
+    EXECUTE FORMAT ($$
+      INSERT INTO concept_class SELECT * FROM %1$I.concept_class;
+      INSERT INTO domain SELECT * FROM %1$I.domain;
+      INSERT INTO vocabulary_conversion SELECT * FROM %1$I.vocabulary_conversion;
+      CREATE TABLE concept (LIKE %1$I.concept INCLUDING CONSTRAINTS);
+      INSERT INTO concept SELECT * FROM %1$I.concept;
+      CREATE TABLE concept_relationship (LIKE %1$I.concept_relationship INCLUDING CONSTRAINTS);
+      INSERT INTO concept_relationship SELECT * FROM %1$I.concept_relationship WHERE '%2$s'=TRUE OR ('%2$s'=FALSE AND invalid_reason IS NULL);
+      CREATE TABLE concept_synonym (LIKE %1$I.concept_synonym INCLUDING CONSTRAINTS);
+      INSERT INTO concept_synonym SELECT * FROM %1$I.concept_synonym WHERE '%3$s'=TRUE;
+      CREATE TABLE vocabulary (LIKE %1$I.vocabulary);
+      INSERT INTO vocabulary SELECT * FROM %1$I.vocabulary;
+      CREATE TABLE relationship (LIKE %1$I.relationship);
+      INSERT INTO relationship SELECT * FROM %1$I.relationship;
+      CREATE TABLE drug_strength (LIKE %1$I.drug_strength);
+      INSERT INTO drug_strength SELECT * FROM %1$I.drug_strength;
+      CREATE TABLE pack_content (LIKE %1$I.pack_content);
+      INSERT INTO pack_content SELECT * FROM %1$I.pack_content;
+      CREATE TABLE IF NOT EXISTS concept_ancestor (LIKE %1$I.concept_ancestor);
+      INSERT INTO concept_ancestor SELECT * FROM %1$I.concept_ancestor WHERE '%4$s'=TRUE;     
+    $$, main_schema_name, include_deprecated_rels, include_synonyms, include_concept_ancestor);
 
     --Create indexes and constraints for main tables
     ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
@@ -91,9 +94,13 @@ $body$
     CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id);
     CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, COALESCE(amount,-1));
     ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
-    CREATE INDEX IF NOT EXISTS idx_cs_concept_code ON concept_stage (concept_code);
+    ALTER TABLE concept_stage DROP CONSTRAINT IF EXISTS idx_pk_cs;
+    ALTER TABLE concept_stage ADD CONSTRAINT idx_pk_cs PRIMARY KEY (concept_code,vocabulary_id);
     CREATE INDEX IF NOT EXISTS idx_cs_concept_id ON concept_stage (concept_id);
-    CREATE INDEX IF NOT EXISTS idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
+    ALTER TABLE concept_relationship_stage DROP CONSTRAINT IF EXISTS idx_pk_crs;
+    ALTER TABLE concept_relationship_stage ADD CONSTRAINT idx_pk_crs PRIMARY KEY (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
+    ALTER TABLE concept_synonym_stage DROP CONSTRAINT IF EXISTS idx_pk_css;
+    ALTER TABLE concept_synonym_stage ADD CONSTRAINT idx_pk_css PRIMARY KEY (synonym_vocabulary_id,synonym_name,synonym_concept_code,language_concept_id);
     CREATE INDEX IF NOT EXISTS idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
     CREATE INDEX IF NOT EXISTS idx_dss_concept_code ON drug_strength_stage (drug_concept_code);
     CREATE INDEX IF NOT EXISTS idx_ca_descendant ON concept_ancestor (descendant_concept_id);
@@ -119,5 +126,5 @@ $body$
     ANALYZE concept_ancestor;
   END;
 $body$
-LANGUAGE 'plpgsql' SECURITY INVOKER
+LANGUAGE 'plpgsql'
 SET client_min_messages = error;

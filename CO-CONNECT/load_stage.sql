@@ -1,8 +1,6 @@
---Schema preparation
---SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
 
---Final realisation consists of 3 separate vocabularies, coming in one pack: CO-CONNECT, CO-CONNECT MIABIS, CO-CONNECT TWINS
-
+-- 0. Add New Vocabularies
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewVocabulary(
@@ -48,6 +46,8 @@ BEGIN
 );
 END $_$;
 
+
+-- 1. Set latest update
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -82,68 +82,44 @@ BEGIN
 	END $_$;
 
 
---Truncating manual tables
---TRUNCATE concept_manual, concept_relationship_manual, concept_synonym_manual;
-
---Preprocessing of manual tables
---Bad format in source data, dates for relationships are lost
-DROP TABLE IF EXISTS concept_relationship_manual_iqvia;
-CREATE TABLE concept_relationship_manual_iqvia AS
-SELECT concept_code_1,
-       concept_code_2,
-       vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id
-FROM concept_relationship_manual;
+-- 2. Truncate all working tables
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 
-INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-SELECT concept_code_1,
-       concept_code_2,
-       vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id,
-       TO_DATE ('19700101', 'YYYYMMDD'),
-       TO_DATE ('20991231', 'YYYYMMDD'),
-       NULL
-FROM concept_relationship_manual_iqvia;
-
-UPDATE concept_manual SET standard_concept = NULL
-WHERE standard_concept = '';
-
-
-
-
---Processing manual concepts
+--3. Manual concepts
 --Append manual concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
+--4. Manual mappings
 --Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
+--5. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
 
---Automatic QA of stage tables
-SELECT * FROM qa_tests.check_stage_tables();
+--6. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 
-
---Clean up
-DROP TABLE concept_relationship_manual_iqvia;
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 
 
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
-
-
---Automatic QA  of basic tables
-SELECT * FROM QA_TESTS.GET_CHECKS();
-
---Manual checks after generic
---(other files)

@@ -20,18 +20,40 @@ WHERE concept_id_2 IS NOT NULL
                           );
 
 
-INSERT INTO aut_suppliers_mapped (source_name, concept_name, concept_id_2)
-SELECT DISTINCT source_name, concept_name, concept_id_2
+INSERT INTO aut_suppliers_mapped (source_name, concept_name, concept_id_2, precedence)
+SELECT DISTINCT source_name, concept_name, concept_id_2, COALESCE(precedence, 1)
 FROM supplier_mm
 WHERE concept_id_2 IS NOT NULL
   AND concept_id_2 NOT IN (17, 0)
-  AND concept_name NOT IN (
-                          SELECT concept_name
+  AND source_name NOT IN (
+                          SELECT source_name
                           FROM aut_suppliers_mapped
                           );
 
-
-
+--clean up input tables removing relationships and drug_concept_stage inputs if an Attribute is junk or not supported by the current model
+--IRS
+delete from internal_relationship_stage where concept_code_2 in (
+select concept_code from drug_concept_stage rcs 
+join (
+select concept_name, 'Ingredient' as concept_class_id from aut_ingredient_mapped where precedence = -1 union all
+select concept_name, 'Brand Name' from aut_bn_mapped where precedence = -1 union all
+select source_name, 'Supplier' from aut_suppliers_mapped where precedence = -1 ) a
+using (concept_name, concept_class_id) 
+)
+;
+delete from ds_stage where ingredient_concept_code in (
+select concept_code from drug_concept_stage rcs 
+join (
+select concept_name, 'Ingredient' as concept_class_id from aut_ingredient_mapped where precedence = -1 ) a
+using (concept_name, concept_class_id) 
+)
+;
+-- DCS
+delete from drug_concept_stage where (concept_name, concept_class_id) in (
+select concept_name, 'Ingredient' as concept_class_id from aut_ingredient_mapped where precedence = -1 union all
+select concept_name, 'Brand Name' from aut_bn_mapped where precedence = -1 union all
+select source_name, 'Supplier' from aut_suppliers_mapped where precedence = -1  )
+;
 
 /************************************************
 * 9. Populate relationship_to_concept *
@@ -59,7 +81,7 @@ WHERE NOT EXISTS(SELECT 1
                  WHERE rtc2.concept_code_1 = a.concept_code_1)
 ;
 --9.3 Ingredients
---insert mappings back to aut_ingredient_mapped or aut_parsed_ingr (for ingredients that need parsing)
+--insert mappings back from aut_ingredient_mapped or aut_parsed_ingr (for ingredients that need parsing)
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 SELECT DISTINCT dc.concept_code, 'JMDC', CAST(concept_id_2 AS int), precedence
 FROM aut_ingredient_mapped a
@@ -68,6 +90,7 @@ JOIN drug_concept_stage dc
 WHERE NOT EXISTS(SELECT 1
                  FROM relationship_to_concept rtc2
                  WHERE rtc2.concept_code_1 = dc.concept_code)
+and  coalesce (precedence,1) != -1
 ;
 
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
@@ -97,10 +120,11 @@ JOIN drug_concept_stage dc
 WHERE NOT EXISTS(SELECT 1
                  FROM relationship_to_concept rtc2
                  WHERE rtc2.concept_code_1 = dc.concept_code)
+                 and coalesce (precedence,1) != -1
 ;
 
 -- 9.5 Supplier
--- insert mappings back to aut_supplier_mapped
+-- insert mappings from aut_supplier_mapped
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 SELECT DISTINCT
     dc.concept_code, 'JMDC', a.concept_id_2,
@@ -112,4 +136,6 @@ WHERE a.concept_id_2 IS NOT NULL
   AND dc.concept_code NOT IN (
                              SELECT concept_code_1
                              FROM relationship_to_concept
-                             );
+                             )
+and coalesce (precedence,1) != -1                             
+;

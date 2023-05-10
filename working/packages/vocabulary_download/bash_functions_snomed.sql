@@ -93,13 +93,13 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full-en_US*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_US*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Language/der2_cRefset_LanguageFull*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Metadata/der2_ssRefset_ModuleDependencyFull*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Map/der2_iisssccRefset_ExtendedMapFull*.txt" -d .
+    unzip -oqjC "$2" "*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
+    unzip -oqjC "$2" "*/Full/Terminology/sct2_Description_Full-en_US*.txt" -d . && \
+    unzip -oqjC "$2" "*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
+    unzip -oqjC "$2" "*/Full/Refset/Content/der2_cRefset_AssociationFull_US*.txt" -d . && \
+    unzip -oqjC "$2" "*/Full/Refset/Language/der2_cRefset_LanguageFull*.txt" -d . && \
+    unzip -oqjC "$2" "*/Full/Refset/Metadata/der2_ssRefset_ModuleDependencyFull*.txt" -d . && \
+    unzip -oqjC "$2" "*/Full/Refset/Map/der2_iisssccRefset_ExtendedMapFull*.txt" -d .
         
     #move result to original folder
     cd "$1"

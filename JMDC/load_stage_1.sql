@@ -13,22 +13,21 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Christian Reich, Anna Ostropolets, Artem Gorbachev, Alexander Davydov
-* Date: 20-Jan-2021
+* Authors: Christian Reich, Anna Ostropolets, Artem Gorbachev, Alexander Davydov, Dmitry Dymshyts
+* Date: 10-May-2023
 **************************************************************************/
-
 
 -- SET LATEST UPDATE
 DO
 $_$
     BEGIN
-        PERFORM VOCABULARY_PACK.SetLatestUpdate(
+        PERFORM SetLatestUpdate(
                         pVocabularyName => 'JMDC',
-                        pVocabularyDate => CURRENT_DATE,
-                        pVocabularyVersion => 'JMDC ' || to_date('20200430', 'YYYYMMDD'),
+                        pVocabularyDate => (select vocabulary_version from jmdc limit 1),
+                        pVocabularyVersion => 'JMDC ' || (select vocabulary_version from jmdc limit 1),
                         pVocabularyDevSchema => 'DEV_JMDC'
                     );
-        PERFORM VOCABULARY_PACK.SetLatestUpdate(
+        PERFORM SetLatestUpdate(
                         pVocabularyName => 'RxNorm Extension',
                         pVocabularyDate => CURRENT_DATE,
                         pVocabularyVersion => 'RxNorm Extension ' || CURRENT_DATE,
@@ -37,11 +36,10 @@ $_$
                     );
     END
 $_$;
-
-
 /*************************************************
 * Create sequence for entities that do not have source codes *
 *************************************************/
+
 TRUNCATE TABLE non_drug;
 TRUNCATE TABLE drug_concept_stage;
 TRUNCATE TABLE ds_stage;
@@ -56,7 +54,7 @@ DO
 $_$
     BEGIN
         PERFORM  setval('new_vocab',  (SELECT MAX (CAST (REPLACE (concept_code, 'JMDC', '') AS INT))
-                                       FROM concept
+                                       FROM v20230116.concept
                                        WHERE vocabulary_id = 'JMDC'
                                        AND concept_code LIKE 'JMDC%' ));
     END
@@ -69,7 +67,9 @@ $_$;
 
 
 -- Radiopharmaceuticals, scintigraphic material and blood products
-INSERT INTO non_drug
+INSERT into
+--create table
+non_drug  
 SELECT DISTINCT
     CASE
         WHEN brand_name IS NOT NULL
@@ -77,8 +77,9 @@ SELECT DISTINCT
                 SUBSTR(general_name || ' ' || CONCAT(standardized_unit, NULL) || ' [' || brand_name || ']', 1, 255),
                 '  ', ' ')
         ELSE TRIM(SUBSTR(general_name || ' ' || CONCAT(standardized_unit, NULL), 1, 255)) END AS concept_name,
-    'JMDC', 'Device', 'S', jmdc_drug_code, NULL, 'Device', TO_DATE('19700101', 'YYYYMMDD'),
-    TO_DATE('20991231', 'YYYYMMDD'), NULL
+    'JMDC' as vocabulary_id, 'Device' as domain_id, 'S' as standard_concept, jmdc_drug_code as concept_code, null as possible_excepient , 'Device' as concept_class_id,
+    TO_DATE('19700101', 'YYYYMMDD') as valid_start_date,
+    TO_DATE('20991231', 'YYYYMMDD')as valid_end_date, null as invalid_reason
 FROM jmdc
 WHERE general_name ~*
       ('(99mTc)|(131I)|(89Sr)|capsule|iodixanol|iohexol|ioxilan|ioxaglate|iopamidol|iothalamate|(123I)|(9 Cl)|(111In)|(13C)|' ||
@@ -240,7 +241,7 @@ SET brand_name = NULL
 WHERE brand_name IN (
                     SELECT DISTINCT brand_name
                     FROM j
-                    JOIN concept c
+                    join v20230116.concept c
                         ON LOWER(j.brand_name) = LOWER(c.concept_name)
                     WHERE c.concept_class_id LIKE '%Ingredient'
                     );
@@ -292,6 +293,10 @@ WHERE LOWER(general_name) = 'human menopausal gonadotrophin';
 UPDATE j
 SET general_name = 'human normal immunoglobulin/histamine'
 WHERE LOWER(general_name) = 'immunoglobulin with histamine';
+--!!
+UPDATE j
+SET general_name = 'sacubitril/valsartan sodium hydrate'
+WHERE LOWER(general_name) = 'sacubitril valsartan sodium hydrate';
 
 -- remove junk from standard_unit
 DO
@@ -443,7 +448,7 @@ FROM (
      ) a
 WHERE jmdc_drug_code NOT IN
       (
-      SELECT jmdc_drug_code
+      SELECT jmdc_drug_code::varchar
       FROM aut_pc_stage
       );
 
@@ -515,7 +520,7 @@ FROM (
          SUBSTR(ingredient || ' ' || dosage || ' ' || LOWER(form), 1, 255) AS concept_name
      FROM aut_pc_stage
      ) a
-LEFT JOIN concept c
+LEFT join v20230116.concept c
     ON a.concept_name = c.concept_name
         AND c.vocabulary_id = 'JMDC'
         AND c.concept_class_id = 'Drug Product'
@@ -545,7 +550,7 @@ FROM (
      SELECT DISTINCT ing_name
      FROM pi
      ) a
-LEFT JOIN concept c
+LEFT join v20230116.concept c
     ON TRIM(a.ing_name) = c.concept_name
         AND c.vocabulary_id = 'JMDC'
         AND c.concept_class_id = 'Ingredient'
@@ -571,7 +576,7 @@ FROM (
      FROM j
      WHERE brand_name IS NOT NULL
      ) a
-LEFT JOIN concept c
+LEFT join v20230116.concept c
     ON a.brand_name = c.concept_name
         AND c.vocabulary_id = 'JMDC'
         AND c.concept_class_id = 'Brand Name'
@@ -596,7 +601,7 @@ SELECT
 FROM (
      SELECT DISTINCT COALESCE(new_name, concept_name) AS concept_name FROM aut_form_mapped
      ) a
-LEFT JOIN concept c
+LEFT join v20230116.concept c
     ON a.concept_name = c.concept_name
         AND c.vocabulary_id = 'JMDC'
         AND c.concept_class_id = 'Dose Form'
@@ -657,11 +662,12 @@ VALUES ('ul', 'JMDC', 'Unit', NULL, 'ul', 'Drug', TO_DATE('19700101', 'YYYYMMDD'
         NULL);
 
 
---Supplier
+--Supplier, it has concept_name (the nice one inserted in drug_concept_stage eventually)
+-- !! at least it should work like that, but it doesn't
 INSERT INTO drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code,
                                 domain_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT
-    s.concept_name,
+    s.concept_name, -- here should be changed to sm.concept_name if I want to have nice names, but then I need to add replacement links between old and new suppliers to the concept_relationship_manual
     'JMDC'                         AS vocabulary_id,
     'Supplier'                     AS concept_class_id,
     NULL                           AS standard_concept,
@@ -676,13 +682,13 @@ FROM (
      LEFT JOIN aut_suppliers_mapped sm
          ON UPPER(sm.source_name) = UPPER(s.concept_name)
      ) s
-LEFT JOIN concept c
+LEFT join v20230116.concept c
     ON s.concept_name = c.concept_name
         AND c.vocabulary_id = 'JMDC'
         AND c.concept_class_id = 'Supplier'
         AND c.concept_code LIKE 'JMDC%'
         AND c.domain_id = 'Drug'
-GROUP BY 1, 2, 3, 4, 6, 7, 8, 9
+GROUP BY 1, 2, 3, 4, 6, 7, 8, 9 -- so this group by exists to add only nice names, since several ugly names map to one nice
 ;
 
 DELETE
@@ -752,6 +758,7 @@ JOIN drug_concept_stage dcs2
 ;
 
 -- 3.4 Suppliers
+--!! join with suppliers_aut_mapped if I want to use the nice names
 INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
 select s.jmdc_drug_code, dcs.concept_code
     from supplier s
@@ -763,9 +770,8 @@ where dcs.concept_class_id = 'Supplier';
 /*********************************
 * 4. Create and link Drug Strength
 *********************************/
-
 -- 4.1 g|mg|ug|mEq|MBq|IU|KU|U
-INSERT INTO ds_stage
+INSERT INTO ds_stage --(drug_concept_code,ingredient_concept_code,box_size,amount_value,amount_unit,numerator_value,numerator_unit,denominator_value,denominator_unit)
 SELECT DISTINCT
     j.jmdc_drug_code,
     dcs.concept_code,
@@ -1088,7 +1094,7 @@ FROM aut_form_mapped
 WHERE concept_id_2 IN
       (
       SELECT concept_id
-      FROM concept
+      from v20230116.concept
       WHERE invalid_reason IS NOT NULL
       )
 ;
@@ -1130,7 +1136,7 @@ SELECT DISTINCT
 FROM drug_concept_stage dc
 LEFT JOIN relationship_to_concept r
     ON concept_code = concept_code_1
-JOIN concept c2
+join v20230116.concept c2
     ON LOWER(C2.concept_name) = LOWER(dc.concept_name)
 WHERE dc.concept_class_id = 'Ingredient'
   AND concept_id_2 IS NULL
@@ -1145,11 +1151,11 @@ SELECT DISTINCT dc.concept_code, 'JMDC', c3.concept_id, 1
 FROM drug_concept_stage dc
 LEFT JOIN relationship_to_concept r
     ON concept_code = concept_code_1
-JOIN concept c2
+join v20230116.concept c2
     ON LOWER(C2.concept_name) = LOWER(dc.concept_name)
-JOIN concept_relationship cr
+join v20230116.concept_relationship cr
     ON cr.concept_id_1 = c2.concept_id
-JOIN concept c3
+join v20230116.concept c3
     ON c3.concept_id = cr.concept_id_2
 WHERE dc.concept_class_id = 'Ingredient'
   AND r.concept_id_2 IS NULL
@@ -1161,33 +1167,38 @@ WHERE dc.concept_class_id = 'Ingredient'
 ;
 
 -- delete/update invalid ingredients
+UPDATE aut_ingredient_mapped aim
+SET concept_id_2 = c.concept_id_2
+FROM (
+     SELECT concept_id_2, concept_id_1
+     from v20230116.concept_relationship cr
+     join v20230116.concept c
+         ON c.concept_id = concept_id_1 AND c.standard_concept is null AND relationship_id = 'Maps to' AND
+            cr.invalid_reason IS NULL
+     ) c
+WHERE (CAST(aim.concept_id_2 AS int) = c.concept_id_1);
+
 DELETE
 FROM aut_ingredient_mapped
 WHERE CAST(concept_id_2 AS int)
           IN (
              SELECT concept_id
-             FROM concept
+             from v20230116.concept
              WHERE invalid_reason = 'D'
              );
 
-UPDATE aut_ingredient_mapped aim
-SET concept_id_2 = c.concept_id_2
-FROM (
-     SELECT concept_id_2, concept_id_1
-     FROM concept_relationship cr
-     JOIN concept c
-         ON c.concept_id = concept_id_1 AND c.invalid_reason = 'U' AND relationship_id = 'Maps to' AND
-            cr.invalid_reason IS NULL
-     ) c
-WHERE (CAST(aim.concept_id_2 AS int) = c.concept_id_1);
-
 -- get the list of ingredients to map
+-- with obvious mapping candidates already picked
 DROP TABLE IF EXISTS aut_ingredient_to_map;
 CREATE TABLE aut_ingredient_to_map
 AS
-SELECT *
-FROM drug_concept_stage
-WHERE LOWER(concept_name) NOT IN
+SELECT dcs.concept_name, null as comment, null as precedence, c.concept_id as concept_id_2, c.concept_code as concept_code_2, 
+c.concept_name as concept_name_2, c.standard_concept as standard_concept
+FROM drug_concept_stage dcs
+--get the obvious mappings so we can review them
+left join v20230116.concept c on lower ( dcs.concept_name) like lower (c.concept_name) ||' %'
+and c.vocabulary_id like 'RxNorm%' and c.concept_class_id = 'Ingredient' and c.standard_concept ='S'
+WHERE LOWER(dcs.concept_name) NOT IN
       (
       SELECT LOWER(concept_name)
       FROM aut_ingredient_mapped
@@ -1198,20 +1209,21 @@ WHERE LOWER(concept_name) NOT IN
       SELECT LOWER(concept_name)
       FROM aut_parsed_ingr
       )
-  AND concept_code NOT IN
+  AND dcs.concept_code NOT IN
       (
       SELECT concept_code_1
       FROM relationship_to_concept
       )
-  AND concept_class_id = 'Ingredient';
+  AND dcs.concept_class_id = 'Ingredient';
 
 
 -- 5.4 Brand Names
+--insert by name matching
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 SELECT DISTINCT
     dc.concept_code, 'JMDC', c.concept_id, RANK() OVER (PARTITION BY dc.concept_code ORDER BY c.concept_id)
 FROM drug_concept_stage dc
-JOIN concept c
+join v20230116.concept c
     ON REGEXP_REPLACE(LOWER(TRIM(dc.concept_name)), '(\s|\W)', '', 'g') =
        REGEXP_REPLACE(LOWER(TRIM(c.concept_name)), '(\s|\W)', '', 'g')
 WHERE dc.concept_class_id = 'Brand Name'
@@ -1220,16 +1232,16 @@ WHERE dc.concept_class_id = 'Brand Name'
   AND c.invalid_reason IS NULL
   AND c.concept_id NOT IN (42912198, 44022957, 21018872, 40819872)
 ;
-
+--insert by name matching and replacement link
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 SELECT DISTINCT
     dc.concept_code, 'JMDC', c2.concept_id, RANK() OVER (PARTITION BY dc.concept_code ORDER BY c2.concept_id)
 FROM drug_concept_stage dc
-JOIN concept c
+join v20230116.concept c
     ON LOWER(c.concept_name) = LOWER(dc.concept_name) AND c.invalid_reason = 'U' AND c.concept_class_id = 'Brand Name'
-JOIN concept_relationship cr
+join v20230116.concept_relationship cr
     ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
-JOIN concept c2
+join v20230116.concept c2
     ON cr.concept_id_2 = c2.concept_id AND relationship_id = 'Concept replaced by'
 WHERE dc.concept_class_id = 'Brand Name'
   AND dc.concept_code NOT IN (
@@ -1244,7 +1256,7 @@ FROM aut_bn_mapped
 WHERE CAST(concept_id_2 AS int)
           IN (
              SELECT concept_id
-             FROM concept
+             from v20230116.concept
              WHERE invalid_reason = 'D'
              );
 
@@ -1252,33 +1264,37 @@ UPDATE aut_bn_mapped aim
 SET concept_id_2 = c.concept_id_2
 FROM (
      SELECT concept_id_2, concept_id_1
-     FROM concept_relationship cr
-     JOIN concept c
+     from v20230116.concept_relationship cr
+     join v20230116.concept c
          ON c.concept_id = concept_id_1 AND c.invalid_reason = 'U' AND relationship_id = 'Concept replaced by' AND
             cr.invalid_reason IS NULL
      ) c
-WHERE (CAST(aim.concept_id_2 AS int) = c.concept_id_1);
+WHERE (CAST(aim.concept_id_2 AS int) = c.concept_id_1)
 
+;
 -- get the list of BN to map
 DROP TABLE IF EXISTS aut_bn_to_map;
 CREATE TABLE aut_bn_to_map
 AS
-SELECT *
-FROM drug_concept_stage
-WHERE concept_code NOT IN
+SELECT dcs.concept_name, null as comment, null as precedence,  c.concept_id as concept_id_2, c.concept_code as concept_code_2, 
+c.concept_name as concept_name_2
+FROM drug_concept_stage dcs
+left join v20230116.concept c on lower (dcs.concept_name) = lower (c.concept_name) and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%' and c.concept_class_id ='Brand Name'
+WHERE dcs.concept_code NOT IN
       (
       SELECT concept_code_1
       FROM relationship_to_concept
       )
-  AND concept_class_id = 'Brand Name';
+  AND dcs.concept_class_id = 'Brand Name';
 
 
 -- 5.5 Supplier
+--name matching with existing ones (most probably created by a previos run)
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 SELECT DISTINCT
     dc.concept_code, 'JMDC', c.concept_id, RANK() OVER (PARTITION BY dc.concept_code ORDER BY c.concept_id)
 FROM drug_concept_stage dc
-JOIN concept c
+join v20230116.concept c
     ON LOWER(c.concept_name) = LOWER(dc.concept_name) AND c.concept_class_id = 'Supplier'
         AND c.invalid_reason IS NULL AND c.vocabulary_id = 'RxNorm Extension'
 WHERE dc.concept_class_id = 'Supplier'
@@ -1293,7 +1309,7 @@ FROM aut_suppliers_mapped
 WHERE CAST(concept_id_2 AS int)
           IN (
              SELECT concept_id
-             FROM concept
+             from v20230116.concept
              WHERE invalid_reason = 'D'
              );
 
@@ -1301,8 +1317,8 @@ UPDATE aut_suppliers_mapped aim
 SET concept_id_2 = c.concept_id_2
 FROM (
      SELECT concept_id_2, concept_id_1
-     FROM concept_relationship cr
-     JOIN concept c
+     from v20230116.concept_relationship cr
+     join v20230116.concept c
          ON c.concept_id = concept_id_1 AND c.invalid_reason = 'U' AND relationship_id = 'Concept replaced by' AND
             cr.invalid_reason IS NULL
      ) c
@@ -1342,7 +1358,7 @@ JOIN drug_concept_stage dcs
 *****************************/
 
 -- 8.1 Delete Suppliers where DF or strength doesn't exist
-
+-- 
 DELETE
 FROM internal_relationship_stage
 WHERE concept_code_1 IN
@@ -1376,6 +1392,5 @@ WHERE concept_code_1 IN
       SELECT concept_code FROM drug_concept_stage WHERE concept_class_id = 'Supplier'
       )
 ;
-
 
 -- populate manual_mapping tables

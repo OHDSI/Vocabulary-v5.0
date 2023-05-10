@@ -56,8 +56,8 @@ SELECT * FROM dev_cpt4.concept_synonym_manual_backup_YYYY_MM_DD;*/
 
 --9.2.2 Create cpt4_mapped table and pre-populate it with the resulting manual table of the previous CPT4 refresh.
 
---DROP TABLE dev_cpt4.cpt4_mapped;
-/* CREATE TABLE dev_cpt4.cpt4_mapped
+/*DROP TABLE dev_cpt4.cpt4_mapped;
+CREATE TABLE dev_cpt4.cpt4_mapped
 (
     id SERIAL PRIMARY KEY,
     source_code_description varchar(255),
@@ -65,6 +65,7 @@ SELECT * FROM dev_cpt4.concept_synonym_manual_backup_YYYY_MM_DD;*/
     source_concept_class_id varchar(50),
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),
+    source_vocabulary_id varchar(50),
     to_value varchar(50),
     flag varchar(50),
     target_concept_id int,
@@ -119,7 +120,7 @@ with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
                target_concept_code AS concept_code_2,
-               'CPT4' AS vocabulary_id_1,
+               source_vocabulary_id AS vocabulary_id_1,
                target_vocabulary_id AS vocabulary_id_2,
                CASE WHEN to_value ~* 'value' THEN 'Maps to value'
                     WHEN to_value ~* 'Is a' THEN 'Is a'

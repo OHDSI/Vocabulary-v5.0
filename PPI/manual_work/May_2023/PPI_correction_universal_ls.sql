@@ -18,7 +18,6 @@
 **************************************************************************/
 
 -- FastRecreate
-
 -- Update two concepts and set for 2 concepts diffirent concept_class_id
 
 UPDATE dev_ppi.concept_relationship

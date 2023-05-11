@@ -1,72 +1,56 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-**************************************************************************/
--- input tables creation
-DROP TABLE IF EXISTS DRUG_CONCEPT_STAGE;
-CREATE TABLE DRUG_CONCEPT_STAGE
-(
-   CONCEPT_NAME              VARCHAR(255),
-   VOCABULARY_ID             VARCHAR(20),
-   CONCEPT_CLASS_ID          VARCHAR(25),
-   STANDARD_CONCEPT          VARCHAR(1),
-   CONCEPT_CODE              VARCHAR(50),
-   POSSIBLE_EXCIPIENT        VARCHAR(1),
-   DOMAIN_ID                 VARCHAR(25),
-   VALID_START_DATE          DATE,
-   VALID_END_DATE            DATE,
-   INVALID_REASON            VARCHAR(1),
-   SOURCE_CONCEPT_CLASS_ID   VARCHAR(25)
-);
-
-DROP TABLE IF EXISTS DS_STAGE;
-CREATE TABLE DS_STAGE
-(
-   DRUG_CONCEPT_CODE        VARCHAR(255),
-   INGREDIENT_CONCEPT_CODE  VARCHAR(255),
-   BOX_SIZE                 INT4,
-   AMOUNT_VALUE             FLOAT,
-   AMOUNT_UNIT              VARCHAR(255),
-   NUMERATOR_VALUE          FLOAT,
-   NUMERATOR_UNIT           VARCHAR(255),
-   DENOMINATOR_VALUE        FLOAT,
-   DENOMINATOR_UNIT         VARCHAR(255)
-);
-
-DROP TABLE IF EXISTS INTERNAL_RELATIONSHIP_STAGE;
-CREATE TABLE INTERNAL_RELATIONSHIP_STAGE
-(
-   CONCEPT_CODE_1     VARCHAR(50),
-   CONCEPT_CODE_2     VARCHAR(50)
-);
-
-DROP TABLE IF EXISTS RELATIONSHIP_TO_CONCEPT;
-CREATE TABLE RELATIONSHIP_TO_CONCEPT
-(
-   CONCEPT_CODE_1     VARCHAR(255),
-   VOCABULARY_ID_1    VARCHAR(20),
-   CONCEPT_ID_2       INTEGER,
-   PRECEDENCE         INTEGER,
-   CONVERSION_FACTOR  FLOAT
-);
-
-DROP TABLE IF EXISTS PC_STAGE;
-CREATE TABLE PC_STAGE
-(
-   PACK_CONCEPT_CODE  VARCHAR(255),
-   DRUG_CONCEPT_CODE  VARCHAR(255),
-   AMOUNT             FLOAT,
-   BOX_SIZE           INT4
-);
+DROP TABLE IF EXISTS drug_concept_stage CASCADE; 
+DROP TABLE IF EXISTS ds_stage; 
+DROP TABLE IF EXISTS internal_relationship_stage; 
+DROP TABLE IF EXISTS pc_stage; 
+DROP TABLE IF EXISTS relationship_to_concept CASCADE; 
+ 
+CREATE TABLE drug_concept_stage 
+( 
+   concept_name            VARCHAR(255), 
+   vocabulary_id           VARCHAR(20), 
+   concept_class_id        VARCHAR(20), 
+   standard_concept        VARCHAR(1), 
+   concept_code            VARCHAR(255), 
+   possible_excipient      VARCHAR(1), 
+   domain_id               VARCHAR(20), 
+   valid_start_date        DATE, 
+   valid_end_date          DATE, 
+   invalid_reason          VARCHAR(1), 
+   source_concept_class_id VARCHAR(20) 
+); 
+ 
+CREATE TABLE ds_stage 
+( 
+   drug_concept_code       VARCHAR(255), 
+   ingredient_concept_code VARCHAR(255), 
+   amount_value            NUMERIC, 
+   amount_unit             VARCHAR(50), 
+   numerator_value         NUMERIC, 
+   numerator_unit          VARCHAR(50), 
+   denominator_value       NUMERIC, 
+   denominator_unit        VARCHAR(50) 
+   box_size                SMALLINT
+); 
+ 
+CREATE TABLE internal_relationship_stage 
+( 
+   concept_code_1 VARCHAR(255), 
+   concept_code_2 VARCHAR(255) 
+); 
+ 
+CREATE TABLE pc_stage 
+( 
+   pack_concept_code VARCHAR(50), 
+   drug_concept_code VARCHAR(50), 
+   amount            smallint, 
+   box_size          smallint 
+); 
+ 
+CREATE TABLE relationship_to_concept 
+( 
+   concept_code_1    VARCHAR(255), 
+   vocabulary_id_1   VARCHAR(20), 
+   concept_id_2      INT, 
+   precedence        SMALLINT, 
+   conversion_factor NUMERIC 
+); 

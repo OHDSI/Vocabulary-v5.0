@@ -223,6 +223,7 @@ AS (
 								  'C9100',
 								  'C9102',
 								  'C9123',
+			                      'C9150',
 								  'C9200',
 								  'C9201',
 								  'C9458',
@@ -758,7 +759,7 @@ AS (
 					AND 'Q4099'
 				THEN 'Drug'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4271'
+					AND 'Q4284'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010

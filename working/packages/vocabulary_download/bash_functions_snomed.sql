@@ -43,6 +43,8 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_snomed_prepare_int FROM PUBLIC, role_read_only;
 END $_$;
 
 --UK part
@@ -79,6 +81,8 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_snomed_prepare_uk FROM PUBLIC, role_read_only;
 END $_$;
 
 --US part
@@ -117,6 +121,8 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_snomed_prepare_us FROM PUBLIC, role_read_only;
 END $_$;
 
 --UK DE part
@@ -153,4 +159,6 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_snomed_prepare_uk_de FROM PUBLIC, role_read_only;
 END $_$;

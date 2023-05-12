@@ -218,8 +218,6 @@ begin
 		perform devv5.SendMailHTML (email, 'Release status [Reports ERROR]', cRet);
 end;
 $body$
-LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER
-COST 100;
+LANGUAGE 'plpgsql';
+
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.CreateReleaseReport FROM PUBLIC, role_read_only;

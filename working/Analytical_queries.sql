@@ -133,7 +133,7 @@ with t1 as (SELECT cr6.concept_id_1    as a_concept_id,            --A concept_i
                      JOIN devv5.concept_relationship cr6 ON cr6.concept_id_2 = c2.concept_id --getting A concept_id
                      JOIN devv5.concept c3 ON cr6.concept_id_1 = c3.concept_id --getting A concept_name
                 AND cr.invalid_reason IS NULL AND cr.relationship_id IN ('Maps to value') --finding F
-                AND ((cr4.relationship_id = 'Maps to') or (cr4.relationship_id IN ('Concept replaced by',
+                AND ((cr4.relationship_id = 'Maps to' and cr4.concept_id_1 != cr4.concept_id_2) or (cr4.relationship_id IN ('Concept replaced by',
                                                                                    'Concept same_as to',
                                                                                    'Concept alt_to to',
                                                                                    'Concept was_a to') and
@@ -142,7 +142,7 @@ with t1 as (SELECT cr6.concept_id_1    as a_concept_id,            --A concept_i
                                          from concept_relationship
                                          where relationship_id = 'Maps to value'
                                            and invalid_reason IS NULL) --B must have 'Maps to value'
-                AND ((cr6.relationship_id = 'Maps to') or (cr6.relationship_id IN ('Concept replaced by',
+                AND ((cr6.relationship_id = 'Maps to' and cr6.concept_id_1 != cr6.concept_id_2) or (cr6.relationship_id IN ('Concept replaced by',
                                                                                    'Concept same_as to',
                                                                                    'Concept alt_to to',
                                                                                    'Concept was_a to') and

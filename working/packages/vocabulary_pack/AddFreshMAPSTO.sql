@@ -110,7 +110,11 @@ BEGIN
 								'Maps to'
 								)
 							AND crs.invalid_reason IS NULL
-							AND crs.concept_code_1 <> crs.concept_code_2
+							AND NOT (
+								--exclude mappings to self
+								crs.concept_code_1 = crs.concept_code_2
+								AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+								)
 						
 						UNION ALL
 						

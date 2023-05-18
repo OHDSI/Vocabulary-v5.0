@@ -9,18 +9,18 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    f=$(unzip -l "$2" | awk 'NR == 4 {print $4}') && \
-    unzip -oq "$2" && \
-    cd "$f/META"
-    
+    unzip -oqj "$2" "*/META/MRCONSO.RRF" -d . && \
+    unzip -oqj "$2" "*/META/MRHIER.RRF" -d . && \
+    unzip -oqj "$2" "*/META/MRMAP.RRF" -d . && \
+    unzip -oqj "$2" "*/META/MRSMAP.RRF" -d . && \
+    unzip -oqj "$2" "*/META/MRSAT.RRF" -d . && \
+    unzip -oqj "$2" "*/META/MRREL.RRF" -d . && \
+    unzip -oqj "$2" "*/META/MRSTY.RRF" -d .
+
     #move result to original folder
-    mv "MRCONSO.RRF" "$1" && \
-    mv "MRHIER.RRF" "$1" && \
-    mv "MRMAP.RRF" "$1" && \
-    mv "MRSMAP.RRF" "$1" && \
-    mv "MRSAT.RRF" "$1" && \
-    mv "MRREL.RRF" "$1" && \
-    mv "MRSTY.RRF" "$1"
+    cd "$1"
+    rm -f *.*
+    mv work/*.RRF .
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

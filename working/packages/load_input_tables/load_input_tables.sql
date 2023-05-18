@@ -605,9 +605,9 @@ begin
       execute 'COPY sources.dpd_companies_all FROM '''||pVocabularyPath||'comp_ap.txt'' delimiter '','' csv FORCE NULL mfr_code,company_code,company_name,company_type,
       	address_mailing_flag,address_billing_flag,address_notification_flag,address_other,suite_number,street_name,city_name,province,country,postal_code,post_office_box';
       --ther, ther_ia, ther_ap
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ia.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ap.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ia.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ap.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
       PERFORM sources_archive.AddVocabularyToArchive('DPD', ARRAY['dpd_drug_all','dpd_active_ingredients_all','dpd_form_all','dpd_route_all','dpd_packaging_all','dpd_status_all','dpd_companies_all',
         'dpd_therapeutic_class_all'], COALESCE(pVocabularyDate,current_date), 'archive.dpd_version', 30);
   when 'GGR' then

@@ -116,3 +116,5 @@ BEGIN
 END;
 $BODY$
 LANGUAGE 'plpgsql';
+
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.CreateWiKiReport FROM PUBLIC, role_read_only;

@@ -19,4 +19,6 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_hemonc_prepare FROM PUBLIC, role_read_only;
 END $_$;

@@ -15,6 +15,17 @@
 * 
 * Authors: Christian Reich, Dmitry Dymshyts, Anna Ostropolets, Eduard Korchmar
 * Date: 2020
+
+
+--relationship_to_concept: 8
+--internal_relationship_stage: 5
+--ds_stage: 17
+--drug_concept_stage: 12
+--pc_stage: 7
+--concept_synonym_stage: 2
+--concept_relationship_manual: 1
+
+
 **************************************************************************/
 SELECT affected_table, error_type, COUNT(*) AS cnt
 FROM (
@@ -137,6 +148,24 @@ FROM (
 	UNION ALL
 	
 	--for internal_relationship_stage
+
+    --drugs without ingredients won't be proceeded
+	SELECT concept_code, 'missing relationship to ingredient: drug won''t be processed', 'internal_relationship_stage'
+	FROM drug_concept_stage
+	WHERE concept_code NOT IN (
+			SELECT concept_code_1
+			FROM internal_relationship_stage irs_int
+			JOIN drug_concept_stage dcs_int ON dcs_int.concept_code = irs_int.concept_code_2
+				AND dcs_int.concept_class_id = 'Ingredient'
+			)
+		AND concept_code NOT IN (
+			SELECT pack_concept_code
+			FROM pc_stage
+			)
+		AND concept_class_id = 'Drug Product'
+	
+	UNION ALL
+
 	SELECT concept_code_1, 'internal_relationship_stage full dublicates', 'internal_relationship_stage'
 	FROM (
 		SELECT concept_code_1, concept_code_2

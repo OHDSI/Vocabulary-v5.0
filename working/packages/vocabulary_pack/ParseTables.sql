@@ -57,5 +57,8 @@ BEGIN
   EXECUTE 'DROP SCHEMA '||cDevSchema||' CASCADE';
   EXECUTE 'DROP USER '||cDevSchema;
 END;
-$BODY$ LANGUAGE 'plpgsql' SECURITY definer
+$BODY$
+LANGUAGE 'plpgsql' SECURITY DEFINER
 SET client_min_messages = error;
+
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.ParseTables FROM PUBLIC, role_read_only;

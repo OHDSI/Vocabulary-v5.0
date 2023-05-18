@@ -677,7 +677,7 @@ END $_$;
 --9. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO('SPL');
 END $_$;
 
 --10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -1481,23 +1481,30 @@ DROP INDEX trgm_crs_idx;
 --24. MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT). Add/merge only fresh mappings (even if rxnorm2ndc_mappings_ext gives us deprecated mappings we put them as fresh: redmine #70209)
 WITH to_be_upserted
 AS (
-	SELECT DISTINCT ndc_code,
-		LAST_VALUE(concept_code) OVER (
-			PARTITION BY ndc_code ORDER BY invalid_reason nulls LAST,
-				startDate ROWS BETWEEN UNBOUNDED PRECEDING
-					AND UNBOUNDED FOLLOWING
-			) AS concept_code,
-		LAST_VALUE(startDate) OVER (
-			PARTITION BY ndc_code ORDER BY invalid_reason nulls LAST,
-				startDate ROWS BETWEEN UNBOUNDED PRECEDING
-					AND UNBOUNDED FOLLOWING
-			) AS startDate,
-		LAST_VALUE(invalid_reason) OVER (
-			PARTITION BY ndc_code ORDER BY invalid_reason nulls LAST,
-				startDate ROWS BETWEEN UNBOUNDED PRECEDING
-					AND UNBOUNDED FOLLOWING
-			) AS invalid_reason
-	FROM rxnorm2ndc_mappings_ext
+	SELECT DISTINCT ON (m.ndc_code) m.ndc_code,
+		m.concept_code,
+		m.startDate,
+		m.invalid_reason
+	FROM rxnorm2ndc_mappings_ext m
+	JOIN concept c ON c.concept_code = m.concept_code
+		AND c.vocabulary_id = 'RxNorm'
+	ORDER BY m.ndc_code,
+		m.invalid_reason NULLS FIRST,
+		m.startDate DESC,
+		CASE c.concept_class_id --fixed a bug with wrong choice of rx-concept (random)
+			WHEN 'Branded Pack'
+				THEN 1
+			WHEN 'Clinical Pack'
+				THEN 2
+			WHEN 'Quant Branded Drug'
+				THEN 3
+			WHEN 'Quant Clinical Drug'
+				THEN 4
+			WHEN 'Branded Drug'
+				THEN 5
+			WHEN 'Clinical Drug'
+				THEN 6
+			END
 	),
 to_be_updated
 AS (
@@ -1600,7 +1607,8 @@ JOIN concept_stage cs ON cs.concept_code = n.concept_code
 JOIN sources.package p ON p.productndc = n.productndc
 LEFT JOIN concept_stage cs1 ON cs1.concept_code = p.pack_code
 	AND cs1.vocabulary_id = 'NDC'
-WHERE cs1.concept_code IS NULL;
+WHERE cs1.concept_code IS NULL
+	AND p.pack_code IS NOT NULL; --fixed a bug with an empty code that appeared in 20230116
 
 --26. Add manual source
 --26.1. Add concept_manual
@@ -1619,7 +1627,7 @@ END $_$;
 --27.1. Add mapping from deprecated to fresh concepts (necessary for the next step)
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO('NDC');
 END $_$;
 
 --27.2. Deprecate 'Maps to' mappings to deprecated and upgraded concepts (necessary for the next step)
@@ -1719,7 +1727,7 @@ WITH ndc AS (
 			productndc
 		FROM sources.product
 		)
-SELECT p.pack_code AS synonym_concept_code,
+SELECT DISTINCT p.pack_code AS synonym_concept_code,
 	m.vocabulary_id,
 	vocabulary_pack.CutConceptSynonymName(m.long_concept_name),
 	4180186 AS language_concept_id -- English
@@ -1728,7 +1736,8 @@ JOIN main_ndc m ON m.concept_code = n.concept_code
 JOIN sources.package p ON p.productndc = n.productndc
 LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = p.pack_code
 WHERE css.synonym_concept_code IS NULL
-AND NOT EXISTS (
+	AND p.pack_code IS NOT NULL
+	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_stage cs_int
 		WHERE cs_int.concept_code = p.pack_code

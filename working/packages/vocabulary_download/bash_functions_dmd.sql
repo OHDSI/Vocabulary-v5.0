@@ -34,6 +34,8 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_dmd_prepare_dmd FROM PUBLIC, role_read_only;
 END $_$;
 
 --DMD bonus part
@@ -62,4 +64,6 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_dmd_prepare_dmdbonus FROM PUBLIC, role_read_only;
 END $_$;

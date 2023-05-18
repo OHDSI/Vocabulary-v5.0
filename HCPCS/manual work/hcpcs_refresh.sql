@@ -13,9 +13,9 @@ $body$
 $body$;
 
 --restore concept_relationship_manual table (!!!run it only if something went wrong!!!)
-/*TRUNCATE TABLE dev_hcpcs.concept_relationship_manual;
-INSERT INTO dev_hcpcs.concept_relationship_manual
-SELECT * FROM dev_hcpcs.concept_relationship_manual_backup_2022_07_26;*/
+/*TRUNCATE TABLE concept_relationship_manual;
+INSERT INTO concept_relationship_manual
+SELECT * FROM concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
@@ -31,13 +31,13 @@ $body$
 $body$;
 
 --restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_hcpcs.concept_manual;
-INSERT INTO dev_hcpcs.concept_manual
-SELECT * FROM dev_hcpcs.concept_manual_backup_2022_07_26;*/
+/*TRUNCATE TABLE concept_manual;
+INSERT INTO concept_manual
+SELECT * FROM concept_manual_backup_YYYY_MM_DD;*/
 
 --8.2.2. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous HCPCS refresh.
---DROP TABLE dev_hcpcs.hcpcs_mapped;
-/* CREATE TABLE dev_hcpcs.hcpcs_mapped
+--DROP TABLE hcpcs_mapped;
+/* CREATE TABLE hcpcs_mapped
 (
     id SERIAL PRIMARY KEY,
     source_code_description varchar(255),
@@ -58,10 +58,10 @@ SELECT * FROM dev_hcpcs.concept_manual_backup_2022_07_26;*/
 );*/
 
 --8.2.4. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
-/*TRUNCATE TABLE dev_hcpcs.hcpcs_mapped;*/
+/*TRUNCATE TABLE hcpcs_mapped;*/
 
 --8.2.5. Deprecate all mappings that differ from the new version of resulting mapping file.
-UPDATE dev_hcpcs.concept_relationship_manual
+UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
@@ -106,11 +106,11 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_hcpcs.hcpcs_mapped
+        FROM hcpcs_mapped
             WHERE target_concept_id != 0
     )
 
-INSERT INTO dev_hcpcs.concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
     (SELECT concept_code_1,
             concept_code_2,
             vocabulary_id_1,
@@ -121,7 +121,8 @@ INSERT INTO dev_hcpcs.concept_relationship_manual(concept_code_1, concept_code_2
             invalid_reason
      FROM mapping m
         WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
-                  NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_hcpcs.concept_relationship_manual)
+                  NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id
+                          FROM concept_relationship_manual)
     )
 ;
 

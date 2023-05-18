@@ -101,6 +101,10 @@ BEGIN
 
 	SELECT vocabulary_pack.py_git_wiki(cGitWiKiURL,cWiKiCommitText,cFullRet,cGitLogin,cGitPassword) INTO cRet_wiki;
 	IF cRet_wiki <> 'OK' THEN
+		--try to restart the report, in some cases it can help when there was a long downtime and the cookie "corrupted"
+		SELECT vocabulary_pack.py_git_wiki(cGitWiKiURL,cWiKiCommitText,cFullRet,cGitLogin,cGitPassword) INTO cRet_wiki;
+	END IF;
+	IF cRet_wiki <> 'OK' THEN
 		cRet := SUBSTR ('WiKi report completed with errors:'||crlf||'<b>'||cRet_wiki||'</b>', 1, 5000);
 		perform devv5.SendMailHTML (email, 'WiKi report status [Wiki POST ERROR]', cRet);
 	END IF;
@@ -112,3 +116,5 @@ BEGIN
 END;
 $BODY$
 LANGUAGE 'plpgsql';
+
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.CreateWiKiReport FROM PUBLIC, role_read_only;

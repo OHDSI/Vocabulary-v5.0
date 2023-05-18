@@ -8,8 +8,8 @@ BEGIN
 	pVocabulary_version		=> 'v.96 20220531',
 	pOMOP_req				=> NULL,
 	pClick_default			=> NULL, --NULL or 'Y'
-	pAvailable				=> 'License required', --NULL, 'Currently not available','License required' or 'EULA required'
+	pAvailable				=> 'Currently not available', --NULL, 'Currently not available','License required' or 'EULA required'
 	pURL					=> NULL,
-	pClick_disabled			=> NULL --NULL or 'Y'
+	pClick_disabled			=> 'Y' --NULL or 'Y'
 );
 END $_$;

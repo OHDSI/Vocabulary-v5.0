@@ -24,8 +24,7 @@ CREATE TABLE SOURCES.GGR_GAL
     ngalnm   VARCHAR (255),
     fgalnm   VARCHAR (255),
     amb      bool,
-    hosp     bool,
-    PRIMARY KEY (galcv)
+    hosp     bool
 );
 
 DROP TABLE IF EXISTS SOURCES.GGR_INNM;
@@ -41,8 +40,7 @@ CREATE TABLE SOURCES.GGR_INNM
     finnmx      VARCHAR (255),
     fsaltestr   VARCHAR (255),
     amb         bool,
-    hosp        bool,
-    PRIMARY KEY (stofcv)
+    hosp        bool
 );
 
 DROP TABLE IF EXISTS SOURCES.GGR_IR;
@@ -55,8 +53,7 @@ CREATE TABLE SOURCES.GGR_IR
     amb                bool,
     hosp               bool,
     vocabulary_date    DATE,
-    vocabulary_version VARCHAR (200),
-    PRIMARY KEY (ircv)
+    vocabulary_version VARCHAR (200)
 );
 
 DROP TABLE IF EXISTS SOURCES.GGR_MP;
@@ -78,8 +75,7 @@ CREATE TABLE SOURCES.GGR_MP
     specrules   bool NOT NULL,
     narcotic    bool NOT NULL,
     amb         bool,
-    hosp        bool,
-    PRIMARY KEY (mpcv)
+    hosp        bool
 );
 
 DROP TABLE IF EXISTS SOURCES.GGR_MPP;
@@ -125,8 +121,7 @@ CREATE TABLE SOURCES.GGR_MPP
     specrules   bool NOT NULL,
     narcotic    bool NOT NULL,
     amb         bool,
-    hosp        bool,
-    PRIMARY KEY (mppcv)
+    hosp        bool
 );
 
 DROP TABLE IF EXISTS SOURCES.GGR_SAM;
@@ -153,6 +148,5 @@ CREATE TABLE SOURCES.GGR_SAM
     inq2      NUMERIC (12, 4) NOT NULL,
     inu2      VARCHAR (255),
     amb       bool,
-    hosp      bool,
-    PRIMARY KEY (ppid, mppcv, stofcv)
+    hosp      bool
 );

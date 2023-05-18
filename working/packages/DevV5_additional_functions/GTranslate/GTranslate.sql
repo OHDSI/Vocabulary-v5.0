@@ -81,6 +81,8 @@ BEGIN
 		RAISE EXCEPTION 'Function GTranslate already in use';
 	END IF;
 
+	pInputTable:=LOWER(pInputTable);
+
 	EXECUTE FORMAT ($$
 		SELECT COUNT(*) FROM %1$I WHERE LENGTH(%2$I) > %3$s;
 	$$, pInputTable, pInputField, iMaxStringLength) INTO z;
@@ -160,3 +162,5 @@ BEGIN
 END;
 $BODY$
 LANGUAGE 'plpgsql' STRICT;
+
+REVOKE EXECUTE ON FUNCTION devv5.GTranslate FROM PUBLIC;

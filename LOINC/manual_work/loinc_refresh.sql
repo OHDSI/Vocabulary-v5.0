@@ -154,7 +154,9 @@ WHERE c.concept_code NOT IN (SELECT source_code FROM loinc_mapped) --exclude cod
     AND (c.standard_concept IS NULL)
     AND c.vocabulary_id = 'LOINC'
     AND c.concept_class_id IN ('Lab Test' --options for specific concept classes refreshes --TODO: postponed for now
-      --,'Survey', 'Answer', 'Clinical Observation'
+      --,'Survey'
+      --,'Answer'
+      --,'Clinical Observation'
       )
 
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code

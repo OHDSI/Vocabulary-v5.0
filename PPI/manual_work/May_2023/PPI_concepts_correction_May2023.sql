@@ -1,4 +1,4 @@
--- Update two concepts and set for 2 concepts diffirent concept_class_id
+-- Update two concepts and set different concept_class_id for 2 concepts
 
 UPDATE dev_ppi.concept_relationship
 SET valid_end_date = '2023-05-10', invalid_reason='D'
@@ -21,3 +21,5 @@ WHERE concept_id=1585872;
 UPDATE dev_ppi.concept
 SET concept_class_id='Answer'
 WHERE concept_id=1586164;
+
+

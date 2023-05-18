@@ -1,5 +1,4 @@
-OHDSI Standardized Vocabularies
-==========
+## OHDSI Standardized Vocabularies
 
 This repo contains the build process for the Standardized Vocabularies, which is part of ATHENA.
 
@@ -7,7 +6,9 @@ This repo contains the build process for the Standardized Vocabularies, which is
 
 If you do want to recreate the vocabulary please find the step-by-step description in each vocabulary's README.
 
-Please refer to the Wiki page in this repo for more information on the Vocabularies structure, processes and the Team.
+Please refer to the [Wiki page](https://github.com/OHDSI/Vocabulary-v5.0/wiki) in this repo for more information on the Vocabularies structure, processes and the Team.
+***
 
 Christian and the Vocabulary Team.
-reich@ohdsi.org
+
+vocabulary@ohdsi.org

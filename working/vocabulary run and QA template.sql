@@ -120,10 +120,22 @@ END $_$;*/
 --select * from qa_tests.purge_cache();
 
 --12.2. summary (table to check, schema to compare)
-select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
+select vocabulary_id_1,
+       standard_concept,
+       concept_class_id,
+       invalid_reason,
+       concept_delta,
+       concept_delta_percentage
+from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 
 --12.3. summary (table to check, schema to compare)
-select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
+select vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       invalid_reason,
+       concept_delta,
+       concept_delta_percentage
+from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
 
 --12.4. summary (table to check, schema to compare)
 --you would not need it normally because we run concept_ancestor constructor only on the release to Athena step

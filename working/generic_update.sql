@@ -78,24 +78,75 @@ BEGIN
 	WHERE concept_name LIKE '%\\';
 
 	--7. Clearing the synonym_name
-	--Remove double spaces, carriage return, newline, vertical tab and form feed
-	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
-	WHERE synonym_name ~ '[[:cntrl:]]';
+	--Need to use DELETE+'ON CONFLICT DO NOTHING' to avoid violating the unique constraint "idx_pk_css"
 
-	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
-	WHERE synonym_name ~ ' {2,}';
+	--Remove double spaces, carriage return, newline, vertical tab and form feed
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name ~ '[[:cntrl:]]'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REGEXP_REPLACE(d.synonym_name, '[[:cntrl:]]+', ' ', 'g') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
+
+	--Remove double spaces
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name ~ ' {2,}'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REGEXP_REPLACE(d.synonym_name, ' {2,}', ' ', 'g') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	--Remove long dashes
-	UPDATE concept_synonym_stage
-	SET synonym_name = REPLACE(synonym_name, '–', '-')
-	WHERE synonym_name LIKE '%–%';
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name LIKE '%–%'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REPLACE(d.synonym_name, '–', '-') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	--Remove trailing escape character (\)
-	UPDATE concept_synonym_stage
-	SET synonym_name = TRIM(TRAILING '\' FROM synonym_name)
-	WHERE synonym_name LIKE '%\\';
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name LIKE '%\\'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		TRIM(TRAILING '\' FROM d.synonym_name) AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	/***************************
 	* Update the concept table *

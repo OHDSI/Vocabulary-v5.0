@@ -154,7 +154,9 @@ WHERE c.concept_code NOT IN (SELECT source_code FROM loinc_mapped) --exclude cod
     AND (c.standard_concept IS NULL)
     AND c.vocabulary_id = 'LOINC'
     AND c.concept_class_id IN ('Lab Test' --options for specific concept classes refreshes --TODO: postponed for now
-      --,'Survey', 'Answer', 'Clinical Observation'
+      --,'Survey'
+      --,'Answer'
+      --,'Clinical Observation'
       )
 
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code
@@ -270,4 +272,21 @@ INSERT INTO dev_loinc.concept_relationship_manual(concept_code_1, concept_code_2
         WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
                   NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_loinc.concept_relationship_manual)
     )
+;
+
+-- 22.3.11 Activate mapping, that became valid again
+UPDATE concept_relationship_manual crm
+SET invalid_reason = null,
+    valid_end_date = to_date('20991231','yyyymmdd'),
+    valid_start_date =current_date
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason = 'D' -- activate only deprecated mappings
+AND EXISTS(SELECT 1 -- activate mapping if the same exists in the current manual file
+           FROM dev_loinc.loinc_mapped crm_new
+           WHERE crm_new.source_code = crm.concept_code_1           --the same source_code is mapped
+             AND crm_new.target_concept_code = crm.concept_code_2   --to the same concept_code
+             AND crm_new.target_vocabulary_id = crm.vocabulary_id_2 --of the same vocabulary
+             AND crm_new.to_value = crm.relationship_id --with the same relationship
+            )
 ;

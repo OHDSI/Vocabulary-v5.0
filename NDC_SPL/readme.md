@@ -25,7 +25,7 @@ Open the site http://www.fda.gov/Drugs/InformationOnDrugs/ucm142438.htm
 
 7. Run the FastRecreate (Full recreate, all tables are included):
 ```sql
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 ```
 8. Run [load_stage.sql]
 
@@ -52,17 +52,11 @@ SELECT * FROM QA_TESTS.GET_CHECKS();
 
 15. Get_summary - changes in tables between dev-schema (current) and devv5/prodv5/any other schema
 
---15.1. first clean cache
-select * from qa_tests.purge_cache();
-
---15.2. summary (table to check, schema to compare)
+--15.1. summary (table to check, schema to compare)
 select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 
---15.3. summary (table to check, schema to compare)
+--15.2. summary (table to check, schema to compare)
 select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
-
---15.4. summary (table to check, schema to compare)
-select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
 
 
 16. Statistics QA checks

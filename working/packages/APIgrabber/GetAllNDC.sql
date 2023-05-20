@@ -63,9 +63,9 @@ begin
                 left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/ndcHistory', h.http_content::xml)) as xml_element) l on true
               ) as s
               left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/status/text()', s.http_content::xml))::varchar status) l1 on true
-              left join lateral (select unnest(xpath('activeRxcui/text()', xml_element))::varchar activeRxcui) l2 on true
-              left join lateral (select to_date(unnest(xpath('startDate/text()', xml_element))::varchar,'YYYYMM') startDate) l3 on true
-              left join lateral (select to_date(unnest(xpath('endDate/text()', xml_element))::varchar,'YYYYMM') endDate) l4 on true;
+              left join lateral (select unnest(xpath('/ndcHistory/activeRxcui/text()', xml_element))::varchar activeRxcui) l2 on true
+              left join lateral (select to_date(unnest(xpath('/ndcHistory/startDate/text()', xml_element))::varchar,'YYYYMM') startDate) l3 on true
+              left join lateral (select to_date(unnest(xpath('/ndcHistory/endDate/text()', xml_element))::varchar,'YYYYMM') endDate) l4 on true;
             exception when others then 
             --if we have any exception - writing to the LOG-table
             insert into apigrabber.api_codes_failed values (cCode);
@@ -95,9 +95,9 @@ begin
                 left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/ndcHistory', h.http_content::xml)) as xml_element) l on true
               ) as s
               left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/status/text()', s.http_content::xml))::varchar status) l1 on true
-              left join lateral (select unnest(xpath('activeRxcui/text()', xml_element))::varchar activeRxcui) l2 on true
-              left join lateral (select to_date(unnest(xpath('startDate/text()', xml_element))::varchar,'YYYYMM') startDate) l3 on true
-              left join lateral (select to_date(unnest(xpath('endDate/text()', xml_element))::varchar,'YYYYMM') endDate) l4 on true;
+              left join lateral (select unnest(xpath('/ndcHistory/activeRxcui/text()', xml_element))::varchar activeRxcui) l2 on true
+              left join lateral (select to_date(unnest(xpath('/ndcHistory/startDate/text()', xml_element))::varchar,'YYYYMM') startDate) l3 on true
+              left join lateral (select to_date(unnest(xpath('/ndcHistory/endDate/text()', xml_element))::varchar,'YYYYMM') endDate) l4 on true;
             delete from apigrabber.api_codes_failed f where f.concept_code=cCode; --delete the concept if the operation was successful
             cExecCounter:=0; --reset the counter if the operation was successful
             exception when others then

@@ -78,24 +78,75 @@ BEGIN
 	WHERE concept_name LIKE '%\\';
 
 	--7. Clearing the synonym_name
-	--Remove double spaces, carriage return, newline, vertical tab and form feed
-	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
-	WHERE synonym_name ~ '[[:cntrl:]]';
+	--Need to use DELETE+'ON CONFLICT DO NOTHING' to avoid violating the unique constraint "idx_pk_css"
 
-	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
-	WHERE synonym_name ~ ' {2,}';
+	--Remove double spaces, carriage return, newline, vertical tab and form feed
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name ~ '[[:cntrl:]]'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REGEXP_REPLACE(d.synonym_name, '[[:cntrl:]]+', ' ', 'g') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
+
+	--Remove double spaces
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name ~ ' {2,}'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REGEXP_REPLACE(d.synonym_name, ' {2,}', ' ', 'g') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	--Remove long dashes
-	UPDATE concept_synonym_stage
-	SET synonym_name = REPLACE(synonym_name, '–', '-')
-	WHERE synonym_name LIKE '%–%';
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name LIKE '%–%'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REPLACE(d.synonym_name, '–', '-') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	--Remove trailing escape character (\)
-	UPDATE concept_synonym_stage
-	SET synonym_name = TRIM(TRAILING '\' FROM synonym_name)
-	WHERE synonym_name LIKE '%\\';
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name LIKE '%\\'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		TRIM(TRAILING '\' FROM d.synonym_name) AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	/***************************
 	* Update the concept table *
@@ -204,8 +255,8 @@ BEGIN
 		WHEN c.vocabulary_id = 'OMOP Extension' THEN 0
 		WHEN c.vocabulary_id = 'CIM10' THEN 1
 		WHEN c.vocabulary_id = 'NCCD' THEN 0
-		WHEN c.vocabulary_id = 'CIViC' THEN 0
-		WHEN c.vocabulary_id = 'CGI' THEN 0
+		WHEN c.vocabulary_id = 'CIViC' THEN 1
+		WHEN c.vocabulary_id = 'CGI' THEN 1
 		WHEN c.vocabulary_id = 'ClinVar' THEN 0
 		WHEN c.vocabulary_id = 'JAX' THEN 0
 		WHEN c.vocabulary_id = 'NCIt' THEN 0
@@ -215,6 +266,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
 		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		WHEN c.vocabulary_id = 'OMOP Invest Drug' THEN 1
+		WHEN c.vocabulary_id = 'COSMIC' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
@@ -853,7 +905,7 @@ BEGIN
 				AND css_int.ctid > css.ctid
 			);
 
-	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage
+	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage, but only for English
 	DELETE
 	FROM concept_synonym_stage css
 	WHERE EXISTS (
@@ -862,6 +914,7 @@ BEGIN
 			WHERE cs.concept_code = css.synonym_concept_code
 				AND cs.vocabulary_id = css.synonym_vocabulary_id
 				AND LOWER(cs.concept_name) = LOWER(css.synonym_name)
+				AND css.language_concept_id = 4180186
 			);
 
 	--26. Update synonym_concept_id

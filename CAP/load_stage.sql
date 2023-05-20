@@ -52,10 +52,10 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 				select filename::text as filename,
 				officialname::text as officialname,
 				cap_protocolversion::text as cap_protocolversion,
-				unnest(xpath('./@name',sections))::text as section_name,
-				unnest(xpath('./@order',sections))::text::int section_position, --double cast due to xml->text->int
-				unnest(xpath('./@title',sections))::text as section_title,
-				unnest(xpath('./xmlns:Property/@val',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']]))::text as section_alt,
+				unnest(xpath('/*/@name',sections))::text as section_name,
+				unnest(xpath('/*/@order',sections))::text::int section_position, --double cast due to xml->text->int
+				unnest(xpath('/*/@title',sections))::text as section_title,
+				unnest(xpath('/*/xmlns:Property/@val',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']]))::text as section_alt,
 				sections,i.xmlfield
 				from sources.cap_xml_raw i,
 				unnest(xpath('/xmlns:FormDesign/@filename', i.xmlfield,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) filename,
@@ -71,12 +71,12 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 			section_name,
 			section_title,
 			section_alt,
-			unnest(xpath('./@name',items))::text item,
-			unnest(xpath('./@order',items))::text::int-section_position item_depth,
-			unnest(xpath('./@title',items))::text item_title,
-			unnest(xpath('./xmlns:Property/@val',items,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']]))::text item_alt
+			unnest(xpath('/*/@name',items))::text item,
+			unnest(xpath('/*/@order',items))::text::int-section_position item_depth,
+			unnest(xpath('/*/@title',items))::text item_title,
+			unnest(xpath('/*/xmlns:Property/@val',items,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']]))::text item_alt
 			from xml_source,
-			unnest(xpath('.//xmlns:ListField/xmlns:List/xmlns:*',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) items
+			unnest(xpath('/*//xmlns:ListField/xmlns:List/xmlns:*',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) items
 
 			union all
 			select filename,
@@ -85,12 +85,12 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 			section_name,
 			section_title,
 			section_alt,
-			unnest(xpath('./@name',subitems))::text item,
-			unnest(xpath('./@order',subitems))::text::int-section_position item_depth,
-			unnest(xpath('./@title',subitems))::text item_title,
-			unnest(xpath('./xmlns:Property/@val',subitems,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']]))::text item_alt
+			unnest(xpath('/*/@name',subitems))::text item,
+			unnest(xpath('/*/@order',subitems))::text::int-section_position item_depth,
+			unnest(xpath('/*/@title',subitems))::text item_title,
+			unnest(xpath('/*/xmlns:Property/@val',subitems,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']]))::text item_alt
 			from xml_source,
-			unnest(xpath('.//xmlns:ChildItems/xmlns:*',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) subitems
+			unnest(xpath('/*//xmlns:ChildItems/xmlns:*',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) subitems
 			
 			--root elements without children
 			union all
@@ -105,8 +105,8 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 			null::text item_title,
 			null::text item_alt
 			from xml_source
-			left join lateral (select unnest(xpath('./xmlns:ListField/xmlns:List',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) subitems) l on true
-			left join lateral (select unnest(xpath('./xmlns:ChildItems',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) subitems) l1 on true
+			left join lateral (select unnest(xpath('/*/xmlns:ListField/xmlns:List',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) subitems) l on true
+			left join lateral (select unnest(xpath('/*/xmlns:ChildItems',sections,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) subitems) l1 on true
 			where l.subitems is null and l1.subitems is null
 		) as s_all
 	) as s_done;

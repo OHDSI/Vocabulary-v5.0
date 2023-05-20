@@ -17,7 +17,7 @@
 * Date: 2021
 **************************************************************************/
 
-/*DO $_$
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'Type Concept',
@@ -25,7 +25,17 @@ BEGIN
 	pVocabularyVersion		=> 'Type Concept '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'DEV_OMOP'
 );
-END $_$;*/
+
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=>'Language',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'Language '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDevSchema	=> 'DEV_OMOP',
+	pAppendVocabulary		=> TRUE
+);
+END $_$;
+
+
 
 /*DO $_$
 BEGIN
@@ -37,7 +47,7 @@ BEGIN
 );
 END $_$;*/
 
-DO $_$
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'UCUM',
@@ -45,7 +55,7 @@ BEGIN
 	pVocabularyVersion		=> 'Version 1.8.2',
 	pVocabularyDevSchema	=> 'DEV_OMOP'
 );
-END $_$;
+END $_$;*/
 
 -- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;

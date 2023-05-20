@@ -26,6 +26,13 @@ BEGIN
 	pVocabularyVersion		=> 'NAACCR v18',
 	pVocabularyDevSchema	=> 'dev_naaccr'
 	);
+/*	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'ICDO3',
+	pVocabularyDate			=> TO_DATE ('20200630', 'yyyymmdd'), -- https://seer.cancer.gov/ICDO3/
+	pVocabularyVersion		=> 'ICDO3 SEER Site/Histology Released 06/2020',
+	pVocabularyDevSchema	=> 'dev_naaccr',
+	pAppendVocabulary		=> TRUE
+); --commented for the current run*/
 	END $_$;
 
 -- 2. Truncate all working tables
@@ -35,12 +42,11 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---1   ProcessManualConcepts
+--1. ProcessManualConcepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
-
 
 --2. Add manual relationships
 DO $_$
@@ -54,7 +60,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---4 Add mapping from deprecated to fresh concepts (necessary for the next step)
+--4. Add mapping from deprecated to fresh concepts (necessary for the next step)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
@@ -65,3 +71,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

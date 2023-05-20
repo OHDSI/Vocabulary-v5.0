@@ -12,7 +12,7 @@ BEGIN
     unzip -oqj "$2.zip" "LoincTable/Loinc.csv" -d . && \
     unzip -oqj "$2.zip" "LoincTable/MapTo.csv" -d . && \
     unzip -oqj "$2.zip" "LoincTable/SourceOrganization.csv" -d . && \
-    unzip -oqj "$2.zip" "AccessoryFiles/MultiAxialHierarchy/MultiAxialHierarchy.csv" -d . && \
+    unzip -oqj "$2.zip" "AccessoryFiles/ComponentHierarchyBySystem/ComponentHierarchyBySystem.csv" -d . && \
     unzip -oqj "$2.zip" "AccessoryFiles/PanelsAndForms/PanelsAndForms.csv" -d . && \
     unzip -oqj "$2.zip" "AccessoryFiles/PanelsAndForms/AnswerList.csv" -d . && \
     unzip -oqj "$2.zip" "AccessoryFiles/PanelsAndForms/LoincAnswerListLink.csv" -d . && \
@@ -32,7 +32,7 @@ BEGIN
     mv work/Loinc.csv "loinc.csv" && \
     mv work/MapTo.csv "mapto.csv" && \
     mv work/SourceOrganization.csv "sourceorganization.csv" && \
-    mv work/MultiAxialHierarchy.csv "multiaxialhierarchy.csv" && \
+    mv work/ComponentHierarchyBySystem.csv "componenthierarchybysystem.csv" && \
     mv work/PanelsAndForms.csv "panelsandforms.csv" && \
     mv work/AnswerList.csv "answerlist.csv" && \
     mv work/LoincAnswerListLink.csv "loincanswerlistlink.csv" && \
@@ -52,4 +52,6 @@ BEGIN
   $FUNCTIONBODY$;
   --convert CRLF to LF for bash
   EXECUTE REPLACE(z,E'\r','');
+  
+  REVOKE EXECUTE ON FUNCTION vocabulary_download.get_loinc_prepare FROM PUBLIC, role_read_only;
 END $_$;

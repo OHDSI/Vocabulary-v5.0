@@ -1,45 +1,56 @@
--- 1. Set latest update
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Oleg Zhuk
+* Date: 2023
+**************************************************************************/
+
+--1. Set latest update
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CO-CONNECT',
-    pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> 'CO-CONNECT '||TO_CHAR(CURRENT_DATE,'YYYY-MM-DD'),
 	pVocabularyDevSchema	=> 'dev_co_connect'
 	);
-	END $_$;
 
-DO $_$
-BEGIN
-    PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CO-CONNECT MIABIS',
-    pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> 'CO-CONNECT MIABIS '||TO_CHAR(CURRENT_DATE,'YYYY-MM-DD'),
 	pVocabularyDevSchema	=> 'dev_co_connect',
-    pAppendVocabulary		=> TRUE
+	pAppendVocabulary		=> TRUE
 	);
-	END $_$;
 
-
-DO $_$
-BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CO-CONNECT TWINS',
-    pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> 'CO-CONNECT TWINS '||TO_CHAR(CURRENT_DATE,'YYYY-MM-DD'),
 	pVocabularyDevSchema	=> 'dev_co_connect',
 	pAppendVocabulary		=> TRUE
 	);
-	END $_$;
+END $_$;
 
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
-
 
 --3. Manual concepts
 --Append manual concepts

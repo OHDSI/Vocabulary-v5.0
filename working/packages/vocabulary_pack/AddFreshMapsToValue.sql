@@ -171,6 +171,9 @@ BEGIN
 	WHERE ROW (crs.valid_start_date, crs.valid_end_date, crs.invalid_reason)
 	IS DISTINCT FROM
 	ROW (excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason);
+
+	--if the function is executed in a transaction, then by the time of the next call the temp table will exist
+	DROP TABLE new_relationships;
 END;
 $BODY$
 LANGUAGE 'plpgsql';

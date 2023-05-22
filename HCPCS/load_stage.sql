@@ -17,7 +17,7 @@
 * Date: 2023
 **************************************************************************/
 
---1. UPDATE latest_UPDATE field to new date 
+--1. Update latest_update field to new date 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -47,27 +47,27 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT vocabulary_pack.CutConceptName(long_description) AS concept_name,
+SELECT vocabulary_pack.CutConceptName(a.long_description) AS concept_name,
 	c.domain_id AS domain_id,
 	v.vocabulary_id,
 	CASE
-		WHEN LENGTH(hcpc) = 2
+		WHEN LENGTH(a.hcpc) = 2
 			THEN 'HCPCS Modifier'
 		ELSE 'HCPCS'
 		END AS concept_class_id,
 	CASE
-		WHEN term_dt IS NOT NULL
-			AND xref1 IS NOT NULL -- !!means the concept is updated
+		WHEN a.term_dt IS NOT NULL
+			AND a.xref1 IS NOT NULL -- !!means the concept is updated
 			THEN NULL
 		ELSE 'S' -- in other cases it's standard
 		END AS standard_concept,
-	hcpc AS concept_code,
-	COALESCE(add_date, act_eff_dt) AS valid_start_date,
-	COALESCE(term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
+	a.hcpc AS concept_code,
+	COALESCE(a.add_date, a.act_eff_dt) AS valid_start_date,
+	COALESCE(a.term_dt, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	CASE
-		WHEN term_dt IS NULL
+		WHEN a.term_dt IS NULL
 			THEN NULL
-		WHEN xref1 IS NULL
+		WHEN a.xref1 IS NULL
 			THEN NULL -- zombie concepts
 		ELSE 'U' -- upgraded
 		END AS invalid_reason
@@ -88,81 +88,79 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT c.concept_name AS concept_name,
+SELECT c.concept_name,
 	c.vocabulary_id,
 	c.concept_class_id,
-	CASE WHEN c.concept_class_id = 'HCPCS Class'
-	       THEN 'C'
-	       ELSE c.standard_concept END AS standard_concept,
+	CASE 
+		WHEN c.concept_class_id = 'HCPCS Class'
+			THEN 'C'
+		ELSE c.standard_concept
+		END AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
 	c.valid_end_date,
 	c.invalid_reason
-FROM devv5.concept c
+FROM concept c
 WHERE c.vocabulary_id = 'HCPCS'
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_stage cs_int
-		WHERE cs_int.concept_code = c.concept_code
-		);
+ON CONFLICT DO NOTHING;
 
---5 UPDATE domain_id in concept_stage
---5.1. Part 1. UPDATE domain_id defined by rules
+--5 Update domain_id in concept_stage
+--5.1. Part 1. Update domain_id defined by rules
 WITH t_domains
 AS (
 	SELECT hcpc.concept_code,
-		CASE
+		CASE 
 			WHEN concept_name LIKE '%per session%'
 				THEN 'Procedure'
 					-- A codes
 			WHEN concept_code IN (
-								  'A4248',
-								  'A4802',
-								  'A9517',
-								  'A9527',
-								  'A9530',
-								  'A9543',
-								  'A9545',
-								  'A9563',
-								  'A9564',
-								  'A9600',
-								  'A9604',
-								  'A9605',
-								  'A9606'
+					'A4248',
+					'A4802',
+					'A9517',
+					'A9527',
+					'A9530',
+					'A9543',
+					'A9545',
+					'A9563',
+					'A9564',
+					'A9600',
+					'A9604',
+					'A9605',
+					'A9606'
 					)
 				THEN 'Drug'
 			WHEN l1.str = 'A Codes'
 				AND concept_code NOT IN (
-										 'A4736',
-										 'A4737',
-										 'A9527',
-										 'A9517',
-										 'A9530',
-										 'A9606',
-										 'A9543',
-										 'A9563',
-										 'A9564',
-										 'A9600',
-										 'A9604',
-										 'A4802',
-										 'A9152',
-										 'A9153',
-										 'A9180',
-										 'A9155'
+					'A4736',
+					'A4737',
+					'A9527',
+					'A9517',
+					'A9530',
+					'A9606',
+					'A9543',
+					'A9563',
+					'A9564',
+					'A9600',
+					'A9604',
+					'A4802',
+					'A9152',
+					'A9153',
+					'A9180',
+					'A9155'
 					)
-				AND l2.str != 'Transport Services Including Ambulance'
+				AND l2.str <> 'Transport Services Including Ambulance'
 				THEN 'Device' -- default for Level 1: A0000-A9999
 			WHEN l2.str = 'Transport Services Including Ambulance'
 				THEN 'Observation' -- Level 2: A0000-A0999
 			WHEN concept_code IN (
-								  'A4736',
-								  'A4737',
-								  'A9180'
+					'A4736',
+					'A4737',
+					'A9180'
 					)
 				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'A9152',
-								  'A9153'
+					'A9152',
+					'A9153'
 					)
 				THEN 'Drug' --Vitamin preparations
 			WHEN concept_code = 'A9155'
@@ -174,8 +172,8 @@ AS (
 			WHEN concept_code = 'C1204'
 				THEN 'Device' -- Technetium tc 99m tilmanocept, diagnostic, up to 0.5 millicuries
 			WHEN concept_code IN (
-								  'C1178',
-								  'C9003'
+					'C1178',
+					'C9003'
 					)
 				THEN 'Drug' -- cancer drug
 			WHEN concept_code LIKE 'C%'
@@ -188,54 +186,56 @@ AS (
 				AND concept_name LIKE '%Trans% echocardiography%'
 				THEN 'Procedure' -- Echocardiography
 			WHEN concept_code IN (
-								  'C1360',
-								  'C1450'
-				)
-				THEN 'Procedure'
-			WHEN concept_code BETWEEN 'C7500' AND 'C7555'
-			       THEN 'Procedure'
-			WHEN concept_code IN (
-								  'C9702',
-								  'C9708',
-								  'C9711'
-					)
-					THEN 'Device'
-			WHEN concept_code BETWEEN 'C7900' AND 'C7902'
-				THEN 'Procedure'
-			WHEN concept_code IN (
-								  'C8953',
-								  'C8954',
-								  'C8955'
+					'C1360',
+					'C1450'
 					)
 				THEN 'Procedure'
+			WHEN concept_code BETWEEN 'C7500'
+					AND 'C7555'
+				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'C9000',
-								  'C9007',
-								  'C9008',
-								  'C9009',
-								  'C9013'
+					'C9702',
+					'C9708',
+					'C9711'
+					)
+				THEN 'Device'
+			WHEN concept_code BETWEEN 'C7900'
+					AND 'C7902'
+				THEN 'Procedure'
+			WHEN concept_code IN (
+					'C8953',
+					'C8954',
+					'C8955'
+					)
+				THEN 'Procedure'
+			WHEN concept_code IN (
+					'C9000',
+					'C9007',
+					'C9008',
+					'C9009',
+					'C9013'
 					)
 				THEN 'Drug'
 			WHEN concept_code IN (
-								  'C9060',
-								  'C9067',
-								  'C9068',
-								  'C9100',
-								  'C9102',
-								  'C9123',
-			                      'C9150',
-								  'C9200',
-								  'C9201',
-								  'C9458',
-								  'C9459',
-								  'C9461'
+					'C9060',
+					'C9067',
+					'C9068',
+					'C9100',
+					'C9102',
+					'C9123',
+					'C9150',
+					'C9200',
+					'C9201',
+					'C9458',
+					'C9459',
+					'C9461'
 					)
 				THEN 'Device'
 			WHEN concept_code IN (
-								  'C9246',
-								  'C9247',
-								  'C9221',
-								  'C9222'
+					'C9246',
+					'C9247',
+					'C9221',
+					'C9222'
 					) -- Contrast agent's
 				THEN 'Device'
 			WHEN concept_code BETWEEN 'C9021'
@@ -247,8 +247,8 @@ AS (
 					AND 'C9369'
 				THEN 'Device' -- various graft matrix material
 			WHEN concept_code IN (
-								  'C9406',
-								  'C9407'
+					'C9406',
+					'C9407'
 					)
 				THEN 'Device' -- Iodine i-123 ioflupane, diagnostic, per study dose, up to 5 millicuries
 			WHEN concept_code = 'C9399'
@@ -265,20 +265,20 @@ AS (
 				THEN 'Device' -- default for Level 1: C1000-C9999
 					-- D codes
 			WHEN concept_code IN (
-								  'D5860',
-								  'D5861',
-								  'D6970',
-								  'D6971',
-								  'D6972',
-								  'D6973',
-								  'D0260',
-								  'D0290',
-								  'D2970',
-								  'D6053',
-								  'D6054',
-								  'D6078',
-								  'D6079',
-								  'D6975'
+					'D5860',
+					'D5861',
+					'D6970',
+					'D6971',
+					'D6972',
+					'D6973',
+					'D0260',
+					'D0290',
+					'D2970',
+					'D6053',
+					'D6054',
+					'D6078',
+					'D6079',
+					'D6975'
 					)
 				THEN 'Device' -- D-codes device
 			WHEN concept_code BETWEEN 'D0260'
@@ -292,16 +292,19 @@ AS (
 				THEN 'Drug' -- Level 2: G0008-G0010
 			WHEN concept_code = 'G0002'
 				THEN 'Device'
-			WHEN concept_code IN ('G0026', 'G0027')
+			WHEN concept_code IN (
+					'G0026',
+					'G0027'
+					)
 				THEN 'Measurement' -- Level 2: G0027-G0027
 			WHEN concept_code BETWEEN 'G0048'
-			       AND 'G0067'
-		        THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
-		    WHEN concept_code IN (
-								  'G0101',
-								  'G0102',
-								  'G0165',
-								  'G0166'
+					AND 'G0067'
+				THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
+			WHEN concept_code IN (
+					'G0101',
+					'G0102',
+					'G0165',
+					'G0166'
 					)
 				THEN 'Procedure'
 			WHEN concept_code = 'G0103'
@@ -340,9 +343,9 @@ AS (
 					AND 'G0305'
 				THEN 'Observation' -- Level 2: G0302-G0305 previously 'Services, Pulmonary Surgery'
 			WHEN concept_code IN (
-								  'G0306',
-								  'G0307',
-								  'G0328'
+					'G0306',
+					'G0307',
+					'G0328'
 					)
 				THEN 'Measurement'
 			WHEN concept_code BETWEEN 'G0308'
@@ -355,7 +358,7 @@ AS (
 			WHEN concept_code BETWEEN 'G9481'
 					AND 'G9489'
 				THEN 'Visit'
-			WHEN concept_code IN ('G0025')
+			WHEN concept_code = 'G0025'
 				THEN 'Device'
 			WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
 				THEN 'Observation' -- Level 2: G0378-G0384
@@ -377,21 +380,21 @@ AS (
 			WHEN concept_code = 'G0424'
 				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'G0428',
-								  'G0429'
+					'G0428',
+					'G0429'
 					)
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'G0430'
 					AND 'G0435'
 				THEN 'Measurement' -- drug screen, infectious antibodies
 			WHEN concept_code IN (
-								  'G0438',
-								  'G0439'
+					'G0438',
+					'G0439'
 					)
 				THEN 'Observation' -- annual wellness visit
 			WHEN concept_code IN (
-								  'G0440',
-								  'G0441'
+					'G0440',
+					'G0441'
 					)
 				THEN 'Procedure' -- allogenic skin substitute
 			WHEN concept_code BETWEEN 'G0442'
@@ -410,8 +413,8 @@ AS (
 			WHEN concept_code = 'G0455'
 				THEN 'Procedure' -- Preparation with instillation of fecal microbiota by any method, including assessment of donor specimen
 			WHEN concept_code IN (
-								  'G0456',
-								  'G0457'
+					'G0456',
+					'G0457'
 					)
 				THEN 'Procedure' -- Negative pressure wound therapies
 			WHEN concept_code = 'G0458'
@@ -421,16 +424,16 @@ AS (
 			WHEN concept_code = 'G0460'
 				THEN 'Procedure' -- Autologous platelet rich plasma for chronic wounds/ulcers, including phlebotomy, centrifugation, AND all other preparatory procedures, administration AND dressings, per treatment
 			WHEN concept_code IN (
-								  'G0461',
-								  'G0462'
+					'G0461',
+					'G0462'
 					)
 				THEN 'Measurement' -- Immunohistochemistry or immunocytochemistry
 			WHEN concept_code = 'G0463'
 				THEN 'Observation' -- Hospital outpatient clinic visit for assessment AND management of a patient
 			WHEN concept_code = 'G0464'
 				THEN 'Measurement' -- Colorectal cancer screening; stool-based dna AND fecal occult hemoglobin (e.g., kras, ndrg4 AND bmp3)
-			WHEN concept_code BETWEEN 'G0466'AND
-					'G0470'
+			WHEN concept_code BETWEEN 'G0466'
+					AND 'G0470'
 				THEN 'Observation' -- Federally qualified health center (fqhc) visits
 			WHEN concept_code = 'G0471'
 				THEN 'Procedure' -- Collection of venous blood by venipuncture or urine sample by catheterization from an individual in a skilled nursing facility (snf) or by a laboratory on behalf of a home health agency (hha)
@@ -438,26 +441,29 @@ AS (
 				THEN 'Measurement' -- Hepatitis c antibody screening, for individual at high risk AND other covered indication(s)
 			WHEN concept_code = 'G0473'
 				THEN 'Procedure' -- Face-to-face behavioral counseling for obesity, group (2-10), 30 minutes
-			WHEN concept_code BETWEEN 'G0908' AND 'G2252'
-					AND concept_code NOT BETWEEN 'G2067' AND 'G2075'
-					AND concept_code NOT IN (
-											 'G2000',
-											 'G2010',
-											 'G2011',
-											 'G2102',
-											 'G2170',
-											 'G2171'
+			WHEN concept_code BETWEEN 'G0908'
+					AND 'G2252'
+				AND concept_code NOT BETWEEN 'G2067'
+					AND 'G2075'
+				AND concept_code NOT IN (
+					'G2000',
+					'G2010',
+					'G2011',
+					'G2102',
+					'G2170',
+					'G2171'
 					)
 				THEN 'Observation' -- various documented levels AND assessments
-			WHEN concept_code BETWEEN 'G2067' AND 'G2075'
+			WHEN concept_code BETWEEN 'G2067'
+					AND 'G2075'
 				THEN 'Procedure' -- Medication assisted treatment
 			WHEN concept_code IN (
-								  'G2000',
-								  'G2010',
-								  'G2011',
-								  'G2102',
-								  'G2170',
-								  'G2171'
+					'G2000',
+					'G2010',
+					'G2011',
+					'G2102',
+					'G2170',
+					'G2171'
 					)
 				THEN 'Procedure'
 			WHEN concept_code = 'G3001'
@@ -485,32 +491,32 @@ AS (
 					AND 'G9012'
 				THEN 'Observation' --Functional Limitation, Coordinated Care
 			WHEN concept_code IN (
-								  'G9752',
-								  'G9756',
-								  'G9757',
-								  'G9643'
+					'G9752',
+					'G9756',
+					'G9757',
+					'G9643'
 					)
 				THEN 'Procedure' -- Emergency surgery, Elective surgery, Surgical procedures that included the use of silicone oil
 			WHEN concept_code IN (
-								  'G9639',
-								  'G9641',
-								  'G9654',
-								  'G9770',
-								  'G9937',
-								  'G9839'
+					'G9639',
+					'G9641',
+					'G9654',
+					'G9770',
+					'G9937',
+					'G9839'
 					)
 				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'G9141',
-								  'G9142',
-								  'G9017',
-								  'G9018',
-								  'G9019',
-								  'G9020',
-								  'G9033',
-								  'G9034',
-								  'G9035',
-								  'G9036'
+					'G9141',
+					'G9142',
+					'G9017',
+					'G9018',
+					'G9019',
+					'G9020',
+					'G9033',
+					'G9034',
+					'G9035',
+					'G9036'
 					)
 				THEN 'Drug' -- Influenza a (h1n1) immunization administration + other drugs
 			WHEN concept_code = 'G9143'
@@ -518,15 +524,15 @@ AS (
 			WHEN concept_code = 'G9147'
 				THEN 'Procedure' -- Outpatient intravenous insulin treatment (oivit) either pulsatile or continuous, by any means, guided by the results of measurements for: respiratory quotient; and/or, urine urea nitrogen (uun); and/or, arterial, venous or capillary glucose; and/or potassi
 			WHEN concept_code IN (
-								  'G9148',
-								  'G9149',
-								  'G9150'
+					'G9148',
+					'G9149',
+					'G9150'
 					)
 				THEN 'Observation' -- National committee for quality assurance - medical home levels
 			WHEN concept_code IN (
-								  'G9151',
-								  'G9152',
-								  'G9153'
+					'G9151',
+					'G9152',
+					'G9153'
 					)
 				THEN 'Observation' -- Multi-payer Advanced Primary Care Practice (MAPCP) Demonstration Project
 			WHEN concept_code = 'G9156'
@@ -551,23 +557,23 @@ AS (
 					AND 'G9517'
 				THEN 'Observation'
 			WHEN concept_code IN (
-								  'G0238',
-								  'G0293',
-								  'G0294',
-								  'G0403',
-								  'G0404',
-								  'G0405',
-								  'G0445',
-								  'G0453',
-								  'G9771',
-								  'G9773',
-								  'G9812',
-								  'G9601',
-								  'G9602'
+					'G0238',
+					'G0293',
+					'G0294',
+					'G0403',
+					'G0404',
+					'G0405',
+					'G0445',
+					'G0453',
+					'G9771',
+					'G9773',
+					'G9812',
+					'G9601',
+					'G9602'
 					)
 				THEN 'Observation'
 			WHEN concept_code = 'G9642' -- Current smoker
-					THEN 'Observation'
+				THEN 'Observation'
 			WHEN l2.str IN (
 					'Quality Measures: Miscellaneous',
 					'Quality Measures',
@@ -587,8 +593,8 @@ AS (
 			WHEN concept_code = 'H0033'
 				THEN 'Procedure' -- Oral medication administration, direct observation
 			WHEN concept_code IN (
-								  'H0048',
-								  'H0049'
+					'H0048',
+					'H0049'
 					)
 				THEN 'Measurement' -- Alcohol screening
 			WHEN concept_code BETWEEN 'H0034'
@@ -606,45 +612,57 @@ AS (
 				THEN 'Drug' -- Level 1: J0100-J9999
 					-- K codes
 			WHEN concept_code LIKE 'K%'
-					AND concept_code NOT IN (
-											 'K0124',
-											 'K0285',
-											 'K0449'
+				AND concept_code NOT IN (
+					'K0124',
+					'K0285',
+					'K0449'
 					)
 				THEN 'Device' -- Durable Medical Equipment For Medicare Administrative Contractors
 			WHEN concept_code = 'K0124'
 				THEN 'Drug' -- Monoclonal antibodies
-			WHEN concept_code IN ('K0285', 'K0449')
+			WHEN concept_code IN (
+					'K0285',
+					'K0449'
+					)
 				THEN 'Observation'
-			-- L codes
+					-- L codes
 			WHEN l1.str = 'L Codes'
-				AND concept_code NOT IN ('L4200',
-										 'L5310',
-										 'L5311',
-										 'L5330',
-										 'L5340',
-										 'L7500',
-										 'L9999')
+				AND concept_code NOT IN (
+					'L4200',
+					'L5310',
+					'L5311',
+					'L5330',
+					'L5340',
+					'L7500',
+					'L9999'
+					)
 				THEN 'Device' -- Level 1: L0000-L9999
-			WHEN concept_code IN ('L4200', 'L7500', 'L9999')
+			WHEN concept_code IN (
+					'L4200',
+					'L7500',
+					'L9999'
+					)
 				THEN 'Observation'
-			WHEN concept_code IN ('L5310',
-								  'L5311',
-								  'L5330',
-								  'L5340')
+			WHEN concept_code IN (
+					'L5310',
+					'L5311',
+					'L5330',
+					'L5340'
+					)
 				THEN 'Procedure'
 					-- M codes
 			WHEN concept_code IN (
-								  'M0075', --Cellular therapy
-								  'M0076', --Prolotherapy
-								  'M0100', --Intragastric hypothermia using gastric freezing
-								  'M0201', -- Covid-19 vaccine administration
-								  'M0300', --Iv chelation therapy (chemical endarterectomy)
-								  'M0301') --Fabric wrapping of abdominal aneurysm
+					'M0075', --Cellular therapy
+					'M0076', --Prolotherapy
+					'M0100', --Intragastric hypothermia using gastric freezing
+					'M0201', -- Covid-19 vaccine administration
+					'M0300', --Iv chelation therapy (chemical endarterectomy)
+					'M0301'
+					) --Fabric wrapping of abdominal aneurysm
 				THEN 'Procedure'
 			WHEN l1.str = 'Other Medical Services'
 				THEN 'Observation' -- Level 1: M0000-M0301
-		-- P codes
+					-- P codes
 			WHEN concept_code = 'P9012'
 				THEN 'Drug' -- Cryoprecipitate, each unit should have domain_id = 'Drug'
 			WHEN concept_code LIKE 'P90%'
@@ -666,14 +684,14 @@ AS (
 				THEN 'Procedure' -- Level 2: P9612-P9615
 					-- Q codes
 			WHEN concept_code IN (
-								  'Q0136',
-								  'Q0137',
-								  'Q0187',
-								  'Q2001',
-								  'Q2002',
-								  'Q2003',
-								  'Q4054',
-								  'Q4055'
+					'Q0136',
+					'Q0137',
+					'Q0187',
+					'Q2001',
+					'Q2002',
+					'Q2003',
+					'Q4054',
+					'Q4055'
 					)
 				THEN 'Drug'
 			WHEN concept_code BETWEEN 'Q9941'
@@ -699,27 +717,27 @@ AS (
 			WHEN l2.str = 'Laboratory (CMS Temporary Codes)'
 				THEN 'Measurement' -- Level 2: Q0111-Q0115
 			WHEN l2.str = 'Drugs (CMS Temporary Codes)'
-					AND concept_code NOT IN (
-											 'Q0182',
-											 'Q0183',
-											 'Q0183',
-											 'Q0184',
-											 'Q0185',
-											 'Q0188',
-											 'Q4078'
+				AND concept_code NOT IN (
+					'Q0182',
+					'Q0183',
+					'Q0183',
+					'Q0184',
+					'Q0185',
+					'Q0188',
+					'Q4078'
 					)
 				THEN 'Drug' -- Level 2: Q0138-Q0249
 			WHEN concept_code IN (
-								  'Q0182',
-								  'Q0183',
-								  'Q0183',
-								  'Q0184',
-								  'Q0185'
+					'Q0182',
+					'Q0183',
+					'Q0183',
+					'Q0184',
+					'Q0185'
 					)
 				THEN 'Device'
 			WHEN concept_code IN (
-								  'Q0188',
-								  'Q4078'
+					'Q0188',
+					'Q4078'
 					)
 				THEN 'Procedure'
 			WHEN l2.str = 'Ventricular Assist Devices (CMS Temporary Codes)'
@@ -743,9 +761,9 @@ AS (
 			WHEN l2.str = 'Telehealth (CMS Temporary Codes)'
 				THEN 'Observation' -- Level 2: Q3014-Q3014
 			WHEN concept_code IN (
-								  'Q3025',
-								  'Q3026'
-				)
+					'Q3025',
+					'Q3026'
+					)
 				THEN 'Drug' -- Injection, Interferon beta
 			WHEN l2.str = 'Additional Drugs (CMS Temporary Codes)'
 				THEN 'Drug' -- Level 2: Q3027-Q3028
@@ -768,31 +786,33 @@ AS (
 					AND 'Q9949'
 				THEN 'Device' -- Level 2: Q9950-Q9969
 			WHEN concept_code IN (
-								  'Q5101',
-								  'Q5102',
-								  'Q9955',
-								  'Q9957'
+					'Q5101',
+					'Q5102',
+					'Q9955',
+					'Q9957'
 					)
 				THEN 'Drug'
 			WHEN concept_code IN (
-								  'Q9968',
-								  'Q9953',
-								  'Q9987',
-								  'Q9988'
+					'Q9968',
+					'Q9953',
+					'Q9987',
+					'Q9988'
 					)
 				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'Q9982',
-								  'Q9983'
+					'Q9982',
+					'Q9983'
 					)
 				THEN 'Device' --Radiopharmaceuticals
-			WHEN concept_code BETWEEN 'Q9970' AND 'Q9981'
-				OR concept_code BETWEEN 'Q9989' AND 'Q9995'
+			WHEN concept_code BETWEEN 'Q9970'
+					AND 'Q9981'
+				OR concept_code BETWEEN 'Q9989'
+					AND 'Q9995'
 				THEN 'Drug'
 			WHEN concept_code IN (
-								  'Q9984',
-								  'Q9985',
-								  'Q9986'
+					'Q9984',
+					'Q9985',
+					'Q9986'
 					) -- miscelaneous Q-codes Drugs
 				THEN 'Drug'
 					-- S codes
@@ -816,8 +836,8 @@ AS (
 					AND 'S0812'
 				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'S0830',
-								  'S8004'
+					'S0830',
+					'S8004'
 					)
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'S1001'
@@ -829,13 +849,13 @@ AS (
 					AND 'S3000'
 				THEN 'Procedure'
 			WHEN concept_code IN (
-								  'S3000',
-								  'S3005'
+					'S3000',
+					'S3005'
 					)
 				THEN 'Observation' -- Stat lab
 			WHEN concept_code IN (
-								  'S3600',
-								  'S3601'
+					'S3600',
+					'S3601'
 					)
 				THEN 'Observation' -- stat lab
 			WHEN concept_code BETWEEN 'S3600'
@@ -849,9 +869,15 @@ AS (
 				THEN 'Procedure' -- IVF procedures
 			WHEN concept_code BETWEEN 'S4981'
 					AND 'S5014'
-				AND concept_code NOT IN ('S5002', 'S5003')
+				AND concept_code NOT IN (
+					'S5002',
+					'S5003'
+					)
 				THEN 'Drug' -- various
-			WHEN concept_code IN ('S5002', 'S5003')
+			WHEN concept_code IN (
+					'S5002',
+					'S5003'
+					)
 				THEN 'Device' -- parenteral nutrition
 			WHEN concept_code = 'S5022'
 				THEN 'Procedure'
@@ -870,8 +896,12 @@ AS (
 			WHEN concept_code BETWEEN 'S5560'
 					AND 'S5571'
 				THEN 'Device' -- various Insulin delivery devices
-			WHEN concept_code IN ('S8001', 'S8002', 'S8003')
-					THEN 'Procedure'
+			WHEN concept_code IN (
+					'S8001',
+					'S8002',
+					'S8003'
+					)
+				THEN 'Procedure'
 			WHEN concept_code = 'S8030'
 				THEN 'Procedure' --Scleral application of tantalum ring(s) for localization of lesions for proton beam therapy
 			WHEN concept_code BETWEEN 'S8032'
@@ -924,23 +954,23 @@ AS (
 				THEN 'Procedure' -- Home infusion therapy, exact group of drugs
 					-- T codes
 			WHEN concept_code IN (
-								  'T1500',
-								  'T2006'
+					'T1500',
+					'T2006'
 					)
 				THEN 'Device'
 			WHEN concept_code = 'T1006'
 				THEN 'Procedure' -- Alcohol and/or substance abuse services, family/couple counseling
 			WHEN concept_code IN (
-								  'T1502',
-								  'T1503'
-				)
+					'T1502',
+					'T1503'
+					)
 				THEN 'Procedure' -- Administration of medication without saying which one (Administration of medication, other than oral and/or injectable, by a health care agency/professional, per visit)
 			WHEN concept_code BETWEEN 'T1505'
 					AND 'T1999'
 				THEN 'Device'
 			WHEN concept_code IN (
-								  'T2028',
-								  'T2029'
+					'T2028',
+					'T2029'
 					)
 				THEN 'Device'
 			WHEN concept_code BETWEEN 'T4521'
@@ -950,22 +980,22 @@ AS (
 				THEN 'Observation' -- default for Level 1: S0000-S9999 AND Level 1: T1000-T9999
 					-- V codes
 			WHEN concept_code IN (
-								  'V2785',
-								  'V2787',
-								  'V2788'
+					'V2785',
+					'V2787',
+					'V2788'
 					)
 				THEN 'Procedure' -- Processing or correcting procedure
 			WHEN concept_code BETWEEN 'V2624'
 					AND 'V2626'
 				THEN 'Procedure' -- working on ocular prosthesis
 			WHEN concept_code IN (
-								  'V5008',
-								  'V5010'
+					'V5008',
+					'V5010'
 					)
 				THEN 'Procedure' -- Hearing screening AND assessment of hearing aide
 			WHEN concept_code IN (
-								  'V5011',
-								  'V5014'
+					'V5011',
+					'V5014'
 					)
 				THEN 'Procedure' -- fitting of hearing aide
 			WHEN concept_code = 'V5020'
@@ -977,13 +1007,13 @@ AS (
 				THEN 'Procedure' -- various screening
 			WHEN l1.str = 'V Codes'
 				THEN 'Device' -- default for Level 1: V0000-V5999 Vision AND hearing services
-			ELSE COALESCE(hcpc.domain_id,'Observation') -- use 'observation' in other cases
+			ELSE COALESCE(hcpc.domain_id, 'Observation') -- use 'observation' in other cases
 			END AS domain_id
 	FROM concept_stage hcpc
 	LEFT JOIN (
 		SELECT code,
-			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [1] AS lo,
-			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
+			(ARRAY(SELECT UNNEST(REGEXP_MATCHES(code, '[A-Z]\d{4}', 'g')))) [1] AS lo,
+			(ARRAY(SELECT UNNEST(REGEXP_MATCHES(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
 			str
 		FROM sources.mrconso
 		WHERE sab = 'HCPCS'
@@ -992,8 +1022,8 @@ AS (
 			AND l1.hi
 	LEFT JOIN (
 		SELECT code,
-			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [1] AS lo,
-			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
+			(ARRAY(SELECT UNNEST(REGEXP_MATCHES(code, '[A-Z]\d{4}', 'g')))) [1] AS lo,
+			(ARRAY(SELECT UNNEST(REGEXP_MATCHES(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
 			str
 		FROM sources.mrconso
 		WHERE sab = 'HCPCS'
@@ -1002,8 +1032,8 @@ AS (
 			AND l2.hi
 	LEFT JOIN (
 		SELECT code,
-			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [1] AS lo,
-			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
+			(ARRAY(SELECT UNNEST(REGEXP_MATCHES(code, '[A-Z]\d{4}', 'g')))) [1] AS lo,
+			(ARRAY(SELECT UNNEST(REGEXP_MATCHES(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
 			str
 		FROM sources.mrconso
 		WHERE sab = 'HCPCS'
@@ -1042,13 +1072,13 @@ WHERE domain_id IS NULL
 
 --6. Update names of zombie concepts
 UPDATE concept_stage
-SET concept_name =
-		   (CASE WHEN LENGTH(concept_name) <= 242
-						  THEN concept_name || ' (Deprecated)'
-				 WHEN LENGTH(concept_name) > 242
-						  THEN LEFT(concept_name, 239) || '... (Deprecated)' END)
-WHERE valid_end_date < '2099-12-31'
-  AND invalid_reason IS NULL;
+SET concept_name = CASE 
+		WHEN LENGTH(concept_name) <= 242
+			THEN concept_name || ' (Deprecated)'
+		ELSE LEFT(concept_name, 239) || '... (Deprecated)'
+		END
+WHERE valid_end_date < TO_DATE('20991231', 'YYYYMMDD')
+	AND invalid_reason IS NULL;
 
 --7. Fill concept_synonym_stage
 INSERT INTO concept_synonym_stage (
@@ -1057,19 +1087,19 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT DISTINCT HCPC AS synonym_concept_code,
-	synonym_name,
+SELECT DISTINCT s0.hcpc AS synonym_concept_code,
+	s0.synonym_name,
 	'HCPCS' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 FROM (
 	SELECT vocabulary_pack.CutConceptSynonymName(short_description) AS synonym_name,
-		HCPC
+		hcpc
 	FROM sources.anweb_v2
 	
 	UNION ALL
 	
 	SELECT vocabulary_pack.CutConceptSynonymName(long_description) AS synonym_name,
-		HCPC
+		hcpc
 	FROM sources.anweb_v2
 	) AS s0;
 
@@ -1186,14 +1216,12 @@ SELECT c.concept_code AS concept_code_1,
 	r.valid_start_date,
 	r.valid_end_date,
 	r.invalid_reason
-FROM concept_relationship r,
-	concept c,
-	concept c1
-WHERE c.concept_id = r.concept_id_1
+FROM concept_relationship r
+JOIN concept c ON c.concept_id = r.concept_id_1
 	AND c.vocabulary_id = 'HCPCS'
+JOIN concept c1 ON c1.concept_id = r.concept_id_2
 	AND c1.vocabulary_id = 'HCPCS'
-	AND c1.concept_id = r.concept_id_2
-	AND r.relationship_id IN (
+WHERE r.relationship_id IN (
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
@@ -1270,7 +1298,9 @@ END $_$;
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1, crs.vocabulary_id_1, c.domain_id
+	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1,
+		crs.vocabulary_id_1,
+		c.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept c ON c.concept_code = crs.concept_code_2
 		AND c.vocabulary_id = crs.vocabulary_id_2

@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz
-* Date: 2020, 2021
+* Date: 2020, 2021, 2023
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -23,7 +23,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIEL',
 	pVocabularyDate			=> (SELECT MAX(date_created) FROM sources.ciel_concept_name),
-	pVocabularyVersion		=> (SELECT 'OpenMRS 2.11.0 '||TO_CHAR(MAX(date_created),'yyyymmdd') FROM sources.ciel_concept_name),
+	pVocabularyVersion		=> (SELECT 'CIEL '||TO_CHAR(MAX(date_created),'yyyymmdd') FROM sources.ciel_concept_name),
 	pVocabularyDevSchema	=> 'DEV_CIEL'
 );
 END $_$;
@@ -153,7 +153,9 @@ ORDER BY c.concept_id,
 	LENGTH(cn.ciel_name) DESC /*some concepts don't have locale_preferred*/;
 
 --begin addition M. Kallfelz 2021-05-06
+
 --4. Add synonyms to concept_synonym_stage by language
+
 --SELECT DISTINCT ON (locale) * FROM ciel_concept_name
 -- WHERE voided = 0;
 -- am = Amharic => no OMOP language
@@ -203,7 +205,10 @@ WHERE cn.locale IN (
 		'pt'
 		) -- no other OMOP languages match the locale
 	-- end addition M. Kallfelz 2021-05-06
-	AND cn.ciel_name IS NOT NULL;
+	AND  cn.ciel_name IS NOT NULL
+	 AND cn.voided = '0' 
+	 AND cn.concept_name_type = 'FULLY_SPECIFIED'
+  ;
 
 --5. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;
@@ -265,9 +270,13 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 						THEN 'SNOMED-c2'
 					WHEN 'SNOMED US'
 						THEN 'SNOMED-c3'
-					WHEN 'RxNORM'
+					WHEN 'SNOMED UK'
+						THEN 'SNOMED-c4'
+          WHEN 'RxNORM'
 						THEN 'RxNorm-c'
-					WHEN 'ICD-10-WHO'
+					WHEN 'OMOP RxNorm Extension'
+						THEN 'RxNorm Extension-c'
+          WHEN 'ICD-10-WHO'
 						THEN 'XICD10-c1' -- X so it will be ordered by after SNOMED
 					WHEN 'ICD-10-WHO 2nd'
 						THEN 'XICD10-c2'
@@ -277,6 +286,7 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 						THEN 'XICD10-c4'
 					WHEN 'NDF-RT NUI'
 						THEN 'NDFRT-c'
+-- can we add more? CPT - SNOMED UK - WHOATC - UCUM - OMOP RxNorm Extension
 					ELSE NULL
 					END AS vocabulary_id_2
 			FROM sources.ciel_concept c
@@ -289,14 +299,17 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 				AND c.class_id <> 3 --exclude drugs [AVOF-3147]
 				AND crs.ciel_name IN (
 					'RxNORM',
+					'OMOP RxNorm Extension',
 					'SNOMED CT',
 					'SNOMED NP',
+					'SNOMED UK',
 					'ICD-10-WHO',
 					'ICD-10-WHO NP',
 					'ICD-10-WHO 2nd',
 					'ICD-10-WHO NP2',
 					'SNOMED US',
 					'NDF-RT NUI'
+-- can we add more? CPT - SNOMED UK - WHOATC - UCUM - OMOP RxNorm Extension
 					)
 			
 			UNION
@@ -766,10 +779,12 @@ WHERE crs.ciel_name IN (
 		'SNOMED NP',
 		'ICD-10-WHO',
 		'RxNORM',
+		'OMOP RxNorm Extension',
 		'ICD-10-WHO NP',
 		'ICD-10-WHO 2nd',
 		'ICD-10-WHO NP2',
 		'SNOMED US',
+		'SNOMED UK',
 		'NDF-RT NUI'
 		);
 
@@ -858,12 +873,21 @@ SELECT a.concept_code,
 	b.vocabulary_id,
 	relationship_id,
 	r.valid_start_date,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'CIEL'
-		) - 1,
-	'D'
+	( CASE
+		WHEN (
+     SELECT latest_update
+	 	FROM vocabulary
+	 	WHERE  vocabulary_id = 'CIEL' )
+ 	   - 1  < r.valid_start_date 
+ 	  THEN r.valid_start_date + 1
+ 	 ELSE (
+     SELECT latest_update
+	 	FROM vocabulary
+	 	WHERE vocabulary_id = 'CIEL' )
+ 	   - 1  
+    END
+    ),
+   'D'
 FROM concept a
 JOIN concept_relationship r ON a.concept_id = concept_id_1
 	AND r.invalid_reason IS NULL

@@ -1,42 +1,33 @@
 CREATE OR REPLACE FUNCTION vocabulary_pack.ProcessManualSynonyms ()
-RETURNS void AS
+RETURNS VOID AS
 $BODY$
-/*
- Inserts a manual synonyms from concept_synonym_manual into the concept_synonym_stage
-*/
+	/*
+	Inserts a manual synonyms from concept_synonym_manual into the concept_synonym_stage
+	*/
 DECLARE
-	z int4;
-	cSchemaName VARCHAR(100);
+	z INT4;
+	iSchemaName TEXT;
 BEGIN
-	--checking table concept_synonym_manual for errors
-	IF CURRENT_SCHEMA <> 'devv5' THEN
-		PERFORM vocabulary_pack.CheckManualSynonyms();
-	END IF;
+	SELECT LOWER(MAX(v.dev_schema_name)), COUNT(DISTINCT v.dev_schema_name)
+	INTO iSchemaName, z
+	FROM vocabulary v
+	WHERE v.latest_update IS NOT NULL;
 
-	SELECT LOWER(MAX(dev_schema_name)), COUNT(DISTINCT dev_schema_name)
-	INTO cSchemaName, z
-	FROM vocabulary
-	WHERE latest_update IS NOT NULL;
-
-	IF z > 1 THEN
-		RAISE EXCEPTION 'more than one dev_schema found';
+	IF z>1 THEN
+		RAISE EXCEPTION 'More than one dev_schema found';
 	END IF;
 
 	IF CURRENT_SCHEMA = 'devv5' THEN
-		SELECT COUNT(*) INTO z
-		FROM pg_tables pg_t
-		WHERE pg_t.schemaname = cSchemaName
-			AND pg_t.tablename = 'concept_synonym_manual';
-
-		IF z = 0 THEN
-			RAISE EXCEPTION '% not found', cSchemaName || '.concept_synonym_manual';
-		END IF;
-
 		TRUNCATE TABLE concept_synonym_manual;
-		EXECUTE 'INSERT INTO concept_synonym_manual SELECT * FROM ' || cSchemaName || '.concept_synonym_manual';
-
-		PERFORM vocabulary_pack.CheckManualSynonyms();
+		EXECUTE FORMAT ($$
+			INSERT INTO concept_synonym_manual
+			SELECT *
+			FROM %I.concept_synonym_manual
+		$$, iSchemaName);
 	END IF;
+
+	--checking concept_synonym_manual for errors
+	PERFORM vocabulary_pack.CheckManualSynonyms();
 
 	--add new records for synonyms
 	INSERT INTO concept_synonym_stage (
@@ -45,22 +36,11 @@ BEGIN
 		synonym_vocabulary_id,
 		language_concept_id
 		)
-	SELECT synonym_name,
-		synonym_concept_code,
-		synonym_vocabulary_id,
-		language_concept_id
+	SELECT csm.*
 	FROM concept_synonym_manual csm
-	WHERE NOT EXISTS (
-			SELECT 1
-			FROM concept_synonym_stage css_int
-			WHERE css_int.synonym_name = csm.synonym_name
-				AND css_int.synonym_concept_code = csm.synonym_concept_code
-				AND css_int.synonym_vocabulary_id = csm.synonym_vocabulary_id
-				AND css_int.language_concept_id = csm.language_concept_id
-			);
+	JOIN vocabulary v ON v.vocabulary_id = csm.synonym_vocabulary_id
+	WHERE v.latest_update IS NOT NULL
+	ON CONFLICT DO NOTHING;
 END;
 $BODY$
-LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER;
+LANGUAGE 'plpgsql';

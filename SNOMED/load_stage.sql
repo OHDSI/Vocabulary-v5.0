@@ -1530,7 +1530,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(300577008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of lesion
 --	(298325004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of movement
 --	(427955007,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding related to status of agreement with prior finding
---	(118222006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- General finding of observation of patient
+	(118222006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- General finding of observation of patient
 --	(249857004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Loss of midline awareness
 --	(300232005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Oral cavity, dental and salivary finding
 --	(364830008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Position of body and posture - finding
@@ -1627,8 +1627,8 @@ SELECT a.*, NULL FROM ( VALUES
 --	(370115009,         'Metadata',     TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Special Concept
 --	(308916002,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Environment or geographical location
 	--history:on
---	(223366009,   'Provider Specialty', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20190201', 'YYYYMMDD')), -- Site of care
---	(223366009,         'Provider',     TO_DATE('20190201', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
+	(223366009,   'Provider Specialty', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20190201', 'YYYYMMDD')), -- Site of care
+	(223366009,         'Provider',     TO_DATE('20190201', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
 	--history:off
 	--history:on
 	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20210217', 'YYYYMMDD')), -- Site of care
@@ -1658,9 +1658,9 @@ SELECT a.*, NULL FROM ( VALUES
 --	(404684003,         'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Clinical Finding
 --	(313413008,         'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Calculus observation
 --	(405533003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse incident outcome categories
---	(365854008,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- History finding
+	(365854008,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- History finding
 --	(118233009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of activity of daily living
---	(307824009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Administrative statuses
+	(307824009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Administrative statuses
 --	(162408000,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Symptom description
 --	(105729006,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Health perception, health management pattern
 --	(162566001,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Patient not aware of diagnosis
@@ -1690,7 +1690,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(372148003,         'Race',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Ethnic group
 --	(415229000,         'Race',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Racial group
 --	(106237007,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Linkage concept
---	(767524001,         'Unit',         TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --  Unit of measure (Top unit)
+	(767524001,         'Unit',         TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --  Unit of measure (Top unit)
 --	(260245000,         'Meas Value',   TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Meas Value
 --	(125677006,         'Relationship', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Relationship
 --	(264301008,         'Observation',  TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Psychoactive substance of abuse - non-pharmaceutical
@@ -1717,7 +1717,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(13197004,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Contraception
 --	(251859005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dialysis finding
 --	(422704000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Difficulty obtaining contraception
---	(250869005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Equipment finding
+	(250869005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Equipment finding
 --	(217315002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Onset of illness
 --	(127362006,         'Observation',  TO_DATE('20160322', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Previous pregnancies
 --	(162511002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Rare history finding
@@ -1765,7 +1765,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(300393000,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of odor of stool
 --	(239516002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Monitoring procedure
 --	(243114000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Support
---	(300893006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Nutritional finding
+	(300893006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Nutritional finding
 --	(116336009,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Eating / feeding / drinking finding
 	--history:on
 --	(448717002,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score
@@ -1780,7 +1780,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(278414003,         'Procedure',    TO_DATE('20160616', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pain management
 --	(225831004,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding relating to advocacy
 --	(134436002,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lifestyle
---	(365980008,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Tobacco use and exposure - finding
+	(365980008,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Tobacco use and exposure - finding
 --	(386091000,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding related to compliance with treatment
 	--history:on
 --	(424092004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Questionable explanation of injury
@@ -1806,7 +1806,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(282100009,         'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction caused by substance
 	--history:off
 --	(473010000,         'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hypersensitivity condition
---	(419199007,         'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to substance
+	(419199007,         'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to substance
 --	(10628711000119101, 'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
 	--2017-Aug-30
 --	(310611001,         'Measurement',  TO_DATE('20170830', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cardiovascular measure
@@ -1815,7 +1815,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(248627000,         'Measurement',  TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pulse characteristics
 	--2017-Nov-28 [AVOF-731]
 --	(410652009,         'Device',       TO_DATE('20171128', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood product
---	(105904009,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Type of drug preparation
+	(105904009,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Type of drug preparation
 	--Azaribine, Pegaptanib sodium, Cutaneous aerosol, Pegaptanib, etc. - exclusion without nice hierarchy
 --	(373447009,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
 --	(416058004,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
@@ -1844,7 +1844,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(332525008,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),  --Camouflaging preparations
 --	(768697005,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Barium and barium compound product -- contrast media subcathegory
 	--2019-Aug-27
---	(8653201000001106,  'Drug',         TO_DATE('20190827', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --dm+d value
+	(8653201000001106,  'Drug',         TO_DATE('20190827', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --dm+d value
 	(397731000,         'Race',         TO_DATE('20190827', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'))--, -- Ethnic group finding
 	--2019-Mov-13
 --	(108246006,         'Measurement',  TO_DATE('20191113', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tonometry AND/OR tonography procedure
@@ -1888,7 +1888,7 @@ SELECT a.*, NULL FROM ( VALUES
 --	(1032021000000100,  'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Protein level
 --	(364711002,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Specific test feature
 	) AS a
---	UNION ALL
+	--UNION ALL
 --	SELECT b.* FROM (VALUES
 	--history:on
 --	(364066008,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable
@@ -1904,8 +1904,8 @@ SELECT a.*, NULL FROM ( VALUES
 --	(429162008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of myocardial stress ischemia
 --	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1)  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
 --) AS b
---UNION ALL
---SELECT c.*, NULL FROM (VALUES
+UNION ALL
+SELECT c.*, NULL FROM (VALUES
 --	(248326004,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body measure
 --	(396238001,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumor measureable
 --	(371508000,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour stage
@@ -2136,7 +2136,9 @@ SELECT a.*, NULL FROM ( VALUES
 	--New domain_id = Language
 --	(297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --World languages
 	--TODO: make top level concept and grouping concepts non-Standard
---) as c
+	--2023-May-25
+	(423335001,         'Device',  TO_DATE('20230525', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Device form
+	) as c
 ;
 
 --19.2.3 To be reviewed in the future

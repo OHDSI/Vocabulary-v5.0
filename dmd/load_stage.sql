@@ -5397,6 +5397,7 @@ WHERE dcs.concept_code NOT IN (SELECT concept_code_1 FROM relationship_to_concep
 
 --Uploaded for manual mapping
 --File name: relationship_to_concept_attributes
+/*
 CREATE TABLE relationship_to_concept_attributes AS
 	(SELECT dcs.concept_name, dcs.concept_class_id,
 	       NULL AS precedence,
@@ -5445,6 +5446,7 @@ ALTER COLUMN target_invalid_reason TYPE varchar(50);
 --Manually map missing concepts and then reupload the table
 --TRUNCATE relationship_to_concept_attributes;
 
+ */
 --Clean relationship_to_concept from attributes, manually mapped in relationship_to_concept_attributes
 with mapping AS (SELECT dcs.concept_code, dcs.concept_name, dcs.concept_class_id
     FROM relationship_to_concept_attributes rtca

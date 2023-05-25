@@ -558,10 +558,11 @@ WHERE
 		OR v.nm LIKE '% oil %'
 	);
 
+ANALYZE devices;
 
 --known device domain, ingredients NOT IN whitelist (Drug according to RxNorm rules)
 INSERT INTO devices
-WITH ingred_whitelist AS
+WITH ingred_whitelist AS materialized
 	(
 		SELECT v.vpid
 		FROM vmps v
@@ -2675,7 +2676,7 @@ DELETE FROM tomap_vmps_ds WHERE ingredient_concept_code = '0';
 
 --Double check: if drug has a parsing already, it is prioritized over manual table
 DELETE FROM tomap_vmps_ds
-WHERE drug_concept_code in (SELECT drug_concept_code FROM ds_prototype);
+WHERE drug_concept_code IN (SELECT drug_concept_code FROM ds_prototype);
 
 --Double check: Non-existing drugs
 DELETE FROM tomap_vmps_ds
@@ -3887,6 +3888,22 @@ WHERE
 		) AND
 	devv5.levenshtein (source_name, concept_name) > (SELECT dif FROM lev WHERE lev.source_code = t.source_code);
 
+--for ambiguous mappings with the same levenstein distance, pick one with the longest name
+DELETE FROM tomap_ingredients WHERE (source_code, concept_id) IN
+(SELECT source_code, concept_id FROM
+(SELECT *, row_number() over (partition by source_code, source_name, precedence ORDER BY length(concept_name) DESC) AS priority
+FROM tomap_ingredients
+WHERE
+	source_code in
+		(
+			SELECT source_code
+			FROM tomap_ingredients
+			GROUP BY source_code
+			HAVING count (concept_id) > 1
+		)
+) a
+WHERE a.priority > 1);
+
 
 /*
 --Create backup just in case
@@ -3957,7 +3974,7 @@ SELECT DISTINCT
 FROM tomap_ingreds_man
 WHERE
 	concept_id IS NOT NULL AND
-	source_code in (SELECT concept_code FROM drug_concept_stage) AND
+	source_code IN (SELECT concept_code FROM drug_concept_stage) AND
 	source_code NOT IN (SELECT concept_code_1 FROM relationship_to_concept);
 
 INSERT INTO relationship_to_concept
@@ -4400,6 +4417,8 @@ SELECT
 FROM tofind_brands
 WHERE concept_code NOT IN (SELECT concept_code FROM tofind_brands_man)
 ;
+
+TRUNCATE tofind_brands_man;
 */
 
 /*delete from tofind_brands_man
@@ -5716,6 +5735,7 @@ DELETE FROM relationship_to_concept WHERE concept_code_1 IN
 DELETE FROM ds_stage WHERE drug_concept_code IN (SELECT source_code FROM dmd_mapped);
 DELETE FROM internal_relationship_stage WHERE concept_code_1 IN (SELECT source_code FROM dmd_mapped);
 DELETE FROM pc_stage WHERE pack_concept_code IN (SELECT source_code FROM dmd_mapped);
+DELETE FROM relationship_to_concept WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual);
 
 
 --Changing column types as they should be for BuildRxE
@@ -5734,5 +5754,13 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
+INSERT INTO relationship_to_concept(concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
+SELECT source_code,
+       'dm+d',
+       target_concept_id,
+       1,
+       NULL
+FROM dmd_mapped
+WHERE source_code NOT IN (SELECT concept_code_1 FROM concept_relationship_manual) AND target_concept_id != 0;
 
 --At this point, everything should be prepared for BuildRxE run

@@ -60,7 +60,7 @@ BEGIN
 	--6. Clearing the concept_name
 	--Remove double spaces, carriage return, newline, vertical tab, form feed, unicode spaces
 	UPDATE concept_stage
-	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff+', ' ', 'g')
+	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff]+', ' ', 'g')
 	WHERE concept_name ~ '[[:cntrl:]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff]';
 
 	UPDATE concept_stage

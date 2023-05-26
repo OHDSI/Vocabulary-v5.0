@@ -92,13 +92,19 @@ SELECT cvx_code,
 	4180186
 FROM sources.cvx;
 
---5. Add CVX to RxNorm/RxNorm Extension manual mappings
+--5. Add manual CVX concept's changes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--6. Add CVX to RxNorm/RxNorm Extension manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---6. Add additional mappings from rxnconso
+--7. Add additional mappings from rxnconso
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -135,7 +141,7 @@ WHERE rxn.sab = 'CVX'
 			AND crs.relationship_id = 'CVX - RxNorm'
 		);
 
---7. Get rid from mappings to deprecated concepts 
+--8. Get rid from mappings to deprecated concepts
 DELETE
 FROM concept_relationship_stage crs
 WHERE crs.relationship_id = 'CVX - RxNorm'
@@ -161,7 +167,7 @@ WHERE crs.relationship_id = 'RxNorm - CVX'
 			AND c.invalid_reason = 'D'
 		);
 
---8. Add relationships to the Vaccine Groups
+--9. Add relationships to the Vaccine Groups
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -194,7 +200,7 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'Has vaccine group'
 		);
 
---9. Make concepts that have relationship 'Maps to' non-standard
+--10. Make concepts that have relationship 'Maps to' non-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM concept_relationship_stage crs

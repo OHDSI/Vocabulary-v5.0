@@ -1,3 +1,7 @@
+--TODO: Make backup of concept_manual and concept_relationship_manual a part of load_stage
+--TODO: Insert content into manual tables and publish the respective CSVs. CSVs then should be uploaded to manual tables
+--TODO: Manual tables must be organized as full set, not delta
+
 --concept_manual_backup
 DO
 $body$

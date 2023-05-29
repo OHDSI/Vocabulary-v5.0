@@ -53,7 +53,12 @@ FROM concepts_not_in_hierarchy
 -- 2. In CPT4 concepts may migrate between categories and acquire new concept_code. These changes are made in source.
 --- According to the existing logic both concepts remain standard and valid with the only difference of added "(Deprecated)" to the old concept_name
 --- These semantic duplicates should be mapped to concepts with new concept_codes and destandardized.
-SELECT *
+SELECT c1.concept_code AS old_code,
+       c1.concept_name AS old_name,
+       c1.domain_id AS old_domain,
+       c2.concept_code AS new_code,
+       c2.concept_name AS new_name,
+       c2.domain_id AS new_domain
 FROM concept c1
          JOIN concept c2 ON c1.concept_name = c2.concept_name || ' (Deprecated)'
 WHERE c1.vocabulary_id = 'CPT4'

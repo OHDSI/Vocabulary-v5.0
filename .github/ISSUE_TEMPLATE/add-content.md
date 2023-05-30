@@ -12,7 +12,7 @@ assignees: ''
 
 **0. Create the initial issue.**
 
-Please create the initial issue that briefly describes the content of intended contribution and rationale behind it.
+Please create the initial issue that briefly describes the content of intended contribution and rationale behind it. This will allow us to keep track of requests and connect you with other contributors who may be working on the same content.
 
 **1. Read the documentation.**
 
@@ -33,7 +33,7 @@ Please dowload the corresponding template from [this folder](https://drive.googl
 
 **4. Upload the template.**
 
-Please go to [this folder](https://drive.google.com/drive/u/1/folders/1wXB3CK08-sPa0EdyLlIL8jHaBkuH7k3g), create a subfolder with a short name of your contribution and upload your contribution there.
+Please go to [this folder](https://drive.google.com/drive/u/1/folders/1wXB3CK08-sPa0EdyLlIL8jHaBkuH7k3g), create a subfolder with your contribution (name it as GitHubIssueNumber_YourName) and upload your contribution there.
 
 **5. Reference the template in this issue.**
 

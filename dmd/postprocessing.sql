@@ -292,6 +292,20 @@ WHERE
 AND c2.vocabulary_id != 'dm+d'
 ;
 
+--delete mapping from concept_relationship_stage if it exists in concept_relationship_manual
+--TODO: you should have checked what relationships you are deleting
+DELETE
+FROM concept_relationship_stage
+WHERE exists (
+    SELECT * FROM concept_relationship_manual crm
+    WHERE crm.concept_code_1 = concept_relationship_stage.concept_code_1
+          );
+
+--Integration of manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 -- Working with replacement mappings
 DO $_$

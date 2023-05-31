@@ -1,10 +1,3 @@
---TODO: improve comments coverage
---TODO: Check all the commented rows
---TODO: Check BuildRxE thing. Check all the concepts to be created, incl. attributes.
---TODO: Do not create (and probably map) attributes (incl. Suppliers) related to devices
---TODO: Replace all the unnecessary inserts into stage tables with manual table (presumably with _mapped format)
-
-
 --! Step 0. Schema preparation, creation of necessary tables
 --Working with basic AND stage tables
 --SETLatestUPDATE for 2 affected vocabularies
@@ -5750,11 +5743,6 @@ ALTER TABLE ds_stage ALTER COLUMN numerator_value TYPE numeric;
 ALTER TABLE ds_stage ALTER COLUMN denominator_value TYPE numeric;
 ALTER TABLE ds_stage ALTER COLUMN box_size TYPE smallint;
 
---Integration of manual mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
 
 INSERT INTO relationship_to_concept(concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
 SELECT source_code,

@@ -293,7 +293,6 @@ AND c2.vocabulary_id != 'dm+d'
 ;
 
 --delete mapping from concept_relationship_stage if it exists in concept_relationship_manual
---TODO: you should have checked what relationships you are deleting
 DELETE
 FROM concept_relationship_stage
 WHERE exists (

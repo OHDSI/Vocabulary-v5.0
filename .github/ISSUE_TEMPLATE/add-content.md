@@ -33,7 +33,7 @@ Please dowload the corresponding template from [this folder](https://drive.googl
 
 **4. Upload the template.**
 
-Please go to [this folder](https://drive.google.com/drive/u/1/folders/1wXB3CK08-sPa0EdyLlIL8jHaBkuH7k3g), create a subfolder with your contribution (name it as GitHubIssueNumber_YourName) and upload your contribution there.
+Please go to [this folder](https://drive.google.com/drive/u/1/folders/1wXB3CK08-sPa0EdyLlIL8jHaBkuH7k3g), create a subfolder with your contribution (name it as GitHubIssueNumber_ContributionName_YourName) and upload your contribution there.
 
 **5. Reference the template in this issue.**
 

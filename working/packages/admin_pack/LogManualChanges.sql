@@ -11,10 +11,12 @@ $BODY$
 	*/
 DECLARE
 	iUserID INT4;
+	ALL_PRIVILEGES RECORD;
 	iRet INT8;
 	iTargetSchemaName TEXT;
+	iSpecificVocabularyID TEXT;
 BEGIN
-	--first check the fact of manual changes (relationships, concepts and synonyms), if there are none, then there is no point in requesting virtual authorization
+	--first quick check the fact of manual changes (relationships, concepts and synonyms), if there are none, then there is no point in requesting virtual authorization
 	--manual relationships
 	EXECUTE FORMAT ($$
 		SELECT * FROM (
@@ -69,6 +71,39 @@ BEGIN
 		--if we're under dev-schema
 		--start session
 		iUserID:=GetUserID();
+		--check privileges
+		ALL_PRIVILEGES:=GetAllPrivileges();
+		IF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
+			EXECUTE FORMAT ($$
+				SELECT CASE CheckUserSpecificVocabulary(local_crm.vocabulary_id_1)
+						WHEN TRUE
+							THEN local_crm.vocabulary_id_2
+						ELSE local_crm.vocabulary_id_1
+						END
+				FROM %1$I.concept_relationship_manual local_crm
+				LEFT JOIN devv5.base_concept_relationship_manual base_crm USING (
+					concept_code_1,
+					concept_code_2,
+					vocabulary_id_1,
+					vocabulary_id_2,
+					relationship_id
+					)
+				WHERE NOT CheckUserSpecificVocabulary (local_crm.vocabulary_id_1)
+					AND NOT CheckUserSpecificVocabulary (local_crm.vocabulary_id_2)
+					AND ROW (local_crm.valid_start_date, local_crm.valid_end_date, local_crm.invalid_reason)
+					IS DISTINCT FROM
+					ROW (base_crm.valid_start_date, base_crm.valid_end_date, base_crm.invalid_reason)
+				LIMIT 1
+			$$, SESSION_USER)
+			INTO iSpecificVocabularyID;
+			
+			GET DIAGNOSTICS iRet = ROW_COUNT;
+			IF iRet>0 THEN
+				RAISE EXCEPTION 'You do not have privileges to work with vocabulary: %',iSpecificVocabularyID;
+			END IF;
+		ELSEIF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
+			RAISE EXCEPTION 'You do not have privileges to work with manual relationships';
+		END IF;
 
 		--working with manual relationships
 		--insert new records, update existing
@@ -120,6 +155,30 @@ BEGIN
 		$$, SESSION_USER);
 
 		--working with manual concepts
+		IF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
+			EXECUTE FORMAT ($$
+				SELECT local_cm.vocabulary_id
+				FROM %1$I.concept_manual local_cm
+				LEFT JOIN devv5.base_concept_manual base_cm USING (
+					concept_code,
+					vocabulary_id
+					)
+				WHERE NOT CheckUserSpecificVocabulary (local_cm.vocabulary_id)
+					AND ROW (local_cm.concept_name, local_cm.domain_id, local_cm.concept_class_id, local_cm.standard_concept, local_cm.valid_start_date, local_cm.valid_end_date, local_cm.invalid_reason)
+					IS DISTINCT FROM
+					ROW (base_cm.concept_name, base_cm.domain_id, base_cm.concept_class_id, base_cm.standard_concept, base_cm.valid_start_date, base_cm.valid_end_date, base_cm.invalid_reason)
+				LIMIT 1
+			$$, SESSION_USER)
+			INTO iSpecificVocabularyID;
+			
+			GET DIAGNOSTICS iRet = ROW_COUNT;
+			IF iRet>0 THEN
+				RAISE EXCEPTION 'You do not have privileges to work with vocabulary: %',iSpecificVocabularyID;
+			END IF;
+		ELSEIF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
+			RAISE EXCEPTION 'You do not have privileges to work with manual concepts';
+		END IF;
+
 		--insert new records, update existing
 		EXECUTE FORMAT ($$
 			INSERT INTO concept_manual AS logged_cm
@@ -167,6 +226,30 @@ BEGIN
 		$$, SESSION_USER);
 
 		--working with manual synonyms
+		IF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
+			EXECUTE FORMAT ($$
+				SELECT local_csm.synonym_vocabulary_id
+				FROM %1$I.concept_synonym_manual local_csm
+				LEFT JOIN devv5.base_concept_synonym_manual base_csm USING (
+					synonym_name,
+					synonym_concept_code,
+					synonym_vocabulary_id,
+					language_concept_id
+					)
+				WHERE NOT CheckUserSpecificVocabulary (local_csm.synonym_vocabulary_id)
+					AND base_csm.synonym_concept_code IS NULL
+				LIMIT 1
+			$$, SESSION_USER)
+			INTO iSpecificVocabularyID;
+			
+			GET DIAGNOSTICS iRet = ROW_COUNT;
+			IF iRet>0 THEN
+				RAISE EXCEPTION 'You do not have privileges to work with vocabulary: %',iSpecificVocabularyID;
+			END IF;
+		ELSEIF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
+			RAISE EXCEPTION 'You do not have privileges to work with manual synonyms';
+		END IF;
+
 		--insert new records
 		--NOTE: no update here because synonyms don't have that option
 		EXECUTE FORMAT ($$

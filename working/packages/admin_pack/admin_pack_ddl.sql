@@ -48,6 +48,20 @@ CREATE TABLE admin_pack.virtual_user_privilege (
 	PRIMARY KEY (user_id, privilege_id)
 	);
 
+--5. Store user<->vocabulary pairs
+CREATE TABLE admin_pack.virtual_user_vocabulary (
+	user_id INT4 REFERENCES admin_pack.virtual_user(user_id),
+	vocabulary_concept_id INT4,-- REFERENCES devv5.vocabulary(vocabulary_concept_id), <- not unique key
+	created TIMESTAMPTZ NOT NULL,
+	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
+	modified TIMESTAMPTZ,
+	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
+	valid_start_date DATE NOT NULL,
+	valid_end_date DATE NOT NULL,
+	is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+	PRIMARY KEY (user_id, vocabulary_concept_id)
+	);
+
 --Create user for system tasks
 INSERT INTO admin_pack.virtual_user
 VALUES (
@@ -93,11 +107,45 @@ VALUES (
 	NULL
 	);
 
+INSERT INTO admin_pack.virtual_privilege
+VALUES (
+	DEFAULT,
+	'MANAGE_ANY_VOCABULARY',
+	'Can manage any vocabulary',
+	CLOCK_TIMESTAMP(),
+	1,
+	NULL,
+	NULL
+	);
+
+INSERT INTO admin_pack.virtual_privilege
+VALUES (
+	DEFAULT,
+	'MANAGE_SPECIFIC_VOCABULARY',
+	'Can only manage vocabularies specified in virtual_user_vocabulary or if the vocabulary is new',
+	CLOCK_TIMESTAMP(),
+	1,
+	NULL,
+	NULL
+	);
+	
 --Assign privileges to our user
 INSERT INTO admin_pack.virtual_user_privilege
 VALUES (
 	2,
 	1,
+	CLOCK_TIMESTAMP(),
+	1,
+	NULL,
+	NULL,
+	TO_DATE('19700101', 'YYYYMMDD'),
+	TO_DATE('20991231', 'YYYYMMDD')
+	);
+
+INSERT INTO admin_pack.virtual_user_privilege
+VALUES (
+	2,
+	2,
 	CLOCK_TIMESTAMP(),
 	1,
 	NULL,

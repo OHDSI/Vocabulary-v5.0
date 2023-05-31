@@ -23,5 +23,5 @@ BEGIN
 	);
 END;
 $BODY$
-LANGUAGE 'plpgsql' SECURITY DEFINER
+LANGUAGE 'plpgsql' STABLE SECURITY DEFINER
 SET search_path = admin_pack, pg_temp;

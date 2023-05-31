@@ -54,14 +54,14 @@ BEGIN
 
 	/*quick QA for input tables*/
 	--drug_concept_stage
-ALTER TABLE drug_concept_stage
+	ALTER TABLE drug_concept_stage
 		ADD CONSTRAINT tmp_dcs_name CHECK (concept_name IS NOT NULL AND concept_name<>''),
 		ADD CONSTRAINT tmp_dcs_domain CHECK (domain_id IS NOT NULL AND domain_id<>''),
 		ADD CONSTRAINT tmp_dcs_vocabulary CHECK (vocabulary_id IS NOT NULL AND vocabulary_id<>''),
 		ADD CONSTRAINT tmp_dcs_class CHECK (concept_class_id IS NOT NULL AND concept_class_id<>''),
 		ADD CONSTRAINT tmp_dcs_code CHECK (concept_code IS NOT NULL AND concept_code<>''),
 		ADD CONSTRAINT tmp_dcs_reason CHECK (COALESCE(invalid_reason,'D') in ('D','U'));
-	ALTER TABLE drug_concept_stage
+	ALTER TABLE drug_concept_stage 
 		DROP CONSTRAINT tmp_dcs_name,
 		DROP CONSTRAINT tmp_dcs_domain,
 		DROP CONSTRAINT tmp_dcs_vocabulary,
@@ -73,7 +73,7 @@ ALTER TABLE drug_concept_stage
 	ALTER TABLE internal_relationship_stage
 		ADD CONSTRAINT tmp_irs_code1 CHECK (concept_code_1 IS NOT NULL AND concept_code_1<>''),
 		ADD CONSTRAINT tmp_irs_code2 CHECK (concept_code_2 IS NOT NULL AND concept_code_2<>'');
-	ALTER TABLE internal_relationship_stage
+	ALTER TABLE internal_relationship_stage 
 		DROP CONSTRAINT tmp_irs_code1,
 		DROP CONSTRAINT tmp_irs_code2;
 
@@ -84,7 +84,7 @@ ALTER TABLE drug_concept_stage
 		ADD CONSTRAINT tmp_rtc_id2 CHECK (concept_id_2 IS NOT NULL),
 		ADD CONSTRAINT tmp_rtc_float CHECK (pg_typeof(conversion_factor)='numeric'::regtype),
 		ADD CONSTRAINT tmp_rtc_int2 CHECK (pg_typeof(precedence)='smallint'::regtype);
-	ALTER TABLE relationship_to_concept
+	ALTER TABLE relationship_to_concept 
 		DROP CONSTRAINT tmp_rtc_code1,
 		DROP CONSTRAINT tmp_rtc_vocabulary1,
 		DROP CONSTRAINT tmp_rtc_id2,
@@ -148,7 +148,7 @@ ALTER TABLE drug_concept_stage
 	-- Sequence for temporary XXX concept codes
 	DROP SEQUENCE IF EXISTS xxx_seq;
 	CREATE SEQUENCE xxx_seq INCREMENT BY 1 START WITH 1 NO CYCLE CACHE 20;
-	-- Sequence for non-existing concept_ids for extension concepts
+	-- Sequence for non-existing concept_ids for extension concepts 
 	DROP SEQUENCE IF EXISTS extension_id;
 	CREATE SEQUENCE extension_id INCREMENT BY -1 START WITH -1 NO CYCLE CACHE 20;
 
@@ -200,7 +200,7 @@ ALTER TABLE drug_concept_stage
 			ds.ingredient_concept_code,
 			COALESCE(ds.amount_value, 0) AS amount_value,
 			COALESCE(ds.amount_unit, ' ') AS amount_unit,
-			CASE
+			CASE 
 				WHEN rtc.concept_id_2 IN (
 						8554,
 						9325,
@@ -257,7 +257,7 @@ ALTER TABLE drug_concept_stage
 			denominator_unit --just for sequence repeatability
 		) q_ds;
 
-	-- Create table with all drug concept codes linked to the above unique components
+	-- Create table with all drug concept codes linked to the above unique components 
 	DROP TABLE IF EXISTS q_ds;
 	CREATE UNLOGGED TABLE q_ds AS
 	SELECT drug_concept_code AS concept_code,
@@ -279,7 +279,7 @@ ALTER TABLE drug_concept_stage
 
 	-- Turn gases into percent if they are in mg/mg or mg/mL
 	UPDATE q_uds q
-	SET numerator_value = CASE
+	SET numerator_value = CASE 
 			WHEN concept_id_2 = 8576
 				THEN numerator_value * 100
 			ELSE numerator_value / 10
@@ -307,7 +307,7 @@ ALTER TABLE drug_concept_stage
 				40228366
 				) -- Gas for Inhalation, Gas
 			AND rn.concept_id_2 = 8576 /*mg*/
-			AND rd.concept_id_2 IN (
+			AND rd.concept_id_2 IN ( 
 				8576 /*mg*/,
 				8587 /*mL*/
 				)
@@ -339,9 +339,9 @@ ALTER TABLE drug_concept_stage
 			FROM drug_concept_stage dcs_int
 			WHERE dcs_int.domain_id = 'Drug'
 				AND dcs_int.concept_class_id = 'Drug Product'
-
+			
 			EXCEPT
-
+			
 			SELECT drug_concept_code
 			FROM ds_stage
 			)
@@ -603,7 +603,7 @@ ALTER TABLE drug_concept_stage
 
 	UNION ALL
 
-	-- Clinical Drug Component
+	-- Clinical Drug Component 
 	SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, ' ' AS df_code, ' ' AS bn_code, 0 AS bs, ' ' AS mf_code, 'Clinical Drug Comp' AS concept_class_id
 	FROM q_combo c
 	LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
@@ -663,9 +663,9 @@ ALTER TABLE drug_concept_stage
 				'Clinical Drug Form',
 				'Branded Drug Form'
 				)
-
+		
 		UNION
-
+		
 		SELECT ds.drug_concept_id AS concept_id,
 			ds.ingredient_concept_id AS i_id
 		FROM drug_strength ds -- just in case, won't hurt if the internal_relationship table forgot something
@@ -725,7 +725,7 @@ ALTER TABLE drug_concept_stage
 			s0.denominator_unit_concept_id
 		) ds;
 
-	-- Create table with all drug concept codes linked to the above unique components
+	-- Create table with all drug concept codes linked to the above unique components 
 	DROP TABLE IF EXISTS r_ds;
 	CREATE UNLOGGED TABLE r_ds AS
 		WITH w_uds AS (
@@ -764,9 +764,9 @@ ALTER TABLE drug_concept_stage
 				'Clinical Drug Form',
 				'Branded Drug Form'
 				) -- exclude these, since they are now part of drug_strength, but don't have strength information
-
+		
 		UNION ALL -- get the drug strength information for the quantified versions of a drug from the non-quantified
-
+		
 		SELECT cr.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
 		FROM w_uds u
 		JOIN concept c1 ON c1.concept_id = u.drug_concept_id
@@ -780,9 +780,9 @@ ALTER TABLE drug_concept_stage
 			AND cr.relationship_id = 'Has quantified form'
 		JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 			AND c2.invalid_reason IS NULL -- check that resulting quantified is valid
-
+		
 		UNION ALL -- get the drug strength information for Marketed Products from the non-quantified version of the non-marketed quant drug
-
+		
 		SELECT cr2.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
 		FROM w_uds u
 		JOIN concept c1 ON c1.concept_id = u.drug_concept_id
@@ -821,7 +821,7 @@ ALTER TABLE drug_concept_stage
 	having count (i_code) = count(distinct i_code)
 	;
 
-	-- Add Drug Forms, which have no entry in ds_stage.
+	-- Add Drug Forms, which have no entry in ds_stage. 
 	INSERT INTO r_combo
 	SELECT concept_id,
 		STRING_AGG(i_code, '-' ORDER BY i_code) AS i_combo,
@@ -917,11 +917,11 @@ ALTER TABLE drug_concept_stage
 		AND c2.invalid_reason IS NULL
 	WHERE cr.invalid_reason IS NULL
 		AND cr.relationship_id = 'Has supplier';
-
+		
 	CREATE INDEX idx_r_mf ON r_mf (concept_id);
 	ANALYZE r_mf;
 
-	-- Create table with Box Size information
+	-- Create table with Box Size information 
 	DROP TABLE IF EXISTS r_bs;
 	CREATE UNLOGGED TABLE r_bs AS
 	SELECT DISTINCT drug_concept_id AS concept_id,
@@ -939,7 +939,7 @@ ALTER TABLE drug_concept_stage
 
 
 	/**************************************************************************
-	* 5. Create the list of all all existing r products in attribute notation *
+	* 5. Create the list of all all existing r products in attribute notation * 
 	***************************************************************************/
 	-- Create a blacklist of concepts with attribute problems that break conventions
 	drop table if exists workaround_cleanup
@@ -976,7 +976,7 @@ ALTER TABLE drug_concept_stage
 	from concept
 	join exclusion on
 		concept_id = descendant_concept_id
-
+		
 		union all
 	--This will remove concepts that have valid relation to inactive attributes; Build_RxE would otherwise treat them as duplicate concepts of another class
 	select concept_id as bad_concept_id, 'Valid relation to invalid attribute' as exclusion_criterion
@@ -1038,7 +1038,7 @@ ALTER TABLE drug_concept_stage
 					)
 
 							 union all
-
+				   
 			select concept_id_2
 			from concept_relationship r
 			join concept c on
@@ -1242,7 +1242,7 @@ ALTER TABLE drug_concept_stage
 
 	UNION ALL
 
-	-- Clinical Drug Component
+	-- Clinical Drug Component 
 	SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, 0 AS df_id, 0 AS bn_id, 0 AS bs, 0 AS mf_id, 'Clinical Drug Comp' AS concept_class_id
 	FROM r_combo c
 	LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
@@ -1304,7 +1304,7 @@ ALTER TABLE drug_concept_stage
 		s0.r_ds,
 		s0.u_prec,
 		s0.i_prec,
-		CASE
+		CASE 
 			WHEN s0.div > 1
 				THEN 1 / s0.div
 			ELSE s0.div
@@ -1317,7 +1317,7 @@ ALTER TABLE drug_concept_stage
 			r.ds_code AS r_ds,
 			q.u_prec,
 			q.i_prec,
-			CASE
+			CASE 
 				WHEN q.amount_value <> 0
 					AND r.amount_value <> 0
 					THEN q.amount_value / r.amount_value
@@ -1351,9 +1351,9 @@ ALTER TABLE drug_concept_stage
 			AND r.numerator_unit_concept_id = q.numerator_unit_concept_id
 			AND r.denominator_unit_concept_id = q.denominator_unit_concept_id -- join q and r on the ingredient and all the units
 		WHERE q.numerator_unit_concept_id <> 8554 -- %
-
+		
 		UNION
-
+		
 		-- % vs %
 		SELECT q.ds_code AS q_ds,
 			r.ds_code AS r_ds,
@@ -1361,7 +1361,7 @@ ALTER TABLE drug_concept_stage
 			q.i_prec,
 			q.numerator_value / r.numerator_value AS div,
 			NULL AS quant_unit,
-			NULL AS quant_unit_id -- which is not defined, really, for situations like "10 mL oxygen 90%" to "10 mL oxygen 0.9 mL/mL", because the former has no denominator_unit.
+			NULL AS quant_unit_id -- which is not defined, really, for situations like "10 mL oxygen 90%" to "10 mL oxygen 0.9 mL/mL", because the former has no denominator_unit. 
 		FROM (
 			-- q component with drug_strength in RxNorm speak (ids instead of codes)
 			SELECT qu.ds_code,
@@ -1377,9 +1377,9 @@ ALTER TABLE drug_concept_stage
 			) q
 		JOIN r_uds r ON r.ingredient_concept_id = q.ingredient_concept_id
 			AND r.numerator_unit_concept_id = 8554 -- %
-
+		
 		UNION
-
+		
 		-- % vs mg/mL
 		SELECT q.ds_code AS q_ds,
 			r.ds_code AS r_ds,
@@ -1405,9 +1405,9 @@ ALTER TABLE drug_concept_stage
 			AND r.numerator_unit_concept_id = 8576
 			AND r.denominator_unit_concept_id = 8587 -- mg/mL
 		WHERE q.numerator_unit_concept_id = 8554 -- %
-
+		
 		UNION
-
+		
 		-- mg/mL vs %
 		SELECT q.ds_code AS q_ds,
 			r.ds_code AS r_ds,
@@ -1436,9 +1436,9 @@ ALTER TABLE drug_concept_stage
 			AND r.numerator_unit_concept_id = 8554 -- %
 		WHERE q.numerator_unit_concept_id = 8576
 			AND q.denominator_unit_concept_id = 8587 -- mg/mL
-
+		
 		UNION
-
+		
 		-- mg/mg etc. vs %
 		SELECT q.ds_code AS q_ds,
 			r.ds_code AS r_ds,
@@ -1462,9 +1462,9 @@ ALTER TABLE drug_concept_stage
 			) q
 		JOIN r_uds r ON r.ingredient_concept_id = q.ingredient_concept_id
 			AND r.numerator_unit_concept_id = 8554 -- %
-
+		
 		UNION
-
+		
 		-- % vs mg/mg etc.
 		SELECT q.ds_code AS q_ds,
 			r.ds_code AS r_ds,
@@ -1623,7 +1623,7 @@ ALTER TABLE drug_concept_stage
 			-- Create all combinations of combos that share at least one ing, and calculate their size of the combos
 			q_to_r_1 AS (
 				SELECT qc.i_combo AS q_combo,
-					c.q_ing, --rc.i_combo as r_combo,
+					c.q_ing, --rc.i_combo as r_combo,   
 					c.r_ing,
 					c.i_prec,
 					qc.cnt
@@ -1656,7 +1656,7 @@ ALTER TABLE drug_concept_stage
 					qtr.i_prec,
 					qtr.cnt
 				FROM q_to_r_1 qtr
-				-- Create r and the number of ds components
+				-- Create r and the number of ds components 
 				JOIN (
 					SELECT i_combo,
 						i_code,
@@ -1898,9 +1898,9 @@ ALTER TABLE drug_concept_stage
 				'RxNorm Extension'
 				)
 			AND c_int.concept_class_id = 'Dose Form Group'
-
+		
 		UNION ALL
-
+		
 		VALUES (43126086, 36217219, 'Drug Implant Product'), -- Intrauterine System
 			(21014175, 36217219, 'Drug Implant Product'), -- Intrauterine device
 			(43563502, 36217218, 'Ophthalmic Product'), -- Intravitreal Applicator
@@ -1929,7 +1929,7 @@ ALTER TABLE drug_concept_stage
 			(46275062, -2, 'Made-up device injector'), -- Jet Injector
 			(46234468, -2, 'Made-up device injector'), -- Cartridge
 			(46234467, -2, 'Made-up device injector'), -- Pen Injector
-			(46234466, -2, 'Made-up device injector'), -- Auto-Injector
+			(46234466, -2, 'Made-up device injector'), -- Auto-Injector 
 			(19000942, -3, 'Suppository Product'), -- Suppository
 			(19082200, -3, 'Suppository Product') -- Rectal Suppository
 		) m ON m.concept_id_1 = c.concept_id
@@ -1948,7 +1948,7 @@ ALTER TABLE drug_concept_stage
 	-- Take out Dose Forms that make DFGs too broad
 	DELETE
 	FROM dfg
-	WHERE dfg_id = 36217210 -- injection
+	WHERE dfg_id = 36217210 -- injection 
 		AND df_id IN (
 			46275062, -- Jet Injector
 			46234468, -- Cartridge
@@ -1996,7 +1996,7 @@ ALTER TABLE drug_concept_stage
 
 	DELETE
 	FROM dfg
-	WHERE dfg_id = 36217211 -- Rectal Product
+	WHERE dfg_id = 36217211 -- Rectal Product 
 		AND df_id IN (
 			19082198, -- Rectal Powder
 			19082199, -- Rectal Spray
@@ -2034,7 +2034,7 @@ ALTER TABLE drug_concept_stage
 	-- 1. and 2. Match all 4: d_combo, df, bn and mf have to match - Marketed Products. Marketed Products without bn is prec=5 and 6
 	INSERT INTO x_pattern
 	SELECT q.*,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 1 -- solid drug
 			WHEN xu.precedence = 1
@@ -2187,7 +2187,7 @@ ALTER TABLE drug_concept_stage
 		NULL AS mf_id,
 		s0.quant_unit,
 		s0.quant_unit_id,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 3 + s0.new_rec -- solid drug
 			WHEN xu.precedence = 1
@@ -2281,9 +2281,9 @@ ALTER TABLE drug_concept_stage
 					AND r_e.df_id = q.df_id
 					AND r_e.bn_id = q.bn_id
 				)
-
+		
 		UNION ALL -- get existing patterns
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, quant_unit, quant_unit_id, 0 AS new_rec
 		FROM x_pattern
 		WHERE df_code IS NOT NULL
@@ -2319,7 +2319,7 @@ ALTER TABLE drug_concept_stage
 		s0.mf_id,
 		s0.quant_unit,
 		s0.quant_unit_id,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 7 + s0.new_rec -- solid drug
 			WHEN xu.precedence = 1
@@ -2428,9 +2428,9 @@ ALTER TABLE drug_concept_stage
 					AND r_e.df_id = q.df_id
 					AND r_e.mf_id = q.mf_id
 				)
-
+		
 		UNION ALL -- get existing pattern
-
+		
 		SELECT DISTINCT qi_combo,
 			ri_combo,
 			qd_combo,
@@ -2477,7 +2477,7 @@ ALTER TABLE drug_concept_stage
 		NULL AS mf_id,
 		s0.quant_unit,
 		s0.quant_unit_id,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 11 + s0.new_rec -- solid drug
 			WHEN xu.precedence = 1
@@ -2560,9 +2560,9 @@ ALTER TABLE drug_concept_stage
 				WHERE r_e.d_combo = q.rd_combo
 					AND r_e.df_id = q.df_id
 				)
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, quant_unit, quant_unit_id, 0 AS new_rec
 		FROM x_pattern
 		WHERE df_code IS NOT NULL
@@ -2597,7 +2597,7 @@ ALTER TABLE drug_concept_stage
 		NULL AS mf_id,
 		s0.quant_unit,
 		s0.quant_unit_id,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 15 + s0.new_rec -- solid drug
 			WHEN xu.precedence = 1
@@ -2671,9 +2671,9 @@ ALTER TABLE drug_concept_stage
 				WHERE r_e.d_combo = q.rd_combo
 					AND r_e.bn_id = q.bn_id
 				)
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, bn_code, bn_id, quant_unit, quant_unit_id, 0 AS new_rec
 		FROM x_pattern
 		WHERE bn_code IS NOT NULL
@@ -2708,7 +2708,7 @@ ALTER TABLE drug_concept_stage
 		NULL AS mf_id,
 		s0.quant_unit,
 		s0.quant_unit_id,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 19 + s0.new_rec -- solid drug
 			WHEN xu.precedence = 1
@@ -2754,9 +2754,9 @@ ALTER TABLE drug_concept_stage
 				FROM r_existing r_e
 				WHERE r_e.d_combo = q.rd_combo
 				)
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, quant_unit, quant_unit_id, 0 AS new_rec
 		FROM x_pattern
 		) AS s0
@@ -2843,9 +2843,9 @@ ALTER TABLE drug_concept_stage
 					AND r_e.df_id = q.df_id
 					AND r_e.bn_id = q.bn_id
 				)
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, 0 AS new_rec
 		FROM x_pattern
 		WHERE df_code IS NOT NULL
@@ -2862,9 +2862,9 @@ ALTER TABLE drug_concept_stage
 			AND q.ri_combo = x.ri_combo -- get right component in a combination aligned
 		WHERE x.qd_combo IS NULL -- only Form patterns
 			AND x.qi_combo LIKE '%-%' -- only combinations, otherwise nothing to break up
-
+		
 		EXCEPT
-
+		
 		SELECT qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
 		FROM x_pattern
 		) AS s0;
@@ -2928,9 +2928,9 @@ ALTER TABLE drug_concept_stage
 				WHERE r_e.i_combo = q.ri_combo
 					AND r_e.df_id = q.df_id
 				)
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, df_code, df_id, dfg_id, 0 AS new_rec
 		FROM x_pattern
 		WHERE df_code IS NOT NULL
@@ -2946,9 +2946,9 @@ ALTER TABLE drug_concept_stage
 			AND q.ri_combo = x.ri_combo -- get right component in a combination aligned
 		WHERE x.qd_combo IS NULL -- only Form patterns
 			AND x.qi_combo LIKE '%-%' -- only combinations, otherwise nothing to break up
-
+		
 		EXCEPT
-
+		
 		SELECT qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
 		FROM x_pattern
 		) AS s0;
@@ -2957,7 +2957,7 @@ ALTER TABLE drug_concept_stage
 	-- Pick the best translation for each qd_combo and quant_unit_id, so there is a choice when combining in extension_combo
 	INSERT INTO x_pattern
 	SELECT q0.*,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 27 -- solid drug
 			WHEN xu.precedence = 1
@@ -3012,9 +3012,9 @@ ALTER TABLE drug_concept_stage
 		FROM qr_i_combo q
 		-- Make sure it is not already covered
 		-- compare to existing to make sure pattern isn't already covered
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT qi_combo, ri_combo, 0 AS new_rec
 		FROM x_pattern
 		) AS s0;
@@ -3267,9 +3267,9 @@ ALTER TABLE drug_concept_stage
 			-- translate the ingredient
 			SELECT *
 			FROM extension_i
-
+			
 			UNION
-
+			
 			SELECT qi_combo,
 				ri_combo
 			FROM x_ing -- use only the generic, not pattern specific translation in x_pattern
@@ -3307,7 +3307,7 @@ ALTER TABLE drug_concept_stage
 	FROM extension_uds;
 
 	-- Create table linking the q and translated r or extended uds to their q combos (including all singletons)
-	-- Translated q_uds could be multiple, the best (lowest prec) for each quant_unit_id
+	-- Translated q_uds could be multiple, the best (lowest prec) for each quant_unit_id 
 	DROP TABLE IF EXISTS extension_ds;
 	CREATE UNLOGGED TABLE extension_ds AS
 	SELECT DISTINCT s0.i_combo,
@@ -3338,9 +3338,9 @@ ALTER TABLE drug_concept_stage
 				FROM q_uds q_int
 				WHERE q_int.ds_code = q1.ds_code
 				)
-
+		
 		UNION ALL -- union all singletons for Clin Comps, q_combo has only those that are mentioned in q
-
+		
 		SELECT i_code,
 			ds_code,
 			ds_code,
@@ -3357,9 +3357,9 @@ ALTER TABLE drug_concept_stage
 			u.denominator_unit_concept_id AS quant_unit_id
 		FROM extension_uds u
 		JOIN reduce_euds ru ON ru.from_code = u.ds_code
-
+		
 		UNION ALL -- and the translated ones since they get mixed with the new ones in combos
-
+		
 		SELECT s2.qd_combo AS q_ds,
 			COALESCE(ru.to_code, s2.rd) AS r_ds,
 			s2.ri_combo AS r_i,
@@ -3409,9 +3409,9 @@ ALTER TABLE drug_concept_stage
 				SELECT denominator_unit_concept_id AS qid
 				FROM extension_uds
 				WHERE denominator_unit_concept_id IS NOT NULL
-
+				
 				UNION
-
+				
 				SELECT denominator_unit_concept_id
 				FROM r_uds
 				WHERE denominator_unit_concept_id IS NOT NULL
@@ -3421,9 +3421,9 @@ ALTER TABLE drug_concept_stage
 				SELECT qid AS quant_unit_id,
 					qid
 				FROM denom -- translate unit to itself
-
+				
 				UNION
-
+				
 				SELECT - 1 AS quant_unit_id,
 					qid
 				FROM denom -- translate -1 (null) into all possibilities
@@ -3433,7 +3433,7 @@ ALTER TABLE drug_concept_stage
 		s1.qd_combo,
 		s1.rd_combo,
 		s1.quant_unit,
-		CASE
+		CASE 
 			WHEN s1.quant_unit IS NULL
 				THEN NULL
 			ELSE s1.quant_unit_id
@@ -3498,9 +3498,9 @@ ALTER TABLE drug_concept_stage
 		-- translate the ingredient
 		SELECT *
 		FROM extension_i
-
+		
 		UNION
-
+		
 		SELECT *
 		FROM x_ing -- use only the generic, not specific translation
 		) AS s1 ON s1.qi_code = s0.i_code
@@ -3521,7 +3521,7 @@ ALTER TABLE drug_concept_stage
 		NULL AS mf_id,
 		ec.quant_unit,
 		ec.quant_unit_id,
-		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec
+		CASE -- if the translation keeps the favorite quant_unit_id give it a better prec 
 			WHEN xu.precedence IS NULL
 				THEN 33 -- solid drug
 			WHEN xu.precedence = 1
@@ -3637,7 +3637,7 @@ ALTER TABLE drug_concept_stage
 				)
 	SELECT s0.concept_code, s1.concept_id, m.q_value, m.quant_unit, m.qi_combo, m.qd_combo, m.df_code, m.bn_code, m.bs, m.mf_code, m.r_value,m.quant_unit_id, m.ri_combo, m.rd_combo, m.df_id, m.bn_id, m.mf_id, 'Marketed Product' AS concept_class_id
 	FROM (
-		SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bn_code, p.bs, p.mf_code, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value,
+		SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bn_code, p.bs, p.mf_code, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value, 
 		COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id, p.ri_combo, p.rd_combo, p.df_id, p.bn_id, p.mf_id
 		FROM (
 			SELECT DISTINCT c.*,
@@ -3681,7 +3681,7 @@ ALTER TABLE drug_concept_stage
 			-- if more than one match for unit_code (different conversion factors), pick the one that matches unit_id, and if that's null, pick the one which is 1
 		LEFT JOIN x_unit xu ON xu.unit_code = p.quant_unit
 			AND xu.unit_id = COALESCE(p.quant_unit_id, xu.unit_id)
-			AND xu.conversion_factor = CASE
+			AND xu.conversion_factor = CASE 
 				WHEN p.quant_unit_id IS NULL
 					THEN 1
 				ELSE xu.conversion_factor
@@ -3785,16 +3785,16 @@ ALTER TABLE drug_concept_stage
 				JOIN q_bn q3 ON q3.concept_code = q1.concept_code
 				WHERE q1.d_combo <> ' '
 				) AS s0
-
+			
 			EXCEPT
-
+			
 			-- exclude the combinations already translated previously
 			SELECT q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs
 			FROM ex
 			)
 	SELECT s0.concept_code, s1.concept_id, m.q_value, m.quant_unit, m.qi_combo, m.qd_combo, m.df_code, m.bn_code, m.bs,
 		' ' AS mf_code, m.r_value, m.quant_unit_id, m.ri_combo, m.rd_combo, m.df_id, m.bn_id, 0 AS mf_id,
-		CASE
+		CASE 
 			WHEN m.q_value = 0
 				AND m.bs = 0
 				THEN 'Branded Drug'
@@ -3808,9 +3808,9 @@ ALTER TABLE drug_concept_stage
 		-- Collect existing
 		SELECT *
 		FROM ex
-
+		
 		UNION
-
+		
 		SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bn_code, p.bs, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value, COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id, p.ri_combo, p.rd_combo, p.df_id, p.bn_id
 		FROM (
 			SELECT DISTINCT c.*,
@@ -3845,7 +3845,7 @@ ALTER TABLE drug_concept_stage
 			AND q.quant_unit_id = COALESCE(p.quant_unit_id, q.quant_unit_id) -- q.quant_unit_id can be null in homeopathics and %
 		LEFT JOIN x_unit xu ON xu.unit_code = p.quant_unit
 			AND xu.unit_id = COALESCE(p.quant_unit_id, xu.unit_id)
-			AND xu.conversion_factor = CASE
+			AND xu.conversion_factor = CASE 
 				WHEN p.quant_unit_id IS NULL
 					THEN 1
 				ELSE xu.conversion_factor
@@ -3941,9 +3941,9 @@ ALTER TABLE drug_concept_stage
 				JOIN q_df q2 ON q2.concept_code = q1.concept_code
 				WHERE q1.d_combo <> ' '
 				) AS s0
-
+			
 			EXCEPT
-
+			
 			-- exclude the combinations already translated previously
 			SELECT q_value,
 				quant_unit,
@@ -3955,7 +3955,7 @@ ALTER TABLE drug_concept_stage
 			)
 	SELECT s0.concept_code, s1.concept_id, m.q_value, m.quant_unit, m.qi_combo, m.qd_combo, m.df_code, ' ' AS bn_code, m.bs,
 		' ' AS mf_code, m.r_value, m.quant_unit_id, m.ri_combo, m.rd_combo, m.df_id, 0 AS bn_id, 0 AS mf_id,
-		CASE
+		CASE 
 			WHEN m.q_value = 0
 				AND m.bs = 0
 				THEN 'Clinical Drug'
@@ -3969,9 +3969,9 @@ ALTER TABLE drug_concept_stage
 		-- Collect existing
 		SELECT *
 		FROM ex
-
+		
 		UNION
-
+		
 		SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bs, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value, COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id, p.ri_combo, p.rd_combo, p.df_id
 		FROM (
 			SELECT DISTINCT c.*,
@@ -3999,7 +3999,7 @@ ALTER TABLE drug_concept_stage
 			AND q.quant_unit_id = COALESCE(p.quant_unit_id, q.quant_unit_id) -- q.quant_unit_id can be null in homeopathics and %
 		LEFT JOIN x_unit xu ON xu.unit_code = p.quant_unit
 			AND xu.unit_id = COALESCE(p.quant_unit_id, xu.unit_id)
-			AND xu.conversion_factor = CASE
+			AND xu.conversion_factor = CASE 
 				WHEN p.quant_unit_id IS NULL
 					THEN 1
 				ELSE xu.conversion_factor
@@ -4042,9 +4042,9 @@ ALTER TABLE drug_concept_stage
 			FROM q_combo q1
 			JOIN q_df q2 ON q2.concept_code = q1.concept_code
 			JOIN q_bn q3 ON q3.concept_code = q1.concept_code
-
+			
 			EXCEPT
-
+			
 			-- exclude the combinations already translated previously
 			SELECT qi_combo, df_code, bn_code
 			FROM ex
@@ -4055,9 +4055,9 @@ ALTER TABLE drug_concept_stage
 		-- Collect existing
 		SELECT *
 		FROM ex
-
+		
 		UNION
-
+		
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY c.qi_combo,
@@ -4114,9 +4114,9 @@ ALTER TABLE drug_concept_stage
 			SELECT q1.i_combo AS qi_combo, q2.df_code
 			FROM q_combo q1
 			JOIN q_df q2 ON q2.concept_code = q1.concept_code
-
+			
 			EXCEPT
-
+			
 			-- exclude the combinations already translated previously
 			SELECT qi_combo, df_code
 			FROM ex
@@ -4127,9 +4127,9 @@ ALTER TABLE drug_concept_stage
 		-- Collect existing
 		SELECT *
 		FROM ex
-
+		
 		UNION
-
+		
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY c.qi_combo,
@@ -4181,9 +4181,9 @@ ALTER TABLE drug_concept_stage
 			FROM q_combo q1
 			JOIN q_bn q2 ON q2.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-
+			
 			EXCEPT
-
+			
 			-- exclude the combinations already translated previously
 			SELECT qi_combo,
 				qd_combo,
@@ -4196,9 +4196,9 @@ ALTER TABLE drug_concept_stage
 		-- Collect existing
 		SELECT *
 		FROM ex
-
+		
 		UNION
-
+		
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY c.qd_combo,
@@ -4298,9 +4298,9 @@ ALTER TABLE drug_concept_stage
 			JOIN (
 				SELECT *
 				FROM r_breakup -- break up combos
-
+				
 				UNION ALL
-
+				
 				SELECT rd_combo,
 					ri_combo,
 					rd_combo AS ds_code
@@ -4313,9 +4313,9 @@ ALTER TABLE drug_concept_stage
 				SELECT qi_code AS q_i,
 					ri_code AS r_i
 				FROM qr_ing
-
+				
 				UNION ALL
-
+				
 				SELECT qi_code,
 					ri_code
 				FROM extension_i
@@ -4328,9 +4328,9 @@ ALTER TABLE drug_concept_stage
 			FROM q_combo q1
 			JOIN q_breakup q2 ON q2.qd_combo = q1.d_combo
 			WHERE q1.d_combo <> ' '
-
+			
 			EXCEPT
-
+			
 			-- exclude the combinations already translated previously
 			SELECT qi_combo,
 				qd_combo
@@ -4342,9 +4342,9 @@ ALTER TABLE drug_concept_stage
 		-- Collect existing
 		SELECT *
 		FROM ex
-
+		
 		UNION
-
+		
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY x.qd_combo ORDER BY x.prec
@@ -4423,7 +4423,7 @@ ALTER TABLE drug_concept_stage
 	* 11. Create names *
 	*******************/
 
-	-- Auto-generate all names
+	-- Auto-generate all names 
 	-- Create RxNorm-style units. UCUM units have no normalized abbreviation
 	DROP TABLE IF EXISTS rxnorm_unit;
 	CREATE UNLOGGED TABLE rxnorm_unit (
@@ -4431,7 +4431,7 @@ ALTER TABLE drug_concept_stage
 		concept_id int4
 		);
 
-	INSERT INTO rxnorm_unit VALUES
+	INSERT INTO rxnorm_unit VALUES 
 	 ('ORGANISMS', 45744815), -- Organisms, UCUM calls it {bacteria}
 	 ('%', 8554),
 	 ('ACTUAT', 45744809), -- actuation
@@ -4469,9 +4469,9 @@ ALTER TABLE drug_concept_stage
 					c.concept_name
 				FROM ing_stage i
 				JOIN concept c ON c.concept_id = i.i_id
-
+				
 				UNION
-
+				
 				SELECT i.ri_code,
 					ds.concept_name
 				FROM extension_i i
@@ -4484,9 +4484,9 @@ ALTER TABLE drug_concept_stage
 				FROM extension_attribute
 				WHERE rd_combo NOT LIKE '%-%'
 					AND rd_combo <> ' ' -- singletons
-
+				
 				UNION
-
+				
 				SELECT rd_combo,
 					r_ds AS ds_code
 				FROM r_breakup -- break up combos
@@ -4496,13 +4496,13 @@ ALTER TABLE drug_concept_stage
 				SELECT s0.ds_code,
 					n.concept_name,
 					s0.amount_value + s0.numerator_value AS v, -- one of them is null
-					CASE
+					CASE 
 						WHEN s0.numerator_unit_concept_id IN (
 								8554,
 								9325,
 								9324
 								)
-							THEN nu.rxn_unit -- percent and homeopathics
+							THEN nu.rxn_unit -- percent and homeopathics 
 						WHEN s0.numerator_value <> 0
 							THEN CONCAT (
 									nu.rxn_unit,
@@ -4515,9 +4515,9 @@ ALTER TABLE drug_concept_stage
 					-- get details on uds in r
 					SELECT *
 					FROM extension_uds
-
+					
 					UNION
-
+					
 					SELECT *
 					FROM r_uds -- adding them even though they already exist because they might be one of many components
 					) AS s0
@@ -4541,7 +4541,7 @@ ALTER TABLE drug_concept_stage
 				SELECT rd_combo,
 					CONCAT (
 						concept_name,
-						CASE
+						CASE 
 							WHEN v IS NULL
 								THEN NULL
 							ELSE CONCAT (
@@ -4555,7 +4555,7 @@ ALTER TABLE drug_concept_stage
 				)
 	-- build the component
 	SELECT c.concept_id,
-		CASE
+		CASE 
 			WHEN c.r_value = 0
 				THEN NULL
 			ELSE CONCAT (
@@ -4569,7 +4569,7 @@ ALTER TABLE drug_concept_stage
 							Note: this works ONLY for default windowing clause (UNBOUNDED PRECEDING and current row)
 							*/
 							(
-								CASE
+								CASE 
 									WHEN q.rxn_unit IS NULL
 										THEN 0
 									ELSE 1
@@ -4585,23 +4585,23 @@ ALTER TABLE drug_concept_stage
 			PARTITION BY c.concept_id ORDER BY comp.comp_name ROWS BETWEEN UNBOUNDED PRECEDING
 					AND CURRENT ROW
 			) AS agg_len,
-		CASE
+		CASE 
 			WHEN c.df_id = 0
 				THEN NULL
 			ELSE ' '|| COALESCE(edf.concept_name, df.concept_name)
 			END AS df_name,
-		CASE
+		CASE 
 			WHEN c.bn_id = 0
 				THEN NULL
 			ELSE ' [' || COALESCE(ebn.concept_name, bn.concept_name) || ']'
 			END AS bn_name,
 		' Box of ' || NULLIF (c.bs,0) AS box,
-		CASE
+		CASE 
 			WHEN c.mf_id = 0
 				THEN NULL
 					-- remove stop words
 			ELSE ' by ' || REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(emf.concept_name, mf.concept_name), ' Ltd', ''), ' Plc', ''), ' UK', ''), ' (UK)', ''), ' Pharmaceuticals', ''), ' Pharma', ''), ' GmbH', ''), 'Laboratories', '')
-				--  else ' by '||regexp_replace(nvl(emf.concept_name, mf.concept_name), ' Inc\.?| Ltd\.?| Plc| PLC| UK| \(UK\)| \(U\.K\.\)| Canada| Pharmaceuticals| Pharma| GmbH| Laboratories') -- XXXX use this going forward
+				--  else ' by '||regexp_replace(nvl(emf.concept_name, mf.concept_name), ' Inc\.?| Ltd\.?| Plc| PLC| UK| \(UK\)| \(U\.K\.\)| Canada| Pharmaceuticals| Pharma| GmbH| Laboratories') -- XXXX use this going forward 
 			END AS mf_name
 	FROM extension_attribute c
 	JOIN (
@@ -4633,9 +4633,9 @@ ALTER TABLE drug_concept_stage
 				c.concept_name
 			FROM ing_stage i
 			JOIN concept c ON c.concept_id = i.i_id
-
+			
 			UNION
-
+			
 			SELECT i.ri_code,
 				ds.concept_name
 			FROM extension_i i
@@ -4665,7 +4665,7 @@ ALTER TABLE drug_concept_stage
 			PARTITION BY c.concept_id ORDER BY comp.comp_name ROWS BETWEEN UNBOUNDED PRECEDING
 					AND CURRENT ROW
 			) AS agg_len,
-		CASE
+		CASE 
 			WHEN c.df_id = 0
 				THEN NULL
 			ELSE CONCAT (
@@ -4673,7 +4673,7 @@ ALTER TABLE drug_concept_stage
 					COALESCE(edf.concept_name, df.concept_name)
 					)
 			END AS df_name,
-		CASE
+		CASE 
 			WHEN c.bn_id = 0
 				THEN NULL
 			ELSE CONCAT (
@@ -4706,7 +4706,7 @@ ALTER TABLE drug_concept_stage
 		concept_id int4,
 		concept_name VARCHAR(255)
 		);
-	-- Create names
+	-- Create names 
 	INSERT INTO extension_name
 	SELECT s0.concept_id,
 		-- count the cumulative length of the components. The tildas are to make sure the three dots are put at the end of the list
@@ -4724,9 +4724,9 @@ ALTER TABLE drug_concept_stage
 		FROM spelled_out s
 		WHERE s.agg_len <= 253 - (COALESCE(LENGTH(s.quant), 0) + COALESCE(LENGTH(s.df_name), 0) + COALESCE(LENGTH(s.bn_name), 0) + COALESCE(LENGTH(s.box), 0) + COALESCE(LENGTH(s.mf_name), 0) + 3)
 		-- Add three dots if ingredients are to be cut
-
+		
 		UNION ALL
-
+		
 		SELECT DISTINCT s.concept_id,
 			s.quant,
 			'~~~' AS comp_name, -- last ASCII character to make sure they get sorted towards the end.
@@ -4790,7 +4790,7 @@ ALTER TABLE drug_concept_stage
 		MAX(COALESCE(q_bn.bn_id, 0)) AS bn_id,
 		MAX(COALESCE(pc.box_size, 0)) AS bs,
 		MAX(COALESCE(q_mf.mf_id, 0)) AS mf_id,
-		MAX(CASE
+		MAX(CASE 
 				WHEN q_mf.mf_id IS NOT NULL
 					THEN 'Marketed Product'
 				WHEN pc.box_size IS NOT NULL
@@ -4905,9 +4905,9 @@ ALTER TABLE drug_concept_stage
 		FROM full_pack
 		WHERE bn_id <> 0
 			AND bs <> 0
-
+		
 		UNION -- add more from q
-
+		
 		SELECT components, cnt, bn_id, bs
 		FROM q_existing_pack
 		WHERE bn_id <> 0
@@ -4938,9 +4938,9 @@ ALTER TABLE drug_concept_stage
 		SELECT components, cnt, bn_id
 		FROM full_pack
 		WHERE bn_id <> 0
-
+		
 		UNION
-
+		
 		SELECT components, cnt, bn_id
 		FROM q_existing_pack
 		WHERE bn_id <> 0
@@ -4971,9 +4971,9 @@ ALTER TABLE drug_concept_stage
 		SELECT components, cnt, bs
 		FROM full_pack
 		WHERE bs <> 0
-
+		
 		UNION
-
+		
 		SELECT components, cnt, bs
 		FROM q_existing_pack
 		WHERE bs <> 0
@@ -5003,9 +5003,9 @@ ALTER TABLE drug_concept_stage
 	FROM (
 		SELECT components, cnt
 		FROM full_pack
-
+		
 		UNION
-
+		
 		SELECT components, cnt
 		FROM q_existing_pack
 		WHERE bn_id = 0
@@ -5050,7 +5050,7 @@ ALTER TABLE drug_concept_stage
 						PARTITION BY cp.concept_id ORDER BY LOWER(COALESCE(cr.concept_name, en.concept_name))
 						) AS c_order,
 					CONCAT (
-						CASE
+						CASE 
 							WHEN cp.amount = 0
 								THEN NULL
 							ELSE CONCAT (
@@ -5063,7 +5063,7 @@ ALTER TABLE drug_concept_stage
 							COALESCE(cr.concept_name, en.concept_name)
 							)
 						) AS content_name,
-					CASE
+					CASE 
 						WHEN cp.amount = 0
 							THEN 0
 						ELSE LENGTH(cp.amount::VARCHAR) + 1
@@ -5088,13 +5088,13 @@ ALTER TABLE drug_concept_stage
 			-- Get the common part
 			common_part AS (
 				SELECT DISTINCT cp.concept_id,
-					CASE
+					CASE 
 						WHEN cp.bn_id = 0
 							THEN NULL
 						ELSE ' [' || COALESCE(bn.concept_name, ebn.concept_name) || ']'
 						END AS bn_name,
 					' box of ' || NULLIF (cp.bs,0) AS bs_name,
-					CASE
+					CASE 
 						WHEN cp.mf_id = 0
 							THEN NULL
 						ELSE ' by ' || COALESCE(mf.concept_name, emf.concept_name)
@@ -5132,7 +5132,7 @@ ALTER TABLE drug_concept_stage
 			cutted AS (
 				SELECT l.concept_id,
 					c.c_order,
-					CASE
+					CASE 
 						WHEN l.factor < 1
 							THEN CONCAT (
 									SUBSTR(c.content_name, 1, GREATEST((c.n_len * l.factor)::INT - 3, 0)),
@@ -5318,7 +5318,7 @@ ALTER TABLE drug_concept_stage
 		'Drug' AS domain_id,
 		'RxNorm Extension' AS vocabulary_id,
 		ea.concept_class_id,
-		'S' AS standard_concept, -- Standard Concept
+		'S' AS standard_concept, -- Standard Concept 
 		'OMOP' || NEXTVAL('omop_seq') AS concept_code,
 		(
 			SELECT latest_update
@@ -5628,9 +5628,9 @@ ALTER TABLE drug_concept_stage
 			FROM extension_attribute
 			WHERE rd_combo NOT LIKE '%-%'
 				AND rd_combo <> ' ' -- singletons
-
+			
 			UNION
-
+			
 			SELECT rd_combo,
 				r_ds AS ds_code
 			FROM r_breakup -- break up combos
@@ -5683,9 +5683,9 @@ ALTER TABLE drug_concept_stage
 			c.vocabulary_id
 		FROM ing_stage i
 		JOIN concept c ON c.concept_id = i.i_id
-
+		
 		UNION
-
+		
 		SELECT ri_code,
 			ri_code,
 			'RxNorm Extension'
@@ -5694,7 +5694,7 @@ ALTER TABLE drug_concept_stage
 	WHERE de.concept_class_id = 'Clinical Drug Comp'
 		AND de.concept_id < 0;
 
-	-- Ingredients to Clinical Drug Form
+	-- Ingredients to Clinical Drug Form 
 	INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		vocabulary_id_1,
@@ -5798,7 +5798,7 @@ ALTER TABLE drug_concept_stage
 		FROM concept_stage
 		WHERE concept_class_id = 'Dose Form' -- the new negative ones
 		) df ON df.df_id = de.df_id
-	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
+	WHERE de.concept_id < 0
 		AND de.df_id <> 0;
 
 	-- Brand Names
@@ -5846,7 +5846,7 @@ ALTER TABLE drug_concept_stage
 		FROM concept_stage
 		WHERE concept_class_id = 'Brand Name' -- the new negative ones
 		) bn ON bn.bn_id = de.bn_id
-	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
+	WHERE de.concept_id < 0
 		AND de.bn_id <> 0;
 
 	-- Suppliers
@@ -5894,7 +5894,7 @@ ALTER TABLE drug_concept_stage
 		FROM concept_stage
 		WHERE concept_class_id = 'Supplier' -- the new negative ones
 		) mf ON mf.mf_id = de.mf_id
-	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
+	WHERE de.concept_id < 0
 		AND de.mf_id <> 0;
 
 	-- Write relationships between Brand Name and Ingredient
@@ -6257,7 +6257,7 @@ ALTER TABLE drug_concept_stage
 		domain_id,
 		vocabulary_id,
 		COALESCE(source_concept_class_id, concept_class_id) AS concept_class_id,
-		CASE
+		CASE 
 			WHEN invalid_reason IS NULL
 				THEN 'S'
 			ELSE NULL
@@ -6346,9 +6346,9 @@ ALTER TABLE drug_concept_stage
 		FROM x_ing x
 		JOIN ing_stage i ON i.i_code = x.ri_combo
 		JOIN concept c ON c.concept_id = i.i_id -- translate to existing RxE ones
-
+		
 		UNION
-
+		
 		SELECT qi_code,
 			ri_code,
 			'RxNorm Extension'
@@ -6390,9 +6390,9 @@ ALTER TABLE drug_concept_stage
 			c.vocabulary_id
 		FROM x_df x
 		JOIN concept c ON c.concept_id = x.df_id -- translate to existing RxE ones
-
+		
 		UNION
-
+		
 		SELECT df.df_code,
 			cs.concept_code,
 			cs.vocabulary_id
@@ -6435,9 +6435,9 @@ ALTER TABLE drug_concept_stage
 			c.vocabulary_id
 		FROM x_bn x
 		JOIN concept c ON c.concept_id = x.bn_id
-
+		
 		UNION
-
+		
 		SELECT bn.bn_code,
 			cs.concept_code,
 			cs.vocabulary_id
@@ -6480,9 +6480,9 @@ ALTER TABLE drug_concept_stage
 			c.vocabulary_id
 		FROM x_mf x
 		JOIN concept c ON c.concept_id = x.mf_id
-
+		
 		UNION
-
+		
 		SELECT mf.mf_code,
 			cs.concept_code,
 			cs.vocabulary_id
@@ -6607,7 +6607,7 @@ ALTER TABLE drug_concept_stage
 		COALESCE(i.ingredient_vocabulary_id, 'RxNorm Extension') AS ingredient_concept_code,
 		NULLIF(s1.amount_value, 0) AS amount_value,
 		NULLIF(s1.amount_unit_concept_id, 0) AS amount_unit_concept_id,
-		CASE
+		CASE 
 			WHEN s1.numerator_unit_concept_id IN (
 					8554,
 					9325,
@@ -6642,9 +6642,9 @@ ALTER TABLE drug_concept_stage
 		FROM extension_attribute
 		WHERE rd_combo NOT LIKE '%-%'
 			AND rd_combo <> ' ' -- singletons
-
+		
 		UNION
-
+		
 		SELECT rd_combo,
 			r_ds
 		FROM r_breakup -- break up combos
@@ -6653,9 +6653,9 @@ ALTER TABLE drug_concept_stage
 		-- get the strength detail, either from r or the new extension
 		SELECT *
 		FROM r_uds
-
+		
 		UNION
-
+		
 		SELECT *
 		FROM extension_uds
 		) AS s1 ON s1.ds_code = s0.r_ds

@@ -253,8 +253,8 @@ select a.concept_id,
        a.concept_code,
        a.concept_name,
        string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
-       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
-       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
+       string_agg (case when a.concept_id=b.concept_id and r.relationship_id ='Maps to' then '<Mapped to itself>' else b.concept_code end, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (case when a.concept_id=b.concept_id and r.relationship_id ='Maps to' then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -271,8 +271,8 @@ select a.concept_id,
        a.concept_code,
        a.concept_name,
        string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
-       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
-       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
+       string_agg (case when a.concept_id=b.concept_id and r.relationship_id ='Maps to' then '<Mapped to itself>' else b.concept_code end, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (case when a.concept_id=b.concept_id and r.relationship_id ='Maps to' then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from devv5.concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2

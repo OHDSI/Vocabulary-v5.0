@@ -127,6 +127,9 @@ BEGIN
 		AND crs.vocabulary_id_2 = am.vocabulary_id_2
 		AND crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL;
+
+	--if the function is executed in a transaction, then by the time of the next call the temp table will exist
+	DROP TABLE has_rel_with_comp, ambiguous_mappings;
 END;
 $BODY$
 LANGUAGE 'plpgsql';

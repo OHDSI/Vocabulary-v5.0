@@ -1,16 +1,18 @@
--- Check if there are any known drug Brand names missed in the mapping:
--- This check allows to retrieve target brand names from manual mapping and brand names that correspond to the ingredients, mentioned in the source,
---- and compare them. Our aim is to reveal so called 'stable' brand names, when only one RxNorm brand corresponds to one ingredient/combination.
--- Three flags are used in the 'flag' field:
---- definite brand - in case when the source concepts contains a particular brand name
---- possible brand - when the brand is defined according to RxNorm hierarchy
---- no ing detected - in case when ingredient name in the source differs from the standard ingredient (typos, alternative spelling, etc.)
--- Following flags are used in the 'mapping' field:
---- correct mapping - in case when source and target brands are equal
---- review mapping - in case when source and target concept differ
--- The 'brand' field indicates brand names that correspond to the source ingredients.
---- If there are several brands for one ingredient/combination then 'Multiple brands' flag is used.
---- If there no RxNorm brand name corresponds to the ingredient then 'No brand' flag is used.
+-- 1. Check if there are any known drug Brand names missed in the mapping:
+--- This check allows to retrieve target brand names from manual mapping and brand names that correspond to the ingredients, mentioned in the source,
+---- and compare them. Our aim is to reveal so called 'stable' brand names, when only one RxNorm brand corresponds to one ingredient/combination.
+--- Three flags are used in the 'flag' field:
+----- definite brand - in case when the source concepts contains a particular brand name
+----- possible brand - when the brand is defined according to RxNorm hierarchy
+----- no ing detected - in case when ingredient name in the source differs from the standard ingredient (typos, alternative spelling, etc.)
+--- Following flags are used in the 'mapping' field:
+----- correct mapping - in case when source and target brands are equal
+----- incorrect mapping - in case when there's a stable brand in RxNorm, but our source mapped to another brand
+----- no brand mapped - in case when there's a stable brand in RxNorm, but our source has no mapping to any brand
+----- review mapping - in all other cases when source and target concept differ (no ingredient detected, multiple brands, etc.)
+--- The 'brand' field indicates brand names that correspond to the source ingredients.
+---- If there are several brands for one ingredient/combination then 'Multiple brands' flag is used.
+---- If there no RxNorm brand name corresponds to the ingredient then 'No brand' flag is used.
 
 -- define brand names of target concepts:
 WITH mapped_brand AS
@@ -19,7 +21,7 @@ WITH mapped_brand AS
            c1.concept_name AS target_name,
            c1.vocabulary_id AS target_vocab,
            CASE WHEN c1.concept_class_id LIKE '%Brand%'
-               THEN c2.concept_name END AS mapped_Brand
+               THEN c2.concept_name END AS mapped_brand
     FROM concept_relationship cr
     JOIN concept c ON c.concept_id = cr.concept_id_1
     JOIN concept c1 ON c1.concept_id = cr.concept_id_2
@@ -196,14 +198,14 @@ final_tab AS
     (SELECT DISTINCT hcpcs_code,
                      hcpcs_name,
                      'possible brand' AS flag,
-                      CASE WHEN count(Brand_name) OVER (PARTITION BY hcpcs_code) > 1
+                      CASE WHEN count(brand_name) OVER (PARTITION BY hcpcs_code) > 1
                           THEN 'Multiple brands'
                       WHEN brand_name IS NULL
                           THEN 'No brand'
                       ELSE brand_name END
                           AS brand
     FROM ing_agg i
-    LEFT JOIN cr_Brand b ON i.ing_id = b.ing_id
+    LEFT JOIN cr_brand b ON i.ing_id = b.ing_id
 
     UNION ALL
 
@@ -218,13 +220,68 @@ SELECT m.concept_code AS source_code,
            END AS flag,
        brand,
        CASE WHEN m.mapped_brand = brand THEN 'correct mapping'
+              WHEN m.mapped_brand IS NULL
+                          AND brand != 'No brand'
+                          AND brand != 'Multiple brands'
+                     THEN 'no brand mapped'
+              WHEN m.concept_name != brand
+                          AND m.mapped_brand IS NOT NULL
+                          AND brand != 'No brand'
+                          AND brand != 'Multiple brands'
+                     THEN 'incorrect mapping'
             ELSE 'review mapping'END AS mapping,
         target_name,
         target_vocab
 FROM final_tab u
 RIGHT JOIN mapped_brand m ON m.concept_code = u.hcpcs_code
-ORDER BY mapping, flag, hcpcs_code
+ORDER BY mapping, flag, brand, hcpcs_code
     ;
 
+-- 2. Our aim is to build a unique hierarchy of Procedures with HCPCS embedded in SNOMED/OMOP Ext hierarchy.
+--- The script below retrieves the number of concepts in hierarchy against the number of concepts that are not yet in hierarchy.
+--- Since HCPCS also has indirect hierarchical relationships to SNOMED (eg. HCPCS - 'Is a' - CPT4 - 'Is a' - SNOMED), we use concept ancestor to engulf them
+--- Use this counts for analysis and renew respective numbers in https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
 
+WITH concepts_in_hierarchy AS (SELECT DISTINCT c2.concept_id AS concept_id
+                               FROM devv5.concept_ancestor ca
+                                        JOIN concept c1 ON ca.ancestor_concept_id = c1.concept_id
+                                        JOIN concept c2 ON ca.descendant_concept_id = c2.concept_id
+                               WHERE c2.vocabulary_id = 'HCPCS'
+                                 AND c2.concept_class_id = 'HCPCS'
+                                 AND c1.vocabulary_id IN ('SNOMED', 'OMOP Extension')),
+
+     concepts_not_in_hierarchy AS (SELECT concept_id
+                                   FROM concept
+                                   WHERE concept_id NOT IN (SELECT concept_id
+                                                            FROM concepts_in_hierarchy)
+                                     AND vocabulary_id = 'HCPCS'
+                                     AND concept_class_id = 'HCPCS'
+                                   and standard_concept = 'S'),
+
+	mapped_concepts as (SELECT DISTINCT concept_id
+						FROM concept_relationship cr
+						JOIN concept c ON cr.concept_id_1 = c.concept_id
+						WHERE vocabulary_id = 'HCPCS'
+						AND cr.concept_id_1 != cr.concept_id_2
+						AND cr.invalid_reason IS NULL
+						AND cr.relationship_id = 'Maps to'
+	   )
+
+SELECT 'concepts_in_hierarchy' AS status,
+       COUNT(concept_id)
+FROM concepts_in_hierarchy
+
+UNION
+
+SELECT 'standard_concepts_not_in_hierarchy' AS status,
+       COUNT(concept_id)
+FROM concepts_not_in_hierarchy
+
+UNION
+
+SELECT 'mapped_concepts' AS status,
+       COUNT(concept_id)
+FROM mapped_concepts
+
+;
 

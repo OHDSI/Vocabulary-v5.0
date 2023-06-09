@@ -1,4 +1,4 @@
---Backup concept_relationship_manual table and concept_manual table.
+--3.1. Backup concept_relationship_manual table and concept_manual table.
 DO
 $body$
     DECLARE
@@ -35,7 +35,7 @@ $body$;
 INSERT INTO dev_cvx.concept_manual
 SELECT * FROM dev_cvx.concept_manual_backup_YYYY_MM_DD;*/
 
---Create cvx_mapped table and pre-populate it with the resulting manual table of the previous cvx refresh.
+--3.2. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous cvx refresh.
 --DROP TABLE dev_cvx.cvx_mapped;
 CREATE TABLE dev_cvx.cvx_mapped
 (
@@ -57,11 +57,16 @@ CREATE TABLE dev_cvx.cvx_mapped
     target_vocabulary_id varchar(50)
 );
 
+--3.3. Review the previous mappings and manually add new to the snomed_mapped table
 
---Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
+--3.4. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_cvx.cvx_mapped;
 
---Deprecate all mappings that differ from the new version of resulting mapping file.
+--3.5. Perform any mapping checks you have set.
+
+--3.6. Iteratively repeat steps 3.3-3.5 if found any issues.
+
+--3.7. Deprecate all mappings that differ from the new version of resulting mapping file.
 UPDATE dev_cvx.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -95,7 +100,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
     )
 ;
 
---Insert new and corrected mappings into the concept_relationship_manual table.
+--3.8. Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -129,7 +134,7 @@ INSERT INTO dev_cvx.concept_relationship_manual(concept_code_1, concept_code_2, 
     )
 ;
 
---Activate mapping, that became valid again
+--3.9 Activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
     valid_end_date = to_date('20991231','yyyymmdd'),

@@ -37,7 +37,7 @@ der2_ssRefset_ModuleDependencyFull_GB1000000_YYYYMMDD.txt
 
 Rename files to sct2_Concept_Full-UK.txt, sct2_Description_Full-UK.txt, sct2_Relationship_Full-UK.txt, der2_cRefset_LanguageFull_UK.txt, der2_ssRefset_ModuleDependencyFull_UK.txt
 
-6. Download the US SNOMED file SnomedCT_USEditionRF2_PRODUCTION_YYYYMMDDTzzzzzzZ.zip from https://www.nlm.nih.gov/healthit/snomedct/us_edition.html
+6. Download the US SNOMED file SnomedCT_ManagedServiceUS_PRODUCTION_USxxxxxxx_YYYYMMDDT120000Z.zip from https://www.nlm.nih.gov/healthit/snomedct/us_edition.html
 7. Extract the following files from the folder \Full\Terminology\ into a working folder:  
 sct2_Concept_Full_US1000124_YYYYMMDD.txt  
 sct2_Description_Full-en_US1000124_YYYYMMDD.txt  
@@ -75,6 +75,13 @@ Rename files to sct2_Concept_Full_GB_DE.txt, sct2_Description_Full-en-GB_DE.txt,
 - der2_cRefset_AssociationFull_GBxxxxxxx_YYYYMMDD.txt from SnomedCT_UKDrugRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
 Rename to der2_cRefset_AssociationFull_INT.txt, der2_cRefset_AssociationFull_UK.txt, der2_cRefset_AssociationFull_US.txt and der2_cRefset_AssociationFull_GB_DE.txt
 
-11. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED',TO_DATE('20180131','YYYYMMDD'),'Snomed Release 20180131');
-12. Run load_stage.sql
-13. Run generic_update: devv5.GenericUpdate();
+11. Extract
+- der2_cRefset_AttributeValueFull_INT_YYYYMMDD.txt from SnomedCT_InternationalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
+- der2_cRefset_AttributeValueFull_GBxxxxxxx_YYYYMMDD.txt from uk_sct2cl_xx.x.x__YYYYMMDD000001\SnomedCT_UKClinicalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
+- der2_cRefset_AttributeValueFull_USxxxxxxx_YYYYMMDD.txt from SnomedCT_USEditionRF2_PRODUCTION_YYYYMMDDTzzzzzz\Full\Refset\Content
+- der2_cRefset_AttributeValueFull_GBxxxxxxx_YYYYMMDD.txt from SnomedCT_UKDrugRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
+Rename to der2_cRefset_AttributeValueFull_INT.txt, der2_cRefset_AttributeValueFull_UK.txt, der2_cRefset_AttributeValueFull_US.txt and der2_cRefset_AttributeValue_GB_DE.txt
+
+12. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED',TO_DATE('20180131','YYYYMMDD'),'Snomed Release 20180131');
+13. Run load_stage.sql
+14. Run generic_update: devv5.GenericUpdate();

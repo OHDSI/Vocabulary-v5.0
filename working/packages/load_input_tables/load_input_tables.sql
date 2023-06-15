@@ -447,7 +447,7 @@ begin
         from sources.py_xlsparse_hcpcs(pVocabularyPath||'/HCPC_CONTR_ANWEB.xlsx') where add_date ~ '\d{6}';
       PERFORM sources_archive.AddVocabularyToArchive('HCPCS', ARRAY['anweb_v2'], COALESCE(pVocabularyDate,current_date), 'archive.hcpcs_version', 10);
   when 'SNOMED' then
-      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_language_merged;
+      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_attributevalue_full_merged, sources.der2_crefset_language_merged;
       drop index sources.idx_concept_merged_id;
       drop index sources.idx_desc_merged_id;
       drop index sources.idx_rela_merged_id;
@@ -499,6 +499,17 @@ begin
         AND s_int.active = s.active AND s_int.moduleid=s.moduleid
         AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
         AND s_int.targetcomponent = s.targetcomponent AND s_int.ctid > s.ctid);
+      --loading der2_crefset_attributevalue_full_merged
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValue_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --delete duplicate records
+      DELETE FROM sources.der2_crefset_attributevalue_full_merged s WHERE EXISTS (SELECT 1 FROM sources.der2_crefset_attributevalue_full_merged s_int 
+      	WHERE s_int.id = s.id AND s_int.effectivetime=s.effectivetime
+        AND s_int.active = s.active AND s_int.moduleid=s.moduleid
+        AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
+        AND s_int.valueid = s.valueid AND s_int.ctid > s.ctid);
       CREATE INDEX idx_concept_merged_id ON sources.sct2_concept_full_merged (id);
       CREATE INDEX idx_desc_merged_id ON sources.sct2_desc_full_merged (conceptid);
       CREATE INDEX idx_rela_merged_id ON sources.sct2_rela_full_merged (id);
@@ -529,7 +540,7 @@ begin
       truncate table sources.der2_iisssccrefset_extendedmapfull_us;
       execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       PERFORM sources_archive.AddVocabularyToArchive('SNOMED', ARRAY['sct2_concept_full_merged','sct2_desc_full_merged','sct2_rela_full_merged','der2_crefset_assreffull_merged','der2_crefset_language_merged',
-        'der2_srefset_simplemapfull_int','der2_ssrefset_moduledependency_merged','der2_iisssccrefset_extendedmapfull_us'], COALESCE(pVocabularyDate,current_date), 'archive.snomed_version', 10);
+        'der2_srefset_simplemapfull_int','der2_ssrefset_moduledependency_merged','der2_iisssccrefset_extendedmapfull_us','der2_crefset_attributevalue_full_merged'], COALESCE(pVocabularyDate,current_date), 'archive.snomed_version', 10);
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';

@@ -546,6 +546,8 @@ FROM (
 						)
 					)
 				THEN 'Observation'
+			WHEN c.concept_code = '0777T'
+				THEN 'Device'
 			WHEN c.concept_id IS NOT NULL
 				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
 			ELSE 'Procedure'

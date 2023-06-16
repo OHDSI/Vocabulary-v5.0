@@ -75,6 +75,28 @@ mapping AS (
                and concept_id_1 in (SELECT DISTINCT source_id from equivalence)
 ),
 
+-- concept inactivation reasons
+inact_reason as (
+       SELECT cast(referencedcomponentid AS varchar) as source_code,
+              m1.valueid,
+              d.term
+       FROM sources.der2_crefset_attributevalue_full_merged m1
+								  JOIN sources.der2_crefset_assreffull_merged m2 USING (referencedcomponentid)
+								  JOIN sources.sct2_desc_full_merged d ON m1.valueid = d.conceptid
+					  WHERE m1.refsetid = 900000000000489007 --concept has been made inactive
+					    AND m2.refsetid = 900000000000523009 --'Concept poss_eq to'
+						/*AND m1.referencedcomponentid NOT IN (SELECT a.referencedcomponentid
+															 FROM sources.der2_crefset_assreffull_merged a
+															 WHERE a.refsetid IN
+																   (900000000000526001, -- 'Concept replaced by'
+																	900000000000528000, --'Concept was_a to'
+																	900000000000527005, --'Concept same_as to',
+																	900000000000530003)--'Concept alt_to to'
+					  )*/
+					 	and d.typeid = 900000000000003001 -- show only Fully specified inactivation reason
+       					and m2.active = 1 -- show only active relationships
+),
+
 -- remapping required:
 require_remapping AS (SELECT source_id,
 							 source_name,
@@ -266,7 +288,21 @@ WHERE eq_no > 1
 	   )
 --order by similarity desc
 )
-
+/*
+SELECT DISTINCT e.source_code, e.source_name,
+                COUNT (DISTINCT ir.valueid)
+FROM equivalence e
+JOIN inact_reason ir using(source_code)
+where --ir.valueid = 900000000000482003 -- duplicate
+-- 900000000000484002 -- ambiguous
+-- 900000000000485001 - erroneous
+-- 900000000000486000 -- limited
+-- 900000000000487009 -- moved elsewhere
+-- 900000000000492006 -- pending move
+-- 900000000000483008 -- outdated
+e.similarity = 1
+GROUP BY e.source_code, e.source_name;
+*/
 -- extract mapping list for manual review
 
 SELECT source_name,
@@ -307,7 +343,14 @@ SELECT m.source_name,
 	   m.target_vocabulary_id
 FROM mapping m
 WHERE source_id NOT IN (SELECT source_id FROM true_mapping)
-  AND source_id NOT IN (SELECT source_id FROM alternative_mapping)
+AND source_id NOT IN (SELECT source_id FROM alternative_mapping)
+AND source_id not in (select a.concept_id_1
+                      from concept_relationship a
+                      where a.relationship_id  IN ('Concept replaced by',
+													'Concept same_as to',
+													'Concept alt_to to',
+													'Concept was_a to')
+						and a.invalid_reason is null)
 
 ORDER BY source_domain_id, source_code
 

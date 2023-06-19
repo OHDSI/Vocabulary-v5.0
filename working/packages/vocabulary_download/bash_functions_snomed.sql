@@ -66,7 +66,7 @@ BEGIN
     unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Terminology/sct2_Description_UKCLFull*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_UKCLFull*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationUKCLFull_GB*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AttributeValueFull_GB*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AttributeValueUKCLFull_GB*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Refset/Language/der2_cRefset_LanguageUKCLFull*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Refset/Metadata/der2_ssRefset_ModuleDependencyUKCLFull*.txt" -d .
         
@@ -77,7 +77,7 @@ BEGIN
     mv work/sct2_Description_*.txt "sct2_Description_Full-UK.txt" && \
     mv work/sct2_Relationship_*.txt "sct2_Relationship_Full-UK.txt" && \
     mv work/der2_cRefset_Association*.txt "der2_cRefset_AssociationFull_UK.txt" && \
-    mv work/der2_cRefset_AttributeValueFull*.txt "der2_cRefset_AttributeValueFull_UK.txt" && \
+    mv work/der2_cRefset_AttributeValue*.txt "der2_cRefset_AttributeValueFull_UK.txt" && \
     mv work/der2_cRefset_Language*.txt "der2_sRefset_LanguageFull_UK.txt" && \
     mv work/der2_ssRefset_ModuleDependency*.txt "der2_ssRefset_ModuleDependencyFull_UK.txt"
     $BODY$
@@ -148,7 +148,7 @@ BEGIN
     unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Description_UKDGFull-en_GB*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Relationship_UKDGFull_GB*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Content/der2_cRefset_AssociationUKDGFull_GB*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Content/der2_cRefset_AttributeValueFull_GB*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Content/der2_cRefset_AttributeValueUKDGFull_GB*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Language/der2_cRefset_LanguageUKDGFull*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Metadata/der2_ssRefset_ModuleDependencyUKDGFull*.txt" -d .
         
@@ -159,7 +159,7 @@ BEGIN
     mv work/sct2_Description_*.txt "sct2_Description_Full-en-GB_DE.txt" && \
     mv work/sct2_Relationship_*.txt "sct2_Relationship_Full_GB_DE.txt" && \
     mv work/der2_cRefset_Association*.txt "der2_cRefset_AssociationFull_GB_DE.txt" && \
-    mv work/der2_cRefset_AttributeValueFull*.txt "der2_cRefset_AttributeValue_GB_DE.txt" && \
+    mv work/der2_cRefset_AttributeValue*.txt "der2_cRefset_AttributeValue_GB_DE.txt" && \
     mv work/der2_cRefset_Language*.txt "der2_sRefset_LanguageFull_GB_DE.txt" && \
     mv work/der2_ssRefset_ModuleDependency*.txt "der2_ssRefset_ModuleDependencyFull_GB_DE.txt"
     $BODY$

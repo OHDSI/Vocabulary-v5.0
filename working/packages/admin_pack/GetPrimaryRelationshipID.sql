@@ -18,7 +18,9 @@ $BODY$
 				('Proc Schema to ICDO', 'ICDO to Proc Schema'),
 				('Has start date', 'Start date of'),
 				('Has type', 'Type of'),
-				('Schema to Variable', 'Variable to Schema')
+				('Schema to Variable', 'Variable to Schema'),
+				('Has precoord pair', 'Precoord pair of'),
+				('Panel contains', 'Contained in panel')
 			) AS r(incorrect_direction, correct_direction)
 		)
 	SELECT COALESCE(r.correct_direction, r1.relationship_id)

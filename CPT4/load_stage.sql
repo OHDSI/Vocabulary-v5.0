@@ -568,13 +568,13 @@ INSERT INTO concept_relationship_stage (
 	)
 SELECT DISTINCT a.concept_code AS concept_code_1,
 				c.concept_code AS concept_code_2,
-				'CPT4' AS vocabulary_id_1,
-				'SNOMED' AS vocabulary_id_2,
-				  CASE WHEN rel = 'PAR'
+				CASE WHEN rel = 'PAR'
 						 THEN 'CPT4 - SNOMED cat'
 					  WHEN rel = 'SY'
 						 THEN 'CPT4 - SNOMED eq'
 						 END AS relationship_id,
+				'CPT4' AS vocabulary_id_1,
+				'SNOMED' AS vocabulary_id_2,
 				a.valid_start_date,
 				TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 				NULL AS invalid_reason

@@ -336,47 +336,7 @@ FROM (
 GROUP BY s0.synonym_concept_code,
 	s0.concept_name;
 
---11. Create hierarchical relationships between HT and normal CPT codes
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	relationship_id,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c1.code AS concept_code_1,
-	c2.code AS concept_code_2,
-	'Is a' AS relationship_id,
-	'CPT4' AS vocabulary_id_1,
-	'CPT4' AS vocabulary_id_2,
-	TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
-	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-	NULL AS invalid_reason
-FROM (
-	SELECT aui AS aui1,
-		REGEXP_REPLACE(ptr, '(.+\.)(A\d+)$', '\2', 'g') AS aui2
-	FROM sources.mrhier
-	WHERE sab = 'CPT'
-		AND rela = 'isa'
-	) h
-JOIN sources.mrconso c1 ON c1.aui = h.aui1
-	AND c1.sab = 'CPT'
-JOIN sources.mrconso c2 ON c2.aui = h.aui2
-	AND c2.sab = 'CPT'
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = c1.code
-			AND crs.concept_code_2 = c2.code
-			AND crs.relationship_id = 'Is a'
-			AND crs.vocabulary_id_1 = 'CPT4'
-			AND crs.vocabulary_id_2 = 'CPT4'
-		);
-
---12. Extract "hidden" CPT4 codes inside concept_names of another CPT4 codes.
+--11. Extract "hidden" CPT4 codes inside concept_names of another CPT4 codes.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -410,7 +370,7 @@ WHERE NOT EXISTS (
 			AND crs.vocabulary_id_2 = 'CPT4'
 		);
 
---13. Update dates from mrsat.atv (only for new concepts)
+--12. Update dates from mrsat.atv (only for new concepts)
 UPDATE concept_stage cs
 SET valid_start_date = i.dt
 FROM (
@@ -438,7 +398,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---14. Update domain_id in concept_stage
+--13. Update domain_id in concept_stage
 UPDATE concept_stage cs
 SET domain_id = t1.domain_id
 FROM (
@@ -564,7 +524,77 @@ FROM (
 	) t1
 WHERE t1.concept_code = cs.concept_code;
 
---15. Add everything from the Manual tables
+--14. Create hierarchical relationships between HT and normal CPT codes
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	relationship_id,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c1.code AS concept_code_1,
+	c2.code AS concept_code_2,
+	'Is a' AS relationship_id,
+	'CPT4' AS vocabulary_id_1,
+	'CPT4' AS vocabulary_id_2,
+	TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM (
+	SELECT aui AS aui1,
+		REGEXP_REPLACE(ptr, '(.+\.)(A\d+)$', '\2', 'g') AS aui2
+	FROM sources.mrhier
+	WHERE sab = 'CPT'
+		AND rela = 'isa'
+	) h
+JOIN sources.mrconso c1 ON c1.aui = h.aui1
+	AND c1.sab = 'CPT'
+JOIN sources.mrconso c2 ON c2.aui = h.aui2
+	AND c2.sab = 'CPT';
+
+--15. Add relationships of equivalence between CPT4 and SNOMED
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	relationship_id,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT a.concept_code AS concept_code_1,
+				c.concept_code AS concept_code_2,
+				'CPT4' AS vocabulary_id_1,
+				'SNOMED' AS vocabulary_id_2,
+				  CASE WHEN rel = 'PAR'
+						 THEN 'CPT4 - SNOMED cat'
+					  WHEN rel = 'SY'
+						 THEN 'CPT4 - SNOMED eq'
+						 END AS relationship_id,
+				a.valid_start_date,
+				TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+				NULL AS invalid_reason
+FROM (SELECT cui1, cui2, rel
+             FROM sources.mrrel
+             WHERE rel IN ('PAR', --has parent relationship in a Metathesaurus source vocabulary
+							'SY') --source asserted synonymy
+				AND sl = 'CPT') m1
+			JOIN sources.mrconso m2 ON m1.cui1 = m2.cui
+	   								AND m2.sab = 'CPT'
+			JOIN concept a ON a.concept_code = m2.code
+	   						AND a.vocabulary_id = 'CPT4'
+       						AND a.concept_class_id = 'CPT4'
+			JOIN sources.mrconso m3 ON m1.cui2 = m3.cui
+	   							AND m3.sab = 'SNOMEDCT_US'
+			JOIN concept c ON m3.code = c.concept_code
+	   						AND c.vocabulary_id = 'SNOMED'
+	   						AND c.invalid_reason IS NULL;
+
+--16. Add everything from the Manual tables
 --Working with manual concepts
 DO $_$
 BEGIN
@@ -607,7 +637,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id value for CPT4 according to mappings
+--17. Update domain_id value for CPT4 according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -693,7 +723,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---17. All concepts having mappings should be NON-standard
+--18. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

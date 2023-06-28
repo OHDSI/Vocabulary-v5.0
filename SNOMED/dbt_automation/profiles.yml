@@ -1,0 +1,23 @@
+default:
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      user: "{{ env_var('DB_DEV_USER') }}"
+      pass: "{{ env_var('DB_DEV_PASS') }}"
+      port: 5432
+      dbname: "{{ env_var('DB_DEV_NAME') }}"
+      schema: "{{ env_var('DB_DEV_SCHEMA') }}"
+      threads: 1
+
+    prod:
+      type: postgres
+      host: "{{ env_var('DB_PROD_HOST') }}"
+      user: "{{ env_var('DB_PROD_USER') }}"
+      pass: "{{ env_var('DB_PROD_PASS') }}"
+      port: 5432
+      dbname: "{{ env_var('DB_PROD_NAME') }}"
+      schema: "{{ env_var('DB_PROD_SCHEMA') }}"
+      threads: 4
+
+  target: dev

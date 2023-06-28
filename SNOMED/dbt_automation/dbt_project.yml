@@ -1,0 +1,26 @@
+name: 'your_dbt_project'
+version: '1.0'
+
+profile: 'your_postgres_database'
+
+source-paths: ["models"]
+
+models:
+
+  # Applies settings to all files under models/
+  your_dbt_project:
+    sources:
+      materialized: table
+  
+  # Applies settings to all files under models/1_create_source_tables/
+  1_create_source_tables:
+    materialized: table
+    tags: ["phase:1"]
+
+  2_load_stage:
+    materialized: table
+    tags: ["phase:2"]
+
+  # Applies configurations to specific model files under models/1_create_source_tables/
+  101_sct2_concept_full_merged:
+    tags: ["step:1"]

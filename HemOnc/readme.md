@@ -1,4 +1,5 @@
-Update of HemOnc
+Find more information in the [HemOnc cookbook here](https://docs.google.com/document/d/19fqNqPS2oDbB5mwsoN4Zm3WSU0YOKGyfi5qZUyZLhgg/edit?usp=sharing).
+Refresh of HemOnc:
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
@@ -19,15 +20,14 @@ END $_$;
 SELECT * FROM qa_tests.get_checks();
 ```
 
-6. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
-7. Run scripts to get summary, and interpret the results:
+6. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
 SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
-8. Run scripts to collect statistics, and interpret the results:
+7. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_domain_changes();
 ```
@@ -43,5 +43,6 @@ SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 ```sql
 SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
+8. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
 
 If no problems, enjoy!

@@ -729,7 +729,6 @@ WHERE
 	lower (v.nm) LIKE 'purified %' OR
 	lower (a.nm) LIKE 'phlexy%' OR
 	lower (v.nm) LIKE '%lymphoseek%' OR
-    lower (v.nm) LIKE '%radium%223%' OR
 	lower (a.nm) LIKE '%kryptoscan%' OR
 	lower (v.nm) LIKE '%mbq%' OR
 	lower (v.nm) LIKE '%gbq%' OR
@@ -1123,9 +1122,13 @@ VALUES
 
 --! Step 4. Preparation for drug_concept_stage population
 --Deduplication of devices
-CREATE TABLE devices1 AS SELECT DISTINCT apid, nm_a, vpid, nm_v FROM devices;
-DROP TABLE devices;
-ALTER TABLE devices1 RENAME TO devices;
+DELETE FROM devices s 
+WHERE EXISTS (SELECT 1 FROM devices s_int 
+                WHERE coalesce(s_int.apid, 'x') = coalesce(s.apid, 'x')
+                  AND coalesce(s_int.nm_a, 'x') = coalesce(s.nm_a, 'x')
+                  AND coalesce(s_int.vpid, 'x') = coalesce(s.vpid, 'x')
+                  AND coalesce(s_int.nm_v, 'x') = coalesce(s.nm_v, 'x')
+                  AND s_int.ctid > s.ctid);
 
 --Some ingredients changed their isid
 --isid considered isidnew, isidprev is an old one
@@ -2628,7 +2631,6 @@ WHERE
 	amount_name IS NOT NULL;
 
 
---TODO: Consider uniting all the manual tomap_ tables
 --Table created for manual curation of certain drugs, where doses were picked up from the text
 /*
 --It is recommended to create a backup for this table just in case
@@ -2661,7 +2663,6 @@ order by drug_concept_name, ingredient_concept_name desc
 --Do a parsing and then reupload to the same table
 --TRUNCATE tomap_vmps_ds;
 
---TODO: Investigate what to do with drugs that have 0 as ingredient
 -- at the moment, they are deleted from tomap_vmps_ds
 DELETE FROM tomap_vmps_ds WHERE ingredient_concept_code = '0';
 
@@ -3681,16 +3682,6 @@ WHERE
 		);
 
 
---TODO: cause errors
---! Should have been fixed by this moment
-/*
-UPDATE ds_stage
-SET	ingredient_concept_code =
-	(
-		SELECT DISTINCT isidnew FROM ingred_replacement WHERE isidprev = ingredient_concept_code
-	)
-WHERE ingredient_concept_code in (SELECT isidprev FROM ingred_replacement);
- */
 
 UPDATE drug_concept_stage
 SET	concept_code = concept_name
@@ -3743,7 +3734,7 @@ WHERE
 	ingredient_concept_code in (SELECT ingredient_concept_code FROM nongas2fix);
 
 --Remove drugs without or with incomplete attributes in ds_stage attribute (check for mappings in relationship to concept file)
---TODO: check the mappings before delete
+--! check the mappings before delete
 DELETE FROM ds_stage
 WHERE drug_concept_code IN
 (SELECT drug_concept_code
@@ -5249,16 +5240,11 @@ JOIN only_1_pack on
 	drug_concept_code = concept_code_1;
 
 --Deduplication of internal_relationship_stage
-DROP TABLE IF EXISTS irs_shuffle;
-CREATE TABLE irs_shuffle as
-SELECT DISTINCT
-	concept_code_1,
-	concept_code_2
-FROM internal_relationship_stage;
-DROP TABLE internal_relationship_stage;
-
-ALTER TABLE irs_shuffle
-RENAME TO internal_relationship_stage;
+DELETE FROM internal_relationship_stage s 
+WHERE EXISTS (SELECT 1 FROM internal_relationship_stage s_int 
+                WHERE coalesce(s_int.concept_code_1, 'x') = coalesce(s.concept_code_1, 'x')
+                  AND coalesce(s_int.concept_code_2, 'x') = coalesce(s.concept_code_2, 'x')
+                  AND s_int.ctid > s.ctid);
 
 --optional: remove unused concepts
 DELETE FROM drug_concept_stage
@@ -5370,7 +5356,6 @@ DELETE FROM relationship_to_concept WHERE concept_code_1 NOT IN (SELECT concept_
 
 
 
---TODO: Check for potential code reuse and naming issues
 --! Step 14. Manual mapping for attributes, that don't have equivalents
 --Manual mapping step
 --Major part of relationships in relationship_to_concept table were created automatically
@@ -5463,7 +5448,6 @@ AND EXISTS(SELECT
 ;
 
 --Insertion of manually mapped attributes into relationship_to_concept
---TODO: Fix the duplicates in names with different concept_codes
 INSERT INTO relationship_to_concept
 (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
 SELECT DISTINCT dcs.concept_code, dcs.vocabulary_id, rtca.target_concept_id, rtca.precedence::int, NULL::numeric --Change to conversion factor in the rtca if needed
@@ -5477,16 +5461,30 @@ WHERE rtca.target_concept_id != 0 AND rtca.target_concept_id IS NOT NULL
 
 
 --Deduplication of relationship_to_concept
-CREATE TABLE relationship_to_concept_temp AS (SELECT DISTINCT * FROM relationship_to_concept);
-TRUNCATE relationship_to_concept;
-INSERT INTO relationship_to_concept (SELECT * FROM relationship_to_concept_temp);
-DROP TABLE relationship_to_concept_temp;
+DELETE FROM relationship_to_concept s 
+WHERE EXISTS (SELECT 1 FROM relationship_to_concept s_int 
+                WHERE coalesce(s_int.concept_code_1, 'x') = coalesce(s.concept_code_1, 'x')
+                  AND coalesce(s_int.vocabulary_id_1, 'x') = coalesce(s.vocabulary_id_1, 'x')
+                  AND coalesce(s_int.concept_id_2, 'x') = coalesce(s.concept_id_2, 'x')
+                  AND coalesce(s_int.precedence, 'x') = coalesce(s.precedence, 'x')
+                  AND coalesce(s_int.conversion_factor, 'x') = coalesce(s.conversion_factor, 'x')
+                  AND s_int.ctid > s.ctid);
 
 --Deduplication of drug_concept_stage
-CREATE TABLE drug_concept_stage_temp AS (SELECT DISTINCT * FROM drug_concept_stage);
-TRUNCATE drug_concept_stage;
-INSERT INTO drug_concept_stage (SELECT * FROM drug_concept_stage_temp);
-DROP TABLE drug_concept_stage_temp;
+DELETE FROM drug_concept_stage s 
+WHERE EXISTS (SELECT 1 FROM drug_concept_stage s_int 
+                WHERE coalesce(s_int.concept_name, 'x') = coalesce(s.concept_name, 'x')
+                  AND coalesce(s_int.vocabulary_id, 'x') = coalesce(s.vocabulary_id, 'x')
+                  AND coalesce(s_int.concept_class_id, 'x') = coalesce(s.concept_class_id, 'x')
+                  AND coalesce(s_int.source_concept_class_id, 'x') = coalesce(s.source_concept_class_id, 'x')
+                  AND coalesce(s_int.standard_concept, 'x') = coalesce(s.standard_concept, 'x')
+                  AND coalesce(s_int.concept_code, 'x') = coalesce(s.concept_code, 'x')
+                  AND coalesce(s_int.possible_excipient, 'x') = coalesce(s.possible_excipient, 'x')
+                  AND coalesce(s_int.domain_id, 'x') = coalesce(s.domain_id, 'x')
+                  AND coalesce(s_int.valid_start_date, 'x') = coalesce(s.valid_start_date, 'x')
+                  AND coalesce(s_int.valid_end_date, 'x') = coalesce(s.valid_end_date, 'x')
+                  AND coalesce(s_int.invalid_reason, 'x') = coalesce(s.invalid_reason, 'x')
+                  AND s_int.ctid > s.ctid);
 
 --get supplier relations for packs
 INSERT INTO internal_relationship_stage
@@ -5713,7 +5711,6 @@ WHERE concept_code_1 IN
 
 
 --Manual deletion of incorrect mappings
---TODO: Address them before
 DELETE FROM relationship_to_concept WHERE concept_code_1 IN
 (
 '421982008',

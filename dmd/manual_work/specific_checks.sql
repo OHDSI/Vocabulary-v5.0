@@ -2,7 +2,7 @@
 --Checking difference between old and new versions of mapping
 
 --Stats after build rxe
---
+
 --1. Mapping has not been changed
 with old_mapping AS
 (SELECT c.concept_id AS concept_id_1, c.concept_code AS concept_code_1, c.concept_name AS concept_name_1, c.vocabulary_id AS vocabulary_id_1, cr.relationship_id,
@@ -25,7 +25,6 @@ ON old_mapping.concept_code_1 = crs.concept_code_1 AND old_mapping.vocabulary_id
 
 
 
---Latest run: 6914
 --2. Mapping was present and has been changed in new version
 with old_mapping AS
 (SELECT c.concept_id AS concept_id_1, c.concept_code AS concept_code_1, c.concept_name AS concept_name_1, c.vocabulary_id AS vocabulary_id_1, cr.relationship_id,
@@ -53,7 +52,8 @@ ON dcs.concept_code = old_mapping.concept_code_1
 ;
 
 
---Latest run: 1782
+
+
 --2.1 Mapping was present and has been changed in new version
 --EXCLUDING DIFFERENCES IN SUPPLIERS (THEY CHANGED FOR REAL)
 with old_mapping AS
@@ -82,7 +82,9 @@ ON dcs.concept_code = old_mapping.concept_code_1
 WHERE substring(lower(concept_name_2), '^.* by') != substring(lower(cs.concept_name), '^.* by')
 ;
 
---Latest run: 555
+
+
+
 --2.2 Mapping was present and has been changed in new version
 --CHANGED BRAND NAMES
 with old_mapping AS
@@ -113,7 +115,7 @@ WHERE substring(lower(concept_name_2), '\[.*\]') != substring(lower(cs.concept_n
 
 
 
---Latest run: 11897
+
 --3. Mapping to new RxNormExtension concept
 SELECT cs.concept_code, cs.concept_name,
        crs.relationship_id,
@@ -127,6 +129,8 @@ LEFT JOIN concept c
 ON c.concept_code = crs.concept_code_2 AND c.vocabulary_id = crs.vocabulary_id_2
 WHERE c.concept_id IS NULL
 ;
+
+
 
 
 --! Excluding combodrugs

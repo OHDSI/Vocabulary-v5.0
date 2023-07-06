@@ -358,13 +358,31 @@ UPDATE concept_stage SET concept_name = trim(concept_name);
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = '8203003' AND invalid_reason IS NULL;
 
 --Deduplication of concept_stage, concept_relationship_stage table
-CREATE TABLE concept_relationship_stage_temp AS (SELECT DISTINCT * FROM concept_relationship_stage);
-TRUNCATE concept_relationship_stage;
-INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_temp);
-DROP TABLE concept_relationship_stage_temp;
+DELETE FROM concept_relationship_stage s 
+WHERE EXISTS (SELECT 1 FROM concept_relationship_stage s_int 
+                WHERE coalesce(s_int.concept_id_1, 'x') = coalesce(s.concept_id_1, 'x')
+                  AND coalesce(s_int.concept_id_2, 'x') = coalesce(s.concept_id_2, 'x') 
+                  AND coalesce(s_int.concept_code_1, 'x') = coalesce(s.concept_code_1, 'x') 
+                  AND coalesce(s_int.concept_code_2, 'x') = coalesce(s.concept_code_2, 'x')
+                  AND coalesce(s_int.relationship_id, 'x') = coalesce(s.relationship_id, 'x')
+                  AND coalesce(s_int.vocabulary_id_1, 'x') = coalesce(s.vocabulary_id_1, 'x')
+                  AND coalesce(s_int.vocabulary_id_2, 'x') = coalesce(s.vocabulary_id_2, 'x')
+                  AND coalesce(s_int.valid_start_date, 'x') = coalesce(s.valid_start_date, 'x')
+                  AND coalesce(s_int.valid_end_date, 'x') = coalesce(s.valid_end_date, 'x')
+                  AND coalesce(s_int.invalid_reason, 'x') = coalesce(s.invalid_reason, 'x')
+                  AND s_int.ctid > s.ctid);
 
 
-CREATE TABLE concept_stage_temp AS (SELECT DISTINCT * FROM concept_stage);
-TRUNCATE concept_stage;
-INSERT INTO concept_stage (SELECT * FROM concept_stage_temp);
-DROP TABLE concept_stage_temp;
+DELETE FROM concept_stage s 
+WHERE EXISTS (SELECT 1 FROM concept_stage s_int 
+                WHERE coalesce(s_int.concept_id, 'x') = coalesce(s.concept_id, 'x')
+                  AND coalesce(s_int.concept_name, 'x') = coalesce(s.concept_name, 'x') 
+                  AND coalesce(s_int.domain_id, 'x') = coalesce(s.domain_id, 'x')
+                  AND coalesce(s_int.vocabulary_id, 'x') = coalesce(s.vocabulary_id, 'x')
+                  AND coalesce(s_int.concept_class_id, 'x') = coalesce(s.concept_class_id, 'x')
+                  AND coalesce(s_int.standard_concept, 'x') = coalesce(s.standard_concept, 'x')
+                  AND coalesce(s_int.concept_code, 'x') = coalesce(s.concept_code, 'x')
+                  AND coalesce(s_int.valid_start_date, 'x') = coalesce(s.valid_start_date, 'x')
+                  AND coalesce(s_int.valid_end_date, 'x') = coalesce(s.valid_end_date, 'x')
+                  AND coalesce(s_int.invalid_reason, 'x') = coalesce(s.invalid_reason, 'x')
+                  AND s_int.ctid > s.ctid);

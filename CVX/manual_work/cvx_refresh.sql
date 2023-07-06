@@ -57,7 +57,7 @@ CREATE TABLE dev_cvx.cvx_mapped
     target_vocabulary_id varchar(50)
 );
 
---3.3. Review the previous mappings and manually add new to the snomed_mapped table
+--3.3. Review the previous mappings and manually add new to the cvx_mapped table
 
 --3.4. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_cvx.cvx_mapped;

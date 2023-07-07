@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich
-* Date: 2020
+* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Maria Khitrun
+* Date: 2023
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -566,33 +566,44 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT a.concept_code AS concept_code_1,
-				c.concept_code AS concept_code_2,
-				CASE WHEN rel = 'PAR'
-						 THEN 'CPT4 - SNOMED cat'
-					  WHEN rel = 'SY'
-						 THEN 'CPT4 - SNOMED eq'
-						 END AS relationship_id,
-				'CPT4' AS vocabulary_id_1,
-				'SNOMED' AS vocabulary_id_2,
-				a.valid_start_date,
-				TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-				NULL AS invalid_reason
-FROM (SELECT cui1, cui2, rel
-             FROM sources.mrrel
-             WHERE rel IN ('PAR', --has parent relationship in a Metathesaurus source vocabulary
-							'SY') --source asserted synonymy
-				AND sl = 'CPT') m1
-			JOIN sources.mrconso m2 ON m1.cui1 = m2.cui
-	   								AND m2.sab = 'CPT'
-			JOIN concept a ON a.concept_code = m2.code
-	   						AND a.vocabulary_id = 'CPT4'
-       						AND a.concept_class_id = 'CPT4'
-			JOIN sources.mrconso m3 ON m1.cui2 = m3.cui
-	   							AND m3.sab = 'SNOMEDCT_US'
-			JOIN concept c ON m3.code = c.concept_code
-	   						AND c.vocabulary_id = 'SNOMED'
-	   						AND c.invalid_reason IS NULL;
+SELECT DISTINCT m2.code AS concept_code_1,
+	m3.code AS concept_code_2,
+	CASE
+		WHEN rel = 'PAR'
+			THEN 'CPT4 - SNOMED cat'
+		WHEN rel = 'SY'
+			THEN 'CPT4 - SNOMED eq'
+		END AS relationship_id,
+	'CPT4' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	a.valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM (
+	SELECT DISTINCT cui1,
+		cui2,
+		rel
+	FROM sources.mrrel m
+	WHERE m.rel IN (
+			'PAR', --has parent relationship in a Metathesaurus source vocabulary
+			'SY'
+			) --source asserted synonymy
+		AND m.sab = 'CPT'
+	) m1
+JOIN sources.mrconso m2 ON m2.cui = m1.cui1
+	AND m2.sab = 'CPT'
+JOIN concept a ON a.concept_code = m2.code
+	AND a.vocabulary_id = 'CPT4'
+	AND a.concept_class_id = 'CPT4'
+JOIN sources.mrconso m3 ON m3.cui = m1.cui2
+	AND m3.sab = 'SNOMEDCT_US'
+WHERE EXISTS (
+		SELECT 1
+		FROM concept c
+		WHERE c.concept_code = m3.code
+			AND c.vocabulary_id = 'SNOMED'
+			AND c.invalid_reason IS NULL
+		);
 
 --16. Add everything from the Manual tables
 --Working with manual concepts
@@ -637,93 +648,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---17. Update domain_id value for CPT4 according to mappings
-UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Drug'
-						THEN 1
-					WHEN 'Measurement'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Device'
-						THEN 4
-					WHEN 'Visit'
-						THEN 5
-					WHEN 'Provider'
-						THEN 6
-					WHEN 'Observation'
-						THEN 7
-					ELSE 8
-					END
-			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'CPT4'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.standard_concept = 'S'
-		AND c2.vocabulary_id <> 'CPT4'
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-	
-	UNION ALL
-	
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Drug'
-						THEN 1
-					WHEN 'Measurement'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Device'
-						THEN 4
-					WHEN 'Visit'
-						THEN 5
-					WHEN 'Provider'
-						THEN 6
-					WHEN 'Observation'
-						THEN 7
-					ELSE 8
-					END
-			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'CPT4'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.standard_concept = 'S'
-		AND c2.vocabulary_id <> 'CPT4'
-	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
-		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
-		AND cs1.concept_code NOT IN (
-			'99502',
-			'99504',
-			'99505',
-			'99506',
-			'99508',
-			'99511',
-			'99512'
-			)
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_1 = cs1.concept_code
-				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---18. All concepts having mappings should be NON-standard
+--17. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

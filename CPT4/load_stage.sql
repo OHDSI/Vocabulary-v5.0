@@ -409,6 +409,16 @@ FROM (
 					'T033',
 					'T034'
 					)
+				AND cs.concept_code NOT IN (
+					'0244U',
+					'0250U',
+					'0258U',
+					'0260U',
+					'0264U',
+					'0267U',
+					'0335U',
+					'0336U'
+						  )
 				THEN 'Procedure'
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
@@ -473,7 +483,9 @@ FROM (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
 						cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
-						OR LENGTH(cs.concept_code) <= 2
+						OR (LENGTH(cs.concept_code) <= 2
+						AND cs.concept_code NOT IN ('TP','KR')
+						)
 						)
 					)
 				OR (
@@ -502,11 +514,16 @@ FROM (
 						'QB',
 						'QR',
 						'QA',
-						'78801'
+			  			'78801'
 						)
 					)
+
 				THEN 'Observation'
-			WHEN c.concept_code = '0777T'
+			WHEN c.concept_code IN (
+						'0777T',
+						'TP',
+						'KR'
+			             )
 				THEN 'Device'
 			WHEN c.concept_id IS NOT NULL
 				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
@@ -648,7 +665,19 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---17. All concepts having mappings should be NON-standard
+--17. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
+
+UPDATE concept_stage cs
+SET domain_id = 'Drug'
+WHERE cs.concept_code in (
+       SELECT concept_code_1
+       FROM concept_relationship_stage
+       WHERE vocabulary_id_2 in ('RxNorm', 'RxNorm Extension', 'CVX')
+			AND relationship_id = 'Maps to'
+			AND invalid_reason IS NUll
+);
+
+--18. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -666,6 +695,7 @@ WHERE EXISTS (
 				AND r.vocabulary_id_1 = r.vocabulary_id_2
 				) --exclude mappings to self
 		)
+	AND cs.concept_class_id <> 'CPT4 Hierarchy'
 	AND cs.standard_concept IS NOT NULL;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

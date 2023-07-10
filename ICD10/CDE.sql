@@ -38,18 +38,22 @@ LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
 and c.standard_concept = 'S'
 and c.invalid_reason is null);
 
+DROP TABLE dev_icd10.icd10_icd10cm_cde;
 TRUNCATE TABLE dev_icd10.icd10_icd10cm_cde;
 CREATE TABLE dev_icd10.icd10_icd10cm_cde
-(concept_name varchar,
-concept_code_icd10 varchar,
-concept_code_icd10cm varchar,
-target_concept_id int,
-target_concept_name varchar,
-target_concept_class varchar,
-target_standard_concept varchar,
-target_invalid_reason varchar,
-target_domain_id varchar,
-target_vocabulary_id varchar);
+(
+    concept_name_id      serial primary key,
+    concept_name         varchar,
+    concept_code_icd10   varchar,
+    concept_code_icd10cm varchar
+--target_concept_id int,
+--target_concept_name varchar,
+--target_concept_class varchar,
+--target_standard_concept varchar,
+--target_invalid_reason varchar,
+--target_domain_id varchar,
+--target_vocabulary_id varchar
+);
 
 
 INSERT INTO dev_icd10.icd10_icd10cm_cde
@@ -88,7 +92,10 @@ WHERE (
                  --COALESCE(source_code_description_synonym, 'x!x')
                  --,COALESCE (source_concept_id, -9876543210)
           FROM dev_icd10.icd10_icd10cm_cde
-      );
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
 
 --insert concept_codes for the concepts already presented in CDE
 UPDATE dev_icd10.icd10_icd10cm_cde a
@@ -138,7 +145,9 @@ WHERE (
                  --COALESCE(source_code_description_synonym, 'x!x')
                  --,COALESCE (source_concept_id, -9876543210)
           FROM dev_icd10.icd10_icd10cm_cde
-      );
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name;
 
 --insert concept_codes for the concepts already presented in CDE
 UPDATE dev_icd10.icd10_icd10cm_cde a
@@ -152,6 +161,5 @@ WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
 ;
 
 SELECT * FROM dev_icd10.icd10_icd10cm_cde
-where concept_name !~* 'Invalid'
-order by concept_code_icd10, concept_name
+order by  concept_name, concept_code_icd10
 ;

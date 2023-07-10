@@ -517,7 +517,13 @@ FROM (
 			  			'78801'
 						)
 					)
-
+				OR cs.concept_code IN (
+				     '80500',
+				     '80502',
+				     '4060F',
+				     '77370',
+				     '99429'
+				     )
 				THEN 'Observation'
 			WHEN c.concept_code IN (
 						'0777T',

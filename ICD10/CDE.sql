@@ -38,8 +38,8 @@ LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
 and c.standard_concept = 'S'
 and c.invalid_reason is null);
 
-TRUNCATE TABLE dev_icd10_icd10cm_cde;
-CREATE TABLE dev_icd10_icd10cm_cde
+TRUNCATE TABLE dev_icd10.icd10_icd10cm_cde;
+CREATE TABLE dev_icd10.icd10_icd10cm_cde
 (concept_name varchar,
 concept_code_icd10 varchar,
 concept_code_icd10cm varchar,
@@ -52,26 +52,29 @@ target_domain_id varchar,
 target_vocabulary_id varchar);
 
 
-INSERT INTO dev_icd10_icd10cm_cde
+INSERT INTO dev_icd10.icd10_icd10cm_cde
 (concept_name,
- concept_code_icd10,
- target_concept_id,
- target_concept_name,
- target_concept_class,
- target_standard_concept,
- target_invalid_reason,
- target_domain_id,
- target_vocabulary_id
+ concept_code_icd10
+ --,
+ --target_concept_id,
+ --target_concept_name,
+ --target_concept_class,
+ --target_standard_concept,
+ --target_invalid_reason,
+ --target_domain_id,
+ --target_vocabulary_id
 )
-SELECT DISTINCT concept_name,
-concept_code,
-target_concept_id,
-target_concept_name,
-target_concept_class,
-target_standard_concept,
-target_invalid_reason,
-target_domain_id,
-target_vocabulary_id
+SELECT DISTINCT
+concept_name,
+concept_code
+--,
+--target_concept_id,
+--target_concept_name,
+--target_concept_class,
+--target_standard_concept,
+--target_invalid_reason,
+--target_domain_id,
+--target_vocabulary_id
 FROM icd10
 WHERE (
        COALESCE(concept_code, 'x!x'),
@@ -84,40 +87,43 @@ WHERE (
                  COALESCE(concept_name, 'x!x')
                  --COALESCE(source_code_description_synonym, 'x!x')
                  --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10_icd10cm_cde
+          FROM dev_icd10.icd10_icd10cm_cde
       );
 
---insert counts for the concepts already presented in dataset-specific source table (use for dataset-specific tables (in contrast to customer-specific))
-UPDATE dev_icd10_icd10cm_cde a
-SET concept_code_icd10 --specify the exact customer
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd10_icd10cm_cde a
+SET concept_code_icd10
         = b.concept_code
 FROM icd10 b
 WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-  --AND COALESCE(a.source_code, 'x!x') = COALESCE(b.source_code, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
   --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
 --AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
 ;
 
-INSERT INTO dev_icd10_icd10cm_cde
+INSERT INTO dev_icd10.icd10_icd10cm_cde
 (concept_name,
- concept_code_icd10,
- target_concept_id,
- target_concept_name,
- target_concept_class,
- target_standard_concept,
- target_invalid_reason,
- target_domain_id,
- target_vocabulary_id
+ concept_code_icd10cm
+ --,
+ --target_concept_id,
+ --target_concept_name,
+ --target_concept_class,
+ --target_standard_concept,
+ --target_invalid_reason,
+ --target_domain_id,
+ --target_vocabulary_id
 )
-SELECT DISTINCT concept_name,
-concept_code,
-target_concept_id,
-target_concept_name,
-target_concept_class,
-target_standard_concept,
-target_invalid_reason,
-target_domain_id,
-target_vocabulary_id
+SELECT DISTINCT
+concept_name,
+concept_code
+--,
+--target_concept_id,
+--target_concept_name,
+--target_concept_class,
+--target_standard_concept,
+--target_invalid_reason,
+--target_domain_id,
+--target_vocabulary_id
 FROM icd10cm
 WHERE (
        --COALESCE(concept_code, 'x!x'),
@@ -126,25 +132,26 @@ WHERE (
           --,COALESCE (source_concept_id, -9876543210)
           )
           NOT IN (
-          SELECT --COALESCE(concept_code, 'x!x'),
+          SELECT
+                 --COALESCE(concept_code, 'x!x'),
                  COALESCE(concept_name, 'x!x')
                  --COALESCE(source_code_description_synonym, 'x!x')
                  --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10_icd10cm_cde
+          FROM dev_icd10.icd10_icd10cm_cde
       );
 
---insert counts for the concepts already presented in dataset-specific source table (use for dataset-specific tables (in contrast to customer-specific))
-UPDATE dev_icd10_icd10cm_cde a
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd10_icd10cm_cde a
 SET concept_code_icd10cm --specify the exact customer
         = b.concept_code
 FROM icd10cm b
 WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-  --AND COALESCE(a.source_code, 'x!x') = COALESCE(b.source_code, 'x!x')
+  --AND COALESCE(a.concept_code_icd10cm, 'x!x') = COALESCE(b.concept_code, 'x!x')
   --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
 --AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
 ;
 
-SELECT * FROM dev_icd10_icd10cm_cde
+SELECT * FROM dev_icd10.icd10_icd10cm_cde
 where concept_name !~* 'Invalid'
 order by concept_code_icd10, concept_name
 ;

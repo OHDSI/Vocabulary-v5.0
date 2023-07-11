@@ -56,6 +56,8 @@ SELECT DISTINCT ON (rx.code) vocabulary_pack.CutConceptName(rx.str) AS concept_n
 	CASE 
 		WHEN v.latest_update = to_date('20211004', 'yyyymmdd')
 			THEN TO_DATE('19700101', 'yyyymmdd')
+        WHEN TO_DATE(rxs.atv, 'yyyymmdd') < v.latest_update
+	        THEN TO_DATE('19700101', 'yyyymmdd')
 		ELSE v.latest_update
 		END AS valid_start_date, --for the first time we put concepts as 1970
 	COALESCE(TO_DATE(rxs.atv, 'yyyymmdd'), TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,

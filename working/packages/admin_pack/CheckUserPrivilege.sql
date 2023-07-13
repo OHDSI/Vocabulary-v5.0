@@ -6,10 +6,18 @@ $BODY$
 	/*
 	This function checks privileges
 	Returns TRUE if the user currently has the privilege (and it is not blocked), otherwise FALSE
+
+	Example:
+	SELECT admin_pack.CheckUserPrivilege(admin_pack.GetPrivilegeIDByName('MANAGE_SPECIFIC_VOCABULARY'));
 	*/
 DECLARE
 	iUserID CONSTANT INT4:=GetUserID();
 BEGIN
+	IF SESSION_USER='devv5' THEN
+		--The SYSTEM user can do everything
+		RETURN TRUE;
+	END IF;
+
 	RETURN EXISTS (
 		SELECT 1
 		FROM virtual_user_privilege vup

@@ -4,19 +4,30 @@ $BODY$
 	/*
 	Get user id by session
 
-	SELECT admin_pack.GetUserID ();
+	SELECT admin_pack.GetUserID();
 	*/
 DECLARE
 	iSessionID CONSTANT TEXT:=CURRENT_SETTING('virtual_auth.session_id', TRUE);
 	iUserCredential RECORD;
 BEGIN
+	IF SESSION_USER='devv5' THEN
+		--Under devv5 we can work without authorization (as SYSTEM user)
+		RETURN 1;
+	END IF;
+
 	SELECT *
 	INTO iUserCredential
 	FROM virtual_user vu
 	WHERE vu.session_id = devv5.CRYPT(CONCAT (
+				/*
+				For greater security, the session depends, among other things, on the IP address, the current user login and password
+				Therefore, if any of this changes - the session will be invalidated
+				*/
 				SESSION_USER,
 				INET_CLIENT_ADDR()::TEXT,
-				iSessionID
+				iSessionID,
+				vu.user_login,
+				vu.user_password
 				), vu.session_id);
 
 	IF NOT FOUND THEN

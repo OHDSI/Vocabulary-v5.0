@@ -3,6 +3,7 @@ CREATE OR REPLACE FUNCTION admin_pack.CreateVirtualUser (
 	pUserName TEXT,
 	pUserDescription TEXT,
 	pPassWord TEXT,
+	pEmail TEXT DEFAULT NULL,
 	pValidStartDate DATE DEFAULT CURRENT_DATE,
 	pValidEndDate DATE DEFAULT TO_DATE('20991231', 'YYYYMMDD'),
 	pIsBlocked BOOLEAN DEFAULT FALSE
@@ -21,9 +22,10 @@ $BODY$
 			pUserName        =>'John Doe', --full name
 			pUserDescription =>'Vocabulary Team', --medical, customer, some comment, etc
 			pPassWord        =>'password', --any strong password (has nothing to do with the real database password)
+			pEmail           =>'jdoe@e-mail.com', --you can specify the user's e-mail (default NULL)
 			pValidStartDate  =>NULL, --default CURRENT_DATE
 			pValidEndDate    =>NULL, --default 2099-12-31
-			pIsBlocked       =>FALSE --you can create a blocked user, can be useful if you want to create a user in advance and then just unset the block flag
+			pIsBlocked       =>FALSE --you can create a blocked user, can be useful if you want to create a user in advance and then just unset the block flag via ModifyVirtualUser()
 		);
 	END $_$;
 
@@ -35,6 +37,7 @@ $BODY$
 			pUserName        =>'John Doe',
 			pUserDescription =>'Vocabulary Team',
 			pPassWord        =>'password',
+			pEmail           =>'jdoe@e-mail.com',
 			pValidStartDate  =>TO_DATE('20240101', 'YYYYMMDD'),
 			pValidEndDate    =>TO_DATE('20240201', 'YYYYMMDD'),
 			pIsBlocked       =>FALSE
@@ -50,8 +53,9 @@ BEGIN
 	pPassWord:=NULLIF(pPassWord,'');
 	pUserName:=NULLIF(TRIM(pUserName),'');
 	pUserDescription:=NULLIF(TRIM(pUserDescription),'');
+	pEmail:=NULLIF(TRIM(pEmail),'');
 
-	IF NOT CheckUserPrivilege(ALL_PRIVILEGES.CREATE_USER) THEN
+	IF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_USER) THEN
 		RAISE EXCEPTION 'Insufficient privileges';
 	END IF;
 
@@ -59,12 +63,12 @@ BEGIN
 		RAISE EXCEPTION 'User or/and password cannot be empty';
 	END IF;
 
+	PERFORM CheckLoginCharacters(pUserLogin);
+	PERFORM CheckPasswordStrength(pPassWord);
+	PERFORM CheckEmailCharacters(pEmail);
+
 	IF pUserName IS NULL THEN
 		RAISE EXCEPTION 'Please provide username';
-	END IF;
-
-	IF pUserLogin !~ '^[A-z0-9._-]+$' THEN --the simplest check for login
-		RAISE EXCEPTION 'Incorrect login';
 	END IF;
 
 	INSERT INTO virtual_user
@@ -74,13 +78,14 @@ BEGIN
 		pUserName,
 		pUserDescription,
 		devv5.CRYPT(pPassWord, devv5.GEN_SALT('bf')),
+		pEmail,
 		CLOCK_TIMESTAMP(),
 		iUserID,
 		NULL,
 		NULL,
-		pValidStartDate,
-		pValidEndDate,
-		pIsBlocked
+		COALESCE(pValidStartDate, CURRENT_DATE),
+		COALESCE(pValidEndDate, TO_DATE('20991231', 'YYYYMMDD')),
+		COALESCE(pIsBlocked, FALSE)
 		)
 	ON CONFLICT DO NOTHING
 	RETURNING virtual_user.user_id

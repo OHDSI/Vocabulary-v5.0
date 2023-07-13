@@ -37,7 +37,9 @@ BEGIN
 	SET session_id = devv5.CRYPT(CONCAT (
 				SESSION_USER,
 				INET_CLIENT_ADDR()::TEXT,
-				iSessionID
+				iSessionID,
+				vu.user_login,
+				vu.user_password
 				), devv5.GEN_SALT('bf'))
 	WHERE vu.user_id = iUserCredential.user_id;
 

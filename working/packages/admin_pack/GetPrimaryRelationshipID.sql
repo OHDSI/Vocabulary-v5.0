@@ -13,14 +13,13 @@ $BODY$
 				('LOINC - CPT4 eq', 'CPT4 - LOINC eq'),
 				('Schema to Value', 'Value to Schema'),
 				('Answer of', 'Has Answer'),
-				('Has parent item', 'Parent item of'),
-				('Has permiss range', 'Permiss range of'),
 				('Proc Schema to ICDO', 'ICDO to Proc Schema'),
-				('Has start date', 'Start date of'),
-				('Has type', 'Type of'),
 				('Schema to Variable', 'Variable to Schema'),
 				('Has precoord pair', 'Precoord pair of'),
-				('Panel contains', 'Contained in panel')
+				('Panel contains', 'Contained in panel'),
+				('Schema to ICDO', 'ICDO to Schema'),
+				('SNOMED - ATC eq', 'ATC - SNOMED eq'),
+				('Answer of (PPI)', 'Has answer (PPI)')
 			) AS r(incorrect_direction, correct_direction)
 		)
 	SELECT COALESCE(r.correct_direction, r1.relationship_id)

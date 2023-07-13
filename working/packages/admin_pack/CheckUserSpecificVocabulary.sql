@@ -5,7 +5,7 @@ RETURNS BOOLEAN AS
 $BODY$
 	/*
 	Check if user has access to maintain a specific vocabulary
-	Returns TRUE if the user has permissions to the vocabulary, or if the vocabulary is new
+	Returns TRUE if the user has permissions to the vocabulary, or if the vocabulary is new (not exists in devv5.vocabulary)
 	*/
 DECLARE
 	iUserID CONSTANT INT4:=GetUserID();

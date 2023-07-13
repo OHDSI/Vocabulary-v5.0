@@ -5,14 +5,14 @@ $BODY$
 	This function "pivotes" the virtual_privilege table, so rows become columns
 	Very handy for use in "select ... from ... where col1 = const.value" statements
 
-	Example usage:
-	DO $$
+	Example:
+	DO $_$
 	DECLARE
 		ALL_PRIVILEGES RECORD;
 	BEGIN
 		ALL_PRIVILEGES:=admin_pack.GetAllPrivileges();
 		RAISE NOTICE '%', ALL_PRIVILEGES.%PRIVILEGE_NAME%;
-	END $$;
+	END $_$;
 	*/
 DECLARE
 	iUserID CONSTANT INT4:=GetUserID(); --just checking the session

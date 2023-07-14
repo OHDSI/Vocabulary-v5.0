@@ -18,7 +18,7 @@ $BODY$
 			pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_USER'),
 			pValidStartDate  =>NULL, --set NULL if you don't want to change the start date
 			pValidEndDate    =>NULL, --set NULL if you don't want to change the end date
-			pIsBlocked       =>TRUE --block privilege for specified user
+			pIsBlocked       =>TRUE --block privilege for the specified user
 		);
 	END $_$;
 
@@ -28,7 +28,7 @@ $BODY$
 		PERFORM admin_pack.ModifyUserPrivilege(
 			pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
 			pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_USER'),
-			pIsBlocked       =>TRUE --block privilege for specified user
+			pIsBlocked       =>TRUE --block privilege for the specified user
 		);
 	END $_$;
 	*/

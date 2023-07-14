@@ -27,8 +27,8 @@ If all checks are passed, changes in manual tables will be accepted and written 
 ```sql
 CREATE EXTENSION pgcrypto;
 CREATE EXTENSION tablefunc;
+--Run admin_pack_ddl.sql (follow the instructions inside)
 ```
-Run admin_pack_ddl.sql (follow the instructions inside)
 
 ### User's guide
 Do your job as always, then when you're ready to run the generic_update, do a virtual authorization  
@@ -36,6 +36,11 @@ Do your job as always, then when you're ready to run the generic_update, do a vi
 SELECT admin_pack.VirtualLogIn ('login','password');
 ```
 and then you can continue  
+
+Changing own password (virtual session will be invalidated)
+```sql
+SELECT admin_pack.ChangeOwnPassword ('old_password','new_password');
+```
 
 ### Manager's guide
 
@@ -46,127 +51,213 @@ SELECT admin_pack.VirtualLogIn ('login','password');
 
 Creating an active virtual user (MANAGE_USER privilege required)
 ```sql
-	DO $_$
-	BEGIN
-		PERFORM admin_pack.CreateVirtualUser(
-			pUserLogin       =>'dev_jdoe', --it is better to create a login that matches the real login in the database (if applicable)
-			pUserName        =>'John Doe', --full name
-			pUserDescription =>'Vocabulary Team', --medical, customer, some comment, etc
-			pPassWord        =>'password', --any strong password (has nothing to do with the real database password)
-			pEmail           =>'jdoe@e-mail.com', --you can specify the user's e-mail (can be omitted)
-			pValidStartDate  =>NULL, --can be omitted, default CURRENT_DATE
-			pValidEndDate    =>NULL, --can be omitted, default 2099-12-31
-			pIsBlocked       =>FALSE --you can create a blocked user, can be useful if you want to create a user in advance and then just unset the block flag via ModifyVirtualUser(), can be omitted, default FALSE
-		);
-	END $_$;
+DO $_$
+BEGIN
+	PERFORM admin_pack.CreateVirtualUser(
+		pUserLogin       =>'dev_jdoe', --it is better to create a login that matches the real login in the database (if applicable)
+		pUserName        =>'John Doe', --full name
+		pUserDescription =>'Vocabulary Team', --medical, customer, some comment, etc
+		pPassWord        =>'password', --any strong password (has nothing to do with the real database password)
+		pEmail           =>'jdoe@e-mail.com', --you can specify the user's e-mail (can be omitted)
+		pValidStartDate  =>NULL, --can be omitted, default CURRENT_DATE
+		pValidEndDate    =>NULL, --can be omitted, default 2099-12-31
+		pIsBlocked       =>FALSE --you can create a blocked user, can be useful if you want to create a user in advance and then just unset the block flag via ModifyVirtualUser(), can be omitted, default FALSE
+	);
+END $_$;
 ```
-	login characters:
-	1. consist of [A-z0-9._-]
-	2. minimum length is 5
+login characters:
+1. consist of [A-z0-9._-]
+2. minimum length is 5
 
-	password strength:
-	1. at least one uppercase letter [A-Z]
-	2. at least one lowercase letter [a-z]
-	3. at least one special case letter: !`"'№%;:?&*()_+=~/\<>,.[]{}^$#-
-	4. at least one digit [0-9]
-	5. minimum length is 10
+password strength:
+1. at least one uppercase letter [A-Z]
+2. at least one lowercase letter [a-z]
+3. at least one special case letter: !`"'№%;:?&*()_+=~/\<>,.[]{}^$#-
+4. at least one digit [0-9]
+5. minimum length is 10
 
 Creating an active virtual user with privileges (MANAGE_USER privilege required)
 ```sql
-	DO $_$
-	DECLARE
-	iUserID INT4;
-	BEGIN
-		SELECT admin_pack.CreateVirtualUser(
-			pUserLogin       =>'dev_jdoe',
-			pUserName        =>'John Doe',
-			pUserDescription =>'Vocabulary Team',
-			pPassWord        =>'password'
-		) INTO iUserID;
+DO $_$
+DECLARE
+iUserID INT4;
+BEGIN
+	SELECT admin_pack.CreateVirtualUser(
+		pUserLogin       =>'dev_jdoe',
+		pUserName        =>'John Doe',
+		pUserDescription =>'Vocabulary Team',
+		pPassWord        =>'password'
+	) INTO iUserID;
 
-		--grant MANAGE_SPECIFIC_VOCABULARY to dev_jdoe (can work only with specified vocabulary)
-		PERFORM admin_pack.GrantPrivilege(
-			pUserID          =>iUserID,
-			pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_SPECIFIC_VOCABULARY'),
-			pValidStartDate  =>NULL, --access will be granted from the specified day, default CURRENT_DATE (can be omitted)
-			pValidEndDate    =>NULL, --access will be granted until the specified expiration date, default 2099-12-31 (can be omitted)
-			pIsBlocked       =>FALSE --you can create a blocked access, can be useful if you want to grant access in advance and then just unset the block flag via ModifyUserPrivilege(), can be omitted, default FALSE
-		);
+	--grant MANAGE_SPECIFIC_VOCABULARY to dev_jdoe (can work only with specified vocabulary)
+	PERFORM admin_pack.GrantPrivilege(
+		pUserID          =>iUserID,
+		pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_SPECIFIC_VOCABULARY'),
+		pValidStartDate  =>NULL, --access will be granted from the specified day, default CURRENT_DATE (can be omitted)
+		pValidEndDate    =>NULL, --access will be granted until the specified expiration date, default 2099-12-31 (can be omitted)
+		pIsBlocked       =>FALSE --you can create a blocked access, can be useful if you want to grant access in advance and then just unset the block flag via ModifyUserPrivilege(), can be omitted, default FALSE
+	);
 
-		--grant access only to CPT4 to dev_jdoe
-		PERFORM admin_pack.GrantVocabularyAccess(
-			pUserID          =>iUserID,
-			pVocabulary_id   =>'CPT4', --vocabulary_id
-			pValidStartDate  =>NULL, --access to the vocabulary will be granted from the specified day, default CURRENT_DATE (can be omitted)
-			pValidEndDate    =>NULL, --access to the vocabulary will be granted until the specified expiration date, default 2099-12-31 (can be omitted)
-			pIsBlocked       =>FALSE --you can create a blocked access, can be useful if you want to grant access in advance and then just unset the block flag via ModifyVocabularyAccess(), can be omitted, default FALSE
-		);
-	END $_$;
+	--grant access only to CPT4 to dev_jdoe
+	PERFORM admin_pack.GrantVocabularyAccess(
+		pUserID          =>iUserID,
+		pVocabulary_id   =>'CPT4',
+		pValidStartDate  =>NULL, --access to the vocabulary will be granted from the specified day, default CURRENT_DATE (can be omitted)
+		pValidEndDate    =>NULL, --access to the vocabulary will be granted until the specified expiration date, default 2099-12-31 (can be omitted)
+		pIsBlocked       =>FALSE --you can create a blocked access, can be useful if you want to grant access in advance and then just unset the block flag via ModifyVocabularyAccess(), can be omitted, default FALSE
+	);
+END $_$;
 ```
 or you can use separate SELECTs
 ```sql
-		SELECT admin_pack.CreateVirtualUser(
-			pUserLogin       =>'dev_jdoe',
-			pUserName        =>'John Doe',
-			pUserDescription =>'Vocabulary Team',
-			pPassWord        =>'password'
-		);
+	SELECT admin_pack.CreateVirtualUser(
+		pUserLogin       =>'dev_jdoe',
+		pUserName        =>'John Doe',
+		pUserDescription =>'Vocabulary Team',
+		pPassWord        =>'password'
+	);
 
-		SELECT admin_pack.GrantPrivilege(
-			pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'),
-			pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_ANY_VOCABULARY')
-		);
+	SELECT admin_pack.GrantPrivilege(
+		pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'),
+		pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_ANY_VOCABULARY')
+	);
 
-		SELECT admin_pack.GrantVocabularyAccess(
-			pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'),
-			pVocabulary_id   =>'CPT4' --vocabulary_id
-		);
+	SELECT admin_pack.GrantVocabularyAccess(
+		pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'),
+		pVocabulary_id   =>'CPT4' --vocabulary_id
+	);
+```
+
+Modify specific user (MANAGE_USER privilege required)
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyVirtualUser(
+		pUserID           =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
+		pUserLogin        =>NULL, --set NULL if you don't want to change the user's login
+		pUserName         =>NULL, --set NULL if you don't want to change the user's name
+		pUserDescription  =>NULL, --set NULL if you don't want to change the user's description
+		pPassWord         =>NULL, --set NULL if you don't want to change the user's password
+		pEmail            =>NULL, --set NULL if you don't want to change the user's e-mail
+		pValidStartDate   =>NULL, --set NULL if you don't want to change the start date
+		pValidEndDate     =>NULL, --set NULL if you don't want to change the end date
+		pIsBlocked        =>TRUE --just block the specified user
+	);
+END $_$;
+```
+Shorter version
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyVirtualUser(
+		pUserID           =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
+		pIsBlocked        =>TRUE --just block the specified user
+	);
+END $_$;
+```
+
+Modify privilege for specific user (MANAGE_USER privilege required)
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyUserPrivilege(
+		pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
+		pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_USER'),
+		pValidStartDate  =>NULL, --set NULL if you don't want to change the start date
+		pValidEndDate    =>NULL, --set NULL if you don't want to change the end date
+		pIsBlocked       =>TRUE --block privilege for the specified user
+	);
+END $_$;
+```
+Shorter version
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyUserPrivilege(
+		pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
+		pPrivilegeID     =>admin_pack.GetPrivilegeIDByName('MANAGE_USER'),
+		pIsBlocked       =>TRUE --block privilege for the specified user
+	);
+END $_$;
+```
+
+Modify vocabulary access for specific user (MANAGE_USER privilege required)
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyVocabularyAccess(
+		pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
+		pVocabulary_id   =>'CPT4', --vocabulary_id for which access is being changed
+		pValidStartDate  =>NULL, --by default we don't want to change it (but there may be a situation when you want to correct the start date)
+		pValidEndDate    =>NULL, --by default we don't want to change it (but there may be a situation when you want to correct the end date)
+		pIsBlocked       =>TRUE --block access
+	);
+END $_$;
+```
+Shorter version
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyVocabularyAccess(
+		pUserID          =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
+		pVocabulary_id   =>'CPT4', --vocabulary_id for which access is being changed
+		pIsBlocked       =>TRUE --block access
+	);
+END $_$;
 ```
 
 View user privileges (MANAGE_USER privilege required)  
 For more info please read the comments inside the body of the function
 ```sql
-	SELECT *
-	FROM admin_pack.GetUserPrivileges()
-	ORDER BY is_user_active DESC,
-		user_login,
-		is_privilege_alive DESC,
-		is_privilege_active DESC,
-		privilege_name;
+SELECT *
+FROM admin_pack.GetUserPrivileges()
+ORDER BY is_user_active DESC,
+	user_login,
+	is_privilege_alive DESC,
+	is_privilege_active DESC,
+	privilege_name;
 ```
 
 View detailed logs by user id (VIEW_LOGS privilege required)
 ```sql
-	SELECT log_id,
-		table_name,
-		tx_time AT TIME ZONE 'MSK' AS tx_time,
-		op_time AT TIME ZONE 'MSK' AS op_time,
-		tg_operation,
-		tg_result,
-		script_name,
-		tx_id
-	FROM admin_pack.GetLogByUserID(admin_pack.GetUserIDByLogin('dev_jdoe'))
-	ORDER BY log_id DESC
-	LIMIT 100;
+SELECT log_id,
+	table_name,
+	tx_time AT TIME ZONE 'MSK' AS tx_time,
+	op_time AT TIME ZONE 'MSK' AS op_time,
+	tg_operation,
+	tg_result,
+	script_name,
+	tx_id
+FROM admin_pack.GetLogByUserID(admin_pack.GetUserIDByLogin('dev_jdoe'))
+ORDER BY log_id DESC
+LIMIT 100;
 ```
 ### Admin's guide
 Create new privilege (MANAGE_PRIVILEGE privilege required)
 ```sql
-	DO $_$
-	BEGIN
-		PERFORM admin_pack.CreatePrivilege(
-			pPrivilegeName         =>'NEW_PRIVILEGE', --name
-			pPrivilegeDescription  =>'Privilege for doing some tasks' --description
-		);
-	END $_$;
+DO $_$
+BEGIN
+	PERFORM admin_pack.CreatePrivilege(
+		pPrivilegeName         =>'NEW_PRIVILEGE', --name
+		pPrivilegeDescription  =>'Privilege for doing some tasks' --description
+	);
+END $_$;
 ```
 
-### TO DO
-ModifyVocabularyAccess  
-ModifyVirtualUser  
-ModifyUserPrivilege  
-ModifyPrivilege  
+Modify specific privilege (MANAGE_PRIVILEGE privilege required)
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.ModifyPrivilege(
+		pPrivilegeID           => admin_pack.GetPrivilegeIDByName('MANAGE_PRIVILEGE'),
+		pPrivilegeName         => NULL, --or 'NEW_PRIVILEGE_NAME' <--be careful changing this value, you have to change all functions dependent on this name
+		pPrivilegeDescription  => NULL, --or 'New privilege description'
+		pIsBlocked             => FALSE --or TRUE if you want to block privilege
+	);
+END $_$;
+```
 
+### View information about manual concepts and relationships with author and editor (free access, no privilege required)
 ```sql
 SELECT * FROM devv5.v_base_concept_manual LIMIT 100;
 SELECT * FROM devv5.v_base_concept_relationship_manual LIMIT 100;

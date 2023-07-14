@@ -26,7 +26,7 @@ $BODY$
 			pEmail            =>NULL, --set NULL if you don't want to change the user's e-mail
 			pValidStartDate   =>NULL, --set NULL if you don't want to change the start date
 			pValidEndDate     =>NULL, --set NULL if you don't want to change the end date
-			pIsBlocked        =>TRUE --just block specified user
+			pIsBlocked        =>TRUE --just block the specified user
 		);
 	END $_$;
 	
@@ -35,7 +35,7 @@ $BODY$
 	BEGIN
 		PERFORM admin_pack.ModifyVirtualUser(
 			pUserID           =>admin_pack.GetUserIDByLogin('dev_jdoe'), --user's virtual login
-			pIsBlocked        =>TRUE --just block specified user
+			pIsBlocked        =>TRUE --just block the specified user
 		);
 	END $_$;
 	*/

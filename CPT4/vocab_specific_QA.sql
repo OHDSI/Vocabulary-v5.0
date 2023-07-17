@@ -16,7 +16,7 @@ WITH current_status AS (
                                WHERE c.vocabulary_id = 'CPT4'
                                  AND c.concept_class_id = 'CPT4'
                                  AND c1.vocabulary_id IN ('SNOMED', 'OMOP Extension')
-                                 AND cr.relationship_id IN ('Is a', 'Maps to')
+                                 AND cr.relationship_id IN ('Is a')
                                  AND cr.invalid_reason IS NULL
 
        UNION
@@ -58,7 +58,7 @@ new_status AS (
                                WHERE c.vocabulary_id = 'CPT4'
                                  AND c.concept_class_id = 'CPT4'
                                  AND c1.vocabulary_id IN ('SNOMED', 'OMOP Extension')
-                                 AND cr.relationship_id IN ('Is a', 'Maps to')
+                                 AND cr.relationship_id IN ('Is a')
                                  AND cr.invalid_reason IS NULL
 
        UNION

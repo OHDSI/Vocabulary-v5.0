@@ -956,6 +956,10 @@ FROM (
 				THEN 'Has Module'
 			WHEN term = 'Has status'
 				THEN 'Has status'
+			WHEN term = 'Process acts on'
+				THEN 'Process acts on'
+			WHEN term = 'Before'
+				THEN 'Before'
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -1204,7 +1208,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 
 --10.3. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
 UPDATE concept_stage cs
-SET invalid_reason = 'D'
+SET (invalid_reason, valid_end_date) = ('D', crs.valid_start_date)
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id = 'Concept poss_eq to'
@@ -2043,7 +2047,14 @@ SELECT c.*, NULL FROM (VALUES
 
 	--2022-Oct-30
 	--New domain_id = Language
-	(297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --World languages
+	(297289008,         'Language',  TO_DATE('20221030', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --World languages
+
+	--2023-Jul-12
+	(64342008,			'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Adult disease
+	(162680003,			'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - general observation
+	(314471005,			'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Minor surgery done
+	(871560001,			'Measurement',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Detection of ribonucleic acid of severe acute respiratory syndrome coronavirus 2 using polymerase chain reaction (observable entity)
+	(1208754004,		'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Bacillus species antibody
 	--TODO: make top level concept and grouping concepts non-Standard
 ) as c;
 
@@ -2103,7 +2114,7 @@ WHERE ranked IS NULL
 
 --19.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic.
 --This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
---this should retrive nothing, otherwise add these peaks manually
+--this should retrieve nothing, otherwise add these peaks manually
 DO $$
 DECLARE
 r RECORD;
@@ -2125,7 +2136,7 @@ BEGIN
 			ELSE 'Observation'
 			END AS peak_domain_id,
 		NULL::INT AS ranked
-	--INTO r --remove "into r" to run as generic query
+	INTO r --remove "into r" to run as generic query
 	FROM snomed_ancestor a,
 		concept_stage c
 	WHERE c.concept_code::BIGINT = a.ancestor_concept_code

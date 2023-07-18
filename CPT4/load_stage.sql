@@ -223,7 +223,12 @@ SELECT CASE
 		END AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
-	c.valid_end_date,
+	CASE
+	       WHEN c.valid_end_date = '2099-12-31'
+	              THEN (SELECT latest_update
+	                    FROM vocabulary
+	                    WHERE vocabulary_id = 'CPT4')
+	          ELSE c.valid_end_date END AS valid_end_date,
 	NULLIF(c.invalid_reason, 'D') AS invalid_reason
 FROM concept c
 WHERE c.vocabulary_id = 'CPT4'

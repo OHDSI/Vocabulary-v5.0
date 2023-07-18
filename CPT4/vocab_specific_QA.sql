@@ -2,7 +2,7 @@
 --- The script below retrieves following data:
 ---- 'concepts_in_hierarchy' - the number of concepts in hierarchy through 'Is a' relationships;
 ---- 'mapped' - the number of mapped to SNOMED/OMOP Ext./etc. concepts;
----- 'concepts_not_in_hierarchy' - the number of concepts that are not yet in SNOMED/OMOP Ext hierarchy.
+---- 'concepts_not_in_hierarchy' - the number of standard concepts that are not yet in SNOMED/OMOP Ext hierarchy.
 --- The script below allows you to compare current status of hierarchy in devv5 with new status after manual work performed
 --- These counts don't include classification concepts and modifiers, and also concepts mapped to other vocabularies.
 --- Use this counts for analysis and renew respective numbers in https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
@@ -38,8 +38,9 @@ WITH current_status AS (
               count (DISTINCT concept_id)
                             FROM concept
                             WHERE vocabulary_id = 'CPT4'
-                                  AND concept_class_id IN ('CPT4', 'Visit')
-                                  AND concept_id NOT IN (SELECT concept_id_1
+                                AND concept_class_id IN ('CPT4', 'Visit')
+                          		AND standard_concept = 'S'
+                                AND concept_id NOT IN (SELECT concept_id_1
 														FROM devv5.concept_relationship cr
 														   JOIN concept c ON cr.concept_id_1 = c.concept_id
 														   JOIN concept c1 ON cr.concept_id_2 = c1.concept_id
@@ -80,8 +81,9 @@ new_status AS (
               count (DISTINCT concept_id)
                             FROM concept
                             WHERE vocabulary_id = 'CPT4'
-                                  AND concept_class_id IN ('CPT4', 'Visit')
-                                  AND concept_id NOT IN (SELECT concept_id_1
+                                AND concept_class_id IN ('CPT4', 'Visit')
+                            	AND standard_concept = 'S'
+                                AND concept_id NOT IN (SELECT concept_id_1
 														FROM concept_relationship cr
 														   JOIN concept c ON cr.concept_id_1 = c.concept_id
 														   JOIN concept c1 ON cr.concept_id_2 = c1.concept_id

@@ -604,7 +604,9 @@ SELECT DISTINCT m2.code AS concept_code_1,
 		END AS relationship_id,
 	'CPT4' AS vocabulary_id_1,
 	'SNOMED' AS vocabulary_id_2,
-	a.valid_start_date,
+	(SELECT latest_update
+	 FROM vocabulary
+	 WHERE vocabulary_id = 'CPT4') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (

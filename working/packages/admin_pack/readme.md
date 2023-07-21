@@ -1,26 +1,45 @@
 ### Package for administrative tasks and logging of manual work
 
-The package is a new system for working with manual concepts (as well as mappings and synonyms), now all concepts are stored in one table, which is common to all vocabularies.
-This allows you to work with them from any schema and generally simplifies development.
-Also, a key feature of the system is the implementation of the so-called "virtual authorization", which allows you to uniquely identify the author of the change and the possibility of assigning personal privileges.
+The package is a new system for working with manual concepts (as well as mappings and synonyms). Currently, concepts are stored in one table, which is shared by all vocabularies.
+This approach allows users to work with them from any schema and simplifies development.
+Also, a key feature of the system is the implementation of the so-called "virtual authorization" which allows users to uniquely identify the author of the change and the possibility of assigning personal privileges.
 
 ### How it works
 
-Manual tables are now stored in devv5 and are "basic" like concept, concept_relationship etc, the FastRecreateSchema script now copies them to the specified schema when it runs (with the current state being cleared beforehand)
-Names of "basic" manual tables:  
-devv5.base_concept_manual  
-devv5.base_concept_relationship_manual  
-devv5.base_concept_synonym_manual  
+Manual tables are stored in devv5 and considered "basic" like the concept, concept_relationship, etc. The FastRecreateSchema script now copies them to the specified schema when it runs (with the current state being overwritten)
+Names of "basic" manual tables: 
+```sql
+devv5.base_concept_manual
+devv5.base_concept_relationship_manual
+devv5.base_concept_synonym_manual
+```
 
-The names of manual tables in dev-schemas have not changed, work with them is carried out as usual
+The names of manual tables in dev schemas have not been changed, and work with them is carried out as usual.
 
-Change control in manual tables is built into the generic_update. If there are changes, it will request virtual authorization, for this you will need to call the script:
+Control of the changes in manual tables is built into the generic_update. If user doesn't change any manual concepts / relationships, no autorization is required for generic_update.
+If there are changes, generic_update will request virtual authorization. For authorization you will need to call the script:
 ```sql
 SELECT admin_pack.VirtualLogIn('login','password');
 ```
-After successful authorization, a virtual session is created, which is tied to the name of the current dev-schema and your IP address, and which lives as long as your real session with the postgres. In other words, if your connection is interrupted, the generic_update will request authorization again.
+After successful authorization, a virtual session is created, which is bound to the name of the current dev-schema and your IP address, and which lives as long as your postgres session. In other words, if your connection is interrupted, the generic_update will request authorization again.
+
 Next, the necessary privileges are checked, for example, the privilege to work with manual mappings, access to vocabularies, etc.
-If all checks are passed, changes in manual tables will be accepted and written to a special log with the time and username of the user who created the new record (or changed the existing one). After moving the vocabulary to devv5, this information will go into the base manual tables.
+If all checks are passed, changes in manual tables will be accepted and written to a log table with the time and username of the user who created the new record (or changed the existing one). After moving the vocabulary to devv5, this information will migrate into the base manual tables.
+
+There is no need for a logout. Users can switch schemas and virtually log in every time before the genericupdate. Users can disconnect from the database to stop their session.
+
+List of existing privileges and their description:
+
+| Priviledge                 | Description                                                                                                                                        |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| MANAGE_ANY_VOCABULARY      | Granted to OHDSI Vocbulary team members to manage any content in any vocabulary                                                                    |
+| MANAGE_SPECIFIC_VOCABULARY | Group of priviledges (eg. MANAGE_SNOMED, MANAGE_ICD10), granted to OHDSI collaborators to manage content within specific vocabulary                |
+| MANAGE_VOCABULARY_PACK     | Group of priviledges (eg. MANAGE_OPEN_VOCABULARIES), granted to OHDSI collaborators to manage content within the predefined group of vocabularies  |
+
+
+Besides privileges to manage vocabularies, users also differ in their access to the vocabularies as in [Athena](https://athena.ohdsi.org/search-terms/terms). License restricted vocabularies are open only to users with license (checked by OHDSI Vocabulary team). 
+
+After the GenericUpdate run in local schema, manual tables from schemas are merged with "basic" tables in devv5 by OHDSI Vocabulary team.
 
 ### Installation
 
@@ -31,13 +50,13 @@ CREATE EXTENSION tablefunc;
 ```
 
 ### User's guide
-Do your job as always, then when you're ready to run the generic_update, do a virtual authorization  
+Work as always, then when you're ready to run the generic_update, perform a virtual authorization  
 ```sql
 SELECT admin_pack.VirtualLogIn ('login','password');
 ```
-and then you can continue  
+and then you can continue
 
-Changing own password (virtual session will be invalidated)
+Changing password (virtual session will be invalidated)
 ```sql
 SELECT admin_pack.ChangeOwnPassword ('old_password','new_password');
 ```
@@ -233,6 +252,8 @@ ORDER BY log_id DESC
 LIMIT 100;
 ```
 ### Admin's guide
+Privileges are managed by OHDSI Vocabulary. 
+
 Create new privilege (MANAGE_PRIVILEGE privilege required)
 ```sql
 DO $_$
@@ -262,4 +283,15 @@ END $_$;
 SELECT * FROM devv5.v_base_concept_manual LIMIT 100;
 SELECT * FROM devv5.v_base_concept_relationship_manual LIMIT 100;
 SELECT * FROM devv5.v_base_concept_synonym_manual LIMIT 100;
+```
+
+
+## FAQ
+### Merge conflict
+In cases when two users insert conflicting mappings in manual tables, only one resulting relationship will be present in "basic" manual tables. The resulting relationship depends on which relationship has been inserted last. As a result, in the Log table, one row per each change (one insert, one update) will be present. Such conflict may affect chaining of mappings in AddFreshMapsToValue.
+
+### Direction of the relationships
+To maintain correct functioning of logging of changes in manual tables, there is only one direction for each relationship that can be used. The relationships are defined in ProcessManualRelationships function.
+```sql
+select devv5.GetPrimaryRelationshipID(r.relationship_id) correct_rel, r.relationship_id from devv5.relationship r;
 ```

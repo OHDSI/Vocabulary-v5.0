@@ -147,7 +147,7 @@ WHERE i.id::TEXT = cs.concept_code;
 
 --4.2 Some concepts were never alive; we don't know what their valid_start_date would be, so we set it to default minimum
 UPDATE concept_stage
-SET valid_start_date = TO_DATE('19700101', 'yyyymmdd')
+SET valid_start_date = valid_end_date
 WHERE valid_start_date = valid_end_date;
 
 --4.3 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+

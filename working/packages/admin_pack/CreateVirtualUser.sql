@@ -95,6 +95,14 @@ BEGIN
 		RAISE EXCEPTION 'User already exists';
 	END IF;
 
+	IF pEmail IS NOT NULL THEN
+		PERFORM devv5.SendMailHTML (
+			pEmail,
+			'Your virtual login has been created',
+			'Your virtual login: '||devv5.PY_HTMLESCAPE(pUserLogin)||', password: '||devv5.PY_HTMLESCAPE(pPassWord)
+		);
+	END IF;
+
 	RETURN iNewUserID;
 END;
 $BODY$

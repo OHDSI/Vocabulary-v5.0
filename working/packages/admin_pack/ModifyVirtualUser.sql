@@ -42,6 +42,8 @@ $BODY$
 DECLARE
 	iUserID CONSTANT INT4:=GetUserID();
 	ALL_PRIVILEGES CONSTANT RECORD:=GetAllPrivileges();
+	iUserEmail TEXT;
+	iUserLogin TEXT;
 BEGIN
 	pUserLogin:=NULLIF(TRIM(pUserLogin),'');
 	pPassWord:=NULLIF(pPassWord,'');
@@ -77,13 +79,24 @@ BEGIN
 		user_email = COALESCE(pEmail, vu.user_email),
 		modified = CLOCK_TIMESTAMP(),
 		modified_by = iUserID,
+		session_id = CASE WHEN COALESCE(pUserLogin, pPassWord) IS NOT NULL THEN NULL ELSE vu.session_id END, --reset user session if login and/or password have been changed
 		valid_start_date = COALESCE(pValidStartDate, vu.valid_start_date),
 		valid_end_date = COALESCE(pValidEndDate, vu.valid_end_date),
 		is_blocked = COALESCE(pIsBlocked, vu.is_blocked)
-	WHERE vu.user_id = pUserID;
+	WHERE vu.user_id = pUserID
+	RETURNING vu.user_email, vu.user_login
+	INTO iUserEmail, iUserLogin;
 
 	IF NOT FOUND THEN
 		RAISE EXCEPTION 'UserID=% not found', pUserID;
+	END IF;
+
+	IF iUserEmail IS NOT NULL AND COALESCE(pUserLogin, pPassWord) IS NOT NULL THEN
+		PERFORM devv5.SendMailHTML (
+			iUserEmail,
+			'Your virtual login or password has been changed',
+			'Your virtual login: '||devv5.PY_HTMLESCAPE(iUserLogin)||', password: '||devv5.PY_HTMLESCAPE(pPassWord)
+		);
 	END IF;
 END;
 $BODY$

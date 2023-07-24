@@ -137,7 +137,6 @@ $BODY$
 	SELECT log_id,
 		table_name,
 		tx_time AT TIME ZONE 'MSK' AS tx_time,
-		op_time AT TIME ZONE 'MSK' AS op_time,
 		tg_operation,
 		tg_result,
 		script_name,

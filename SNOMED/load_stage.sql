@@ -145,7 +145,7 @@ SET invalid_reason = 'D',
 FROM inactive i
 WHERE i.id::TEXT = cs.concept_code;
 
---4.2 Some concepts were never alive; we don't know what their valid_start_date would be, so we set it to default minimum
+--4.2 Some concepts are present in the source with the only record with active = 0. These concepts have never been active yet, so their valid_start_date and valid_end_date are equal
 UPDATE concept_stage
 SET valid_start_date = valid_end_date
 WHERE valid_start_date = valid_end_date;

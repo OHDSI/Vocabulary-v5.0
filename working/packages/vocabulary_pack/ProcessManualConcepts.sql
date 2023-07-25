@@ -62,9 +62,9 @@ BEGIN
 				THEN cs.invalid_reason
 			ELSE excluded.invalid_reason
 			END
-		WHERE ROW (cm.concept_name, cm.domain_id, cm.concept_class_id, cm.standard_concept, cm.valid_start_date, cm.valid_end_date, cm.invalid_reason)
-		IS DISTINCT FROM
-		ROW (excluded.concept_name, excluded.domain_id, excluded.concept_class_id, excluded.standard_concept, excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason);
+	WHERE ROW (cs.concept_name, cs.domain_id, cs.concept_class_id, cs.standard_concept, cs.valid_start_date, cs.valid_end_date, cs.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.concept_name, excluded.domain_id, excluded.concept_class_id, excluded.standard_concept, excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason);
 END;
 $BODY$
 LANGUAGE 'plpgsql';

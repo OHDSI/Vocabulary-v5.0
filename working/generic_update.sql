@@ -540,7 +540,9 @@ BEGIN
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
-			'Source - RxNorm eq' -- AVOF-2118
+			'Source - RxNorm eq', -- AVOF-2118
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
 		)
 	)
 	UPDATE concept_relationship r
@@ -589,7 +591,9 @@ BEGIN
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
-			'Source - RxNorm eq' -- AVOF-2118
+			'Source - RxNorm eq', -- AVOF-2118
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
 		)
 	)
 	UPDATE concept_relationship r

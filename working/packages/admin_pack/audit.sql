@@ -138,6 +138,10 @@ $BODY$
 		table_name,
 		tx_time AT TIME ZONE 'MSK' AS tx_time,
 		tg_operation,
+		user_login,
+		whom_user_login,
+		privilege_name,
+		vocabulary_id,
 		tg_result,
 		script_name,
 		tx_id

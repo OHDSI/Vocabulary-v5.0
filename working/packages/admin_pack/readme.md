@@ -30,7 +30,7 @@ There is no need for a logout. Users can switch schemas and virtually log in eve
 
 List of existing privileges and their description:
 
-| Priviledge                 | Description                                                                                                                                        |
+| Privilege                  | Description                                                                                                                                        |
 |----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | MANAGE_ANY_VOCABULARY      | Granted to OHDSI Vocbulary team members to manage any content in any vocabulary                                                                    |
 | MANAGE_SPECIFIC_VOCABULARY | Group of priviledges (eg. MANAGE_SNOMED, MANAGE_ICD10), granted to OHDSI collaborators to manage content within specific vocabulary                |
@@ -243,6 +243,10 @@ SELECT log_id,
 	table_name,
 	tx_time AT TIME ZONE 'MSK' AS tx_time,
 	tg_operation,
+	user_login,
+	whom_user_login,
+	privilege_name,
+	vocabulary_id,
 	tg_result,
 	script_name,
 	tx_id

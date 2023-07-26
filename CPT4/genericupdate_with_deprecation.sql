@@ -22,7 +22,6 @@ BEGIN
 
 	--1.2 Start logging manual work
 	PERFORM admin_pack.LogManualChanges();
-;
 
 	--1.3 Clear concept_id's just in case
 	UPDATE concept_stage

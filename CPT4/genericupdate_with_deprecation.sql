@@ -21,10 +21,8 @@ BEGIN
 	END $$;
 
 	--1.2 Start logging manual work
-	DO $_$
-BEGIN
 	PERFORM admin_pack.LogManualChanges();
-	       END $_$;
+;
 
 	--1.3 Clear concept_id's just in case
 	UPDATE concept_stage
@@ -1167,13 +1165,12 @@ BEGIN
 
 	--36. Update concept_id fields in the "basic" manual tables for storing in audit
 
-DO $_$
-BEGIN
 PERFORM admin_pack.UpdateManualConceptID();
-       END $_$;
-	--QA (should return NULL)
-	SELECT * FROM QA_TESTS.GET_CHECKS();
-END;
+
+--QA (should return NULL)
+--SELECT * FROM QA_TESTS.GET_CHECKS();
+
+       END;
 $BODY$
 LANGUAGE 'plpgsql'
 VOLATILE

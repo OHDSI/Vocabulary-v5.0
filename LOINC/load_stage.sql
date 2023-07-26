@@ -1754,11 +1754,11 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT l.fromexpr AS concept_code_1, -- LOINC code
-	UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_2, -- CPT4 code
-	'LOINC' AS vocabulary_id_1,
-	'CPT4' AS vocabulary_id_2,
-	'LOINC - CPT4 eq' AS relationship_id,
+SELECT UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_1, -- CPT4 code
+     l.fromexpr AS concept_code_2, -- LOINC code
+	'CPT4' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	'CPT4 - LOINC eq' AS relationship_id,
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason

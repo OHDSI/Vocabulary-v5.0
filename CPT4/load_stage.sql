@@ -488,9 +488,9 @@ FROM (
 					'1014644',
 					'1018504',
 					'1019105',
-					'1036228',
 					'1037591'
 					)
+			  OR cs.concept_code = '1036228'
 				THEN 'Measurement'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')

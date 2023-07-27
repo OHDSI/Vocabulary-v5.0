@@ -1,4 +1,4 @@
---Use this script to extract relationships of synonymy and ancestorship provided by UMLS source
+--Use this script to extract relationships of synonymy and ancestry provided by UMLS source
 --Add these relationships to CPT4_mapped spreadsheet and review
 WITH umls_mapping AS (
 	SELECT a.concept_name AS source_concept_name,

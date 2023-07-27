@@ -415,40 +415,41 @@ FROM (
 					'T034'
 					)
 				AND cs.concept_code NOT IN (
-					'0244U',
-					'0250U',
-					'0258U',
-					'0260U',
-					'0264U',
-					'0267U',
-					'0335U',
-					'0336U'
+					'0244U',-- 	Oncology (solid organ), DNA, comprehensive genomic profiling
+					'0250U',-- 	Oncology (solid organ neoplasm), targeted genomic sequence DNA analysis of 505 genes,...
+					'0258U',-- 	Autoimmune (psoriasis), mRNA, next-generation sequencing, gene expression profiling of 50-100 genes,...
+					'0260U',-- 	Rare diseases (constitutional/heritable disorders), identification of copy number variations...
+					'0264U',--	Rare diseases (constitutional/heritable disorders), identification of copy number variations...
+					'0267U',-- 	Rare constitutional and other heritable disorders, identification of copy number variations...
+					'0335U',--	Neurology (prion disease), cerebrospinal fluid, detection of prion protein ...
+					'0336U'--	Oncology (oropharyngeal), evaluation of 17 DNA biomarkers using droplet digital PCR (ddPCR),...
 						  )
-				THEN 'Procedure'
-			WHEN cs.concept_code IN ('99143',
-									'99148',
-									'99149',
-									'99144')
 				THEN 'Procedure'
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
 			WHEN m2.sty = 'Medical Device'
 				AND cs.concept_code != '44015'
 				THEN 'Device'
-			WHEN cs.concept_code = '44015'
-					THEN 'Procedure' -- Tube or needle catheter jejunostomy
+			WHEN cs.concept_code IN ('99143',
+			                         '99144',
+									 '99148',
+									 '99149', -- 99143-99149 Moderate sedation services
+			                         '44015' -- Tube or needle catheter jejunostomy
+			                        )
+					THEN 'Procedure'
 			WHEN m2.tui IN (
 					'T121',
 					'T109',
 					'T200'
 					)
-				AND cs.concept_code NOT IN ('86789', '1036228')
+				AND cs.concept_code NOT IN ('86789', --	Antibody; West Nile virus
+				                            '1036228') -- 	Estradiol (measurement)
 				THEN 'Drug'
 			WHEN tty = 'POS'
 				AND cs.concept_code NOT IN (
-					'1022193',
-					'1022194',
-					'44015'
+					'1022193', --	Introduction
+					'1022194', -- 	Section Numbers and Their Sequences
+					'44015'		-- 	Tube or needle catheter jejunostomy
 					)
 				THEN 'Visit'
 			WHEN m2.tui IN (

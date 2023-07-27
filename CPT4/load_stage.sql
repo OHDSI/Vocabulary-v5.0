@@ -425,6 +425,11 @@ FROM (
 					'0336U'
 						  )
 				THEN 'Procedure'
+			WHEN cs.concept_code IN ('99143',
+									'99148',
+									'99149',
+									'99144')
+				THEN 'Procedure'
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
 			WHEN m2.sty = 'Medical Device'
@@ -437,7 +442,7 @@ FROM (
 					'T109',
 					'T200'
 					)
-				AND cs.concept_code <> '86789'
+				AND cs.concept_code NOT IN ('86789', '1036228')
 				THEN 'Drug'
 			WHEN tty = 'POS'
 				AND cs.concept_code NOT IN (
@@ -481,7 +486,9 @@ FROM (
 					'1012564',
 					'1014644',
 					'1018504',
-					'1019105'
+					'1019105',
+					'1036228',
+					'1037591'
 					)
 				THEN 'Measurement'
 			WHEN (
@@ -527,7 +534,10 @@ FROM (
 				     '80502',
 				     '4060F',
 				     '77370',
-				     '99429'
+				     '99429',
+					 '1037418',
+				     '1037424',
+				     '1037420'
 				     )
 				THEN 'Observation'
 			WHEN c.concept_code IN (
@@ -679,7 +689,6 @@ BEGIN
 END $_$;
 
 --17. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
-
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
 WHERE cs.concept_code in (
@@ -688,6 +697,7 @@ WHERE cs.concept_code in (
        WHERE vocabulary_id_2 in ('RxNorm', 'RxNorm Extension', 'CVX')
 			AND relationship_id = 'Maps to'
 			AND invalid_reason IS NUll
+			AND concept_class_id != 'CPT4 Hierarchy'
 );
 
 --18. All concepts having mappings should be NON-standard

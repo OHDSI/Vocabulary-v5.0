@@ -1325,7 +1325,7 @@ INSERT INTO snomed_ancestor (
 	)
 SELECT DISTINCT a.ancestor_concept_code,
 	s1.concept_code::BIGINT,
-	a.min_levels_of_separation
+	MIN(a.min_levels_of_separation)
 FROM concept_stage s1
 JOIN concept_relationship_stage r ON s1.invalid_reason IS NOT NULL
 	AND s1.concept_code = r.concept_code_1
@@ -1336,10 +1336,10 @@ WHERE NOT EXISTS (
 		SELECT
 		FROM snomed_ancestor x
 		WHERE x.descendant_concept_code::TEXT = s1.concept_code
-		);
+		)
+GROUP BY ancestor_concept_code, s1.concept_code;
 
 ANALYZE snomed_ancestor;
-
 
 --18.2. For deprecated concepts without mappings, take the latest 116680003 'Is a' relationship to active concept
 INSERT INTO snomed_ancestor (

@@ -435,7 +435,10 @@ BEGIN
 			'Concept same_as to',
 			'Concept alt_to to',
 			'Concept was_a to',
-			'Maps to']) AS relationship_id
+			'Maps to',
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
+			]) AS relationship_id
 		),
 	vocab_combinations
 	AS (

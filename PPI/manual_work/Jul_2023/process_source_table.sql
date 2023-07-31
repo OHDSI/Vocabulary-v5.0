@@ -18,9 +18,50 @@ Custom_Alignment	varchar,
 Question_Number	varchar,
 Matrix_Group_Name	varchar,
 Matrix_Ranking	varchar,
-Field_Annotation	varchar) ;
+Field_Annotation	varchar);
 
-SELECT * FROM bhp;
+SELECT * FROM bhp; -- 69
+
+--Process BHP source table
+DROP TABLE bhp_pr;
+CREATE TABLE bhp_pr as (
+WITH a
+AS
+(SELECT *,
+  TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')) AS answer
+ FROM bhp)
+     SELECT
+     variable_field_name as question_code,
+     field_label as question_name,
+     SPLIT_PART(answer, ',', 1) AS answer_code,
+     trim(SPLIT_PART(answer, ',', 2)) AS answer_name
+     FROM a) ;
+
+--Precoordinated answer concepts
+--SELECT DISTINCT concat (question_code, '-', answer_code), concat (question_name, '-', answer_name) FROM bhp_pr;
+UPDATE bhp_pr SET answer_name = concat (question_name, '-', answer_name);
+UPDATE bhp_pr SET answer_code = concat (question_code, '-', answer_code);
+
+UPDATE bhp_pr SET answer_code = trim(answer_code) ;
+UPDATE bhp_pr SET question_code = trim(question_code) ;
+UPDATE bhp_pr SET answer_name = trim(answer_name) ;
+UPDATE bhp_pr SET question_name = trim(question_name) ;
+
+SELECT * FROM bhp_pr;
+
+SELECT DISTINCT question_code, question_name FROM bhp_pr where length (question_name) > 255;
+
+/*UPDATE bhp_pr SET question_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life so frightened by any of these situations that it got in the way of you having a normal life?'
+WHERE question_code = 'cidi5_30';
+UPDATE bhp_pr SET question_name = 'Have you ever been bothered with thoughts, images, or urges that kept coming back over and over, like concerns with germs, order, or experiencing horrific images or intrusive sexual thoughts, or urges to knock objects, or harming a loved one?'
+WHERE question_code = 'pmi_1';
+UPDATE bhp_pr SET question_name = 'Did you ever talk to a health professional about any of these experiences (such as seeing a vision, hearing a voice, believing that something strange was trying to communicate with you)?'
+WHERE question_code = 'mhqukb_55';*/
+
+SELECT DISTINCT answer_code, answer_name FROM bhp_pr where length (answer_name) > 255;
+
+UPDATE bhp_pr SET question_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life so frightened by any of these situations that it got in the way of you having a normal life?'
+WHERE question_code = 'bhp_6';
 
 -- EHH (Emotional Health history and Wellbeing) source table
 TRUNCATE TABLE ehh;
@@ -44,5 +85,34 @@ Matrix_Group_Name	varchar,
 Matrix_Ranking	varchar,
 Field_Annotation	varchar) ;
 
-SELECT * FROM ehh;
+SELECT * FROM ehh; --122
 
+--Process EHH source table
+DROP TABLE ehh_pr;
+CREATE TABLE ehh_pr as (
+WITH a
+AS
+(SELECT *,
+  TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')) AS answer
+ FROM ehh)
+     SELECT
+     variable_field_name as question_code,
+     field_label as question_name,
+     SPLIT_PART(answer, ',', 1) AS answer_code,
+     trim(SPLIT_PART(answer, ',', 2)) AS answer_name
+     FROM a) ;
+
+--Precoordinated answer concepts
+--SELECT DISTINCT answer_code, answer_name FROM ehh_pr;
+UPDATE ehh_pr SET answer_name = concat (question_name, '-', answer_name);
+UPDATE ehh_pr SET answer_code = concat (question_code, '-', answer_code);
+
+update ehh_pr set answer_code = trim(answer_code) ;
+update ehh_pr set question_code = trim(question_code) ;
+update ehh_pr set answer_name = trim(answer_name) ;
+update ehh_pr set question_name = trim(question_name) ;
+
+SELECT * FROM ehh_pr;
+
+SELECT DISTINCT question_code, question_name FROM ehh_pr where length (question_name) > 255;
+SELECT DISTINCT answer_code, answer_name FROM ehh_pr where length (answer_name) > 255;

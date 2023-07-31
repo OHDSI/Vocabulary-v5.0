@@ -282,9 +282,11 @@ JOIN (
 		FIRST_VALUE(dt_modif) OVER (
 			PARTITION BY acte_cod,
 			activ_cod ORDER BY dt_modif
-			) AS dt_modif --get the min date (dt_modif=acdt_modif, so it doesn't matter which field we take)
+			) AS dt_modif, --get the min date (dt_modif=acdt_modif, so it doesn't matter which field we take)
+		row_number () over (PARTITION BY acte_cod,regrou_cod ORDER BY dt_modif) as row_number_idx	-- AVOC-4014-CCAM-REFRESH	
 	FROM sources.ccam_r_acte_ivite
-	) i ON i.acte_cod = cs.concept_code;
+	) i ON i.acte_cod = cs.concept_code
+	where i.row_number_idx = 1;
 
 --8. Append manual relationships
 DO $_$

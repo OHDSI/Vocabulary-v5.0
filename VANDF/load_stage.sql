@@ -54,17 +54,10 @@ SELECT DISTINCT ON (rx.code) vocabulary_pack.CutConceptName(rx.str) AS concept_n
 	NULL AS standard_concept,
 	rx.code AS concept_code,
 	CASE
-	    WHEN rx.code in (
-	        select concept_code from devv5.concept c
-	                            where c.vocabulary_id = 'VANDF'
-            )
-			THEN TO_DATE('19700101', 'yyyymmdd')
-		WHEN COALESCE(TO_DATE(rxs.atv, 'yyyymmdd'), TO_DATE('20991231', 'yyyymmdd')) = to_date('20991231', 'yyyymmdd')
-			THEN (v.latest_update - 1)
 	    WHEN TO_DATE(rxs.atv, 'yyyymmdd') < latest_update
 	        THEN TO_DATE(rxs.atv, 'yyyymmdd')
 	    ELSE
-	        (v.latest_update - 1)
+	        v.latest_update
 		END AS valid_start_date, --for the first time we put concepts as 1970
 	COALESCE(TO_DATE(rxs.atv, 'yyyymmdd'), TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	CASE 

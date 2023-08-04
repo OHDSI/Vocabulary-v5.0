@@ -1,0 +1,66 @@
+version: 2
+
+# 1. Create source tables
+
+models:
+  - name: 101_sct2_concept_full_merged
+    description: "Description for the 111_sct2_concept_full_merged model"
+    columns:
+      - name: ID
+        description: "Description for ID"
+        tests:
+          - not_null
+          - unique
+      - name: EFFECTIVETIME
+        description: "Description for EFFECTIVETIME"
+        tests:
+          - not_null
+          
+  - name: 102_sct2_rela_full_merged
+    description: "Description"
+
+  - name: 103_sct2_desc_full_merged
+    description: "Description"
+
+  - name: 104_der2_crefset_assreffull_merged
+    description: "Description"
+
+  - name: 105_der2_srefset_simplemapfull_int
+    description: "Description"
+
+  - name: 106_der2_crefset_language_merged
+    description: "Description"
+
+  - name: 107_der2_ssrefset_moduledependency_merged
+    description: "Description"
+
+  - name: 108_der2_iisssccrefset_extendedmapfull_us
+    description: "Description"
+
+  - name: 109_der2_crefset_attributevalue_full_merged
+    description: "Description"
+
+  - name: 110_f_lookup2
+    description: "Description"
+
+  - name: 111_f_ingredient2
+    description: "Description"
+
+  - name: 112_f_vtm2
+    description: "Description"
+
+  - name: 113_f_vmp2
+    description: "Description"
+
+  - name: 114_f_vmpp2
+    description: "Description"
+
+  - name: 115_f_amp2
+    description: "Description"
+
+  - name: 116_f_ampp2
+    description: "Description"
+
+  - name: 117_dmdbonus
+    description: "Description"
+

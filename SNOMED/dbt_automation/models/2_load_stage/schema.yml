@@ -1,0 +1,51 @@
+version: 2
+
+# 2. Load stage
+
+# 2.1 Extract each component (International, UK & US) versions to properly date the combined source in next step
+  - name: 201_module_date
+  description: "Extract each component (International, UK & US) versions to properly date the combined source"
+  columns:
+    - name: moduleid
+      description: Module ID
+      tests:
+        - not_null
+
+    - name: version
+      description: Version in 'yyyy-mm-dd' format
+      tests:
+        - not_null
+        
+# 2.2 Update latest_update field to new date using the latest of the release dates of all source versions. Usually, the UK is the latest.
+  - name: 202_update_latest_update_field
+    description: Update latest_update field to new date using the latest of the release dates of all source versions
+    meta:
+      persist_docs:
+        relation: true
+
+# 2.3 Truncate all working tables
+  - name: 203_truncate_working_tables
+    description: Truncate all working tables
+    meta:
+      persist_docs:
+        relation: true
+
+# 2.4 Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
+  - name: 204_1_truncate_working_tables
+    description: Truncate all working tables
+
+  - name: 204_2_truncate_working_tables
+    description: Truncate all working tables
+
+  - name: 204_3_truncate_working_tables
+    description: Truncate all working tables
+
+  - name: 204_4_truncate_working_tables
+    description: Truncate all working tables
+
+
+
+
+docs:
+  - name: sources
+    description: 'Description for sources schema'

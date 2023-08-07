@@ -1489,6 +1489,8 @@ WITH ax_1 AS (
 					) /*to restrict SNOMED attribute pool*/
 				OR x1.attr_code = '41598000'
 				) --To take Estrogen component
+	        AND x1.sn_code NOT IN ('401020005' --Urinary cortisol analysis
+	            ) --to exclude additional codes
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -1518,14 +1520,17 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 2
 				) /*to restrict SNOMED attribute pool*/
-			/*AND z2.lc_code NOT IN (
+	    AND x1.sn_code NOT IN ('401093002', --Haemophilus influenzae B IgG measurement
+	                            '9954002' --Serologic test for rubella
+	                          ) --to exclude additional codes
+			AND z2.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
 			)
 			AND z2.lc_code NOT IN (
 				SELECT ax_2_int.lc_code
 				FROM ax_2 ax_2_int
-			)*/ -- exclude duplicates
+			) -- exclude duplicates
 		),
 	-- AXIS 4: get 2-attribute Measurements (Component+Scale)
 	ax_4 AS (
@@ -1572,6 +1577,13 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 1
 				) -- to restrict SNOMED attribute pool
+	    AND x1.sn_code NOT IN ('250663008', --Unconjugated estriol measurement
+	                           '269932004', --Fluid sample lipase measurement
+	                           '271232007', --Serum lipase measurement
+	                           '281105001', --Fecal lipase measurement
+	                           '166776003', --Serum/plasma protein test
+	                           '166809004' --Electrophoresis: paraprotein
+	                           ) -- to exclude codes with additional axises
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int

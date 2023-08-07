@@ -158,4 +158,17 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+--10. Domain and concept class changes for devices
+--Run this script in the order: VANDF->VA_Class->this script
+update concept_stage
+set domain_id = 'Device',
+    concept_class_id = 'Device'
+where concept_id in (
+    select c1.concept_id
+from concept c1
+join concept_relationship cr on c1.concept_id = cr.concept_id_1
+join concept c2 on c2.concept_id = cr.concept_id_2
+where c1.vocabulary_id = 'VANDF'
+  and c2.concept_code~*'X');
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -78,43 +78,37 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---5. Working with manual synonyms
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
-END $_$;
-
---6. Add ICD10CM to SNOMED manual mappings
+--5. Add ICD10CM to SNOMED manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---7. Working with replacement mappings
+--6. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---8. Add mapping from deprecated to fresh concepts
+--7. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---10. Delete ambiguous 'Maps to' mappings
+--9. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---11. Add "subsumes" relationship between concepts where the concept_code is like of another
+--10. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -152,7 +146,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---12. Update domain_id for ICD10CM from target vocabularies
+--11. Update domain_id for ICD10CM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -226,11 +220,11 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---13. Check for NULL in domain_id
+--12. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---14. Load into concept_synonym_stage name from ICD10CM
+--13. Load into concept_synonym_stage name from ICD10CM
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -252,6 +246,12 @@ FROM (
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	) AS s0;
+
+--14. Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
 
 --15. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$

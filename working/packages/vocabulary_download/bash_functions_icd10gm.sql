@@ -9,7 +9,7 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "Klassifikationsdateien/icd10gm*syst_kodes.txt" -d .
+    unzip -oqj "$2" "Klassifikationsdateien/icd10gm*syst_kodes*.txt" -d .
     
     #move result to original folder
     cd "$1"

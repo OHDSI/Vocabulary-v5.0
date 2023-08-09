@@ -20,7 +20,10 @@ BEGIN
 		END IF;
 	END $$;
 
-	--1.2 Clear concept_id's just in case
+	--1.2 Start logging manual work
+	PERFORM admin_pack.LogManualChanges();
+	
+	--1.3 Clear concept_id's just in case
 	UPDATE concept_stage
 	SET concept_id = NULL
 	WHERE concept_id IS NOT NULL;
@@ -432,7 +435,10 @@ BEGIN
 			'Concept same_as to',
 			'Concept alt_to to',
 			'Concept was_a to',
-			'Maps to']) AS relationship_id
+			'Maps to',
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
+			]) AS relationship_id
 		),
 	vocab_combinations
 	AS (
@@ -495,6 +501,7 @@ BEGIN
 				FROM relationships
 				JOIN relationship USING (relationship_id)
 				)
+			AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
 		)
 	UPDATE concept_relationship d
 	SET valid_end_date = vc.max_latest_update - 1,
@@ -536,7 +543,9 @@ BEGIN
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
-			'Source - RxNorm eq' -- AVOF-2118
+			'Source - RxNorm eq', -- AVOF-2118
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
 		)
 	)
 	UPDATE concept_relationship r
@@ -585,7 +594,9 @@ BEGIN
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
-			'Source - RxNorm eq' -- AVOF-2118
+			'Source - RxNorm eq', -- AVOF-2118
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
 		)
 	)
 	UPDATE concept_relationship r
@@ -1151,6 +1162,10 @@ BEGIN
 	ANALYZE concept;
 	ANALYZE concept_relationship;
 	ANALYZE concept_synonym;
+
+	--36. Update concept_id fields in the "basic" manual tables for storing in audit
+	PERFORM admin_pack.UpdateManualConceptID();
+
 	--QA (should return NULL)
 	--SELECT * FROM QA_TESTS.GET_CHECKS();
 END;

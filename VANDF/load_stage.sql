@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Timur Vakhitov
-* Date: 2021
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Varvara Savitskaya
+* Date: 2023
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
@@ -159,16 +159,21 @@ BEGIN
 END $_$;
 
 --10. Domain and concept class changes for devices
---Run this script in the order: VANDF->VA_Class->this script
 update concept_stage
 set domain_id = 'Device',
     concept_class_id = 'Device'
-where concept_id in (
-    select c1.concept_id
+where concept_code in (
+    select c1.concept_code
 from concept c1
 join concept_relationship cr on c1.concept_id = cr.concept_id_1
 join concept c2 on c2.concept_id = cr.concept_id_2
 where c1.vocabulary_id = 'VANDF'
   and c2.concept_code~*'X');
+
+--11. Assigning standard values for valid devices
+update concept_stage
+set standard_concept = 'S'
+where domain_id = 'Device'
+and invalid_reason is null;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

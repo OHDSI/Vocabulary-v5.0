@@ -1,41 +1,4 @@
---22.3.1. Backup concept_relationship_manual table and concept_manual table.
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_loinc.concept_relationship_manual;
-INSERT INTO dev_loinc.concept_relationship_manual
-SELECT * FROM dev_loinc.concept_relationship_manual_backup_YYYY_MM_DD;*/
-
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_manual',
-                       'concept_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_loinc.concept_manual;
-INSERT INTO dev_loinc.concept_manual
-SELECT * FROM dev_loinc.concept_manual_backup_YYYY_MM_DD;*/
-
---22.3.2. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
+--22.3.1. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
 --DROP TABLE dev_loinc.loinc_mapped;
 CREATE TABLE dev_loinc.loinc_mapped
 (
@@ -57,7 +20,7 @@ CREATE TABLE dev_loinc.loinc_mapped
     target_vocabulary_id varchar(50)
 );
 
---22.3.3. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
+--22.3.2. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
         FROM devv5.concept_relationship cr
@@ -162,7 +125,7 @@ WHERE c.concept_code NOT IN (SELECT source_code FROM loinc_mapped) --exclude cod
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code
 ;
 
---22.3.4. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
+--22.3.3. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
 SELECT * FROM (
 SELECT DISTINCT
        replace (long_common_name, 'Deprecated ', '') AS source_concept_name_clean,
@@ -206,10 +169,10 @@ AND NOT EXISTS (SELECT
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
---22.3.6. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
+--22.3.4. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_loinc.loinc_mapped;
 
---22.3.9. Deprecate all mappings that differ from the new version of resulting mapping file.
+--22.3.5. Deprecate all mappings that differ from the new version of resulting mapping file.
 UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -241,7 +204,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
     )
 ;
 
---22.3.10. Insert new and corrected mappings into the concept_relationship_manual table.
+--22.3.6. Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -274,7 +237,7 @@ INSERT INTO dev_loinc.concept_relationship_manual(concept_code_1, concept_code_2
     )
 ;
 
--- 22.3.11 Activate mapping, that became valid again
+-- 22.3.7 Activate mapping, that became valid again
 UPDATE concept_relationship_manual crm
 SET invalid_reason = null,
     valid_end_date = to_date('20991231','yyyymmdd'),

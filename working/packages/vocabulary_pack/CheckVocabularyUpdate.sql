@@ -143,7 +143,12 @@ BEGIN
           31. OMOP Invest Drug
           32. CiViC
         */
-        SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
+        IF pVocabularyName='DPD' THEN
+            --DPD only uses HTTP/2
+            SELECT http_content into cVocabHTML FROM vocabulary_download.py_http2_get(url=>cURL);
+        ELSE
+            SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
+        END IF;
         
         CASE
             WHEN cVocabularyName = 'RXNORM'

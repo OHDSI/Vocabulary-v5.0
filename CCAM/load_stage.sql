@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Timur Vakhitov
-* Date: 2020
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Milton Aleman
+* Date: 2023
 **************************************************************************/
 
 --1. Update latest_update field to new date

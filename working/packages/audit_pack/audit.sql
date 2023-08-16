@@ -60,7 +60,7 @@ $BODY$
 				--admin_pack functions
 				'LogManualChanges','ModifyVocabularyAccess','ModifyVirtualUser','ModifyUserPrivilege',
 				'ModifyPrivilege','GrantVocabularyAccess','GrantPrivilege','CreateVirtualUser',
-				'CreatePrivilege','ChangeOwnPassword'
+				'CreatePrivilege','ChangeOwnPassword','DeleteManualRelationship'
 				]
 			) AS replacements(pretty_function_name)
 		) r ON LOWER(r.pretty_function_name)=s0.function_name;

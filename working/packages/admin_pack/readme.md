@@ -225,6 +225,20 @@ BEGIN
 END $_$;
 ```
 
+Delete manual relationship from the base crm (devv5.base_concept_relationship_manual) (DELETE_MANUAL_RELATIONSHIP privilege required)
+```sql
+DO $_$
+BEGIN
+	PERFORM admin_pack.DeleteManualRelationship(
+		pConcept_code_1  =>'A',
+		pVocabulary_id_1 =>'SNOMED',
+		pConcept_code_2  =>'B',
+		pVocabulary_id_2 =>'SNOMED',
+		pRelationship_id =>'Maps to'
+	);
+END $_$;
+```
+
 View user privileges (MANAGE_USER privilege required)  
 For more info please read the comments inside the body of the function
 ```sql

@@ -1489,8 +1489,9 @@ WITH ax_1 AS (
 					) /*to restrict SNOMED attribute pool*/
 				OR x1.attr_code = '41598000'
 				) --To take Estrogen component
-	        AND x1.sn_code NOT IN ('401020005' --Urinary cortisol analysis
-	            ) --to exclude additional codes
+			AND x1.sn_code NOT IN (
+				'401020005' --Urinary cortisol analysis
+				) --to exclude additional codes
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -1577,13 +1578,14 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 1
 				) -- to restrict SNOMED attribute pool
-	    AND x1.sn_code NOT IN ('250663008', --Unconjugated estriol measurement
-	                           '269932004', --Fluid sample lipase measurement
-	                           '271232007', --Serum lipase measurement
-	                           '281105001', --Fecal lipase measurement
-	                           '166776003', --Serum/plasma protein test
-	                           '166809004' --Electrophoresis: paraprotein
-	                           ) -- to exclude codes with additional axises
+			AND x1.sn_code NOT IN (
+				'250663008', --Unconjugated estriol measurement
+				'269932004', --Fluid sample lipase measurement
+				'271232007', --Serum lipase measurement
+				'281105001', --Fecal lipase measurement
+				'166776003', --Serum/plasma protein test
+				'166809004' --Electrophoresis: paraprotein
+				) -- to exclude codes with additional axises
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -1767,7 +1769,7 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 SELECT UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_1, -- CPT4 code
-     l.fromexpr AS concept_code_2, -- LOINC code
+	l.fromexpr AS concept_code_2, -- LOINC code
 	'CPT4' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	'CPT4 - LOINC eq' AS relationship_id,

@@ -16,42 +16,6 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2022
 **************************************************************************/
--- create current date backup of concept_relationship_manual table
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE format('create table %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_relationship_manual table (run it only if something went wrong)
-TRUNCATE TABLE dev_read.concept_relationship_manual;
-INSERT INTO dev_read.concept_relationship_manual
-SELECT * FROM dev_read.concept_relationship_manual_backup_2023_03_10;
-
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_manual',
-                       'concept_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_read.concept_manual;
-INSERT INTO dev_read.concept_manual
-SELECT * FROM dev_read.concept_manual_backup_2022_06_01;*/
 
 --DROP TABLE IF EXISTS refresh_lookup_done;
 --TRUNCATE TABLE refresh_lookup_done;
@@ -80,8 +44,7 @@ SET invalid_reason = 'D',
 --SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
 WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order to preserve the original deprecation date
 
-    AND concept_code_1 IN (SELECT read_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh
-    AND concept_code_2 IN (SELECT repl_by_code FROM refresh_lookup_done) --have the same target as before
+    AND (concept_code_1, concept_code_2) IN (SELECT read_code, repl_by_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh, have the same target as before
     AND NOT EXISTS(SELECT 1 --don't deprecate mapping if the same exists in the current manual file
                    FROM refresh_lookup_done rl
                    WHERE rl.read_code = crm.concept_code_1           --the same source_code is mapped

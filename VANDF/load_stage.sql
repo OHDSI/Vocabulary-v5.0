@@ -17,7 +17,7 @@
 * Date: 2023
 **************************************************************************/
 
--- 1. Update latest_update field to new date 
+--1. Update latest_update field to new date 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -36,7 +36,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -61,12 +61,7 @@ SELECT DISTINCT ON (rx.code) vocabulary_pack.CutConceptName(rx.str) AS concept_n
 	'Drug Product' AS concept_class_id,
 	NULL AS standard_concept,
 	rx.code AS concept_code,
-	CASE
-	    WHEN TO_DATE(rxs.atv, 'yyyymmdd') < latest_update
-	        THEN TO_DATE(rxs.atv, 'yyyymmdd')
-	    ELSE
-	        v.latest_update
-		END AS valid_start_date, --for the first time we put concepts as 1970
+	LEAST(COALESCE(TO_DATE(rxs.atv, 'yyyymmdd'), v.latest_update), v.latest_update) AS valid_start_date,
 	COALESCE(TO_DATE(rxs.atv, 'yyyymmdd'), TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	CASE 
 		WHEN rxs.atv IS NULL
@@ -77,7 +72,7 @@ FROM sources.rxnconso rx
 LEFT JOIN sources.rxnsat rxs ON rxs.code = rx.code
 	AND rxs.sab = 'VANDF'
 	AND rxs.atn = 'NF_INACTIVATE'
-CROSS JOIN vocabulary v
+JOIN vocabulary v ON v.vocabulary_id = 'VANDF'
 WHERE rx.sab = 'VANDF'
 	AND rx.tty IN (
 		'CD',
@@ -108,11 +103,7 @@ SELECT rx.rxaui::INT4, --store rxaui as concept_id, this field is needed below f
 	'VA Class' AS concept_class_id,
 	NULL AS standard_concept,
 	rxs.atv AS concept_code,
-	CASE 
-		WHEN v.latest_update = TO_DATE('20211101', 'yyyymmdd')
-			THEN TO_DATE('19700101', 'yyyymmdd')
-		ELSE v.latest_update
-		END AS valid_start_date, --for the first time we put concepts as 1970
+	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.rxnconso rx
@@ -150,7 +141,7 @@ WHERE rx.sab = 'VANDF'
 		)
 	AND cs.concept_code IS NULL;
 
---6. Fill relationships VANDF to RxNORM
+--6. Fill relationships VANDF to RxNorm
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -171,7 +162,7 @@ SELECT rx.code AS concept_code_1,
 	NULL AS invalid_reason
 FROM concept c
 JOIN sources.rxnconso rx ON rx.rxcui = c.concept_code
-CROSS JOIN vocabulary v
+JOIN vocabulary v ON v.vocabulary_id = 'VANDF'
 WHERE rx.sab = 'VANDF'
 	AND rx.tty IN (
 		'CD',
@@ -179,8 +170,7 @@ WHERE rx.sab = 'VANDF'
 		'IN'
 		)
 	AND c.vocabulary_id = 'RxNorm'
-	AND c.standard_concept = 'S'
-	AND v.vocabulary_id = 'VANDF';
+	AND c.standard_concept = 'S';
 
 --7. Fill relationships VANDF to VA Class
 INSERT INTO concept_relationship_stage (
@@ -198,11 +188,7 @@ SELECT rx_vandf.code AS concept_code_1,
 	'VANDF' AS vocabulary_id_1,
 	'VA Class' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
-	CASE 
-		WHEN v.latest_update = TO_DATE('20211101', 'yyyymmdd')
-			THEN TO_DATE('19700101', 'yyyymmdd')
-		ELSE v.latest_update
-		END AS valid_start_date, --for the first time we put relationships as 1970
+	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage cs
@@ -213,13 +199,12 @@ JOIN sources.rxnconso rx_vandf ON rx_vandf.rxaui = rxn.rxaui2
 	AND rx_vandf.sab = 'VANDF'
 	AND rx_vandf.tty = 'CD'
 JOIN vocabulary v ON v.vocabulary_id = 'VA Class'
-WHERE EXISTS ( --make sure we are working with current VANDF concepts, e.g. if RXNORM was updated in the sources after we loaded VANDF
+WHERE EXISTS ( --make sure we are working with current VANDF concepts, e.g. if RxNorm was updated in the sources after we loaded VANDF
 		SELECT 1
 		FROM concept_stage c_int
 		WHERE c_int.concept_code = rx_vandf.code
 			AND c_int.vocabulary_id = 'VANDF'
 		);
-
 
 --8. Append manual relationships
 DO $_$
@@ -245,84 +230,89 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---12. Domain and concept class changes for devices
-UPDATE concept_stage
-SET domain_id = 'Device',
-    concept_class_id = 'Device'
-    --Devices defined according to the hierarchy
-WHERE (concept_code IN (
-    SELECT cs1.concept_code
-    FROM concept_stage cs1
-    JOIN concept_relationship_stage crs 
-        ON cs1.concept_code = crs.concept_code_1 AND cs1.vocabulary_id = crs.vocabulary_id_1 AND crs.invalid_reason IS NULL
-    JOIN concept_stage cs2 
-        ON cs2.concept_code = crs.concept_code_2 AND cs2.vocabulary_id = crs.vocabulary_id_2
-    WHERE cs1.vocabulary_id = 'VANDF' AND cs2.vocabulary_id = 'VA Class' 
-      AND cs2.concept_code ILIKE '%X%')
-    
-    --Concepts with mapping left as Drugs
-AND concept_code NOT IN (
-    SELECT cs1.concept_code
-    FROM concept_stage cs1
-    JOIN concept_relationship_stage crs 
-        ON cs1.concept_code = crs.concept_code_1 AND cs1.vocabulary_id = crs.vocabulary_id_1 
-               AND crs.invalid_reason IS NULL AND crs.relationship_id = 'Maps to'
-    JOIN concept c 
-        ON c.concept_code = crs.concept_code_2 AND c.vocabulary_id = crs.vocabulary_id_2
-    WHERE cs1.vocabulary_id = 'VANDF'
-    ))
+ANALYZE concept_stage, concept_relationship_stage;
 
-OR concept_code IN (
-    '4008894',  --ALCOHOL PREP PAD
-    '4002991',  --AMINOHIPPURATE NA 20% INJ
-    '4029900',  --BARRIER OINTMENT,CRITIC-AID
-    '4029724',  --BEDSIDE-CARE CLEANSER
-    '4003574',  --BENTIROMIDE 500MG/7.5ML SOLN,ORAL
-    '4036944',  --CLEANSING CLOTH,ADULT W/DIMETHICONE
-    '4014161',  --CRITIC-AID SKIN PASTE
-    '4007681',  --DYE EVANS BLUE 5MG/ML INJ
-    '4005828',  --HISTOPLASMIN 1:100 SKIN TEST INJ
-    '4037825',  --IOBENGUANE I 131 15MCI/ML INJ,SOLN
-    '4002035',  --IODAMIDE MEGLUMINE 65% INJ
-    '4004348',  --IOPANOIC ACID 500MG TAB
-    '4007149',  --IOPHENDYLATE 100% INJ
-    '4009328',  --IOTROLAN 190MG/ML INJ INTH
-    '4026173',  --LANTISEPTIC SKIN PROTECTANT OINT,TOP
-    '4026174',  --LANTISEPTIC THERAPEUTIC CREAM,TOP
-    '4013180',  --MANGAFODIPIR TRISODIUM 37.9MG/ML INJ,SOLN
-    '4007674',  --METHYL METHACRYLATE 100% LIQUID
-    '4003558',  --PHENOLSULFONPHTHALEIN 6MG/ML INJ
-    '4003943',  --POTASSIUM PERCHLORATE 200MG CAP
-    '4008190',  --POVIDONE IODINE 10% PAD
-    '4008257',  --PROPYLIODONE 60% SUSP
-    '4012154',  --STRONTIUM-89 CL 148MBq,4mCi/10ML INJ
-    '4004195'   --TYROPANOATE NA 750MG CAP
-                   
-    )
-;
+--12. Domain and concept class changes for devices
+UPDATE concept_stage cs
+SET domain_id = 'Device',
+	concept_class_id = 'Device'
+--Devices defined according to the hierarchy
+WHERE (
+		EXISTS (
+			SELECT 1
+			FROM concept_stage cs1
+			JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs1.concept_code
+				AND crs.vocabulary_id_1 = cs1.vocabulary_id
+				AND crs.invalid_reason IS NULL
+			JOIN concept_stage cs2 ON cs2.concept_code = crs.concept_code_2
+				AND cs2.vocabulary_id = crs.vocabulary_id_2
+				AND cs2.vocabulary_id = 'VA Class'
+				AND cs2.concept_code ILIKE '%X%'
+			WHERE cs1.vocabulary_id = 'VANDF'
+				AND cs1.concept_code = cs.concept_code
+			)
+		--Concepts with mapping left as Drugs
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_stage cs1
+			JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs1.concept_code
+				AND crs.vocabulary_id_1 = cs1.vocabulary_id
+				AND crs.invalid_reason IS NULL
+				AND crs.relationship_id = 'Maps to'
+			WHERE cs1.vocabulary_id = 'VANDF'
+				AND cs1.concept_code = cs.concept_code
+			)
+		)
+	OR cs.concept_code IN (
+		'4008894', --ALCOHOL PREP PAD
+		'4002991', --AMINOHIPPURATE NA 20% INJ
+		'4029900', --BARRIER OINTMENT,CRITIC-AID
+		'4029724', --BEDSIDE-CARE CLEANSER
+		'4003574', --BENTIROMIDE 500MG/7.5ML SOLN,ORAL
+		'4036944', --CLEANSING CLOTH,ADULT W/DIMETHICONE
+		'4014161', --CRITIC-AID SKIN PASTE
+		'4007681', --DYE EVANS BLUE 5MG/ML INJ
+		'4005828', --HISTOPLASMIN 1:100 SKIN TEST INJ
+		'4037825', --IOBENGUANE I 131 15MCI/ML INJ,SOLN
+		'4002035', --IODAMIDE MEGLUMINE 65% INJ
+		'4004348', --IOPANOIC ACID 500MG TAB
+		'4007149', --IOPHENDYLATE 100% INJ
+		'4009328', --IOTROLAN 190MG/ML INJ INTH
+		'4026173', --LANTISEPTIC SKIN PROTECTANT OINT,TOP
+		'4026174', --LANTISEPTIC THERAPEUTIC CREAM,TOP
+		'4013180', --MANGAFODIPIR TRISODIUM 37.9MG/ML INJ,SOLN
+		'4007674', --METHYL METHACRYLATE 100% LIQUID
+		'4003558', --PHENOLSULFONPHTHALEIN 6MG/ML INJ
+		'4003943', --POTASSIUM PERCHLORATE 200MG CAP
+		'4008190', --POVIDONE IODINE 10% PAD
+		'4008257', --PROPYLIODONE 60% SUSP
+		'4012154', --STRONTIUM-89 CL 148MBq,4mCi/10ML INJ
+		'4004195' --TYROPANOATE NA 750MG CAP
+		);
 
 --13. Assigning standard values for valid devices
 UPDATE concept_stage
 SET standard_concept = 'S'
 WHERE domain_id = 'Device'
-AND invalid_reason IS NULL;
+	AND invalid_reason IS NULL;
 
 --14. Exclude mappings to RxNorm for Devices
 UPDATE concept_relationship_stage crs
 SET invalid_reason = 'D',
-    valid_end_date = v.latest_update
-FROM concept_relationship_stage crs1
+	valid_end_date = GREATEST(crs.valid_start_date, v.latest_update - 1)
+FROM concept_stage cs
 JOIN vocabulary v ON v.vocabulary_id = 'VA Class'
-JOIN concept_stage cs 
-ON cs.concept_code = crs1.concept_code_1 AND cs.vocabulary_id = crs1.vocabulary_id_1
-    AND crs1.invalid_reason IS NULL AND crs1.relationship_id = 'Maps to'
-    --Excluding mapping to itself, if accidentally present
-WHERE (crs.concept_code_1 != crs.concept_code_2 AND crs.vocabulary_id_1 != crs.vocabulary_id_2)
-    --Exclude mappings only for Standard devices
-    AND cs.domain_id = 'Device' AND cs.standard_concept = 'S'
-    AND crs.concept_code_1 = crs1.concept_code_1 AND crs.vocabulary_id_1 = crs1.vocabulary_id_1
-    AND crs.concept_code_2 = crs1.concept_code_2 AND crs.vocabulary_id_2 = crs1.vocabulary_id_2
-    AND crs.relationship_id = crs1.relationship_id
-;
+WHERE cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
+	AND crs.invalid_reason IS NULL
+	AND crs.relationship_id = 'Maps to'
+	--Exclude mappings only for Standard devices
+	AND cs.domain_id = 'Device'
+	AND cs.standard_concept = 'S'
+	--Excluding mapping to itself, if accidentally present
+	AND NOT (
+		crs.concept_code_1 = crs.concept_code_2
+		AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

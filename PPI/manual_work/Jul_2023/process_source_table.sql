@@ -49,14 +49,14 @@ UPDATE bhp_pr SET question_name = trim(question_name) ;
 
 SELECT * FROM bhp_pr;
 
-SELECT DISTINCT question_code, question_name FROM bhp_pr where length (question_name) > 255;
+SELECT DISTINCT question_code, question_name FROM dev_ppi.bhp_pr where length (question_name) > 255;
 
-/*UPDATE bhp_pr SET question_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life so frightened by any of these situations that it got in the way of you having a normal life?'
+UPDATE bhp_pr SET question_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life so frightened by any of these situations that it got in the way of you having a normal life?'
 WHERE question_code = 'cidi5_30';
 UPDATE bhp_pr SET question_name = 'Have you ever been bothered with thoughts, images, or urges that kept coming back over and over, like concerns with germs, order, or experiencing horrific images or intrusive sexual thoughts, or urges to knock objects, or harming a loved one?'
 WHERE question_code = 'pmi_1';
 UPDATE bhp_pr SET question_name = 'Did you ever talk to a health professional about any of these experiences (such as seeing a vision, hearing a voice, believing that something strange was trying to communicate with you)?'
-WHERE question_code = 'mhqukb_55';*/
+WHERE question_code = 'mhqukb_55';
 
 SELECT DISTINCT answer_code, answer_name FROM bhp_pr where length (answer_name) > 255;
 

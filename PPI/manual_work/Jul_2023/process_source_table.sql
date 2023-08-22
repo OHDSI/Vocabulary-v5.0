@@ -135,3 +135,29 @@ SELECT * FROM ehh_pr; --408
 
 SELECT DISTINCT question_code, question_name FROM ehh_pr where length (question_name) > 255;
 SELECT DISTINCT answer_code, answer_name FROM ehh_pr where length (answer_name) > 255;
+
+--update for already existing codes
+UPDATE ehh_pr SET question_code = 'ace_10-1'
+WHERE question_code = 'ace_10';
+UPDATE ehh_pr SET question_code = 'ace_11-1'
+WHERE question_code = 'ace_11';
+UPDATE ehh_pr SET question_code = 'ace_8-1'
+WHERE question_code = 'ace_8';
+UPDATE ehh_pr SET question_code = 'ace_4-1'
+WHERE question_code = 'ace_4';
+UPDATE ehh_pr SET question_code = 'ace_3-1'
+WHERE question_code = 'ace_3';
+UPDATE ehh_pr SET question_code = 'ace_5-1'
+WHERE question_code = 'ace_5';
+UPDATE ehh_pr SET question_code = 'ace_2-1'
+WHERE question_code = 'ace_2';
+UPDATE ehh_pr SET question_code = 'ace_9-1'
+WHERE question_code = 'ace_9';
+UPDATE ehh_pr SET question_code = 'ace_6-1'
+WHERE question_code = 'ace_6';
+UPDATE ehh_pr SET question_code = 'ace_1-1'
+WHERE question_code = 'ace_1';
+UPDATE ehh_pr SET question_code = 'ace_7-1'
+WHERE question_code = 'ace_7';
+
+

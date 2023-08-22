@@ -28,8 +28,8 @@ $body$;
 
 SELECT * FROM dev_ppi.concept_relationship_manual_backup_2023_07_25;
 
---TRUNCATE concept_manual;
---TRUNCATE concept_relationship_manual;
+TRUNCATE concept_manual;
+TRUNCATE concept_relationship_manual;
 
 -- deprecate previous Mental Health and Well-Being Module concepts --229
 INSERT INTO dev_ppi.concept_manual (
@@ -106,7 +106,7 @@ and cr.relationship_id = 'PPI parent code of'
 and cr2.relationship_id = 'PPI parent code of'
 and cr3.relationship_id in ('Has answer (PPI)', 'Has question source'));
 
--- deprecate previous Mental Health and Well-Being Module relationships --1903
+-- deprecate previous Mental Health and Well-Being Module relationships
 INSERT INTO dev_ppi.concept_relationship_manual (
 SELECT c.concept_code,
        c1.concept_code,
@@ -119,7 +119,8 @@ SELECT c.concept_code,
 FROM concept c
 LEFT JOIN concept_relationship cr on c.concept_id = cr.concept_id_1
 LEFT JOIN concept c1 on cr.concept_id_2 = c1.concept_id
-WHERE c.concept_code in (SELECT concept_code FROM concept_manual));
+WHERE c.concept_code in (SELECT concept_code FROM concept_manual)
+AND cr.relationship_id not in ('Question source of', 'Mapped from', 'Answer of (PPI)', 'PPI parent code of'));
 
 --insert new concepts into concept_manual
 --insert module bhp
@@ -179,7 +180,7 @@ TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
 ;
 
--- insert questions bhp
+-- insert questions ehh
 INSERT INTO concept_manual
 SELECT DISTINCT
 question_name AS concept_name,
@@ -194,7 +195,7 @@ NULL AS invalid_reason
 from ehh_pr ;
 --where lower(question_code) not in (select lower(concept_code) from concept_manual) ;
 
---insert answers bhp
+--insert answers ehh
 INSERT INTO concept_manual
 SELECT DISTINCT
 answer_name AS concept_name,
@@ -210,7 +211,7 @@ from ehh_pr;
 
 --insert questions-answers relationships into concept_relationship_manual
 --bhp
---to add hierarchy 'PPI parent code of' from Questions to Answers
+/*--to add hierarchy 'PPI parent code of' from Questions to Answers
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
 question_code as concept_code_1,
@@ -222,9 +223,22 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM bhp_pr
-;
+;*/
 
---to add hierarchy 'PPI parent code of' from Module to Questions
+--to add hierarchy 'Has PPI parent code' from Answers to Questions
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+answer_code as concept_code_1,
+question_code as concept_code_2,
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'Has PPI parent code' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM bhp_pr;
+
+/*--to add hierarchy 'PPI parent code of' from Module to Questions
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
 'bhp' AS concept_code_1,
@@ -236,9 +250,23 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM bhp_pr
+;*/
+
+--to add hierarchy 'Has PPI parent code' from Questions to Module
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+question_code AS concept_code_1,
+'bhp' AS concept_code_2,
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'Has PPI parent code' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM bhp_pr
 ;
 
---add hierarchy 'Answer of (PPI)' from Answers to Questions
+/*--add hierarchy 'Answer of (PPI)' from Answers to Questions
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
 answer_code AS concept_code_1,
@@ -246,6 +274,20 @@ question_code AS concept_code_2,
 'PPI' AS vocabulary_id_1,
 'PPI' AS vocabulary_id_2,
 'Answer of (PPI)' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM bhp_pr
+;*/
+
+--add hierarchy 'Has answer (PPI)' from  Questions to Answers
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+question_code AS concept_code_1,
+answer_code AS concept_code_2,
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'Has answer (PPI)' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
@@ -254,7 +296,7 @@ FROM bhp_pr
 
 --insert questions-answers relationships into concept_relationship_manual
 --ehh
---to add hierarchy 'PPI parent code of' from Questions to Answers
+/*--to add hierarchy 'PPI parent code of' from Questions to Answers
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
 question_code as concept_code_1,
@@ -266,9 +308,22 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM ehh_pr
-;
+;*/
 
---to add hierarchy 'PPI parent code of' from Module to Questions
+--to add hierarchy 'Has PPI parent code' from Answers to Questions
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+answer_code as concept_code_1,
+question_code as concept_code_2,
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'Has PPI parent code' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM ehh_pr;
+
+/*--to add hierarchy 'PPI parent code of' from Module to Questions
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
 'bhp' AS concept_code_1,
@@ -280,9 +335,23 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM ehh_pr
+;*/
+
+--to add hierarchy 'Has PPI parent code' from Questions to Module
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+question_code AS concept_code_1,
+'bhp' AS concept_code_2,
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'Has PPI parent code' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM ehh_pr
 ;
 
---add hierarchy 'Answer of (PPI)' from Answers to Questions
+/*--add hierarchy 'Answer of (PPI)' from Answers to Questions
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
 answer_code AS concept_code_1,
@@ -294,7 +363,24 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM ehh_pr
+;*/
+
+--add hierarchy 'Has answer (PPI)' from  Questions to Answers
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+question_code AS concept_code_1,
+answer_code AS concept_code_2,
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'Has answer (PPI)' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM ehh_pr
 ;
+
+SELECT * FROM dev_ppi.concept_manual; -- 1002 --237 D
+SELECT * FROM concept_relationship_manual; -- 2437 1057 D
 
 
 

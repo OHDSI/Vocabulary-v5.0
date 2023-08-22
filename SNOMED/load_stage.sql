@@ -146,9 +146,9 @@ FROM inactive i
 WHERE i.id::TEXT = cs.concept_code;
 
 --4.2 Some concepts are present in the source with the only record with active = 0. These concepts have never been active yet, so their valid_start_date and valid_end_date are equal
-UPDATE concept_stage
+/*UPDATE concept_stage
 SET valid_start_date = valid_end_date
-WHERE valid_start_date = valid_end_date;
+WHERE valid_start_date = valid_end_date;*/
 
 --4.3 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
 UPDATE concept_stage
@@ -1000,16 +1000,13 @@ SELECT DISTINCT sn.concept_code_1,
 	'SNOMED',
 	'SNOMED',
 	sn.relationship_id,
-	COALESCE(cs.valid_end_date, (
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			)),
+	TO_DATE(sn.effectivestart, 'yyyymmdd'),
 	TO_DATE('20991231', 'yyyymmdd'),
 	NULL
 FROM (
 	SELECT sc.referencedcomponentid::TEXT AS concept_code_1,
 		sc.targetcomponent::TEXT AS concept_code_2,
+		sc.effectivetime AS effectivestart,
 		CASE refsetid
 			WHEN 900000000000526001
 				THEN 'Concept replaced by'
@@ -1042,6 +1039,9 @@ FROM (
 LEFT JOIN concept_stage cs ON -- for valid_end_date
 	cs.concept_code = sn.concept_code_1
 	AND cs.invalid_reason IS NOT NULL
+JOIN concept_stage cs2 ON
+	cs2.concept_code = sn.concept_code_2
+	AND cs2.invalid_reason IS NULL -- create relationships only to valid target concepts
 WHERE (
 		(
 			--Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
@@ -2054,7 +2054,11 @@ SELECT c.*, NULL FROM (VALUES
 	(162680003,			'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - general observation
 	(314471005,			'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Minor surgery done
 	(871560001,			'Measurement',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Detection of ribonucleic acid of severe acute respiratory syndrome coronavirus 2 using polymerase chain reaction (observable entity)
-	(1208754004,		'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Bacillus species antibody
+	(1208754004,		'Observation',  TO_DATE('20230712', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bacillus species antibody
+	--2023-Aug-17
+	(129841008,			'Observation',  TO_DATE('20230817', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),  --Finding related to environmental risk factor
+	(160877008,			'Observation',  TO_DATE('20230817', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),  --Child at risk
+	(409046006,			'Observation',  TO_DATE('20230817', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'))  --Perinatal risk
 	--TODO: make top level concept and grouping concepts non-Standard
 ) as c;
 

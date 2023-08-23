@@ -208,9 +208,11 @@ SELECT CASE
 		ELSE c.concept_name -- for alive concepts
 		END AS concept_name,
 	c.vocabulary_id,
-	CASE WHEN length(c.concept_code) = 2
-	    THEN 'CPT4 Modifier'
-	    ELSE c.concept_class_id END AS concept_class_id,
+	CASE 
+		WHEN LENGTH(c.concept_code) = 2
+			THEN 'CPT4 Modifier'
+		ELSE c.concept_class_id
+		END AS concept_class_id,
 	CASE 
 		WHEN COALESCE(c.invalid_reason, 'D') = 'D'
 			AND COALESCE(c.standard_concept, 'S') <> 'C'
@@ -223,12 +225,15 @@ SELECT CASE
 		END AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
-	CASE
-	       WHEN c.valid_end_date = '2099-12-31'
-	              THEN (SELECT latest_update
-	                    FROM vocabulary
-	                    WHERE vocabulary_id = 'CPT4')
-	          ELSE c.valid_end_date END AS valid_end_date,
+	CASE 
+		WHEN c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+			THEN (
+					SELECT latest_update
+					FROM vocabulary
+					WHERE vocabulary_id = 'CPT4'
+					)
+		ELSE c.valid_end_date
+		END AS valid_end_date,
 	NULLIF(c.invalid_reason, 'D') AS invalid_reason
 FROM concept c
 WHERE c.vocabulary_id = 'CPT4'
@@ -415,41 +420,44 @@ FROM (
 					'T034'
 					)
 				AND cs.concept_code NOT IN (
-					'0244U',-- 	Oncology (solid organ), DNA, comprehensive genomic profiling
-					'0250U',-- 	Oncology (solid organ neoplasm), targeted genomic sequence DNA analysis of 505 genes,...
-					'0258U',-- 	Autoimmune (psoriasis), mRNA, next-generation sequencing, gene expression profiling of 50-100 genes,...
-					'0260U',-- 	Rare diseases (constitutional/heritable disorders), identification of copy number variations...
-					'0264U',--	Rare diseases (constitutional/heritable disorders), identification of copy number variations...
-					'0267U',-- 	Rare constitutional and other heritable disorders, identification of copy number variations...
-					'0335U',--	Neurology (prion disease), cerebrospinal fluid, detection of prion protein ...
-					'0336U'--	Oncology (oropharyngeal), evaluation of 17 DNA biomarkers using droplet digital PCR (ddPCR),...
-						  )
+					'0244U', -- Oncology (solid organ), DNA, comprehensive genomic profiling
+					'0250U', -- Oncology (solid organ neoplasm), targeted genomic sequence DNA analysis of 505 genes,...
+					'0258U', -- Autoimmune (psoriasis), mRNA, next-generation sequencing, gene expression profiling of 50-100 genes,...
+					'0260U', -- Rare diseases (constitutional/heritable disorders), identification of copy number variations...
+					'0264U', -- Rare diseases (constitutional/heritable disorders), identification of copy number variations...
+					'0267U', -- Rare constitutional and other heritable disorders, identification of copy number variations...
+					'0335U', -- Neurology (prion disease), cerebrospinal fluid, detection of prion protein ...
+					'0336U' -- Oncology (oropharyngeal), evaluation of 17 DNA biomarkers using droplet digital PCR (ddPCR),...
+					)
 				THEN 'Procedure'
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
 			WHEN m2.sty = 'Medical Device'
-				AND cs.concept_code != '44015'
+				AND cs.concept_code <> '44015'
 				THEN 'Device'
-			WHEN cs.concept_code IN ('99143',
-			                         '99144',
-									 '99148',
-									 '99149', -- 99143-99149 Moderate sedation services
-			                         '44015' -- Tube or needle catheter jejunostomy
-			                        )
-					THEN 'Procedure'
+			WHEN cs.concept_code IN (
+					'99143',
+					'99144',
+					'99148',
+					'99149', -- 99143-99149 Moderate sedation services
+					'44015' -- Tube or needle catheter jejunostomy
+					)
+				THEN 'Procedure'
 			WHEN m2.tui IN (
 					'T121',
 					'T109',
 					'T200'
 					)
-				AND cs.concept_code NOT IN ('86789', --	Antibody; West Nile virus
-				                            '1036228') -- 	Estradiol (measurement)
+				AND cs.concept_code NOT IN (
+					'86789', -- Antibody; West Nile virus
+					'1036228'
+					) -- Estradiol (measurement)
 				THEN 'Drug'
 			WHEN tty = 'POS'
 				AND cs.concept_code NOT IN (
-					'1022193', --	Introduction
-					'1022194', -- 	Section Numbers and Their Sequences
-					'44015'		-- 	Tube or needle catheter jejunostomy
+					'1022193', -- Introduction
+					'1022194', -- Section Numbers and Their Sequences
+					'44015' -- Tube or needle catheter jejunostomy
 					)
 				THEN 'Visit'
 			WHEN m2.tui IN (
@@ -469,37 +477,41 @@ FROM (
 			WHEN m2.tui = 'T059'
 				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling')
 				AND cs.concept_code NOT IN (
-					'86960',
-					'86965',
-					'86985',
-					'86890',
-					'86891',
-					'1011136',
-					'1011189',
-					'1012112',
-					'1012123',
-					'1012127',
-					'1012348',
-					'1012534',
-					'1012537',
-					'1012546',
-					'1012559',
-					'1012564',
-					'1014644',
-					'1018504',
-					'1019105',
-					'1037591'
-					)
-			  OR cs.concept_code = '1036228'
+						'86960',
+						'86965',
+						'86985',
+						'86890',
+						'86891',
+						'1011136',
+						'1011189',
+						'1012112',
+						'1012123',
+						'1012127',
+						'1012348',
+						'1012534',
+						'1012537',
+						'1012546',
+						'1012559',
+						'1012564',
+						'1014644',
+						'1018504',
+						'1019105',
+						'1037591'
+						)
+					OR cs.concept_code = '1036228'
 				THEN 'Measurement'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
-						cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
-						OR (LENGTH(cs.concept_code) <= 2
-						AND cs.concept_code NOT IN ('TP','KR')
-						)
-						)
+							cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
+							OR (
+								LENGTH(cs.concept_code) <= 2
+								AND cs.concept_code NOT IN (
+									'TP',
+									'KR'
+									)
+								)
+							)
 					)
 				OR (
 					m2.tui = 'T093'
@@ -531,21 +543,21 @@ FROM (
 						)
 					)
 				OR cs.concept_code IN (
-				     '80500',
-				     '80502',
-				     '4060F',
-				     '77370',
-				     '99429',
-					 '1037418',
-				     '1037424',
-				     '1037420'
-				     )
+						'80500',
+						'80502',
+						'4060F',
+						'77370',
+						'99429',
+						'1037418',
+						'1037424',
+						'1037420'
+						)
 				THEN 'Observation'
 			WHEN c.concept_code IN (
-						'0777T',
-						'TP',
-						'KR'
-			             )
+					'0777T',
+					'TP',
+					'KR'
+					)
 				THEN 'Device'
 			WHEN c.concept_id IS NOT NULL
 				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
@@ -692,34 +704,31 @@ END $_$;
 --17. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
-WHERE cs.concept_code in (
-       SELECT concept_code_1
-       FROM concept_relationship_stage
-       WHERE vocabulary_id_2 in ('RxNorm', 'RxNorm Extension', 'CVX')
-			AND relationship_id = 'Maps to'
-			AND invalid_reason IS NUll
-			AND concept_class_id != 'CPT4 Hierarchy'
-);
+FROM concept_relationship_stage crs
+WHERE crs.vocabulary_id_2 IN (
+		'RxNorm',
+		'RxNorm Extension',
+		'CVX'
+		)
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_class_id <> 'CPT4 Hierarchy'
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1;
 
 --18. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r,
-			concept c2
-		WHERE r.concept_code_1 = cs.concept_code
-			AND r.vocabulary_id_1 = cs.vocabulary_id
-			AND r.concept_code_2 = c2.concept_code
-			AND r.vocabulary_id_2 = c2.vocabulary_id
-			AND r.invalid_reason IS NULL
-			AND r.relationship_id = 'Maps to'
-			AND NOT (
-				r.concept_code_1 = r.concept_code_2
-				AND r.vocabulary_id_1 = r.vocabulary_id_2
-				) --exclude mappings to self
-		)
+FROM concept_relationship_stage crs
+WHERE crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
 	AND cs.concept_class_id <> 'CPT4 Hierarchy'
-	AND cs.standard_concept IS NOT NULL;
+	AND cs.standard_concept IS NOT NULL
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
+			AND NOT (
+				crs.concept_code_1 = crs.concept_code_2
+				AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+				); --exclude mappings to self
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

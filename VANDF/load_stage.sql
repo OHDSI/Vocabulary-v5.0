@@ -173,6 +173,8 @@ WHERE rx.sab = 'VANDF'
 	AND c.standard_concept = 'S';
 
 --7. Fill relationships VANDF to VA Class
+ANALYZE concept_stage;
+
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

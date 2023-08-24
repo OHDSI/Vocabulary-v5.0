@@ -9,7 +9,7 @@ DECLARE
 	pCurrentPct INT2;
 	pProcessedPct INT2:=0;
 	pTables TEXT[]:=ARRAY['concept','concept_relationship','concept_synonym','drug_strength','pack_content','relationship','vocabulary','vocabulary_conversion','concept_class','domain'];
-	pExcludeTables TEXT[]:=ARRAY['base_concept_manual, base_concept_relationship_manual, base_concept_synonym_manual'];
+	pExcludeTables TEXT[]:=ARRAY['base_concept_manual', 'base_concept_relationship_manual', 'base_concept_synonym_manual'];
 	t TEXT;
 BEGIN
 	IF iLogID IS NULL THEN
@@ -282,7 +282,7 @@ BEGIN
 		END IF;
 
 		--calculating the percentage of rows processed
-		pCurrentPct:=100-((r.log_id-iLogID)*100)/(pCurrent_max_log_id-iLogID);
+		pCurrentPct:=100-((r.log_id-iLogID)::INT8*100)/(pCurrent_max_log_id-iLogID);
 		IF pCurrentPct>=10 AND pCurrentPct<100 THEN
 			IF LEFT(pCurrentPct::TEXT,1)>LEFT(pProcessedPct::TEXT,1) THEN
 				pProcessedPct:=pCurrentPct;

@@ -163,34 +163,34 @@ SELECT CASE
 					'PANEL.ADMIN'
 					)
 				OR loinc_num IN (
-                                 '98740-4',
-                                 '99958-1',
-                                 '71579-7',
-                                 '63518-5',
-                                 '98371-8',
-                                 '97504-5',
-                                 '96749-7',
-                                 '98075-5',
-                                 '100218-7',
-                                 '100219-5',
-                                 '100220-3',
-                                 '100221-1',
-                                 '100222-9',
-                                 '100223-7',
-                                 '100282-3',
-                                 '100302-9',
-                                 '100878-8',
-                                 '100967-9',
-                                 '100875-4',
-                                 '100876-2',
-                                 '101969-4',
-                                 '101974-4',
-                                 '101580-9',
-                                 '101687-2',
-                                 '100970-3',
-                                 '101437-2',
-                                 '101579-1'
-                     )
+						'98740-4',
+						'99958-1',
+						'71579-7',
+						'63518-5',
+						'98371-8',
+						'97504-5',
+						'96749-7',
+						'98075-5',
+						'100218-7',
+						'100219-5',
+						'100220-3',
+						'100221-1',
+						'100222-9',
+						'100223-7',
+						'100282-3',
+						'100302-9',
+						'100878-8',
+						'100967-9',
+						'100875-4',
+						'100876-2',
+						'101969-4',
+						'101974-4',
+						'101580-9',
+						'101687-2',
+						'100970-3',
+						'101437-2',
+						'101579-1'
+						)
 				OR (long_common_name ~* 'note|summary|notification|Letter|Checklist|instructions')
 				)
 			AND (
@@ -431,8 +431,11 @@ SET domain_id = 'Procedure'
 FROM sources.loinc l
 WHERE cs.concept_code = l.loinc_num
 	AND (
-        l.class = 'RAD' --Radiology concepts
-        OR l.loinc_num IN ('100877-0', '101581-7')
+		l.class = 'RAD' --Radiology concepts
+		OR l.loinc_num IN (
+			'100877-0',
+			'101581-7'
+			)
 		)
 	--Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
 	AND NOT EXISTS (
@@ -611,41 +614,43 @@ UPDATE concept_stage cs
 SET domain_id = 'Procedure'
 FROM sources.loinc_hierarchy lh
 WHERE (
-        lh.path_to_root LIKE '%LP29684-5%' --Radiology (LOINC Hierarchy)
-        AND cs.concept_class_id = 'LOINC Hierarchy'
-        AND cs.concept_name LIKE '%Radiology%'
-        AND lh.code = cs.concept_code
-    )
-   OR cs.concept_code = 'LP29684-5';
+		lh.path_to_root LIKE '%LP29684-5%' --Radiology (LOINC Hierarchy)
+		AND cs.concept_class_id = 'LOINC Hierarchy'
+		AND cs.concept_name LIKE '%Radiology%'
+		AND lh.code = cs.concept_code
+		)
+	OR cs.concept_code = 'LP29684-5';
 
 --5.2 Update Note-related concepts Domains
 UPDATE concept_stage cs
 SET domain_id = 'Note'
 FROM sources.loinc_hierarchy lh
-WHERE (lh.path_to_root LIKE 'LP432695-7.LP7787-7.LP32519-8%'
-    AND lh.code = cs.concept_code)
-   OR cs.concept_code IN ('101577-5',
-                          '101578-3',
-                          '101468-7',
-                          '100971-1',
-                          '103140-0',
-                          '102044-5',
-                          '102043-7',
-                          '102047-8',
-                          '102045-2',
-                          '102046-0');
+WHERE (
+		lh.path_to_root LIKE 'LP432695-7.LP7787-7.LP32519-8%'
+		AND lh.code = cs.concept_code
+		)
+	OR cs.concept_code IN (
+		'101577-5',
+		'101578-3',
+		'101468-7',
+		'100971-1',
+		'103140-0',
+		'102044-5',
+		'102043-7',
+		'102047-8',
+		'102045-2',
+		'102046-0'
+		);
 
 --6. Insert missing codes from manual extraction
-DO
-$_$
-    BEGIN
-        PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-    END
-$_$;
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
 --7. Update Domain = 'Observation' and standard_concept = NULL for attributes that are not part of Hierarchy (AVOF-2222)
 WITH hierarchy
-         AS (
+AS (
 	SELECT lh.code
 	FROM sources.loinc_hierarchy lh
 	WHERE (

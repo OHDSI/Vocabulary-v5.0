@@ -28,8 +28,39 @@ $body$
     END
 $body$;
 
-SELECT count(*) FROM concept_manual_backup_2023_02_08;
+--Perform backup checks in checks. sql
+--the counts in backups and _manuals should be identical
 
+--Manual table population
+
+--concept_manual population steps
+-- In the vast majority of cases we don not expect to have any new NAACCR codes to be ingested. However some of lost codes may become a part of future releases
+--When NEW codes to be ingested design the DDL for concept_manual_refresh (on demand development)
+
+--CM Table truncation
+TRUNCATE concept_manual;
+
+--Insertion of the very last version of concept manual (in 90% of cases no changes here compared to previous release)
+INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code,
+                            valid_start_date, valid_end_date, invalid_reason)
+SELECT
+       distinct
+       concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM concept_manual_backup_2023_02_08
+;
+
+--concept_relationship_manual population steps
+
+--DDL for concept_relationship_manual_refresh (the pre-manual table with relationships to be implemented)
+--Upload the proper file
 --Upload https://docs.google.com/spreadsheets/d/1OLvyc4cSKHKNAo6jJy6EGIJUSOhaIRY4M1faG4y_bCY/edit#gid=0
 --It is slightly modified version of https://github.com/OHDSI/Vocabulary-v5.0/issues/740
 TRUNCATE concept_relationship_manual_refresh;
@@ -46,49 +77,13 @@ CREATE TABLE concept_relationship_manual_refresh
 )
 ;
 
+--Set proper Valid tart date for new relationships
 UPDATE concept_relationship_manual_refresh
 SET valid_start_date= CURRENT_DATE-1;
 
 
---CM population
-TRUNCATE concept_manual;
---CM population
-INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-SELECT concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason
-FROM concept_manual_backup_2023_02_08
-;
 
---CHECK THE # OF CODES OVERLAPPING BETWEEN MANUAL REFRESH AND PREVIOUS CRM version in case of identical relationships and thier validities
-SELECT *
-FROM concept_relationship_manual_backup_2023_02_08 crmb
-WHERE EXISTS (
-    SELECT 1
-    from concept_relationship_manual_refresh crmr
-    WHERE crmr.concept_code_1=crmb.concept_code_1
-    and crmr.vocabulary_id_1=crmb.vocabulary_id_1
-    and crmr.relationship_id=crmb.relationship_id
-          )
-and crmb.invalid_reason IS NULL
-and crmb.concept_code_1<>crmb.concept_code_2
-and crmb.vocabulary_id_1<>crmb.vocabulary_id_2
-;
-
---1toM check
--- 334 rows including simultaneous maps to Descendant and Ancestor- TBD
---Clinically relevant
-SELECT DISTINCT *
-   FROM concept_relationship_manual_refresh
-JOIN concept c ON concept_relationship_manual_refresh.concept_code_2 = c.concept_code
-and c.vocabulary_id='Cancer Modifier'
-    WHERE (concept_code_1,relationship_id) IN (
-        SELECT concept_code_1,relationship_id
-   FROM concept_relationship_manual_refresh
-   GROUP BY concept_code_1,relationship_id HAVING count(DISTINCT concept_code_2)>1
-        )
-;
-
-
-
+--Perform integrity checks to ensure that we will not create extra irrelevant relationships .Refer to checks. sql
 
 --CRM process
 TRUNCATE concept_relationship_manual;
@@ -106,32 +101,21 @@ SELECT DISTINCT
 FROM concept_relationship_manual_backup_2023_02_08
 ;
 
-
---Detect codes not existing as naaccr values
-SELECT *
-FROM concept_relationship_manual_refresh
-WHERE concept_code_1 not in (SELECT concept_code from concept where concept_class_id='NAACCR Value')
-;
-
---CHeck that NAACCR Values are not target for other codes
-SELECT *
-FROM concept_relationship_manual_refresh a
-JOIN concept b
-on a.concept_code_1=b.concept_code and concept_class_id='NAACCR Value'
-JOIN concept_relationship r
-on b.concept_id=r.concept_id_2
-and r.relationship_id='Maps to'
-and r.invalid_reason is null
-and r.concept_id_2<>r.concept_id_1;
-
-
-
-
 --Mapping insertion
-INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1,  relationship_id, valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2)
-SELECT concept_code_1, vocabulary_id_1,  relationship_id, CURRENT_DATE as valid_start_date, valid_end_date, invalid_reason,concept_code_2,vocabulary_id_2
+INSERT INTO concept_relationship_manual (concept_code_1, vocabulary_id_1, relationship_id, valid_start_date,
+                                         valid_end_date, invalid_reason, concept_code_2, vocabulary_id_2)
+SELECT concept_code_1,
+       vocabulary_id_1,
+       relationship_id,
+       CURRENT_DATE AS valid_start_date,
+       valid_end_date,
+       invalid_reason,
+       concept_code_2,
+       vocabulary_id_2
 FROM concept_relationship_manual_refresh
-where (concept_code_1,relationship_id,concept_code_2) NOT IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_manual where invalid_reason IS NULL);
+WHERE (concept_code_1, relationship_id, concept_code_2) NOT IN (SELECT concept_code_1, relationship_id, concept_code_2
+                                                                FROM concept_relationship_manual
+                                                                WHERE invalid_reason IS NULL);
 ;
 
 --Set Non-standard concept class
@@ -154,18 +138,5 @@ and cm.standard_concept is not null
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
     valid_end_date = current_date-1
-
---SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
-WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order to preserve the original deprecation date
-
-    AND concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual_refresh where relationship_id='Maps to') --work only with the codes presented in the manual file of the current vocabulary refresh
-
-    AND NOT EXISTS (SELECT 1 --don't deprecate mapping if the same exists in the current manual file
-                    FROM concept_relationship_manual_refresh rl
-                    WHERE rl.concept_code_1 = crm.concept_code_1 --the same source_code is mapped
-                        AND rl.concept_code_2 = crm.concept_code_2 --to the same concept_code
-                        AND rl.vocabulary_id_2 = crm.vocabulary_id_2 --of the same vocabulary
-                        AND rl.relationship_id = crm.relationship_id --with the same relationship
-        )
-and crm.relationship_id IN ('Maps to', 'Maps to value')
 ;
+

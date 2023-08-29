@@ -21,8 +21,10 @@ BEGIN
 		TRUNCATE TABLE concept_synonym_manual;
 		EXECUTE FORMAT ($$
 			INSERT INTO concept_synonym_manual
-			SELECT *
-			FROM %I.concept_synonym_manual
+			SELECT csm.*
+			FROM %I.concept_synonym_manual csm
+			JOIN vocabulary v ON v.vocabulary_id = csm.synonym_vocabulary_id
+			WHERE v.latest_update IS NOT NULL
 		$$, iSchemaName);
 	END IF;
 

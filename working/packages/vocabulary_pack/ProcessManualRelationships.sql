@@ -21,8 +21,11 @@ BEGIN
 		TRUNCATE TABLE concept_relationship_manual;
 		EXECUTE FORMAT ($$
 			INSERT INTO concept_relationship_manual
-			SELECT *
-			FROM %I.concept_relationship_manual
+			SELECT crm.*
+			FROM %I.concept_relationship_manual crm
+			JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
+			JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
+			WHERE COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
 		$$, iSchemaName);
 	END IF;
 

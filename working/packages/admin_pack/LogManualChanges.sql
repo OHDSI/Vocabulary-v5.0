@@ -15,8 +15,85 @@ DECLARE
 	iRet INT8;
 	iTargetSchemaName TEXT;
 	iSpecificVocabularyID TEXT;
+	iWrongVocabularyAffected TEXT;
 BEGIN
-	--first quick check the fact of manual changes (relationships, concepts and synonyms), if there are none, then there is no point in requesting virtual authorization
+	--delete obsolete (no longer existing in manual table) records and all records, that currently do not differ from the master table (for example, the relationship was deprecated in the manual table and then restored again)
+	IF SESSION_USER<>'devv5' THEN
+		EXECUTE FORMAT ($$
+		BEGIN
+			DELETE
+			FROM concept_relationship_manual logged_crm
+			WHERE (
+					NOT EXISTS (
+						SELECT 1
+						FROM %1$I.concept_relationship_manual local_crm
+						WHERE local_crm.concept_code_1 = logged_crm.concept_code_1
+							AND local_crm.concept_code_2 = logged_crm.concept_code_2
+							AND local_crm.vocabulary_id_1 = logged_crm.vocabulary_id_1
+							AND local_crm.vocabulary_id_2 = logged_crm.vocabulary_id_2
+							AND local_crm.relationship_id = logged_crm.relationship_id
+						)
+					OR EXISTS (
+						SELECT 1
+						FROM devv5.base_concept_relationship_manual base_crm
+						WHERE logged_crm.concept_code_1 = base_crm.concept_code_1
+							AND logged_crm.concept_code_2 = base_crm.concept_code_2
+							AND logged_crm.vocabulary_id_1 = base_crm.vocabulary_id_1
+							AND logged_crm.vocabulary_id_2 = base_crm.vocabulary_id_2
+							AND logged_crm.relationship_id = base_crm.relationship_id
+							AND ROW(logged_crm.valid_start_date, logged_crm.valid_end_date, logged_crm.invalid_reason) 
+								IS NOT DISTINCT FROM
+								ROW(base_crm.valid_start_date, base_crm.valid_end_date, base_crm.invalid_reason)
+						)
+					)
+			AND logged_crm.dev_schema_name = %1$L;
+
+			DELETE
+			FROM concept_manual logged_cm
+			WHERE (
+					NOT EXISTS (
+						SELECT 1
+						FROM %1$I.concept_manual local_cm
+						WHERE local_cm.concept_code = logged_cm.concept_code
+							AND local_cm.vocabulary_id = logged_cm.vocabulary_id
+						)
+					OR EXISTS (
+						SELECT 1
+						FROM devv5.base_concept_manual base_cm
+						WHERE logged_cm.concept_code = base_cm.concept_code
+							AND logged_cm.vocabulary_id = base_cm.vocabulary_id
+							AND ROW (logged_cm.concept_name, logged_cm.domain_id, logged_cm.concept_class_id, logged_cm.standard_concept, logged_cm.valid_start_date, logged_cm.valid_end_date, logged_cm.invalid_reason)
+								IS NOT DISTINCT FROM
+								ROW (base_cm.concept_name, base_cm.domain_id, base_cm.concept_class_id, base_cm.standard_concept, base_cm.valid_start_date, base_cm.valid_end_date, base_cm.invalid_reason)
+						)
+					)
+			AND logged_cm.dev_schema_name = %1$L;
+
+			DELETE
+			FROM concept_synonym_manual logged_csm
+			WHERE (
+					NOT EXISTS (
+						SELECT 1
+						FROM %1$I.concept_synonym_manual local_csm
+						WHERE local_csm.synonym_name = logged_csm.synonym_name
+							AND local_csm.synonym_concept_code = logged_csm.synonym_concept_code
+							AND local_csm.synonym_vocabulary_id = logged_csm.synonym_vocabulary_id
+							AND local_csm.language_concept_id = logged_csm.language_concept_id
+						)
+					OR EXISTS (
+						SELECT 1
+						FROM devv5.base_concept_synonym_manual base_csm
+						WHERE logged_csm.synonym_name = base_csm.synonym_name
+							AND logged_csm.synonym_concept_code = base_csm.synonym_concept_code
+							AND logged_csm.synonym_vocabulary_id = base_csm.synonym_vocabulary_id
+							AND logged_csm.language_concept_id = base_csm.language_concept_id
+						)
+					)
+			AND logged_csm.dev_schema_name = %1$L;
+		$$, SESSION_USER);
+	END IF;
+
+	--quick check the fact of manual changes (relationships, concepts and synonyms), if there are none, then there is no point in requesting virtual authorization
 	--manual relationships
 	EXECUTE FORMAT ($$
 		SELECT * FROM (
@@ -104,6 +181,66 @@ BEGIN
 		ELSEIF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
 			RAISE EXCEPTION 'You do not have privileges to work with manual relationships';
 		END IF;
+		
+		--check for updated vocabularies, they must be affected by SetLatestUpdate
+		EXECUTE FORMAT ($$
+			SELECT * FROM (
+				--manual relationships
+				SELECT 'You have an updated/new manual relationship with vocabularies that were not affected by SetLatestUpdate: '||local_crm.vocabulary_id_1||' '||local_crm.relationship_id||' '||local_crm.vocabulary_id_2
+				FROM %1$I.concept_relationship_manual local_crm
+				JOIN %1$I.vocabulary v1 ON v1.vocabulary_id = local_crm.vocabulary_id_1
+				JOIN %1$I.vocabulary v2 ON v2.vocabulary_id = local_crm.vocabulary_id_2
+				LEFT JOIN devv5.base_concept_relationship_manual base_crm USING (
+					concept_code_1,
+					concept_code_2,
+					vocabulary_id_1,
+					vocabulary_id_2,
+					relationship_id
+					)
+				WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
+					AND ROW (local_crm.valid_start_date, local_crm.valid_end_date, local_crm.invalid_reason)
+					IS DISTINCT FROM
+					ROW (base_crm.valid_start_date, base_crm.valid_end_date, base_crm.invalid_reason)
+				
+				UNION ALL
+				
+				--manual concepts
+				SELECT 'You have an updated/new manual concept with a vocabulary that was not affected by SetLatestUpdate: '||local_cm.vocabulary_id
+				FROM %1$I.concept_manual local_cm
+				JOIN %1$I.vocabulary v USING (vocabulary_id)
+				LEFT JOIN devv5.base_concept_manual base_cm USING (
+					concept_code,
+					vocabulary_id
+					)
+				WHERE v.latest_update IS NULL
+					AND ROW (local_cm.concept_name, local_cm.domain_id, local_cm.concept_class_id, local_cm.standard_concept, local_cm.valid_start_date, local_cm.valid_end_date, local_cm.invalid_reason)
+					IS DISTINCT FROM
+					ROW (base_cm.concept_name, base_cm.domain_id, base_cm.concept_class_id, base_cm.standard_concept, base_cm.valid_start_date, base_cm.valid_end_date, base_cm.invalid_reason)
+				
+				UNION ALL
+				
+				--manual synonyms
+				SELECT 'You have an updated/new manual synonym with a vocabulary that was not affected by SetLatestUpdate: '||local_csm.synonym_vocabulary_id
+				FROM %1$I.concept_synonym_manual local_csm
+				JOIN %1$I.vocabulary v ON v.vocabulary_id = local_csm.synonym_vocabulary_id
+				LEFT JOIN devv5.base_concept_synonym_manual base_csm USING (
+					synonym_name,
+					synonym_concept_code,
+					synonym_vocabulary_id,
+					language_concept_id
+					)
+				WHERE v.latest_update IS NULL
+					AND base_csm.synonym_concept_code IS NULL
+			) s0
+			LIMIT 1
+		$$, SESSION_USER)
+		INTO iWrongVocabularyAffected;
+
+		GET DIAGNOSTICS iRet = ROW_COUNT;
+
+		IF iRet>0 THEN
+			RAISE EXCEPTION '%',iWrongVocabularyAffected;
+		END IF;
 
 		--working with manual relationships
 		--insert new records, update existing
@@ -137,22 +274,6 @@ BEGIN
 			IS DISTINCT FROM
 			ROW (excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason)
 		$$, SESSION_USER, iUserID);
-
-		--delete obsolete records
-		EXECUTE FORMAT ($$
-			DELETE
-			FROM concept_relationship_manual logged_crm
-			WHERE NOT EXISTS (
-					SELECT 1
-					FROM %1$I.concept_relationship_manual local_crm
-					WHERE local_crm.concept_code_1 = logged_crm.concept_code_1
-						AND local_crm.concept_code_2 = logged_crm.concept_code_2
-						AND local_crm.vocabulary_id_1 = logged_crm.vocabulary_id_1
-						AND local_crm.vocabulary_id_2 = logged_crm.vocabulary_id_2
-						AND local_crm.relationship_id = logged_crm.relationship_id
-					)
-				AND logged_crm.dev_schema_name = %1$L
-		$$, SESSION_USER);
 
 		--working with manual concepts
 		IF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
@@ -212,19 +333,6 @@ BEGIN
 			ROW (excluded.concept_name, excluded.domain_id, excluded.concept_class_id, excluded.standard_concept, excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason)
 		$$, SESSION_USER, iUserID);
 
-		--delete obsolete records
-		EXECUTE FORMAT ($$
-			DELETE
-			FROM concept_manual logged_cm
-			WHERE NOT EXISTS (
-					SELECT 1
-					FROM %1$I.concept_manual local_cm
-					WHERE local_cm.concept_code = logged_cm.concept_code
-						AND local_cm.vocabulary_id = logged_cm.vocabulary_id
-					)
-				AND logged_cm.dev_schema_name = %1$L
-		$$, SESSION_USER);
-
 		--working with manual synonyms
 		IF NOT CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_ANY_VOCABULARY) AND CheckUserPrivilege(ALL_PRIVILEGES.MANAGE_SPECIFIC_VOCABULARY) THEN
 			EXECUTE FORMAT ($$
@@ -270,21 +378,6 @@ BEGIN
 			WHERE base_csm.synonym_concept_code IS NULL
 			ON CONFLICT DO NOTHING
 		$$, SESSION_USER, iUserID);
-
-		--delete obsolete records
-		EXECUTE FORMAT ($$
-			DELETE
-			FROM concept_synonym_manual logged_csm
-			WHERE NOT EXISTS (
-					SELECT 1
-					FROM %1$I.concept_synonym_manual local_csm
-					WHERE local_csm.synonym_name = logged_csm.synonym_name
-						AND local_csm.synonym_concept_code = logged_csm.synonym_concept_code
-						AND local_csm.synonym_vocabulary_id = logged_csm.synonym_vocabulary_id
-						AND local_csm.language_concept_id = logged_csm.language_concept_id
-					)
-				AND logged_csm.dev_schema_name = %1$L
-		$$, SESSION_USER);
 
 		ANALYZE concept_relationship_manual,
 			concept_manual,

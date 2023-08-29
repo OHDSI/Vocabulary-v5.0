@@ -21,8 +21,10 @@ BEGIN
 		TRUNCATE TABLE concept_manual;
 		EXECUTE FORMAT ($$
 			INSERT INTO concept_manual
-			SELECT *
-			FROM %I.concept_manual
+			SELECT cm.*
+			FROM %I.concept_manual cm
+			JOIN vocabulary v ON v.vocabulary_id = cm.vocabulary_id
+			WHERE v.latest_update IS NOT NULL
 		$$, iSchemaName);
 	END IF;
 

@@ -1,7 +1,7 @@
 --Change of vocabulary license requirements and vocabulary_reference for CO-CONNECT family of the vocabularies
 --AVOC-4015
 UPDATE vocabulary 
-SET vocabulary_name = replace(vocabulary_name, 'IQVIA ', ''),
+SET vocabulary_name = replace(vocabulary_name, 'IQVIA ', '') ||' (University of Dundee)',
     vocabulary_reference = 'https://co-connect.ac.uk/'
 WHERE vocabulary_id IN ('CO-CONNECT', 'CO-CONNECT TWINS', 'CO-CONNECT MIABIS');
 

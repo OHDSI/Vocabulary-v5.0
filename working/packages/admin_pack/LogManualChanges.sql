@@ -20,7 +20,6 @@ BEGIN
 	--delete obsolete (no longer existing in manual table) records and all records, that currently do not differ from the master table (for example, the relationship was deprecated in the manual table and then restored again)
 	IF SESSION_USER<>'devv5' THEN
 		EXECUTE FORMAT ($$
-		BEGIN
 			DELETE
 			FROM concept_relationship_manual logged_crm
 			WHERE (

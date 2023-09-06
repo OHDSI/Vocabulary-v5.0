@@ -22,7 +22,8 @@ CREATE OR REPLACE FUNCTION devv5.FastRecreateSchema (
 	include_concept_ancestor BOOLEAN DEFAULT FALSE,
 	include_deprecated_rels BOOLEAN DEFAULT FALSE,
 	include_synonyms BOOLEAN DEFAULT FALSE,
-	drop_concept_ancestor BOOLEAN DEFAULT TRUE
+	drop_concept_ancestor BOOLEAN DEFAULT TRUE,
+	preserve_manual_tables BOOLEAN DEFAULT FALSE
 )
 RETURNS VOID AS
 $BODY$
@@ -34,6 +35,7 @@ $BODY$
 	SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true,include_deprecated_rels=>true,include_synonyms=>true); --full recreate, all tables are included (much slower)
 	SELECT devv5.FastRecreateSchema(main_schema_name=>'dev_snomed',include_concept_ancestor=>true,include_deprecated_rels=>true,include_synonyms=>true); --same as above, but the copy will be from dev_snomed
 	SELECT devv5.FastRecreateSchema(drop_concept_ancestor=>false); --preserve old concept_ancestor, but it will be ignored if the include_concept_ancestor is set to true
+	SELECT devv5.FastRecreateSchema(preserve_manual_tables=>false); --truncate manual tables
 	*/
 BEGIN
 	main_schema_name:=LOWER(main_schema_name);
@@ -50,9 +52,6 @@ BEGIN
 
 	--clear stage tables
 	TRUNCATE TABLE concept_stage, concept_relationship_stage, concept_synonym_stage, concept_class, domain, vocabulary_conversion, drug_strength_stage, pack_content_stage;
-
-	--clear manual tables
-	TRUNCATE TABLE concept_manual, concept_relationship_manual, concept_synonym_manual;
 
 	--fill with data
 	EXECUTE FORMAT ($$
@@ -78,42 +77,46 @@ BEGIN
 	$$, main_schema_name, include_deprecated_rels, include_synonyms, include_concept_ancestor);
 
 	--manual tables are always filled from devv5
-	ALTER TABLE concept_manual DROP CONSTRAINT IF EXISTS unique_manual_concepts;
-	INSERT INTO concept_manual
-	SELECT concept_name,
-		domain_id,
-		vocabulary_id,
-		concept_class_id,
-		standard_concept,
-		concept_code,
-		valid_start_date,
-		valid_end_date,
-		invalid_reason
-	FROM devv5.base_concept_manual
-	WHERE concept_id <> 0;
+	IF NOT preserve_manual_tables THEN
+		TRUNCATE TABLE concept_manual, concept_relationship_manual, concept_synonym_manual;
 
-	ALTER TABLE concept_relationship_manual DROP CONSTRAINT IF EXISTS unique_manual_relationships;
-	INSERT INTO concept_relationship_manual
-	SELECT concept_code_1,
-		concept_code_2,
-		vocabulary_id_1,
-		vocabulary_id_2,
-		relationship_id,
-		valid_start_date,
-		valid_end_date,
-		invalid_reason
-	FROM devv5.base_concept_relationship_manual
-	WHERE concept_id_1 <> 0
-		AND concept_id_2 <> 0;
+		ALTER TABLE concept_manual DROP CONSTRAINT IF EXISTS unique_manual_concepts;
+		INSERT INTO concept_manual
+		SELECT concept_name,
+			domain_id,
+			vocabulary_id,
+			concept_class_id,
+			standard_concept,
+			concept_code,
+			valid_start_date,
+			valid_end_date,
+			invalid_reason
+		FROM devv5.base_concept_manual
+		WHERE concept_id <> 0;
 
-	ALTER TABLE concept_synonym_manual DROP CONSTRAINT IF EXISTS unique_manual_synonyms;
-	INSERT INTO concept_synonym_manual
-	SELECT synonym_name,
-		synonym_concept_code,
-		synonym_vocabulary_id,
-		language_concept_id
-	FROM devv5.base_concept_synonym_manual
-	WHERE concept_id <> 0;
+		ALTER TABLE concept_relationship_manual DROP CONSTRAINT IF EXISTS unique_manual_relationships;
+		INSERT INTO concept_relationship_manual
+		SELECT concept_code_1,
+			concept_code_2,
+			vocabulary_id_1,
+			vocabulary_id_2,
+			relationship_id,
+			valid_start_date,
+			valid_end_date,
+			invalid_reason
+		FROM devv5.base_concept_relationship_manual
+		WHERE concept_id_1 <> 0
+			AND concept_id_2 <> 0;
+
+		ALTER TABLE concept_synonym_manual DROP CONSTRAINT IF EXISTS unique_manual_synonyms;
+		INSERT INTO concept_synonym_manual
+		SELECT synonym_name,
+			synonym_concept_code,
+			synonym_vocabulary_id,
+			language_concept_id
+		FROM devv5.base_concept_synonym_manual
+		WHERE concept_id <> 0;
+	END IF;
 
 	--(re)create indexes and constraints
 	ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
@@ -158,9 +161,11 @@ BEGIN
 	CREATE INDEX IF NOT EXISTS idx_dss_concept_code ON drug_strength_stage (drug_concept_code);
 	CREATE INDEX IF NOT EXISTS idx_ca_descendant ON concept_ancestor (descendant_concept_id);
 	CREATE UNIQUE INDEX IF NOT EXISTS xpk_vocab_conversion ON vocabulary_conversion (vocabulary_id_v5);
-	ALTER TABLE concept_manual ADD CONSTRAINT unique_manual_concepts UNIQUE (vocabulary_id,concept_code);
-	ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
-	ALTER TABLE concept_synonym_manual ADD CONSTRAINT unique_manual_synonyms UNIQUE (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id);
+	IF NOT preserve_manual_tables THEN
+		ALTER TABLE concept_manual ADD CONSTRAINT unique_manual_concepts UNIQUE (vocabulary_id,concept_code);
+		ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
+		ALTER TABLE concept_synonym_manual ADD CONSTRAINT unique_manual_synonyms UNIQUE (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id);
+	END IF;
 
 	--enable other constraints
 	ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (DOMAIN_concept_id) REFERENCES concept (concept_id) NOT VALID;

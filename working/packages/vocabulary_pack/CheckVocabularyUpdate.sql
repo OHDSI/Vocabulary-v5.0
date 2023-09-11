@@ -189,7 +189,7 @@ BEGIN
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
-                cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/[^/]+/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '1001', 'yyyymmdd') - interval '1 year';
+                cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/coding-billing/icd-10-codes/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '1001', 'yyyymmdd') - interval '1 year';
                 cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN

@@ -146,6 +146,7 @@ FROM inactive i
 WHERE i.id::TEXT = cs.concept_code;
 
 --4.2 Some concepts are present in the source with the only record with active = 0. These concepts have never been active yet, so their valid_start_date and valid_end_date are equal
+--!!!To be deleted
 /*UPDATE concept_stage
 SET valid_start_date = valid_end_date
 WHERE valid_start_date = valid_end_date;*/
@@ -997,6 +998,49 @@ WHERE NOT EXISTS (
 			AND crs.concept_code_2 = sn.concept_code_2
 			AND crs.relationship_id = sn.relationship_id);
 
+-- !!!!!Temporary script
+/*DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewRelationship(
+    pRelationship_name       =>'Process acts on (SNOMED)',
+    pRelationship_id         =>'Process acts on',
+    pIs_hierarchical         =>0,
+    pDefines_ancestry        =>0,
+    pReverse_relationship_id =>'Affected by process',
+    pRelationship_name_rev   =>'Affected by process (SNOMED)',
+    pIs_hierarchical_rev     =>0,
+    pDefines_ancestry_rev    =>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewRelationship(
+    pRelationship_name       =>'Before (SNOMED)',
+    pRelationship_id         =>'Before',
+    pIs_hierarchical         =>0,
+    pDefines_ancestry        =>0,
+    pReverse_relationship_id =>'After',
+    pRelationship_name_rev   =>'After (SNOMED)',
+    pIs_hierarchical_rev     =>0,
+    pDefines_ancestry_rev    =>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewRelationship(
+    pRelationship_name       =>'Towards (SNOMED)',
+    pRelationship_id         =>'Towards',
+    pIs_hierarchical         =>0,
+    pDefines_ancestry        =>0,
+    pReverse_relationship_id =>'Subject of',
+    pRelationship_name_rev   =>'Subject of (SNOMED)',
+    pIs_hierarchical_rev     =>0,
+    pDefines_ancestry_rev    =>0
+);
+END $_$;*/
+
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
@@ -1059,7 +1103,6 @@ LEFT JOIN concept_stage cs ON -- for valid_end_date
 	AND cs.invalid_reason IS NOT NULL
 JOIN concept_stage cs2 ON
 	cs2.concept_code = sn.concept_code_2
-	AND cs2.invalid_reason IS NULL -- create relationships only to valid target concepts
 WHERE (
 		(
 			--Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
@@ -1213,7 +1256,13 @@ ANALYZE concept_relationship_stage;
 
 --10.2. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
 UPDATE concept_stage cs
-SET invalid_reason = 'U'
+SET invalid_reason = 'U',
+	valid_end_date = LEAST(
+	       cs.valid_end_date,
+	       crs.valid_start_date,
+           (SELECT latest_update - 1
+            FROM vocabulary v
+            WHERE v.vocabulary_id = 'SNOMED'))
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id IN (
@@ -1226,14 +1275,19 @@ WHERE crs.concept_code_1 = cs.concept_code
 
 --10.3. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
 UPDATE concept_stage cs
-SET (invalid_reason, valid_end_date) = ('D', crs.valid_start_date)
+SET invalid_reason = 'D',
+    valid_end_date = LEAST(crs.valid_start_date,
+           (SELECT latest_update - 1
+            FROM vocabulary v
+            WHERE v.vocabulary_id = 'SNOMED'))
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id = 'Concept poss_eq to'
 	AND crs.invalid_reason IS NULL
 	AND cs.invalid_reason IS NULL;
 
---10.4. Update valid_end_date to latest_update if there is a discrepancy after last point
+/*--10.4. Update valid_end_date to latest_update if there is a discrepancy after last point
+  --- !!! To be deleted
 UPDATE concept_stage cs
 SET valid_end_date = (
 		SELECT latest_update - 1
@@ -1241,7 +1295,7 @@ SET valid_end_date = (
 		WHERE vocabulary_id = 'SNOMED'
 		)
 WHERE invalid_reason = 'U'
-	AND valid_end_date = TO_DATE('20991231', 'yyyymmdd');
+	AND valid_end_date = TO_DATE('20991231', 'yyyymmdd');*/
 
 --11. Append manual relationships (are used below for domain assignment)
 DO $_$
@@ -2462,6 +2516,7 @@ WHERE cs.invalid_reason IS NULL
 				)
 			AND crs_int.concept_code_1 = cs.concept_code
 			AND crs_int.relationship_id = 'Maps to'
+			AND crs_int.vocabulary_id_1 = 'SNOMED'
 		);
 
 --16.1. De-standardize navigational concepts

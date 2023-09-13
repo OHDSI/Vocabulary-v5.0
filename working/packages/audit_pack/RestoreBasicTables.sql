@@ -9,13 +9,14 @@ DECLARE
 	pCurrentPct INT2;
 	pProcessedPct INT2:=0;
 	pTables TEXT[]:=ARRAY['concept','concept_relationship','concept_synonym','drug_strength','pack_content','relationship','vocabulary','vocabulary_conversion','concept_class','domain'];
+	pExcludeTables TEXT[]:=ARRAY['base_concept_manual', 'base_concept_relationship_manual', 'base_concept_synonym_manual'];
 	t TEXT;
 BEGIN
 	IF iLogID IS NULL THEN
 		RAISE EXCEPTION 'Please specify the LogID';
 	END IF;
 
-	SELECT MAX(log_id), MAX(log_id) FILTER (WHERE tg_operation='T') INTO pCurrent_max_log_id, pTruncate_id FROM audit.logged_actions WHERE log_id>=iLogID;
+	SELECT MAX(log_id), MAX(log_id) FILTER (WHERE tg_operation='T') INTO pCurrent_max_log_id, pTruncate_id FROM audit.logged_actions WHERE table_name <> ALL(pExcludeTables) AND log_id>=iLogID;
 	
 	IF pCurrent_max_log_id IS NULL THEN
 		RAISE EXCEPTION 'Record with log_id=% not found in the LOG table',iLogID;
@@ -173,7 +174,7 @@ BEGIN
 	ALTER TABLE concept DROP CONSTRAINT fpk_concept_vocabulary;
 
 	RAISE NOTICE 'Restoring tables...';
-	FOR r IN (SELECT * FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id ORDER BY log_id DESC) LOOP
+	FOR r IN (SELECT * FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables) ORDER BY log_id DESC) LOOP
 		IF r.tg_operation='I' THEN --insert
 			IF r.table_name='concept' THEN
 				DELETE FROM concept WHERE concept_id=(r.new_row->>'concept_id')::INT4;
@@ -281,7 +282,7 @@ BEGIN
 		END IF;
 
 		--calculating the percentage of rows processed
-		pCurrentPct:=100-((r.log_id-iLogID)*100)/(pCurrent_max_log_id-iLogID);
+		pCurrentPct:=100-((r.log_id-iLogID)::INT8*100)/(pCurrent_max_log_id-iLogID);
 		IF pCurrentPct>=10 AND pCurrentPct<100 THEN
 			IF LEFT(pCurrentPct::TEXT,1)>LEFT(pProcessedPct::TEXT,1) THEN
 				pProcessedPct:=pCurrentPct;
@@ -319,7 +320,7 @@ BEGIN
 			EXECUTE FORMAT('ALTER TABLE %I ENABLE TRIGGER USER',t);
 		END LOOP;
 		RAISE NOTICE 'Deleting obsolete log records...';
-		DELETE FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id;
+		DELETE FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables);
 	END IF;
 
 	RAISE NOTICE 'Restoring complete';

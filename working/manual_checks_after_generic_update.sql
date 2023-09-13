@@ -253,8 +253,8 @@ select a.concept_id,
        a.concept_code,
        a.concept_name,
        string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
-       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
-       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
+       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -271,8 +271,8 @@ select a.concept_id,
        a.concept_code,
        a.concept_name,
        string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
-       string_agg (b.concept_code, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
-       string_agg (b.concept_name, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
+       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
 from devv5.concept a
 left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join devv5.concept b on b.concept_id = concept_id_2
@@ -357,7 +357,7 @@ on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.co
 order by a.concept_code
 ;
 
---02.7. Concepts with 1-to-many mapping -- multiple 'Maps to' present
+--02.7. Concepts with 1-to-many mapping -- multiple 'Maps to%' present
 --In this check we manually review the concepts mapped to multiple Standard targets to make sure they are expected, correct and in line with the current conventions and approaches.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case) result should be critically analyzed and may represent multiple scenarios, e.g.:
@@ -365,40 +365,64 @@ order by a.concept_code
 -- - oxygen-containing devices are mapped to itself and oxygen ingredient.
 --TODO: add logical groups for suspicious target domains
 
-select a.vocabulary_id,
-       a.concept_code as concept_code_source,
-       a.concept_name as concept_name_source,
-       a.concept_class_id as concept_class_id_source,
-       a.domain_id as domain_id_source,
-       b.concept_code as concept_code_target,
-       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
-           ELSE b.concept_name END as concept_name_target,
-       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
-           ELSE b.vocabulary_id END as vocabulary_id_target
-from concept a
-join concept_relationship r
-    on a.concept_id=r.concept_id_1
-           and r.invalid_reason is null
-           and r.relationship_Id ='Maps to'
-join concept b
-    on b.concept_id = r.concept_id_2
-where a.vocabulary_id IN (:your_vocabs)
-    --and a.concept_id != b.concept_id --use it to exclude mapping to itself
-    and a.concept_id IN (
-                            select a.concept_id
-                            from concept a
-                            join concept_relationship r
-                                on a.concept_id=r.concept_id_1
-                                       and r.invalid_reason is null
-                                       and r.relationship_Id ='Maps to'
-                            join concept b
-                                on b.concept_id = r.concept_id_2
-                            where a.vocabulary_id IN (:your_vocabs)
-                                --and a.concept_id != b.concept_id --use it to exclude mapping to itself
-                            group by a.concept_id
-                            having count(*) > 1
-    )
-;
+SELECT *
+FROM (
+	SELECT s0.vocabulary_id,
+		s0.concept_code_source,
+		s0.concept_name_source,
+		s0.concept_class_id_source,
+		s0.domain_id_source,
+		s0.relationship_id,
+		s0.concept_code_target,
+		s0.concept_name_target,
+		s0.vocabulary_id_target,
+		s0.max_vsd_in_group,
+		(l.concept_id IS NULL) AS new_1_to_many_mappings
+	FROM (
+		SELECT a.concept_id,
+			a.vocabulary_id,
+			a.concept_code AS concept_code_source,
+			a.concept_name AS concept_name_source,
+			a.concept_class_id AS concept_class_id_source,
+			a.domain_id AS domain_id_source,
+			r.relationship_id,
+			b.concept_code AS concept_code_target,
+			CASE
+				WHEN a.concept_id = b.concept_id
+					THEN '<Mapped to itself>'
+				ELSE b.concept_name
+				END AS concept_name_target,
+			CASE
+				WHEN a.concept_id = b.concept_id
+					THEN '<Mapped to itself>'
+				ELSE b.vocabulary_id
+				END AS vocabulary_id_target,
+			COUNT(*) OVER (PARTITION BY a.concept_id) AS mappings_cnt,
+			MAX(r.valid_start_date) OVER (PARTITION BY a.concept_id) AS max_vsd_in_group
+		FROM concept a
+		JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
+			AND r.invalid_reason IS NULL
+			AND r.relationship_Id LIKE  'Maps to%'
+		JOIN concept b ON b.concept_id = r.concept_id_2
+		WHERE a.vocabulary_id IN (:your_vocabs)
+		--AND r.concept_id_1 <> r.concept_id_2 --use it to exclude mapping to itself
+		) s0
+	LEFT JOIN (
+		SELECT r_int.concept_id_1 AS concept_id
+		FROM devv5.concept_relationship r_int
+		WHERE r_int.invalid_reason IS NULL
+			AND r_int.relationship_Id LIKE 'Maps to%'
+			--AND r_int.concept_id_1 <> r_int.concept_id_2 --use it to exclude mapping to itself
+		GROUP BY r_int.concept_id_1
+		HAVING COUNT(*) > 1
+		) l USING (concept_id)
+	WHERE s0.mappings_cnt > 1
+	) s1
+ORDER BY s1.max_vsd_in_group DESC,
+	s1.new_1_to_many_mappings DESC,
+	s1.vocabulary_id,
+	s1.concept_code_source,
+	s1.concept_code_target;
 
 --02.8. Concepts became non-Standard with no mapping replacement
 --In this check we manually review the changes of concept's Standard status to non-Standard where 'Maps to' mapping replacement link is missing to make sure changes are expected, correct and in line with the current conventions and approaches.

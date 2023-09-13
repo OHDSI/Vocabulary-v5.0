@@ -20,3 +20,14 @@ $BODY$
   return json.dumps(dict(http.headers)), http.text
 $BODY$
 LANGUAGE 'plpython3u' PARALLEL SAFE;
+
+--function for HTTP/2 requests
+CREATE OR REPLACE FUNCTION vocabulary_download.py_http2_get(url text, cookies text default null, allow_redirects boolean default false, out http_headers json, out http_content text)
+AS
+$BODY$
+  import json, httpx
+  c=json.loads(cookies) if cookies else None
+  http=httpx.Client(http2=True).get(url,cookies=c,timeout=10,allow_redirects=allow_redirects)
+  return json.dumps(dict(http.headers)), http.text
+$BODY$
+LANGUAGE 'plpython3u' PARALLEL SAFE;

@@ -36,4 +36,6 @@ BEGIN
 	END IF;
 END;
 $BODY$
-LANGUAGE 'plpgsql' SECURITY INVOKER;
+LANGUAGE 'plpgsql';
+
+REVOKE EXECUTE ON FUNCTION devv5.report_qa_ddl FROM PUBLIC, role_read_only;

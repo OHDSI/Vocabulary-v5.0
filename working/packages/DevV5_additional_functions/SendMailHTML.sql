@@ -29,3 +29,5 @@ except smtplib.SMTPException as e:
 return message
 $body$
 LANGUAGE 'plpython3u';
+
+REVOKE EXECUTE ON FUNCTION devv5.SendMailHTML FROM PUBLIC;

@@ -39,7 +39,8 @@ END $$;
 ```
 
 NOTE: you can combine multiple calls to SetArchiveParams for each vocabulary that is used in the ls-script  
-NOTE: if no version is set for the vocabulary, then the latest one is used (in fact, as if the request goes to "sources." )
+NOTE: if no version is set for the vocabulary, then the latest one is used (in fact, as if the request goes to "sources." )  
+NOTE: **Parameters (versions) for vocabularies are saved during your current session in which you run SetArchiveParams. Therefore, if the connection is interrupted, you need to repeat setting the parameters.** It is a good practice to set parameters before every execution of the load_stage.
 
 If you don't know which vocabulary a given source table belongs to, you can check it with ShowArchiveDetails
 ```SQL

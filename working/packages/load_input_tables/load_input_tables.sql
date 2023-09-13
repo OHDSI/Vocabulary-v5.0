@@ -421,7 +421,8 @@ begin
       update sources.loinc_answerslist set displaytext=substr(displaytext,1,255) where length(displaytext)>255;
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'loincanswerlistlink.csv'' delimiter '','' csv HEADER';
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
-      execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER';
+      --execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER'; --use csvcut (pip3 install csvkit --user) for parsing and ignoring new last columns
+      execute 'COPY sources.loinc_forms FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-28 "'||pVocabularyPath||'panelsandforms.csv" '' delimiter '','' csv HEADER';
       truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'parentgroupattributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
@@ -447,7 +448,7 @@ begin
         from sources.py_xlsparse_hcpcs(pVocabularyPath||'/HCPC_CONTR_ANWEB.xlsx') where add_date ~ '\d{6}';
       PERFORM sources_archive.AddVocabularyToArchive('HCPCS', ARRAY['anweb_v2'], COALESCE(pVocabularyDate,current_date), 'archive.hcpcs_version', 10);
   when 'SNOMED' then
-      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_language_merged;
+      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_attributevalue_full_merged, sources.der2_crefset_language_merged;
       drop index sources.idx_concept_merged_id;
       drop index sources.idx_desc_merged_id;
       drop index sources.idx_rela_merged_id;
@@ -499,6 +500,17 @@ begin
         AND s_int.active = s.active AND s_int.moduleid=s.moduleid
         AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
         AND s_int.targetcomponent = s.targetcomponent AND s_int.ctid > s.ctid);
+      --loading der2_crefset_attributevalue_full_merged
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValue_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --delete duplicate records
+      DELETE FROM sources.der2_crefset_attributevalue_full_merged s WHERE EXISTS (SELECT 1 FROM sources.der2_crefset_attributevalue_full_merged s_int 
+      	WHERE s_int.id = s.id AND s_int.effectivetime=s.effectivetime
+        AND s_int.active = s.active AND s_int.moduleid=s.moduleid
+        AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
+        AND s_int.valueid = s.valueid AND s_int.ctid > s.ctid);
       CREATE INDEX idx_concept_merged_id ON sources.sct2_concept_full_merged (id);
       CREATE INDEX idx_desc_merged_id ON sources.sct2_desc_full_merged (conceptid);
       CREATE INDEX idx_rela_merged_id ON sources.sct2_rela_full_merged (id);
@@ -529,7 +541,7 @@ begin
       truncate table sources.der2_iisssccrefset_extendedmapfull_us;
       execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       PERFORM sources_archive.AddVocabularyToArchive('SNOMED', ARRAY['sct2_concept_full_merged','sct2_desc_full_merged','sct2_rela_full_merged','der2_crefset_assreffull_merged','der2_crefset_language_merged',
-        'der2_srefset_simplemapfull_int','der2_ssrefset_moduledependency_merged','der2_iisssccrefset_extendedmapfull_us'], COALESCE(pVocabularyDate,current_date), 'archive.snomed_version', 10);
+        'der2_srefset_simplemapfull_int','der2_ssrefset_moduledependency_merged','der2_iisssccrefset_extendedmapfull_us','der2_crefset_attributevalue_full_merged'], COALESCE(pVocabularyDate,current_date), 'archive.snomed_version', 10);
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';
@@ -605,9 +617,9 @@ begin
       execute 'COPY sources.dpd_companies_all FROM '''||pVocabularyPath||'comp_ap.txt'' delimiter '','' csv FORCE NULL mfr_code,company_code,company_name,company_type,
       	address_mailing_flag,address_billing_flag,address_notification_flag,address_other,suite_number,street_name,city_name,province,country,postal_code,post_office_box';
       --ther, ther_ia, ther_ap
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ia.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ap.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ia.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ap.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
       PERFORM sources_archive.AddVocabularyToArchive('DPD', ARRAY['dpd_drug_all','dpd_active_ingredients_all','dpd_form_all','dpd_route_all','dpd_packaging_all','dpd_status_all','dpd_companies_all',
         'dpd_therapeutic_class_all'], COALESCE(pVocabularyDate,current_date), 'archive.dpd_version', 30);
   when 'GGR' then

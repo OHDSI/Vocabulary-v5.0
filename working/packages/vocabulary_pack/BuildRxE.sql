@@ -5798,7 +5798,7 @@ BEGIN
 		FROM concept_stage
 		WHERE concept_class_id = 'Dose Form' -- the new negative ones
 		) df ON df.df_id = de.df_id
-	WHERE de.concept_id < 0
+	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
 		AND de.df_id <> 0;
 
 	-- Brand Names
@@ -5846,7 +5846,7 @@ BEGIN
 		FROM concept_stage
 		WHERE concept_class_id = 'Brand Name' -- the new negative ones
 		) bn ON bn.bn_id = de.bn_id
-	WHERE de.concept_id < 0
+	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
 		AND de.bn_id <> 0;
 
 	-- Suppliers
@@ -5894,7 +5894,7 @@ BEGIN
 		FROM concept_stage
 		WHERE concept_class_id = 'Supplier' -- the new negative ones
 		) mf ON mf.mf_id = de.mf_id
-	WHERE de.concept_id < 0
+	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
 		AND de.mf_id <> 0;
 
 	-- Write relationships between Brand Name and Ingredient

@@ -122,22 +122,6 @@ FROM (
 	UNION ALL
 	
 	--for internal_relationship_stage
-	--drugs without ingredients won't be proceeded
-	SELECT concept_code, 'missing relationship to ingredient: drug won''t be processed', 'internal_relationship_stage'
-	FROM drug_concept_stage
-	WHERE concept_code NOT IN (
-			SELECT concept_code_1
-			FROM internal_relationship_stage irs_int
-			JOIN drug_concept_stage dcs_int ON dcs_int.concept_code = irs_int.concept_code_2
-				AND dcs_int.concept_class_id = 'Ingredient'
-			)
-		AND concept_code NOT IN (
-			SELECT pack_concept_code
-			FROM pc_stage
-			)
-		AND concept_class_id = 'Drug Product'
-	
-	UNION ALL
 	
 	--Attribute doesn't relate to any drug
 	SELECT DISTINCT a.concept_code, 'Attribute doesn''t relate to any drug', 'internal_relationship_stage'

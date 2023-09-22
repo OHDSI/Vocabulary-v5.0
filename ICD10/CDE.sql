@@ -1,3 +1,254 @@
+--Source CDE
+DROP TABLE dev_icd10.icd_cde_source;
+TRUNCATE TABLE dev_icd10.icd_cde_source;
+CREATE TABLE dev_icd10.icd_cde_source
+(
+    concept_name_id      SERIAL PRIMARY KEY ,
+    concept_name         varchar,
+    group_id             int,
+    concept_code_icd10   varchar,
+    concept_code_icd10cm varchar,
+    concept_code_icd10gm varchar,
+    concept_code_cim10   varchar,
+    concept_code_kcd7    varchar,
+    concept_code_icd10cn varchar);
+
+--ICD10
+--icd10 insertion
+INSERT INTO dev_icd10.icd_cde_source
+( concept_name,
+ concept_code_icd10
+)
+SELECT DISTINCT
+concept_name,
+concept_code
+
+FROM dev_icd10.concept_stage
+WHERE (
+       COALESCE(concept_code, 'x!x'),
+       COALESCE(concept_name, 'x!x')
+       --COALESCE(source_code_description_synonym, 'x!x')
+          --,COALESCE (source_concept_id, -9876543210)
+          )
+          NOT IN (
+          SELECT COALESCE(concept_code, 'x!x'),
+                 COALESCE(concept_name, 'x!x')
+                 --COALESCE(source_code_description_synonym, 'x!x')
+                 --,COALESCE (source_concept_id, -9876543210)
+          FROM dev_icd10.icd_cde_source
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
+
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd_cde_source a
+SET concept_code_icd10
+        = b.concept_code
+FROM dev_icd10.concept_stage b
+WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
+  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
+--AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+;
+
+--ICD10CM
+--icd10cm insertion
+INSERT INTO dev_icd10.icd_cde_source
+(concept_name,
+ concept_code_icd10cm
+)
+SELECT DISTINCT
+concept_name,
+concept_code
+
+FROM dev_icd10cm.concept_stage
+WHERE (
+       COALESCE(concept_code, 'x!x'),
+       COALESCE(concept_name, 'x!x')
+       --COALESCE(source_code_description_synonym, 'x!x')
+          --,COALESCE (source_concept_id, -9876543210)
+          )
+          NOT IN (
+          SELECT COALESCE(concept_code, 'x!x'),
+                 COALESCE(concept_name, 'x!x')
+                 --COALESCE(source_code_description_synonym, 'x!x')
+                 --,COALESCE (source_concept_id, -9876543210)
+          FROM dev_icd10.icd_cde_source
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
+
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd_cde_source a
+SET concept_code_icd10cm
+        = b.concept_code
+FROM dev_icd10cm.concept_stage b
+WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
+  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
+--AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+;
+
+--ICD10GM
+--icd10gm insertion
+INSERT INTO dev_icd10.icd_cde_source
+(concept_name,
+ concept_code_icd10gm
+)
+SELECT DISTINCT
+concept_name,
+concept_code
+
+FROM dev_icd10gm.concept_stage
+WHERE (
+       COALESCE(concept_code, 'x!x'),
+       COALESCE(concept_name, 'x!x')
+       --COALESCE(source_code_description_synonym, 'x!x')
+          --,COALESCE (source_concept_id, -9876543210)
+          )
+          NOT IN (
+          SELECT COALESCE(concept_code, 'x!x'),
+                 COALESCE(concept_name, 'x!x')
+                 --COALESCE(source_code_description_synonym, 'x!x')
+                 --,COALESCE (source_concept_id, -9876543210)
+          FROM dev_icd10.icd_cde_source
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
+
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd_cde_source a
+SET concept_code_icd10gm
+        = b.concept_code
+FROM dev_icd10gm.concept_stage b
+WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
+  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
+--AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+;
+
+--KCD7
+--kcd7 insertion
+INSERT INTO dev_icd10.icd_cde_source
+(concept_name,
+ concept_code_kcd7
+)
+SELECT DISTINCT
+concept_name,
+concept_code
+
+FROM dev_kcd7.concept_stage
+WHERE (
+       COALESCE(concept_code, 'x!x'),
+       COALESCE(concept_name, 'x!x')
+       --COALESCE(source_code_description_synonym, 'x!x')
+          --,COALESCE (source_concept_id, -9876543210)
+          )
+          NOT IN (
+          SELECT COALESCE(concept_code, 'x!x'),
+                 COALESCE(concept_name, 'x!x')
+                 --COALESCE(source_code_description_synonym, 'x!x')
+                 --,COALESCE (source_concept_id, -9876543210)
+          FROM dev_icd10.icd_cde_source
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
+
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd_cde_source a
+SET concept_code_kcd7
+        = b.concept_code
+FROM dev_kcd7.concept_stage b
+WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
+  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
+--AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+;
+
+--ICD10CN
+--icd10cn insertion
+INSERT INTO dev_icd10.icd_cde_source
+(concept_name,
+ concept_code_icd10cn
+)
+SELECT DISTINCT
+concept_name,
+concept_code
+
+FROM dev_icd10cn.concept_stage
+WHERE (
+       COALESCE(concept_code, 'x!x'),
+       COALESCE(concept_name, 'x!x')
+       --COALESCE(source_code_description_synonym, 'x!x')
+          --,COALESCE (source_concept_id, -9876543210)
+          )
+          NOT IN (
+          SELECT COALESCE(concept_code, 'x!x'),
+                 COALESCE(concept_name, 'x!x')
+                 --COALESCE(source_code_description_synonym, 'x!x')
+                 --,COALESCE (source_concept_id, -9876543210)
+          FROM dev_icd10.icd_cde_source
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
+
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd_cde_source a
+SET concept_code_icd10cn
+        = b.concept_code
+FROM dev_icd10cn.concept_stage b
+WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
+  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
+--AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+;
+
+--CIM10
+--cim10 insertion
+INSERT INTO dev_icd10.icd_cde_source
+(concept_name,
+ concept_code_cim10
+)
+SELECT DISTINCT
+concept_name,
+concept_code
+
+FROM dev_cim10.concept_stage
+WHERE (
+       COALESCE(concept_code, 'x!x'),
+       COALESCE(concept_name, 'x!x')
+       --COALESCE(source_code_description_synonym, 'x!x')
+          --,COALESCE (source_concept_id, -9876543210)
+          )
+          NOT IN (
+          SELECT COALESCE(concept_code, 'x!x'),
+                 COALESCE(concept_name, 'x!x')
+                 --COALESCE(source_code_description_synonym, 'x!x')
+                 --,COALESCE (source_concept_id, -9876543210)
+          FROM dev_icd10.icd_cde_source
+      )
+AND concept_name !~* 'Invalid'
+order by concept_code, concept_name
+;
+
+--insert concept_codes for the concepts already presented in CDE
+UPDATE dev_icd10.icd_cde_source a
+SET concept_code_cim10
+        = b.concept_code
+FROM dev_cim10.concept_stage b
+WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
+     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
+  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
+--AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+;
+
+SELECT * FROM dev_icd10.icd_cde_source;
+
 --ICD10 with mapping
 DROP TABLE icd10;
 CREATE TABLE icd10 as (
@@ -46,6 +297,98 @@ and c.standard_concept = 'S'
 and c.invalid_reason is null);
 
 SELECT * FROM icd10cm;
+
+-- ICD10GM with mapping
+DROP TABLE icd10gm;
+CREATE TABLE icd10gm as (
+SELECT cs.concept_code,
+       cs.concept_name,
+       c.concept_id as target_concept_id,
+       crs.concept_code_2 as target_concept_code,
+       c.concept_name as target_concept_name,
+       c.concept_class_id as target_concept_class,
+       c.standard_concept as target_standard_concept,
+       c.invalid_reason as target_invalid_reason,
+       c.domain_id as target_domain_id,
+       crs.vocabulary_id_2 as target_vocabulary_id
+FROM dev_icd10gm.concept_stage cs
+LEFT JOIN dev_icd10gm.concept_relationship_stage crs
+on cs.concept_code = crs.concept_code_1
+    and relationship_id = 'Maps to'
+LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
+and c.standard_concept = 'S'
+and c.invalid_reason is null);
+
+SELECT * FROM icd10gm;
+
+-- KCD7 with mappings
+DROP TABLE kcd7;
+CREATE TABLE kcd7 as (
+SELECT cs.concept_code,
+       cs.concept_name,
+       c.concept_id as target_concept_id,
+       crs.concept_code_2 as target_concept_code,
+       c.concept_name as target_concept_name,
+       c.concept_class_id as target_concept_class,
+       c.standard_concept as target_standard_concept,
+       c.invalid_reason as target_invalid_reason,
+       c.domain_id as target_domain_id,
+       crs.vocabulary_id_2 as target_vocabulary_id
+FROM dev_kcd7.concept_stage cs
+LEFT JOIN dev_kcd7.concept_relationship_stage crs
+on cs.concept_code = crs.concept_code_1
+    and relationship_id = 'Maps to'
+LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
+and c.standard_concept = 'S'
+and c.invalid_reason is null);
+
+SELECT * FROM kcd7;
+
+-- ICD10CN with mappings
+DROP TABLE icd10cn;
+CREATE TABLE icd10cn as (
+SELECT cs.concept_code,
+       cs.concept_name,
+       c.concept_id as target_concept_id,
+       crs.concept_code_2 as target_concept_code,
+       c.concept_name as target_concept_name,
+       c.concept_class_id as target_concept_class,
+       c.standard_concept as target_standard_concept,
+       c.invalid_reason as target_invalid_reason,
+       c.domain_id as target_domain_id,
+       crs.vocabulary_id_2 as target_vocabulary_id
+FROM dev_icd10cn.concept_stage cs
+LEFT JOIN dev_icd10cn.concept_relationship_stage crs
+on cs.concept_code = crs.concept_code_1
+    and relationship_id = 'Maps to'
+LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
+and c.standard_concept = 'S'
+and c.invalid_reason is null);
+
+SELECT * FROM icd10cn;
+
+-- CIM10 with mappings
+DROP TABLE cim10;
+CREATE TABLE cim10 as (
+SELECT cs.concept_code,
+       cs.concept_name,
+       c.concept_id as target_concept_id,
+       crs.concept_code_2 as target_concept_code,
+       c.concept_name as target_concept_name,
+       c.concept_class_id as target_concept_class,
+       c.standard_concept as target_standard_concept,
+       c.invalid_reason as target_invalid_reason,
+       c.domain_id as target_domain_id,
+       crs.vocabulary_id_2 as target_vocabulary_id
+FROM dev_cim10.concept_stage cs
+LEFT JOIN dev_cim10.concept_relationship_stage crs
+on cs.concept_code = crs.concept_code_1
+    and relationship_id = 'Maps to'
+LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
+and c.standard_concept = 'S'
+and c.invalid_reason is null);
+
+SELECT * FROM cim10;
 
 DROP TABLE dev_icd10.icd_cde ;
 TRUNCATE TABLE dev_icd10.icd_cde;
@@ -193,7 +536,7 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id
-FROM dev_icd10gm.concept_stage
+FROM icd10gm
 WHERE (
        --COALESCE(concept_code, 'x!x'),
        COALESCE(concept_name, 'x!x')
@@ -215,7 +558,7 @@ order by concept_code, concept_name;
 UPDATE dev_icd10.icd_cde a
 SET concept_code_icd10gm
         = b.concept_code
-FROM dev_icd10gm.concept_stage b
+FROM icd10gm b
 WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
   --AND COALESCE(a.concept_code_icd10cm, 'x!x') = COALESCE(b.concept_code, 'x!x')
   --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
@@ -244,7 +587,7 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id
-FROM dev_kcd7.concept_stage
+FROM kcd7
 WHERE (
        --COALESCE(concept_code, 'x!x'),
        COALESCE(concept_name, 'x!x')
@@ -266,7 +609,7 @@ order by concept_code, concept_name;
 UPDATE dev_icd10.icd_cde a
 SET concept_code_kcd7
         = b.concept_code
-FROM dev_kcd7.concept_stage b
+FROM kcd7 b
 WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
   --AND COALESCE(a.concept_code_icd10cm, 'x!x') = COALESCE(b.concept_code, 'x!x')
   --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
@@ -295,7 +638,7 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id
-FROM dev_icd10cn.concept_stage
+FROM icd10cn
 WHERE (
        --COALESCE(concept_code, 'x!x'),
        COALESCE(concept_name, 'x!x')
@@ -317,7 +660,7 @@ order by concept_code, concept_name;
 UPDATE dev_icd10.icd_cde a
 SET concept_code_icd10cn
         = b.concept_code
-FROM dev_icd10cn.concept_stage b
+FROM icd10cn b
 WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
   --AND COALESCE(a.concept_code_icd10cm, 'x!x') = COALESCE(b.concept_code, 'x!x')
   --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
@@ -346,7 +689,7 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id
-FROM dev_cim10.concept_stage
+FROM cim10
 WHERE (
        --COALESCE(concept_code, 'x!x'),
        COALESCE(concept_name, 'x!x')
@@ -368,7 +711,7 @@ order by concept_code, concept_name;
 UPDATE dev_icd10.icd_cde a
 SET concept_code_cim10 --specify the exact customer
         = b.concept_code
-FROM dev_cim10.concept_stage b
+FROM cim10 b
 WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
   --AND COALESCE(a.concept_code_icd10cm, 'x!x') = COALESCE(b.concept_code, 'x!x')
   --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
@@ -378,6 +721,8 @@ WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
 SELECT * FROM dev_icd10.icd_cde
 order by  concept_name, concept_code_icd10
 ;
+
+
 
 -- array delta function
 CREATE OR REPLACE FUNCTION get_non_overlapping_elements(arr1 text[], arr2 text[])
@@ -475,6 +820,39 @@ WHERE icd10_target_concept_id = by_code_join.icd10cm_target_concept_id;
 SELECT * FROM by_code_join WHERE sim_flag is null; --2164 rows
 
 SELECT DISTINCT delta_array FROM by_code_join where by_code_join.sim_flag = '1'; --1031 including {}
+
+SELECT * FROM by_code_join where by_code_join.sim_flag != '1';
+
+SELECT DISTINCT concept_code, icd10_name, icd10cm_name FROM by_code_join where by_code_join.sim_flag = '1' and icd10_name != icd10cm_name;
+
+DROP TABLE icd10_test;
+CREATE TABLE icd10_test as
+SELECT DISTINCT c.concept_id, c.concept_code, c.concept_name, c.vocabulary_id, s.sim_flag FROM by_code_join s
+JOIN concept c ON s.concept_code = c.concept_code where c.vocabulary_id in ('ICD10', 'ICD10CM')
+AND regexp_split_to_array(lower(regexp_replace(regexp_replace(s.icd10_name,'[[:punct:]]','','gi'),'ae','e','gi')),' ') != regexp_split_to_array(lower(regexp_replace(regexp_replace(s.icd10cm_name,'[[:punct:]]','','gi'),'ae','e','gi')),' ')
+--AND sim_flag != '1'
+order by concept_code
+--limit 200;
+
+SELECT * FROM icd10_test;
+
+DROP TABLE for_test;
+CREATE TABLE for_test
+as SELECT concept_id, concept_code, concept_name, vocabulary_id, null as group_id
+FROM icd10_test
+where sim_flag is null
+limit 200;
+
+SELECT * FROM for_test;
+
+CREATE TABLE icd_cde_for_test
+(concept_id  int,
+concept_code varchar,
+concept_name varchar,
+vocabulary_id varchar,
+group_id int);
+
+SELECT * FROM dev_icd10.icd_cde_for_test;
 
 
 

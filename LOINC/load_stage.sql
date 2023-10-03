@@ -163,27 +163,34 @@ SELECT CASE
 					'PANEL.ADMIN'
 					)
 				OR loinc_num IN (
-					'98740-4',
-					'99958-1',
-					'71579-7',
-					'63518-5',
-					'98371-8',
-					'97504-5',
-					'96749-7',
-					'98075-5',
-					'100218-7',
-					'100219-5',
-					'100220-3',
-					'100221-1',
-					'100222-9',
-					'100223-7',
-					'100282-3',
-					'100302-9',
-					'100878-8',
-					'100967-9',
-					'100875-4',
-					'100876-2'
-					)
+						'98740-4',
+						'99958-1',
+						'71579-7',
+						'63518-5',
+						'98371-8',
+						'97504-5',
+						'96749-7',
+						'98075-5',
+						'100218-7',
+						'100219-5',
+						'100220-3',
+						'100221-1',
+						'100222-9',
+						'100223-7',
+						'100282-3',
+						'100302-9',
+						'100878-8',
+						'100967-9',
+						'100875-4',
+						'100876-2',
+						'101969-4',
+						'101974-4',
+						'101580-9',
+						'101687-2',
+						'100970-3',
+						'101437-2',
+						'101579-1'
+						)
 				OR (long_common_name ~* 'note|summary|notification|Letter|Checklist|instructions')
 				)
 			AND (
@@ -425,7 +432,10 @@ FROM sources.loinc l
 WHERE cs.concept_code = l.loinc_num
 	AND (
 		l.class = 'RAD' --Radiology concepts
-		OR l.loinc_num = '100877-0'
+		OR l.loinc_num IN (
+			'100877-0',
+			'101581-7'
+			)
 		)
 	--Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
 	AND NOT EXISTS (
@@ -615,8 +625,22 @@ WHERE (
 UPDATE concept_stage cs
 SET domain_id = 'Note'
 FROM sources.loinc_hierarchy lh
-WHERE lh.path_to_root LIKE 'LP432695-7.LP7787-7.LP32519-8%'
-	AND lh.code = cs.concept_code;
+WHERE (
+		lh.path_to_root LIKE 'LP432695-7.LP7787-7.LP32519-8%'
+		AND lh.code = cs.concept_code
+		)
+	OR cs.concept_code IN (
+		'101577-5',
+		'101578-3',
+		'101468-7',
+		'100971-1',
+		'103140-0',
+		'102044-5',
+		'102043-7',
+		'102047-8',
+		'102045-2',
+		'102046-0'
+		);
 
 --6. Insert missing codes from manual extraction
 DO $_$
@@ -1489,6 +1513,9 @@ WITH ax_1 AS (
 					) /*to restrict SNOMED attribute pool*/
 				OR x1.attr_code = '41598000'
 				) --To take Estrogen component
+			AND x1.sn_code NOT IN (
+				'401020005' --Urinary cortisol analysis
+				) --to exclude additional codes
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -1518,14 +1545,17 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 2
 				) /*to restrict SNOMED attribute pool*/
-			/*AND z2.lc_code NOT IN (
+	    AND x1.sn_code NOT IN ('401093002', --Haemophilus influenzae B IgG measurement
+	                            '9954002' --Serologic test for rubella
+	                          ) --to exclude additional codes
+			AND z2.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
 			)
 			AND z2.lc_code NOT IN (
 				SELECT ax_2_int.lc_code
 				FROM ax_2 ax_2_int
-			)*/ -- exclude duplicates
+			) -- exclude duplicates
 		),
 	-- AXIS 4: get 2-attribute Measurements (Component+Scale)
 	ax_4 AS (
@@ -1572,6 +1602,14 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 1
 				) -- to restrict SNOMED attribute pool
+			AND x1.sn_code NOT IN (
+				'250663008', --Unconjugated estriol measurement
+				'269932004', --Fluid sample lipase measurement
+				'271232007', --Serum lipase measurement
+				'281105001', --Fecal lipase measurement
+				'166776003', --Serum/plasma protein test
+				'166809004' --Electrophoresis: paraprotein
+				) -- to exclude codes with additional axises
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -1754,11 +1792,11 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT l.fromexpr AS concept_code_1, -- LOINC code
-	UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_2, -- CPT4 code
-	'LOINC' AS vocabulary_id_1,
-	'CPT4' AS vocabulary_id_2,
-	'LOINC - CPT4 eq' AS relationship_id,
+SELECT UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_1, -- CPT4 code
+	l.fromexpr AS concept_code_2, -- LOINC code
+	'CPT4' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	'CPT4 - LOINC eq' AS relationship_id,
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason

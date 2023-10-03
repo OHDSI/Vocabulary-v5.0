@@ -69,7 +69,7 @@ BEGIN
       where s0.url ilike '%www.cms.gov/Medicare/Coding/ICD10/Downloads/%PCS%Order%.zip'
     ) as s1 order by s1.icd10pcs_year desc limit 1;
     */
-    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(LOWER(http_content),'<a href="(/medicare/[^/]+/[[:digit:]]{4}-icd-10-pcs)".*?>[[:digit:]]{4} icd-10-pcs</a>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(LOWER(http_content),'<a href="(/medicare/coding-billing/icd-10-codes/[[:digit:]]{4}-icd-10-pcs)".*?>[[:digit:]]{4} icd-10-pcs</a>.+') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
     pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(LOWER(http_content),'<a href="(/files/zip/[[:digit:]]{4}-icd-10-pcs-order.*?\.zip)">') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
 
     --start downloading

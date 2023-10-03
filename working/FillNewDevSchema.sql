@@ -47,13 +47,47 @@ BEGIN
 	DROP TABLE IF EXISTS concept_relationship_stage;
 	CREATE TABLE concept_relationship_stage (LIKE devv5.concept_relationship_stage);
 
-	--DROP TABLE IF EXISTS concept_relationship_manual; --we don't want to accidentally drop a table
-	CREATE TABLE IF NOT EXISTS concept_relationship_manual (LIKE devv5.concept_relationship_manual INCLUDING CONSTRAINTS);
-	CREATE TABLE IF NOT EXISTS concept_manual (LIKE devv5.concept_manual INCLUDING CONSTRAINTS);
-	CREATE TABLE IF NOT EXISTS concept_synonym_manual (LIKE devv5.concept_synonym_manual INCLUDING CONSTRAINTS);
-
 	DROP TABLE IF EXISTS concept_synonym_stage;
 	CREATE TABLE concept_synonym_stage (LIKE devv5.concept_synonym_stage);
+
+	--processing manual tables
+	DROP TABLE IF EXISTS concept_manual, concept_relationship_manual, concept_synonym_manual;
+	CREATE TABLE concept_manual (LIKE devv5.concept_manual INCLUDING CONSTRAINTS);
+	CREATE TABLE concept_relationship_manual (LIKE devv5.concept_relationship_manual INCLUDING CONSTRAINTS);
+	CREATE TABLE concept_synonym_manual (LIKE devv5.concept_synonym_manual INCLUDING CONSTRAINTS);
+	INSERT INTO concept_manual
+	SELECT concept_name,
+		domain_id,
+		vocabulary_id,
+		concept_class_id,
+		standard_concept,
+		concept_code,
+		valid_start_date,
+		valid_end_date,
+		invalid_reason
+	FROM devv5.base_concept_manual
+	WHERE concept_id <> 0;
+
+	INSERT INTO concept_relationship_manual
+	SELECT concept_code_1,
+		concept_code_2,
+		vocabulary_id_1,
+		vocabulary_id_2,
+		relationship_id,
+		valid_start_date,
+		valid_end_date,
+		invalid_reason
+	FROM devv5.base_concept_relationship_manual
+	WHERE concept_id_1 <> 0
+		AND concept_id_2 <> 0;
+
+	INSERT INTO concept_synonym_manual
+	SELECT synonym_name,
+		synonym_concept_code,
+		synonym_vocabulary_id,
+		language_concept_id
+	FROM devv5.base_concept_synonym_manual
+	WHERE concept_id <> 0;
 
 	--Create copies of table
 	DROP TABLE IF EXISTS concept_ancestor, concept, concept_relationship, relationship, vocabulary, vocabulary_conversion, concept_class, domain, concept_synonym, drug_strength, pack_content CASCADE;
@@ -127,17 +161,18 @@ BEGIN
 	CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id);
 	CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id);
 	CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, COALESCE(amount,-1));
-	CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
+	ALTER TABLE concept_stage ADD CONSTRAINT idx_pk_cs PRIMARY KEY (concept_code,vocabulary_id);
 	CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
-	CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
+	ALTER TABLE concept_relationship_stage ADD CONSTRAINT idx_pk_crs PRIMARY KEY (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
+	ALTER TABLE concept_synonym_stage ADD CONSTRAINT idx_pk_css PRIMARY KEY (synonym_vocabulary_id,synonym_name,synonym_concept_code,language_concept_id);
 	CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
 	CREATE INDEX idx_dss_concept_code ON drug_strength_stage (drug_concept_code);
 	CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id);
 	CREATE UNIQUE INDEX xpk_vocab_conversion ON vocabulary_conversion (vocabulary_id_v5);
 
 	--Create UNIQUE constraints for manual tables
-	ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
 	ALTER TABLE concept_manual ADD CONSTRAINT unique_manual_concepts UNIQUE (vocabulary_id,concept_code);
+	ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
 	ALTER TABLE concept_synonym_manual ADD CONSTRAINT unique_manual_synonyms UNIQUE (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id);
 
 	--Analyzing
@@ -149,5 +184,5 @@ BEGIN
 	ANALYZE concept_ancestor;
 END;
 $BODY$
-LANGUAGE 'plpgsql' SECURITY INVOKER
+LANGUAGE 'plpgsql'
 SET client_min_messages = error;

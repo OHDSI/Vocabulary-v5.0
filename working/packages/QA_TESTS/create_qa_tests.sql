@@ -20,7 +20,7 @@ The function returns a summary (delta) for basic tables in the current schema: c
 For the concept table, the number of concepts in the context of standard_concept (can be disabled, default enabled), concept_class_id and invalid_reason (can be disabled, default enabled) is taken and compared with the table from the target schema (default - prodv5)
 For the concept_relationship table, the number of concepts in the context of vocabulary_id_1, vocabulary_id_2, relationship_id and invalid_reason is taken and compared with the table from the target schema
 For the concept_ancestor table, the number of concepts in the context of vocabulary_id (ancestor_concept_id) is taken and compared with the table from the target schema
-The last field shows the percentage change in the context
+The last field shows the percentage change in the context (if the target schema does not contain rows in this context, then the last column will be null)
 
 Examples:
 select * from qa_tests.get_summary ('concept','devv5');
@@ -49,11 +49,13 @@ BEGIN
 			NULL::VARCHAR AS relationship_id,
 			COALESCE(NULLIF(s0.invalid_reason, 'X'), NULLIF(s1.invalid_reason, 'X'))::VARCHAR AS invalid_reason,
 			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
-			CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
 				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
 			ELSE
 				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
-			END AS concept_delta_percentage
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
 		FROM (
 			SELECT vocabulary_id,
 				CASE WHEN %2$L THEN
@@ -114,11 +116,13 @@ BEGIN
 			COALESCE(s0.relationship_id, s1.relationship_id) AS relationship_id,
 			COALESCE(NULLIF(s0.invalid_reason, 'X'), NULLIF(s1.invalid_reason, 'X'))::VARCHAR AS invalid_reason,
 			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
-			CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
 				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
 			ELSE
 				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
-			END AS concept_delta_percentage
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
 		FROM (
 			SELECT c1.vocabulary_id AS vocabulary_id_1,
 				c2.vocabulary_id AS vocabulary_id_2,
@@ -165,11 +169,13 @@ BEGIN
 			NULL::VARCHAR AS relationship_id,
 			NULL::VARCHAR AS invalid_reason,
 			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
-			CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
 				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
 			ELSE
 				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
-			END AS concept_delta_percentage
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
 		FROM (
 			SELECT c.vocabulary_id,
 				COUNT(*) AS cnt
@@ -199,7 +205,8 @@ BEGIN
 		RETURN QUERY EXECUTE pGeneratedStmt_ca;
 	END IF;
 END;
-$BODY$ LANGUAGE 'plpgsql';
+$BODY$
+LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION qa_tests.get_checks (checkid IN INT DEFAULT NULL)
 RETURNS TABLE

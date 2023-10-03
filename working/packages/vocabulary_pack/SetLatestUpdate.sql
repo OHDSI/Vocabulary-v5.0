@@ -73,6 +73,8 @@ BEGIN
       vocabulary_version = pVocabularyVersion,
       dev_schema_name = pVocabularyDevSchema
   WHERE vocabulary_id = pVocabularyName;
+  
+  ANALYZE vocabulary;--other queries will be able to use the index if it is linked to the vocabulary_id field from this table, e.g. select * from concept c join vocabulary v using (vocabulary_id) where v.latest_update is not null;
 END;
 $body$
 LANGUAGE 'plpgsql'

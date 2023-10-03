@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION py_gtranslate (bulk_text text[], dest_lang text default 'en', src_lang text default 'auto')
+CREATE OR REPLACE FUNCTION devv5.py_gtranslate (bulk_text text[], dest_lang text default 'en', src_lang text default 'auto')
 RETURNS
 TABLE (
   original_text text,
@@ -15,3 +15,5 @@ $BODY$
   return [(translation.origin,translation.text) for translation in translations]
 $BODY$
 LANGUAGE 'plpython3u' STRICT;
+
+REVOKE EXECUTE ON FUNCTION devv5.py_gtranslate FROM PUBLIC;

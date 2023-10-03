@@ -7,8 +7,10 @@ Prerequisites:
 - Working directory CPT4
 
 
-1. Run SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
-
+1. Run 
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+```
 2. Run load_stage.sql (The pVocabularyDate will be automatically retrieved from the UMLS [SOURCES.MRSMAP.vocabulary_date])
 
 3. Run generic_update:
@@ -31,24 +33,14 @@ Repeat steps 1-5
 7. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept');
-```
-```sql
 SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
 8. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_domain_changes();
-```
-```sql
 SELECT * FROM qa_tests.get_newly_concepts();
-```
-```sql
 SELECT * FROM qa_tests.get_standard_concept_changes();
-```
-```sql
 SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
-```
-```sql
 SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 9. If no problems, enjoy!

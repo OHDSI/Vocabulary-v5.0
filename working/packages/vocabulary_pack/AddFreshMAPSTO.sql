@@ -36,8 +36,9 @@ This led to the fact that the "old" relationships were not eventually processed 
 For example, this is relevant for NDC/SPL, since the first time the function is called for SPL and at this stage we do not need relationships for NDC yet.
 */
 BEGIN
-	WITH to_be_upserted
-	AS (
+	ANALYZE concept_relationship_stage;
+
+	CREATE TEMP TABLE new_relationships ON COMMIT DROP AS
 		WITH RECURSIVE rec AS (
 				SELECT u.concept_code_1,
 					u.vocabulary_id_1,
@@ -110,7 +111,11 @@ BEGIN
 								'Maps to'
 								)
 							AND crs.invalid_reason IS NULL
-							AND crs.concept_code_1 <> crs.concept_code_2
+							AND NOT (
+								--exclude mappings to self
+								crs.concept_code_1 = crs.concept_code_2
+								AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+								)
 						
 						UNION ALL
 						
@@ -144,23 +149,21 @@ BEGIN
 					) AS s2
 				WHERE concept_code_2 IS NOT NULL
 				)
-		SELECT root_concept_code_1,
-			concept_code_2,
-			root_vocabulary_id_1,
-			vocabulary_id_2,
+		SELECT s3.root_concept_code_1,
+			s3.concept_code_2,
+			s3.root_vocabulary_id_1,
+			s3.vocabulary_id_2,
 			'Maps to' AS relationship_id,
-			(
-				SELECT MAX(latest_update)
-				FROM vocabulary
-				WHERE latest_update IS NOT NULL
-				) AS valid_start_date,
+			GREATEST(s3.lu_1, s3.lu_2) AS valid_start_date,
 			TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 			NULL AS invalid_reason
 		FROM (
 			SELECT DISTINCT r.root_concept_code_1,
 				r.root_vocabulary_id_1,
 				r.concept_code_2,
-				r.vocabulary_id_2
+				r.vocabulary_id_2,
+				v1.latest_update AS lu_1,
+				v2.latest_update AS lu_2
 			FROM rec r
 			JOIN vocabulary v1 ON v1.vocabulary_id = r.root_vocabulary_id_1
 			JOIN vocabulary v2 ON v2.vocabulary_id = r.vocabulary_id_2
@@ -179,23 +182,12 @@ BEGIN
 			) AS s3
 		WHERE EXISTS (--check if target concept is valid and standard (first in concept_stage, then concept)
 		SELECT 1
-		FROM vocabulary_pack.GetActualConceptInfo(concept_code_2, vocabulary_id_2) a
+		FROM vocabulary_pack.GetActualConceptInfo(s3.concept_code_2, s3.vocabulary_id_2) a
 		WHERE a.standard_concept = 'S'
-			AND a.invalid_reason IS NULL)
-		),
-	updated
-	AS (
-		UPDATE concept_relationship_stage crs
-		SET invalid_reason = NULL,
-			valid_end_date = tbu.valid_end_date
-		FROM to_be_upserted tbu
-		WHERE crs.concept_code_1 = tbu.root_concept_code_1
-			AND crs.concept_code_2 = tbu.concept_code_2
-			AND crs.vocabulary_id_1 = tbu.root_vocabulary_id_1
-			AND crs.vocabulary_id_2 = tbu.vocabulary_id_2
-			AND crs.relationship_id = tbu.relationship_id RETURNING crs.*
-		)
-	INSERT INTO concept_relationship_stage (
+			AND a.invalid_reason IS NULL);
+
+	--add new records, update existing
+	INSERT INTO concept_relationship_stage AS crs (
 		concept_code_1,
 		concept_code_2,
 		vocabulary_id_1,
@@ -205,22 +197,18 @@ BEGIN
 		valid_end_date,
 		invalid_reason
 		)
-	SELECT *
-	FROM to_be_upserted tbu
-	WHERE (
-			tbu.root_concept_code_1,
-			tbu.concept_code_2,
-			tbu.root_vocabulary_id_1,
-			tbu.vocabulary_id_2,
-			tbu.relationship_id
-			) NOT IN (
-			SELECT up.concept_code_1,
-				up.concept_code_2,
-				up.vocabulary_id_1,
-				up.vocabulary_id_2,
-				up.relationship_id
-			FROM updated up
-			);
+	SELECT nr.*
+	FROM new_relationships nr
+	ON CONFLICT ON CONSTRAINT idx_pk_crs
+	DO UPDATE
+	SET invalid_reason = NULL,
+		valid_end_date = TO_DATE('20991231', 'yyyymmdd')
+	WHERE ROW (crs.valid_start_date, crs.valid_end_date, crs.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason);
+
+	--if the function is executed in a transaction, then by the time of the next call the temp table will exist
+	DROP TABLE new_relationships;
 END;
 $BODY$
 LANGUAGE 'plpgsql';

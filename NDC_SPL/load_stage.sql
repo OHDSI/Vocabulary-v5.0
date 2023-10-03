@@ -1727,7 +1727,7 @@ WITH ndc AS (
 			productndc
 		FROM sources.product
 		)
-SELECT p.pack_code AS synonym_concept_code,
+SELECT DISTINCT p.pack_code AS synonym_concept_code,
 	m.vocabulary_id,
 	vocabulary_pack.CutConceptSynonymName(m.long_concept_name),
 	4180186 AS language_concept_id -- English

@@ -20,7 +20,10 @@ BEGIN
 		END IF;
 	END $$;
 
-	--1.2 Clear concept_id's just in case
+	--1.2 Start logging manual work
+	PERFORM admin_pack.LogManualChanges();
+	
+	--1.3 Clear concept_id's just in case
 	UPDATE concept_stage
 	SET concept_id = NULL
 	WHERE concept_id IS NOT NULL;
@@ -58,10 +61,10 @@ BEGIN
 	ANALYZE concept_relationship_stage;
 
 	--6. Clearing the concept_name
-	--Remove double spaces, carriage return, newline, vertical tab and form feed
+	--Remove double spaces, carriage return, newline, vertical tab, form feed, unicode spaces
 	UPDATE concept_stage
-	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ', 'g')
-	WHERE concept_name ~ '[[:cntrl:]]';
+	SET concept_name = TRIM(REGEXP_REPLACE(concept_name, '[[:cntrl:]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff]+', ' ', 'g'))
+	WHERE concept_name ~ '[[:cntrl:]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff]';
 
 	UPDATE concept_stage
 	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ', 'g')
@@ -78,24 +81,75 @@ BEGIN
 	WHERE concept_name LIKE '%\\';
 
 	--7. Clearing the synonym_name
-	--Remove double spaces, carriage return, newline, vertical tab and form feed
-	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
-	WHERE synonym_name ~ '[[:cntrl:]]';
+	--Need to use DELETE+'ON CONFLICT DO NOTHING' to avoid violating the unique constraint "idx_pk_css"
 
-	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
-	WHERE synonym_name ~ ' {2,}';
+	--Remove double spaces, carriage return, newline, vertical tab and form feed
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name ~ '[[:cntrl:]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff]'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		TRIM(REGEXP_REPLACE(d.synonym_name, '[[:cntrl:]\u00a0\u180e\u2007\u200b-\u200f\u202f\u2060\ufeff]+', ' ', 'g')) AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
+
+	--Remove double spaces
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name ~ ' {2,}'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REGEXP_REPLACE(d.synonym_name, ' {2,}', ' ', 'g') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	--Remove long dashes
-	UPDATE concept_synonym_stage
-	SET synonym_name = REPLACE(synonym_name, '–', '-')
-	WHERE synonym_name LIKE '%–%';
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name LIKE '%–%'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		REPLACE(d.synonym_name, '–', '-') AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	--Remove trailing escape character (\)
-	UPDATE concept_synonym_stage
-	SET synonym_name = TRIM(TRAILING '\' FROM synonym_name)
-	WHERE synonym_name LIKE '%\\';
+	WITH del
+	AS (
+		DELETE
+		FROM concept_synonym_stage
+		WHERE synonym_name LIKE '%\\'
+		RETURNING *
+		)
+	INSERT INTO concept_synonym_stage
+	SELECT d.synonym_concept_id,
+		TRIM(TRAILING '\' FROM d.synonym_name) AS synonym_name,
+		d.synonym_concept_code,
+		d.synonym_vocabulary_id,
+		d.language_concept_id
+	FROM del d
+	ON CONFLICT DO NOTHING;
 
 	/***************************
 	* Update the concept table *
@@ -381,7 +435,10 @@ BEGIN
 			'Concept same_as to',
 			'Concept alt_to to',
 			'Concept was_a to',
-			'Maps to']) AS relationship_id
+			'Maps to',
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
+			]) AS relationship_id
 		),
 	vocab_combinations
 	AS (
@@ -444,6 +501,7 @@ BEGIN
 				FROM relationships
 				JOIN relationship USING (relationship_id)
 				)
+			AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
 		)
 	UPDATE concept_relationship d
 	SET valid_end_date = vc.max_latest_update - 1,
@@ -485,7 +543,9 @@ BEGIN
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
-			'Source - RxNorm eq' -- AVOF-2118
+			'Source - RxNorm eq', -- AVOF-2118
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
 		)
 	)
 	UPDATE concept_relationship r
@@ -534,7 +594,9 @@ BEGIN
 			'Concept was_a to',
 			'Maps to',
 			'Maps to value',
-			'Source - RxNorm eq' -- AVOF-2118
+			'Source - RxNorm eq', -- AVOF-2118
+			'CPT4 - SNOMED cat', -- AVOC-4022
+			'CPT4 - SNOMED eq' -- AVOC-4022
 		)
 	)
 	UPDATE concept_relationship r
@@ -1100,6 +1162,10 @@ BEGIN
 	ANALYZE concept;
 	ANALYZE concept_relationship;
 	ANALYZE concept_synonym;
+
+	--36. Update concept_id fields in the "basic" manual tables for storing in audit
+	PERFORM admin_pack.UpdateManualConceptID();
+
 	--QA (should return NULL)
 	--SELECT * FROM QA_TESTS.GET_CHECKS();
 END;

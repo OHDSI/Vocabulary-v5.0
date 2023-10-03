@@ -62,3 +62,5 @@ $BODY$
   return res
 $BODY$
 LANGUAGE 'plpython3u' STRICT;
+
+REVOKE EXECUTE ON FUNCTION devv5.GetSpreadSheet FROM PUBLIC;

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION dev_test5.GenericUpdate (
+CREATE OR REPLACE FUNCTION dev_snomed.GenericUpdate (
 )
 RETURNS void AS
 $BODY$

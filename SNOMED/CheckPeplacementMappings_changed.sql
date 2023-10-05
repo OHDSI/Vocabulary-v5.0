@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION dev_test5.checkreplacementmappings (
+CREATE OR REPLACE FUNCTION dev_snomed.checkreplacementmappings (
 )
 RETURNS void AS
 $body$

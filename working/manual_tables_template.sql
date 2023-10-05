@@ -175,6 +175,7 @@ AND vocabulary_id = 'vocabulary'
            coalesce(lk.language_concept_id, 4180186) --English by default
     FROM vocab_manual_lookup lk
     WHERE lk.vocabulary_id = 'vocabulary'
+    AND lk.concept_synonym_name IS NOT NULL
 	ON CONFLICT DO NOTHING;
 
 

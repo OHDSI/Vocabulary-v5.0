@@ -39,8 +39,8 @@ AS
 
 --Precoordinated answer concepts
 --SELECT DISTINCT concat (question_code, '-', answer_code), concat (question_name, '-', answer_name) FROM bhp_pr;
-UPDATE bhp_pr SET answer_name = concat (question_name, '-', answer_name);
-UPDATE bhp_pr SET answer_code = concat (question_code, '-', answer_code);
+--UPDATE bhp_pr SET answer_name = concat (question_name, '-', answer_name);
+--UPDATE bhp_pr SET answer_code = concat (question_code, '-', answer_code);
 
 UPDATE bhp_pr SET answer_code = trim(answer_code) ;
 UPDATE bhp_pr SET question_code = trim(question_code) ;
@@ -51,16 +51,16 @@ SELECT * FROM bhp_pr; --209
 
 SELECT DISTINCT question_code, question_name FROM dev_ppi.bhp_pr where length (question_name) > 255;
 
-UPDATE bhp_pr SET question_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life frightened by any of these situations?'
+/*UPDATE bhp_pr SET question_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life frightened by any of these situations?'
 WHERE question_code = 'cidi5_30';
 UPDATE bhp_pr SET question_name = 'Have you ever been bothered with thoughts, images, or urges that kept coming back over and over, like concerns with germs, order, or experiencing horrific images or intrusive sexual thoughts, or urges to knock objects, or harming a loved one?'
 WHERE question_code = 'pmi_1';
 UPDATE bhp_pr SET question_name = 'Did you ever talk to a health professional about any of these experiences (such as seeing a vision, hearing a voice, believing that something strange was trying to communicate with you)?'
-WHERE question_code = 'mhqukb_55';
+WHERE question_code = 'mhqukb_55';*/
 
 SELECT DISTINCT answer_code, answer_name FROM bhp_pr where length (answer_name) > 255;
 
-UPDATE bhp_pr SET answer_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life frightened by any of these situations?-Yes'
+/*UPDATE bhp_pr SET answer_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life frightened by any of these situations?-Yes'
 WHERE answer_code = 'cidi5_30-bhp_6';
 UPDATE bhp_pr SET answer_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life frightened by any of these situations?-No'
 WHERE answer_code = 'cidi5_30-bhp_7';
@@ -79,7 +79,7 @@ WHERE answer_code = 'mhqukb_56-pmi_prefernottoanswer';
 UPDATE bhp_pr SET answer_name = 'Have you ever been bothered with thoughts, images, or urges that kept coming back over and over, like concerns with germs, order, or experiencing horrific images or intrusive sexual thoughts, or urges to knock objects, or harming a loved one?-Yes'
 WHERE answer_code = 'pmi_1-bhp_6';
 UPDATE bhp_pr SET answer_name = 'Have you ever been bothered with thoughts, images, or urges that kept coming back over and over, like concerns with germs, order, or experiencing horrific images or intrusive sexual thoughts, or urges to knock objects, or harming a loved one?-No'
-WHERE answer_code = 'pmi_1-bhp_7';
+WHERE answer_code = 'pmi_1-bhp_7';*/
 
 
 -- EHH (Emotional Health history and Wellbeing) source table
@@ -123,8 +123,8 @@ AS
 
 --Precoordinated answer concepts
 --SELECT DISTINCT answer_code, answer_name FROM ehh_pr;
-UPDATE ehh_pr SET answer_name = concat (question_name, '-', answer_name);
-UPDATE ehh_pr SET answer_code = concat (question_code, '-', answer_code);
+--UPDATE ehh_pr SET answer_name = concat (question_name, '-', answer_name);
+--UPDATE ehh_pr SET answer_code = concat (question_code, '-', answer_code);
 
 update ehh_pr set answer_code = trim(answer_code) ;
 update ehh_pr set question_code = trim(question_code) ;
@@ -136,7 +136,5 @@ SELECT * FROM ehh_pr; --408
 SELECT DISTINCT question_code, question_name FROM ehh_pr where length (question_name) > 255;
 SELECT DISTINCT answer_code, answer_name FROM ehh_pr where length (answer_name) > 255;
 
---update for already existing codes
-UPDATE ehh_pr SET question_code = concat(question_code, '-', 1)
-WHERE question_code IN ('ace_10','ace_11', 'ace_8', 'ace_4', 'ace_3', 'ace_5', 'ace_2', 'ace_9', 'ace_6', 'ace_1', 'ace_7');
+
 

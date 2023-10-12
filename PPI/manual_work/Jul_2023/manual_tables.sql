@@ -1,6 +1,14 @@
-TRUNCATE concept_manual;
-TRUNCATE concept_relationship_manual;
-TRUNCATE concept_synonym_manual;
+CREATE TABLE concept_manual_backup_10_2023 as SELECT * FROM concept_manual;
+CREATE TABLE concept_relationship_manual_backup_10_2023 as SELECT * FROM concept_relationship_manual;
+CREATE TABLE concept_synonym_manual_backup_10_2023 as SELECT * FROM concept_synonym_manual;
+
+--TRUNCATE concept_manual;
+--TRUNCATE concept_relationship_manual;
+--TRUNCATE concept_synonym_manual;
+
+SELECT * FROM concept_manual;
+SELECT * FROM concept_relationship_manual;
+SELECT * FROM concept_synonym_manual;
 
 -- 1. insert previous Mental Health and Well-Being Module concepts and their relationships to deprecate from manual file
 

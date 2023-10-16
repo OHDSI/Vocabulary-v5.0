@@ -12,4 +12,4 @@ completion = openai.ChatCompletion.create(
     presence_penalty=float(sys.argv[7])
 )
 
-print (completion['choices'][0]['message']['content'])
+print (completion)

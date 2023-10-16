@@ -11,7 +11,8 @@ CREATE TABLE ai_pack.chatgpt_log (
 	params JSONB NOT NULL,
 	created TIMESTAMPTZ NOT NULL,
 	created_by TEXT NOT NULL,
-	reply TEXT
+	reply TEXT,
+	usage_tokens JSONB
 	);
 
 --3. Put file chatgpt.py to /data/postgres/chatgpt/chatgpt.py, set openai.api_key and install openai (pip3 install openai)

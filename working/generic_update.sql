@@ -659,7 +659,7 @@ BEGIN
 
 	--19. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 	UPDATE concept c
-	SET valid_end_date = v.latest_update - 1, -- day before release day
+	SET valid_end_date = LEAST(c.valid_end_date, v.latest_update - 1), -- day before release day
 		invalid_reason = 'U',
 		standard_concept = NULL
 	FROM concept_relationship cr, vocabulary v
@@ -677,31 +677,25 @@ BEGIN
 
 	--20. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
 	UPDATE concept c
-	SET valid_end_date = (
-			SELECT v.latest_update
-			FROM vocabulary v
-			WHERE c.vocabulary_id = v.vocabulary_id
-			) - 1, -- day before release day
+	SET valid_end_date = LEAST(c.valid_end_date, v.latest_update - 1),
 		invalid_reason = 'D',
 		standard_concept = NULL
-	WHERE NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship r
-			WHERE r.concept_id_1 = c.concept_id
-				AND r.invalid_reason IS NULL
-				AND r.relationship_id IN (
-					'Concept replaced by',
-					'Concept same_as to',
-					'Concept alt_to to',
-					'Concept was_a to'
-					)
-			)
-		AND c.vocabulary_id IN (
-			SELECT vocabulary_id
-			FROM vocabulary
-			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.invalid_reason = 'U';-- not already deprecated
+	FROM vocabulary v
+	WHERE v.vocabulary_id = c.vocabulary_id
+		AND NOT EXISTS (
+				SELECT 1
+				FROM concept_relationship r
+				WHERE r.concept_id_1 = c.concept_id
+					AND r.invalid_reason IS NULL
+					AND r.relationship_id IN (
+						'Concept replaced by',
+						'Concept same_as to',
+						'Concept alt_to to',
+						'Concept was_a to'
+						)
+				)
+			AND v.latest_update IS NOT NULL -- only for current vocabularies
+			AND c.invalid_reason = 'U';-- not already deprecated
 
 	--The following are a bunch of rules for Maps to and Maps from relationships.
 	--Since they work outside the _stage tables, they will be restricted to the vocabularies worked on
@@ -811,31 +805,25 @@ BEGIN
 
 	--Deprecate concepts if we have no active replacement record in the concept_relationship
 	UPDATE concept c
-	SET valid_end_date = (
-			SELECT v.latest_update
-			FROM vocabulary v
-			WHERE c.vocabulary_id = v.vocabulary_id
-			) - 1, -- day before release day
+	SET valid_end_date = LEAST(c.valid_end_date, v.latest_update - 1),
 		invalid_reason = 'D',
 		standard_concept = NULL
-	WHERE NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship r
-			WHERE r.concept_id_1 = c.concept_id
-				AND r.invalid_reason IS NULL
-				AND r.relationship_id IN (
-					'Concept replaced by',
-					'Concept same_as to',
-					'Concept alt_to to',
-					'Concept was_a to'
-					)
-			)
-		AND c.vocabulary_id IN (
-			SELECT vocabulary_id
-			FROM vocabulary
-			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.invalid_reason = 'U';-- not already deprecated
+	FROM vocabulary v
+	WHERE v.vocabulary_id = c.vocabulary_id
+		AND NOT EXISTS (
+				SELECT 1
+				FROM concept_relationship r
+				WHERE r.concept_id_1 = c.concept_id
+					AND r.invalid_reason IS NULL
+					AND r.relationship_id IN (
+						'Concept replaced by',
+						'Concept same_as to',
+						'Concept alt_to to',
+						'Concept was_a to'
+						)
+				)
+			AND v.latest_update IS NOT NULL -- only for current vocabularies
+			AND c.invalid_reason = 'U';-- not already deprecated
 
 	--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 	UPDATE concept_relationship r

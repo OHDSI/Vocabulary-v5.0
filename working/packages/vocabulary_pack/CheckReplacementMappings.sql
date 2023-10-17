@@ -1,14 +1,13 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.checkreplacementmappings (
-)
-RETURNS void AS
-$body$
+CREATE OR REPLACE FUNCTION vocabulary_pack.CheckReplacementMappings ()
+RETURNS VOID AS
+$BODY$
 /*
- Working with 'Concept replaced by', 'Concept same_as to', etc mappings:
- 1. Delete duplicate replacement mappings (one concept has multiply target concepts)
- 2. Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
- 3. Deprecate concepts if we have no active replacement record in the concept_relationship_stage
- 4. Deprecate replacement records if target concept was depreceted
- 5. Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
+	Working with 'Concept replaced by', 'Concept same_as to', etc mappings:
+	1. Delete duplicate replacement mappings (one concept has multiply target concepts)
+	2. Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
+	3. Deprecate concepts if we have no active replacement record in the concept_relationship_stage
+	4. Deprecate replacement records if target concept was depreceted
+	5. Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
 */
 BEGIN
 	--Delete duplicate replacement mappings (one concept has multiply target concepts)
@@ -65,14 +64,12 @@ BEGIN
 
 	--Deprecate concepts if we have no active replacement record in the concept_relationship_stage
 	UPDATE concept_stage cs
-	SET valid_end_date = (
-			SELECT v.latest_update - 1
-			FROM VOCABULARY v
-			WHERE v.vocabulary_id = cs.vocabulary_id
-			),
+	SET valid_end_date = LEAST(cs.valid_end_date, v.latest_update - 1),
 		invalid_reason = 'D',
 		standard_concept = NULL
-	WHERE NOT EXISTS (
+	FROM vocabulary v
+	WHERE v.vocabulary_id = cs.vocabulary_id
+		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs
 			WHERE crs.concept_code_1 = cs.concept_code
@@ -171,14 +168,12 @@ BEGIN
 
 	--Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
 	UPDATE concept_stage cs
-	SET valid_end_date = (
-			SELECT v.latest_update - 1
-			FROM vocabulary v
-			WHERE v.vocabulary_id = cs.vocabulary_id
-			),
+	SET valid_end_date = LEAST(cs.valid_end_date, v.latest_update - 1),
 		invalid_reason = 'D',
 		standard_concept = NULL
-	WHERE NOT EXISTS (
+	FROM vocabulary v
+	WHERE v.vocabulary_id = cs.vocabulary_id
+		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship_stage crs
 			WHERE crs.concept_code_1 = cs.concept_code
@@ -193,9 +188,5 @@ BEGIN
 			)
 		AND cs.invalid_reason = 'U';
 END;
-$body$
-LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER
-COST 100;
+$BODY$
+LANGUAGE 'plpgsql';

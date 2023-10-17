@@ -31,19 +31,14 @@ CREATE TABLE vocab_manual_lookup
 UPDATE vocab_manual_lookup
 SET
   concept_synonym_name = NULLIF(concept_synonym_name, ''),
-  language_concept_id = NULLIF(language_concept_id, ''),
   concept_code = NULLIF(concept_code, ''),
   domain_id = NULLIF(domain_id, ''),
   concept_class_id = NULLIF(concept_class_id, ''),
   standard_concept = NULLIF(standard_concept, ''),
   invalid_reason = NULLIF(invalid_reason, ''),
-  process_manual_names = NULLIF(process_manual_names, ''),
-  valid_start_date = NULLIF(valid_start_date, ''),
-  valid_end_date = NULLIF(valid_end_date, ''),
   relationship_id = NULLIF(relationship_id, ''),
   cr_invalid_reason = NULLIF(cr_invalid_reason, ''),
   source = NULLIF(source, ''),
-  target_concept_id = NULLIF(target_concept_id, ''),
   target_concept_code = NULLIF(target_concept_code, ''),
   target_concept_name = NULLIF(target_concept_name, ''),
   target_concept_class_id = NULLIF(target_concept_class_id, ''),
@@ -143,7 +138,7 @@ AND vocabulary_id = 'vocabulary'
 		valid_end_date,
 		invalid_reason
 		)
-	SELECT lk.concept_name,
+	SELECT DISTINCT lk.concept_name,
 	       lk.domain_id,
 	       lk.vocabulary_id,
 	       lk.concept_class_id,

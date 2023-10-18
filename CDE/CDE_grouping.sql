@@ -1,9 +1,9 @@
 -- CDE grouping
 TRUNCATE TABLE cde_manual_group;
 CREATE UNLOGGED TABLE cde_manual_group(
-	sorce_code character varying(10),
-	sorce_code_description character varying(255),
-	sorce_vocabulary_id character varying(20),
+	source_code character varying(10),
+	source_code_description character varying(255),
+	source_vocabulary_id character varying(20),
 	group_id integer,
 	group_name character varying(255),
 	group_code character varying []
@@ -40,9 +40,20 @@ BEGIN
 	UPDATE cde_manual_group
 	SET group_code = ARRAY_CAT(pgroup_code, group_code)
 	WHERE group_id = pgroup_id;
+
+	UPDATE cde_manual_group  AS cmg
+	SET group_id = pgroup_id
+	FROM(
+		SELECT 	group_id
+		FROM cde_manual_group	
+		WHERE group_code && pgroup_code
+	) AS ids
+	WHERE cmg.group_id = ids.group_id;
+
 END
 $function$;
 
+select * from cde_merge_group (1, ARRAY['Z99.201:ICD10CN']);
 select * from cde_merge_group (2, ARRAY['A18.027:ICD10CN','A18.025:ICD10CN']); -- Case 2 suppose to merge group 1 and 2. Group_id supposed to be '2' for both, group_code should be updated (two group_codes a supposed to be merged)
 
 SELECT * FROM cde_manual_group;
@@ -107,7 +118,6 @@ $function$;
 ---------------------------------------------------------------------------------------------
 -- Split group function
 ---------------------------------------------------------------------------------------------
-
 CREATE OR REPLACE FUNCTION cde_split_group(pgroup_id int, pgroup_code character varying [] DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
@@ -115,11 +125,11 @@ AS $function$
 /*
  * Split the group into separate concepts
  * Example:
- * 	--Split group into a new group
- * 		select * from cde_split_group(15);
+ * 	--Splits each of the elements that belong to the group_code field into a new group
+ * 		select * from cde_split_group(1);
  *
  *  --Detach selected group code values into a new group
- *		select * from cde_split_group(15, ARRAY['A15.5:ICD10CM','A15.5:ICD10','A15.6:ICD10CM','A15.6:ICD10','A15.7:ICD10CM','A15.7:ICD10']);
+ *		select * from cde_split_group(1, ARRAY['A18.0:ICD10','A18.0:ICD10CM','A18.024:ICD10CN','M92.804']);
  */
 
 BEGIN
@@ -136,25 +146,29 @@ BEGIN
 	END IF ;
 
 	WITH cte_group_code AS (
-		SELECT 	group_id,
+		SELECT DISTINCT  group_id,
 				unnest (group_code) as group_code
 		FROM cde_manual_group
-		WHERE group_id = pgroup_id )
-		INSERT INTO cde_manual_group (sorce_code,sorce_code_description,sorce_vocabulary_id,group_name,group_id,group_code)
-		SELECT grm.sorce_code,
-				grm.sorce_code_description,
-				grm.sorce_vocabulary_id,
-				grm.group_name,
-				CASE
-					WHEN pgroup_code IS NULL THEN NULL --split
-					ELSE nextval('seq_cde_manual_group_id') -- detach
-				END AS group_id,
-				array_agg(cgc.group_code) AS group_code
-		FROM cde_manual_group AS grm
+		WHERE group_id = 1 
+	),
+	cte_source AS (
+		SELECT ROW_NUMBER() OVER(PARTITION BY group_id ORDER BY LENGTH(group_name), sorce_vocabulary_id) AS rnidx,
+				source_code, source_code_description, sorce_vocabulary_id,
+				group_name, group_id
+		FROM cde_manual_group
+		WHERE group_id = 1 
+	)
+		INSERT INTO cde_manual_group(source_code,source_code_description,sorce_vocabulary_id, group_name, group_id,group_code)
+		SELECT grm.source_code,
+				source_code_description,
+				grm.source_vocabulary_id ,
+			group_name,
+				nextval('seq_cde_manual_group_id') AS group_id,
+				ARRAY[cgc.group_code] AS group_code
+		FROM cte_source AS grm
 		JOIN cte_group_code cgc ON grm.group_id  = cgc.group_id
-		WHERE (pgroup_code IS NULL OR cgc.group_code = ANY (pgroup_code))
-		GROUP BY grm.sorce_code,grm.sorce_code_description,grm.sorce_vocabulary_id,grm.group_name;
-
+		WHERE grm.rnidx = 1 
+		AND (pgroup_code IS NULL OR cgc.group_code = ANY (pgroup_code));
 
 END;
 $function$;

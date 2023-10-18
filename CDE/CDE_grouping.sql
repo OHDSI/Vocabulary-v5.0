@@ -125,7 +125,7 @@ AS $function$
 /*
  * Split the group into separate concepts
  * Example:
- * 	--Splits each of the elements that belong to the group_code field into a new group
+ * 	--Splits each of the elements that belong to the group_code field into a new groups
  * 		select * from cde_split_group(1);
  *
  *  --Detach selected group code values into a new group

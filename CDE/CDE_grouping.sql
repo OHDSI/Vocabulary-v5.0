@@ -36,19 +36,42 @@ BEGIN
 		RAISE EXCEPTION 'The group code parameter is required!';
 	END IF;
 
+	DROP TABLE IF EXISTS group_ids;
+	CREATE TEMP TABLE group_ids(ids INT);
 
-	UPDATE cde_manual_group
-	SET group_code = ARRAY_CAT(pgroup_code, group_code)
-	WHERE group_id = pgroup_id;
-
-	UPDATE cde_manual_group  AS cmg
-	SET group_id = pgroup_id
+	INSERT INTO group_ids
+	SELECT DISTINCT group_id
 	FROM(
-		SELECT 	group_id
+		SELECT group_id
+		FROM cde_manual_group
+		WHERE group_id = pgroup_id
+		UNION ALL
+		SELECT group_id AS	group_id
 		FROM cde_manual_group	
 		WHERE group_code && pgroup_code
-	) AS ids
-	WHERE cmg.group_id = ids.group_id;
+	)AS T;
+
+	WITH cte_dource AS (
+		SELECT pgroup_code AS group_id,source_vocabulary_id, group_name  , UNNEST (group_code) AS group_code
+		FROM cde_manual_group
+		WHERE group_id in(
+			SELECT ids
+			FROM group_ids
+		)
+	), cte_meger AS(
+		SELECT group_id AS id, group_name AS name, array_agg(group_code)  AS code 
+		FROM (
+			SELECT DISTINCT pgroup_id AS group_id, FIRST_VALUE (group_name) over(ORDER BY LENGTH(group_name) DESC) AS group_name, group_code
+			FROM cte_dource
+			)meger
+		GROUP BY group_id, group_name
+	)
+	UPDATE cde_manual_group
+	SET group_id = id,
+		group_name = name,
+		group_code = code
+	FROM cte_meger
+	WHERE group_id IN (SELECT ids FROM group_ids);
 
 END
 $function$;

@@ -24,7 +24,7 @@ AS $function$
 
 /*
  * Example:
- * 		select * from cde_merge_group(2, ARRAY['{A15.5:ICD10}','Q12.0:KCD7'])
+ * 		select * from cde_merge_group(2, ARRAY['A15.5:ICD10','Q12.0:KCD7'])
  */
 
 BEGIN

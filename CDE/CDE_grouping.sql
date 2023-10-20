@@ -126,10 +126,10 @@ AS $function$
  * Split the group into separate concepts
  * Example:
  * 	--Splits each of the elements that belong to the group_code field into a new groups
- * 		select * from cde_split_group(1);
+ * 		select * from cde_merge_group(2);
  *
  *  --Detach selected group code values into a new group
- *		select * from cde_split_group(1, ARRAY['A18.0:ICD10','A18.0:ICD10CM','A18.024:ICD10CN','M92.804']);
+ *		select * from cde_split_group(2, ARRAY['Z99.201:ICD10CN', 'Z99.2:ICD10']);
  */
 
 BEGIN
@@ -145,37 +145,45 @@ BEGIN
 			RAISE EXCEPTION 'One or more of the elements sent in the group_code parameter does not match the content of group code for group id=%!',pgroup_id;
 	END IF ;
 
-	WITH cte_group_code AS (
-		SELECT DISTINCT  group_id,
-				unnest (group_code) as group_code
-		FROM cde_manual_group
-		WHERE group_id = 1 
-	),
-	cte_source AS (
-		SELECT ROW_NUMBER() OVER(PARTITION BY group_id ORDER BY LENGTH(group_name), sorce_vocabulary_id) AS rnidx,
-				source_code, source_code_description, sorce_vocabulary_id,
-				group_name, group_id
-		FROM cde_manual_group
-		WHERE group_id = 1 
-	)
-		INSERT INTO cde_manual_group(source_code,source_code_description,sorce_vocabulary_id, group_name, group_id,group_code)
-		SELECT grm.source_code,
-				source_code_description,
-				grm.source_vocabulary_id ,
-			group_name,
+	WITH cte_group_code AS(
+			SELECT group_id,
+					group_code,
+					group_name,
+					tuples[1] AS concept_code, 
+					tuples[2] AS vocabulary_id, 
+					c.concept_name 
+			FROM (
+				SELECT group_id,group_code, group_name, regexp_split_to_array(group_code, ':') AS tuples
+				FROM  (
+					SELECT DISTINCT  
+							group_id, 
+							group_name,
+							unnest (group_code) as group_code
+					FROM cde_manual_group
+					WHERE group_id = pgroup_id
+				) AS T
+			) AS dt(group_id,group_code,group_name,tuples)	
+			LEFT JOIN concept c ON c.vocabulary_id = tuples[2] AND c.concept_code = tuples[1] 
+		)
+		INSERT INTO cde_manual_group(source_code,source_code_description,source_vocabulary_id, group_name, group_id,group_code)
+		SELECT  concept_code AS source_code,
+				concept_name  AS source_code_description,
+				vocabulary_id AS source_vocabulary_id ,
+				group_name,
 				nextval('seq_cde_manual_group_id') AS group_id,
 				ARRAY[cgc.group_code] AS group_code
-		FROM cte_source AS grm
-		JOIN cte_group_code cgc ON grm.group_id  = cgc.group_id
-		WHERE grm.rnidx = 1 
-		AND (pgroup_code IS NULL OR cgc.group_code = ANY (pgroup_code));
+		FROM  cte_group_code cgc
+		WHERE (pgroup_code IS NULL OR cgc.group_code = ANY (pgroup_code));
+	
+		IF pgroup_code IS NULL THEN
+			DELETE FROM cde_manual_group WHERE group_id = pgroup_id;
+		END IF;
 
 END;
 $function$;
 
-select * from cde_split_group(1); -- Case 1. Not working. Separate concept is also a group and should get new group_id, group_name (source_code_description) and group_code (source_code:vocabulary_id). The splited group shouldn't exist in the table
 SELECT * FROM cde_manual_group;
-
-select * from cde_split_group(3, ARRAY['Z96.7:ICD10CN','Z96.7:ICD10GM']); -- not working. the group is just splited
+select * from cde_split_group(2);
+select * from cde_split_group(2, ARRAY['Z99.201:ICD10CN', 'Z99.2:ICD10']);
 
 

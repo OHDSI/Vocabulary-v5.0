@@ -2,8 +2,8 @@ CREATE OR REPLACE FUNCTION vocabulary_pack.AddFreshMAPSTO (pVocabulary VARCHAR D
 RETURNS VOID AS
 $BODY$
 	/*
-	The function works with chains like A 'Maps to' B 'Maps to' C ... 'Maps to' Z, adding a new mapping A 'Maps to' Z to concept_relationship_stage
-	For example, there was a mapping A 'Maps to' B. Then another mapping B 'Maps to' C was added. The function will build a new mapping A 'Maps to' C.
+	The function works with chains like A 'Maps to' B 'Maps to' C ... 'Maps to' Z, and adds new mappings A 'Maps to' Z, B 'Maps to' Z, C 'Maps to' Z ... to concept_relationship_stage
+	For example, there were mappings A 'Maps to' B and B 'Maps to' C. Then another mapping C 'Maps to' D was added. The function will build new mappings A 'Maps to' D and B 'Maps to' D.
 	The number of links in the chain is unlimited.
 	The function will also add 'Maps to' for all replacement mappings ('Concept replaced by', 'Concept same_as to', etc.), the number of links here is also unlimited.
 	The following rules apply:

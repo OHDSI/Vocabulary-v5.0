@@ -31,7 +31,7 @@ Choose the category of your submission and download the corresponding template:
 
 Please download the corresponding template from [this folder](https://drive.google.com/drive/u/1/folders/1D7hSGKQkWgJCAKXDNOjfoFcnRca0-57w) and fill it out. Instructions and examples are provided within the template. If questions occur, use comments in the current issue to contact the Vocabulary Team. 
 
-Make sure, that you complete the checklist!
+Make sure that you complete the checklist!
 
 **4. Upload the template.**
 

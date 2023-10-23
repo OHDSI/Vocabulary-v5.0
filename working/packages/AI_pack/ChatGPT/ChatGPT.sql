@@ -22,9 +22,10 @@ $BODY$
 	frequency_penalty: Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim
 	presence_penalty: Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics
   '''
-  import subprocess, json, time, re
+  import subprocess, json, time
   
-  gpt_sleep_interval=5
+  gpt_sleep_interval=10 #in seconds
+  gpt_sleep_step=5 #in seconds
   
   input_params=json.dumps({
     'pModelEngine': "%s" % pmodelengine,
@@ -36,26 +37,39 @@ $BODY$
   })
 
   chatgpt_log_query = plpy.prepare("SELECT log_id FROM ai_pack.ChatGPT_WriteLog ($1, $2, $3, $4) AS log_id", ["text", "jsonb", "text", "jsonb"])
+  sleep_interval=gpt_sleep_interval-gpt_sleep_step
 
   while True:
       try:
         error_text=res=usage_tokens=None
+        sleep_interval+=gpt_sleep_step
+        local_time=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
         proc_result=json.loads(subprocess.check_output(['python3','/data/postgres/chatgpt/chatgpt.py',pquery,pmodelengine,str(pmaxtokens),str(ptemperature),str(ptopprobability),str(pfrequencypenalty),str(ppresencepenalty)],universal_newlines=True,stderr=subprocess.STDOUT))
         res=proc_result['choices'][0]['message']['content']
         usage_tokens=json.dumps(proc_result['usage'])
 
+        sleep_interval=gpt_sleep_interval-gpt_sleep_step #reset sleep counter
       except subprocess.CalledProcessError as e:
-        error_text=e.output
-        if 'raise self.handle_error_response(' in error_text:
-          error_text=re.search(r'.*raise self\.handle_error_response\((?:\r\n|\r|\n)(.+)', error_text).group(1)
+        error_text=e.output.splitlines()[-1:][0] #get the last line
       except Exception as e:
         error_text=str(e)
       finally:
         if error_text:
           if 'openai.error.RateLimitError: Rate limit reached' in error_text:
-            plpy.notice ('RateLimitError reached for query "%s", waiting %s seconds...' % (pquery, gpt_sleep_interval))
-            time.sleep(gpt_sleep_interval)
+            #plpy.notice ('RateLimitError reached for query "%s", waiting %s seconds...' % (pquery, sleep_interval))
+            plpy.notice ('[%s] RateLimitError reached, waiting %s seconds...' % (local_time, sleep_interval))
+            time.sleep(sleep_interval)
+          elif 'openai.error.Timeout' in error_text:
+            #plpy.notice ('Request timed out for query "%s", waiting %s seconds...' % (pquery, sleep_interval))
+            plpy.notice ('[%s] Request timed out, waiting %s seconds...' % (local_time, sleep_interval))
+            time.sleep(sleep_interval)
+          elif 'openai.error.APIError' in error_text:
+            plpy.notice ('[%s] APIError, waiting %s seconds...' % (local_time, sleep_interval))
+            time.sleep(sleep_interval)
+          elif 'openai.error.ServiceUnavailableError' in error_text:
+            plpy.notice ('[%s] ServiceUnavailableError, waiting %s seconds...' % (local_time, sleep_interval))
+            time.sleep(sleep_interval)
           else:
             plpy.execute(chatgpt_log_query, [pquery, input_params, error_text, None])
             plpy.error (error_text)

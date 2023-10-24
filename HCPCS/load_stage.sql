@@ -198,6 +198,7 @@ AS (
 					AND 'C7555'
 				THEN 'Procedure'
 			WHEN concept_code IN (
+					'C9156',
 					'C9702',
 					'C9708',
 					'C9711'
@@ -784,7 +785,7 @@ AS (
 					AND 'Q4099'
 				THEN 'Drug'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4284'
+					AND 'Q4286'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
@@ -1301,42 +1302,21 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id and standard concept value for HCPCS according to mappings
+--16. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
 UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1,
-		crs.vocabulary_id_1,
-		c.domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept c ON c.concept_code = crs.concept_code_2
-		AND c.vocabulary_id = crs.vocabulary_id_2
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-		AND crs.vocabulary_id_1 = 'HCPCS'
-	ORDER BY crs.concept_code_1,
-		CASE c.domain_id
-			WHEN 'Drug'
-				THEN 1
-			WHEN 'Procedure'
-				THEN 2
-			WHEN 'Condition'
-				THEN 3
-			WHEN 'Measurement'
-				THEN 4
-			WHEN 'Observation'
-				THEN 5
-			WHEN 'Visit'
-				THEN 6
-			WHEN 'Provider'
-				THEN 7
-			WHEN 'Device'
-				THEN 8
-			END
-	) i
-WHERE cs.concept_code = i.concept_code_1;
+SET domain_id = 'Drug'
+FROM concept_relationship_stage crs
+WHERE crs.vocabulary_id_2 IN (
+		'RxNorm',
+		'RxNorm Extension',
+		'CVX'
+		)
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1;
 
---17. All (not only the drugs) concepts having mappings should be NON-standard
+--17. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

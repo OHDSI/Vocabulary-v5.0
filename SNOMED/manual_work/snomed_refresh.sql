@@ -124,6 +124,59 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
+
+-- Add new relationships
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewRelationship(
+    pRelationship_name       =>'Process acts on (SNOMED)',
+    pRelationship_id         =>'Process acts on',
+    pIs_hierarchical         =>0,
+    pDefines_ancestry        =>0,
+    pReverse_relationship_id =>'Affected by process',
+    pRelationship_name_rev   =>'Affected by process (SNOMED)',
+    pIs_hierarchical_rev     =>0,
+    pDefines_ancestry_rev    =>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewRelationship(
+    pRelationship_name       =>'Before (SNOMED)',
+    pRelationship_id         =>'Before',
+    pIs_hierarchical         =>0,
+    pDefines_ancestry        =>0,
+    pReverse_relationship_id =>'After',
+    pRelationship_name_rev   =>'After (SNOMED)',
+    pIs_hierarchical_rev     =>0,
+    pDefines_ancestry_rev    =>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewRelationship(
+    pRelationship_name       =>'Towards (SNOMED)',
+    pRelationship_id         =>'Towards',
+    pIs_hierarchical         =>0,
+    pDefines_ancestry        =>0,
+    pReverse_relationship_id =>'Subject of',
+    pRelationship_name_rev   =>'Subject of (SNOMED)',
+    pIs_hierarchical_rev     =>0,
+    pDefines_ancestry_rev    =>0
+);
+END $_$;
+
+-- Add new concept_class
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Disorder',
+    pConcept_class_name     =>'Disorder'
+);
+END $_$;
+
 /*--3.2. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous SNOMED refresh.
 --cr_invalid_reason was added for the possibility to deprecate relationships in concept_relationship table
 --DROP TABLE snomed_mapped;

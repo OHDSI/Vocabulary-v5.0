@@ -105,17 +105,10 @@ WHERE cr.invalid_reason IS NULL
 		OR v2.latest_update IS NOT NULL
 		)
 	/*
-	we know for sure that it is impossible to put the relationships below into manual tables, only their "direct" versions, so we can safely exclude them
-	this will also protect us from cases where some function, for example, DeleteAmbiguousMapsTo, will update the old 'Maps to' relationship, and its reverse version will remain unaffected
+	put only 'direct' versions of relationships
+	this will protect us from cases where some function, for example, DeleteAmbiguousMapsTo, will update the old 'Maps to' relationship, and its reverse version will remain unaffected
 	*/
-	AND cr.relationship_id NOT IN (
-		'Mapped from',
-		'Value mapped from',
-		'Concept replaces',
-		'Concept same_as from',
-		'Concept alt_to from',
-		'Concept was_a from'
-		);
+	AND cr.relationship_id = devv5.GetPrimaryRelationshipID(cr.relationship_id);
 
 --5. Load full list of synonyms
 INSERT INTO concept_synonym_stage

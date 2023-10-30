@@ -61,7 +61,9 @@ BEGIN
 	), cte_meger AS(
 		SELECT group_id AS id, group_name AS name, array_agg(group_code)  AS code 
 		FROM (
-			SELECT DISTINCT pgroup_id AS group_id, FIRST_VALUE (group_name) over(ORDER BY LENGTH(group_name) DESC) AS group_name, group_code
+			SELECT DISTINCT pgroup_id AS group_id, 
+				FIRST_VALUE (group_name) over(ORDER BY source_vocabulary_id, LENGTH(group_name) DESC) AS group_name, 
+				group_code
 			FROM cte_dource
 			)meger
 		GROUP BY group_id, group_name
@@ -72,6 +74,7 @@ BEGIN
 		group_code = code
 	FROM cte_meger
 	WHERE group_id IN (SELECT ids FROM group_ids);
+
 
 END
 $function$;
@@ -152,8 +155,10 @@ AS $function$
  * 		select * from cde_merge_group(2);
  *
  *  --Detach selected group code values into a new group
- *		select * from cde_split_group(2, ARRAY['Z99.201:ICD10CN', 'Z99.2:ICD10']);
+ *		select * from cde_merge_group(2, ARRAY['Z96.7:ICD10']);
  */
+DECLARE
+	V_SEQUENCE_VAL INT;
 
 BEGIN
 
@@ -168,39 +173,40 @@ BEGIN
 			RAISE EXCEPTION 'One or more of the elements sent in the group_code parameter does not match the content of group code for group id=%!',pgroup_id;
 	END IF ;
 
-	WITH cte_group_code AS(
-			SELECT group_id,
-					group_code,
-					group_name,
-					tuples[1] AS concept_code, 
-					tuples[2] AS vocabulary_id, 
-					c.concept_name 
-			FROM (
-				SELECT group_id,group_code, group_name, regexp_split_to_array(group_code, ':') AS tuples
-				FROM  (
-					SELECT DISTINCT  
-							group_id, 
-							group_name,
-							unnest (group_code) as group_code
-					FROM cde_manual_group
-					WHERE group_id = pgroup_id
-				) AS T
-			) AS dt(group_id,group_code,group_name,tuples)	
-			LEFT JOIN concept c ON c.vocabulary_id = tuples[2] AND c.concept_code = tuples[1] 
-		)
-		INSERT INTO cde_manual_group(source_code,source_code_description,source_vocabulary_id, group_name, group_id,group_code)
-		SELECT  concept_code AS source_code,
-				concept_name  AS source_code_description,
-				vocabulary_id AS source_vocabulary_id ,
+	SELECT LAST_VALUE INTO V_SEQUENCE_VAL FROM seq_cde_manual_group_id;
+
+	WITH cte_touples (group_id,group_code,group_name,tuples)AS(
+		SELECT group_id,
+				group_code, 
 				group_name,
-				nextval('seq_cde_manual_group_id') AS group_id,
-				ARRAY[cgc.group_code] AS group_code
-		FROM  cte_group_code cgc
-		WHERE (pgroup_code IS NULL OR cgc.group_code = ANY (pgroup_code));
+				regexp_split_to_array(group_code, ':') AS tuples
+		FROM  (
+			SELECT DISTINCT  group_id, group_name,unnest (group_code) as group_code
+			FROM cde_manual_group
+			WHERE group_id = pgroup_id
+			) AS T
+		WHERE (pgroup_code IS NULL OR T.group_code = ANY (pgroup_code))
+	)
+	INSERT INTO cde_manual_group
+	SELECT c.source_code, 
+			c.source_code_description,
+			c.source_vocabulary_id,
+			nextval('seq_cde_manual_group_id') AS group_id,
+			c.group_name,
+			c.group_code 
+	FROM cte_touples t
+	JOIN cde_manual_group c 
+		ON t.tuples[1] = c.source_code
+			AND t.tuples[2] = c.source_vocabulary_id 
+			AND array_length(c.group_code, 1) <= 1;
+		
+	IF (SELECT LAST_VALUE FROM seq_cde_manual_group_id) = V_SEQUENCE_VAL THEN
+		RAISE EXCEPTION 'The supplied group_id cannot be splitted, verify that each of the group_code values exists individually!';
+	END IF;
 	
-		IF pgroup_code IS NULL THEN
-			DELETE FROM cde_manual_group WHERE group_id = pgroup_id;
-		END IF;
+	IF pgroup_code IS NULL THEN
+		DELETE FROM cde_manual_group WHERE group_id = pgroup_id;
+	END IF;
 
 END;
 $function$;

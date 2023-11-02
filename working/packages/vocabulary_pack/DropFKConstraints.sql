@@ -29,7 +29,7 @@ BEGIN
 		AND pc.connamespace = CURRENT_SCHEMA::REGNAMESPACE
 		AND pc.confrelid::REGCLASS::TEXT = ANY (pTargetTables);
 
-	EXECUTE iDropDDL;
+	EXECUTE COALESCE(iDropDDL,'');
 	RETURN COALESCE(iCreateDDL,'');
 END;
 $BODY$

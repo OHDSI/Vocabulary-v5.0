@@ -3,251 +3,128 @@ DROP TABLE dev_icd10.icd_cde_source;
 TRUNCATE TABLE dev_icd10.icd_cde_source;
 CREATE TABLE dev_icd10.icd_cde_source
 (
-    concept_name_id      SERIAL PRIMARY KEY ,
-    concept_name         varchar,
-    group_id             int,
-    concept_code_icd10   varchar,
-    concept_code_icd10cm varchar,
-    concept_code_icd10gm varchar,
-    concept_code_cim10   varchar,
-    concept_code_kcd7    varchar,
-    concept_code_icd10cn varchar);
+    source_code             varchar (50),
+    source_code_description varchar (255),
+    source_vocabulary_id    varchar,
+    group_name              varchar (255),
+    group_id                int,
+    group_code              varchar,
+    medium_group_id         int,
+    medium_group_code       varchar,
+    broad_group_id          int,
+    broad_group_code        varchar);
 
 --ICD10
---icd10 insertion
+--icd10 insertion -- 16175
 INSERT INTO dev_icd10.icd_cde_source
-( concept_name,
- concept_code_icd10
+( source_code,
+  source_code_description,
+  source_vocabulary_id
 )
 SELECT DISTINCT
-concept_name,
-concept_code
+  concept_code as source_code,
+  concept_name as source_code_description,
+  'ICD10' as source_vocabulary_id
 
 FROM dev_icd10.concept_stage
-WHERE (
-       COALESCE(concept_code, 'x!x'),
-       COALESCE(concept_name, 'x!x')
-       --COALESCE(source_code_description_synonym, 'x!x')
-          --,COALESCE (source_concept_id, -9876543210)
-          )
-          NOT IN (
-          SELECT COALESCE(concept_code, 'x!x'),
-                 COALESCE(concept_name, 'x!x')
-                 --COALESCE(source_code_description_synonym, 'x!x')
-                 --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10.icd_cde_source
-      )
-AND concept_name !~* 'Invalid'
-order by concept_code, concept_name
-;
-
---insert concept_codes for the concepts already presented in CDE
-UPDATE dev_icd10.icd_cde_source a
-SET concept_code_icd10
-        = b.concept_code
-FROM dev_icd10.concept_stage b
-WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
-  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
---AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+WHERE concept_name !~* 'Invalid'
+ORDER BY source_code, source_code_description
 ;
 
 --ICD10CM
---icd10cm insertion
+--icd10cm insertion --98583
 INSERT INTO dev_icd10.icd_cde_source
-(concept_name,
- concept_code_icd10cm
+( source_code,
+  source_code_description,
+  source_vocabulary_id
 )
 SELECT DISTINCT
-concept_name,
-concept_code
+  concept_code as source_code,
+  concept_name as source_code_description,
+  'ICD10CM' as source_vocabulary_id
 
 FROM dev_icd10cm.concept_stage
-WHERE (
-       COALESCE(concept_code, 'x!x'),
-       COALESCE(concept_name, 'x!x')
-       --COALESCE(source_code_description_synonym, 'x!x')
-          --,COALESCE (source_concept_id, -9876543210)
-          )
-          NOT IN (
-          SELECT COALESCE(concept_code, 'x!x'),
-                 COALESCE(concept_name, 'x!x')
-                 --COALESCE(source_code_description_synonym, 'x!x')
-                 --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10.icd_cde_source
-      )
-AND concept_name !~* 'Invalid'
-order by concept_code, concept_name
-;
-
---insert concept_codes for the concepts already presented in CDE
-UPDATE dev_icd10.icd_cde_source a
-SET concept_code_icd10cm
-        = b.concept_code
-FROM dev_icd10cm.concept_stage b
-WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
-  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
---AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+WHERE concept_name !~* 'Invalid'
+ORDER BY source_code, source_code_description
 ;
 
 --ICD10GM
---icd10gm insertion
+--icd10gm insertion -- 16634
 INSERT INTO dev_icd10.icd_cde_source
-(concept_name,
- concept_code_icd10gm
+( source_code,
+  source_code_description,
+  source_vocabulary_id
 )
 SELECT DISTINCT
-concept_name,
-concept_code
+  concept_code as source_code,
+  concept_name as source_code_description,
+  'ICD10GM' as source_vocabulary_id
 
 FROM dev_icd10gm.concept_stage
-WHERE (
-       COALESCE(concept_code, 'x!x'),
-       COALESCE(concept_name, 'x!x')
-       --COALESCE(source_code_description_synonym, 'x!x')
-          --,COALESCE (source_concept_id, -9876543210)
-          )
-          NOT IN (
-          SELECT COALESCE(concept_code, 'x!x'),
-                 COALESCE(concept_name, 'x!x')
-                 --COALESCE(source_code_description_synonym, 'x!x')
-                 --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10.icd_cde_source
-      )
-AND concept_name !~* 'Invalid'
-order by concept_code, concept_name
-;
-
---insert concept_codes for the concepts already presented in CDE
-UPDATE dev_icd10.icd_cde_source a
-SET concept_code_icd10gm
-        = b.concept_code
-FROM dev_icd10gm.concept_stage b
-WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
-  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
---AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+WHERE concept_name !~* 'Invalid'
+ORDER BY source_code, source_code_description
 ;
 
 --KCD7
---kcd7 insertion
+--kcd7 insertion --22508
 INSERT INTO dev_icd10.icd_cde_source
-(concept_name,
- concept_code_kcd7
+( source_code,
+  source_code_description,
+  source_vocabulary_id
 )
 SELECT DISTINCT
-concept_name,
-concept_code
+  concept_code as source_code,
+  concept_name as source_code_description,
+  'KCD7' as source_vocabulary_id
 
 FROM dev_kcd7.concept_stage
-WHERE (
-       COALESCE(concept_code, 'x!x'),
-       COALESCE(concept_name, 'x!x')
-       --COALESCE(source_code_description_synonym, 'x!x')
-          --,COALESCE (source_concept_id, -9876543210)
-          )
-          NOT IN (
-          SELECT COALESCE(concept_code, 'x!x'),
-                 COALESCE(concept_name, 'x!x')
-                 --COALESCE(source_code_description_synonym, 'x!x')
-                 --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10.icd_cde_source
-      )
-AND concept_name !~* 'Invalid'
-order by concept_code, concept_name
-;
-
---insert concept_codes for the concepts already presented in CDE
-UPDATE dev_icd10.icd_cde_source a
-SET concept_code_kcd7
-        = b.concept_code
-FROM dev_kcd7.concept_stage b
-WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
-  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
---AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+WHERE concept_name !~* 'Invalid'
+ORDER BY concept_code, concept_name
 ;
 
 --ICD10CN
---icd10cn insertion
+--icd10cn insertion --34491
 INSERT INTO dev_icd10.icd_cde_source
-(concept_name,
- concept_code_icd10cn
+( source_code,
+  source_code_description,
+  source_vocabulary_id
 )
 SELECT DISTINCT
-concept_name,
-concept_code
+  concept_code as source_code,
+  concept_name as source_code_description,
+  'ICD10CN' as source_vocabulary_id
 
 FROM dev_icd10cn.concept_stage
-WHERE (
-       COALESCE(concept_code, 'x!x'),
-       COALESCE(concept_name, 'x!x')
-       --COALESCE(source_code_description_synonym, 'x!x')
-          --,COALESCE (source_concept_id, -9876543210)
-          )
-          NOT IN (
-          SELECT COALESCE(concept_code, 'x!x'),
-                 COALESCE(concept_name, 'x!x')
-                 --COALESCE(source_code_description_synonym, 'x!x')
-                 --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10.icd_cde_source
-      )
-AND concept_name !~* 'Invalid'
-order by concept_code, concept_name
-;
-
---insert concept_codes for the concepts already presented in CDE
-UPDATE dev_icd10.icd_cde_source a
-SET concept_code_icd10cn
-        = b.concept_code
-FROM dev_icd10cn.concept_stage b
-WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
-  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
---AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+WHERE concept_name !~* 'Invalid'
+ORDER BY concept_code, concept_name
 ;
 
 --CIM10
---cim10 insertion
+--cim10 insertion --42886
 INSERT INTO dev_icd10.icd_cde_source
-(concept_name,
- concept_code_cim10
+( source_code,
+  source_code_description,
+  source_vocabulary_id
 )
 SELECT DISTINCT
-concept_name,
-concept_code
+  concept_code as source_code,
+  concept_name as source_code_description,
+  'CIM10' as source_vocabulary_id
 
 FROM dev_cim10.concept_stage
-WHERE (
-       COALESCE(concept_code, 'x!x'),
-       COALESCE(concept_name, 'x!x')
-       --COALESCE(source_code_description_synonym, 'x!x')
-          --,COALESCE (source_concept_id, -9876543210)
-          )
-          NOT IN (
-          SELECT COALESCE(concept_code, 'x!x'),
-                 COALESCE(concept_name, 'x!x')
-                 --COALESCE(source_code_description_synonym, 'x!x')
-                 --,COALESCE (source_concept_id, -9876543210)
-          FROM dev_icd10.icd_cde_source
-      )
-AND concept_name !~* 'Invalid'
-order by concept_code, concept_name
-;
-
---insert concept_codes for the concepts already presented in CDE
-UPDATE dev_icd10.icd_cde_source a
-SET concept_code_cim10
-        = b.concept_code
-FROM dev_cim10.concept_stage b
-WHERE COALESCE(a.concept_name, 'x!x') = COALESCE(b.concept_name, 'x!x')
-     AND COALESCE(a.concept_code_icd10, 'x!x') = COALESCE(b.concept_code, 'x!x')
-  --AND COALESCE(a.source_code_description_synonym, 'x!x') = COALESCE(b.source_code_description_synonym, 'x!x')
---AND COALESCE (source_concept_id, -9876543210) = COALESCE (b.source_concept_id, -9876543210)
+WHERE concept_name !~* 'Invalid'
+ORDER BY concept_code, concept_name
 ;
 
 SELECT * FROM dev_icd10.icd_cde_source;
+
+--groups by Identical source_code_description, Identical unprocessed codes
+SELECT * FROM dev_icd10.icd_cde_source s1
+    LEFT JOIN dev_icd10.icd_cde_source s2
+ON s1.source_code_description = s2.source_code_description;
+
+
+
 
 --ICD10 with mapping
 DROP TABLE icd10;
@@ -724,6 +601,12 @@ order by  concept_name, concept_code_icd10
 
 
 
+
+
+
+
+
+
 -- array delta function
 CREATE OR REPLACE FUNCTION get_non_overlapping_elements(arr1 text[], arr2 text[])
 RETURNS text[] AS
@@ -768,7 +651,6 @@ BEGIN
 END;
 $$
 LANGUAGE plpgsql;
-
 
 DROP TABLE by_code_join;
 CREATE TABLE by_code_join as (

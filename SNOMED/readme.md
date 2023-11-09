@@ -90,25 +90,7 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 14. Run AddPeaks.sql if any changes in peaks are necessary.
 
 15. Run load_stage.sql
-```sql
 
-DO $$
-BEGIN
-	PERFORM sources_archive.ResetArchiveParams();
-END $$;
-
-DO $$
-BEGIN
-	PERFORM sources_archive.SetArchiveParams(
-		'SNOMED',
-		TO_DATE('20220128','yyyymmdd')
-	);
-END $$;
-
-SELECT * FROM sources_archive.ShowArchiveParams();
-
-SELECT admin_pack.VirtualLogIn('dev_mkhitrun','MKh_388646467');
-   ```
 16. Run generic_update:
    ```sql
    DO $_$
@@ -128,11 +110,8 @@ Repeat steps 13-18.
 
 20. Run scripts to get summary, and interpret the results:
     ```sql
-    SELECT DISTINCT * FROM qa_tests.get_summary('concept')
-    where vocabulary_id_1 = 'SNOMED';
-    SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship')
-    where vocabulary_id_1 in ('SNOMED', 'dm+d')
-    and vocabulary_id_2 in ('SNOMED', 'dm+d');
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
     ```
 21. Run scripts to collect statistics, and interpret the results:
     ```sql

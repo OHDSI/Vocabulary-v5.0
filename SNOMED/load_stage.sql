@@ -124,10 +124,10 @@ FROM (
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
 	) sct2
 WHERE sct2.rn = 1
-	AND NOT EXISTS( --exclude dm+d concepts
+/*	AND NOT EXISTS( --exclude dm+d concepts
 	       SELECT 1 FROM concept c
 	   		WHERE c.concept_code = sct2.concept_code
-	   		AND c.vocabulary_id = 'dm+d');
+	   		AND c.vocabulary_id = 'dm+d')*/;
 );
 
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
@@ -174,7 +174,7 @@ FROM (
 					ROW_NUMBER() OVER (
 						PARTITION BY concept_code
 						-- order of precedence: active, by class relevance
-						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources_archive, so this may prevent problems and breaks nothing
+						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
 						ORDER BY active DESC,
 							rnb,
 							CASE f7
@@ -491,7 +491,7 @@ WHERE concept_code in (
 WITH sub AS (
        SELECT conceptid::TEXT AS concept_code,
               SUBSTRING(term, '-(([^-]+).*)$') AS tag
-       FROM sources_archive.sct2_desc_full_merged m
+       FROM sources.sct2_desc_full_merged m
 )
 UPDATE concept_stage c
  SET concept_class_id = (
@@ -536,10 +536,10 @@ WHERE m.sab = 'SNOMEDCT_US'
 		'MTH_SY',
 		'SB'
 		)
-	AND m.code NOT IN ( --exclude dm+d concepts
+/*	AND m.code NOT IN ( --exclude dm+d concepts
 					SELECT concept_code
                        FROM concept
-                       WHERE vocabulary_id = 'dm+d');
+                       WHERE vocabulary_id = 'dm+d')*/;
 
 --8. Add active synonyms from merged descriptions list
 INSERT INTO concept_synonym_stage (
@@ -662,13 +662,13 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-WITH d AS (
+/*WITH d AS (
 	SELECT concept_code
 	FROM concept
 	WHERE vocabulary_id = 'dm+d'
-),
+),*/
 
-attr_rel AS (
+with attr_rel AS (
        SELECT sourceid::TEXT,
 			destinationid::TEXT,
 			typeid,
@@ -691,8 +691,8 @@ attr_rel AS (
 			AND sourceid IS NOT NULL
 			AND destinationid IS NOT NULL
 			AND term <> 'PBCL flag true'
-			AND sourceid::TEXT NOT IN (SELECT concept_code FROM d) -- exclude dm+d concepts
-			AND destinationid::TEXT NOT IN (SELECT concept_code FROM d)
+/*			AND sourceid::TEXT NOT IN (SELECT concept_code FROM d) -- exclude dm+d concepts
+			AND destinationid::TEXT NOT IN (SELECT concept_code FROM d)*/
 )
 
 SELECT concept_code_1,
@@ -1048,11 +1048,11 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-WITH d AS (
+/*WITH d AS (
 	SELECT concept_code
 	FROM concept
 	WHERE vocabulary_id = 'dm+d'
-)
+)*/
 
 SELECT DISTINCT sn.concept_code_1,
 	sn.concept_code_2,
@@ -1094,8 +1094,8 @@ FROM (
 			900000000000527005,
 			900000000000530003
 			)
-	AND sc.referencedcomponentid::TEXT NOT IN (SELECT concept_code FROM d)
-	AND sc.targetcomponent::TEXT NOT IN (SELECT concept_code FROM d)
+	/*AND sc.referencedcomponentid::TEXT NOT IN (SELECT concept_code FROM d)
+	AND sc.targetcomponent::TEXT NOT IN (SELECT concept_code FROM d)*/
 	) sn
 LEFT JOIN concept_stage cs ON -- for valid_end_date
 	cs.concept_code = sn.concept_code_1
@@ -1480,7 +1480,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 		AND cr.invalid_reason IS NULL
 		AND c.vocabulary_id = 'SNOMED'
 		AND cc.vocabulary_id = 'SNOMED')
-	SELECT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code,
+	SELECT DISTINCT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code,
 		hc.descendant_concept_code::BIGINT,
 		MIN(hc.levels_of_separation) AS min_levels_of_separation
 	FROM hierarchy_concepts hc
@@ -1526,11 +1526,16 @@ AND cc.vocabulary_id = 'SNOMED'
 AND cr.relationship_id in ('Maps to', 'Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
 AND cr.invalid_reason IS NULL) s1
 JOIN snomed_ancestor a ON s1.concept_code_2 = a.descendant_concept_code::TEXT
+JOIN concept_stage cs ON cs.concept_code = s1.concept_code_1
+AND cs.vocabulary_id = 'SNOMED'
+JOIN concept_stage ccs ON ccs.concept_code = s1.concept_code_2
+AND ccs.vocabulary_id = 'SNOMED'
 WHERE NOT EXISTS (
 		SELECT
 		FROM snomed_ancestor x
 		WHERE x.descendant_concept_code::TEXT = s1.concept_code_1
 		)
+AND ccs.concept_class_id = cs.concept_class_id
 GROUP BY ancestor_concept_code, s1.concept_code_1;
 
 ANALYZE snomed_ancestor;
@@ -1873,7 +1878,37 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---18.3. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--18.3 Make domain 'Geography' non-standard, except countries:
+UPDATE concept_stage
+SET standard_concept = NULL
+WHERE domain_id = 'Geography'
+AND concept_code NOT IN (
+		SELECT descendant_concept_code::TEXT
+		FROM snomed_ancestor
+		WHERE ancestor_concept_code = 223369002 -- Country
+		);
+
+--18.4 Make procedures with the context = 'Done' non-standard:
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE EXISTS(
+       SELECT 1 FROM concept_relationship_stage crs
+       WHERE crs.concept_code_1 = cs.concept_code
+		AND crs.relationship_id = 'Has proc context'
+		AND crs.concept_code_2 = '385658003'
+		AND crs.vocabulary_id_2 = 'SNOMED'
+);
+
+--18.5 Make certain hierarchical branches non-standard:
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE EXISTS(
+       SELECT 1 FROM snomed_ancestor sa
+       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
+       AND sa.ancestor_concept_code::TEXT = '373060007' -- Device status
+);
+
+--18.5. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1895,9 +1930,15 @@ WITH concept_status AS (
 				rank() OVER (
 					PARTITION BY id ORDER BY effectivetime DESC
 					) AS rn
-			FROM sources_archive.sct2_concept_full_merged c
+			FROM sources.sct2_concept_full_merged c
+/*	WHERE NOT EXISTS(
+		       SELECT 1 FROM concept i
+		      		WHERE i.concept_code = c.id::text
+		      		AND i.vocabulary_id = 'dm+d'
+		)*/
 			) AS s0
 		WHERE rn = 1
+
 		),
 	concept_fsn AS (
 		SELECT *
@@ -1911,7 +1952,7 @@ WITH concept_status AS (
 				rank() OVER (
 					PARTITION BY d.conceptid ORDER BY d.effectivetime DESC
 					) AS rn
-			FROM sources_archive.sct2_desc_full_merged d
+			FROM sources.sct2_desc_full_merged d
 			JOIN concept_status a ON a.conceptid = d.conceptid
 				AND a.active = 1
 			WHERE d.active = 1
@@ -1953,7 +1994,9 @@ SELECT p.conceptid::VARCHAR,
 	'SNOMED',
 	'SNOMED',
 	'Maps to',
-	TO_DATE('19700101', 'yyyymmdd'),
+	(SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'),
 	TO_DATE('20991231', 'yyyymmdd')
 FROM preferred_code p
 JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
@@ -2093,18 +2136,25 @@ WHERE cs.concept_code IN (
 		'1321691000000102', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) RNA (ribonucleic acid) detection result unknown
 		'1321781000000107', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result unknown
 		'1322821000000105', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
-		'1322911000000106' --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+		'1322911000000106', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+		'442754001', --Inconclusive evaluation finding
+		'384311000000106', --Inconclusive laboratory finding
+		'352741000000109', --Indeterminate laboratory finding
+		'85607003', --Morphology unknown
+		'930901000000104', --Unreliable laboratory result
+		'384281000000108' --Unsatisfactory laboratory analysis
 		)
 	AND cs.standard_concept = 'S';
 
 --23. Clean up
-DROP TABLE peak;
+/*DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
-DROP VIEW module_date;
+DROP VIEW module_date;*/
 
 --21. Need to check domains before running the generic_update
 /*temporary disabled for later use
+DO $_$
 DO $_$
 DECLARE
 	z INT;

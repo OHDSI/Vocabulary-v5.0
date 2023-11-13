@@ -124,11 +124,7 @@ FROM (
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
 	) sct2
 WHERE sct2.rn = 1
-/*	AND NOT EXISTS( --exclude dm+d concepts
-	       SELECT 1 FROM concept c
-	   		WHERE c.concept_code = sct2.concept_code
-	   		AND c.vocabulary_id = 'dm+d')*/;
-);
+;
 
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
 WITH inactive
@@ -503,7 +499,6 @@ FROM sub
 WHERE sub.concept_code = c.concept_code
 	AND c.concept_class_id = 'Undefined'
 	AND c.invalid_reason IS NOT NULL
-	AND tag = ' product'
 	AND --Make sure we only affect old concepts and not mask new classes additions
 	EXISTS (
 		SELECT 1
@@ -536,10 +531,7 @@ WHERE m.sab = 'SNOMEDCT_US'
 		'MTH_SY',
 		'SB'
 		)
-/*	AND m.code NOT IN ( --exclude dm+d concepts
-					SELECT concept_code
-                       FROM concept
-                       WHERE vocabulary_id = 'dm+d')*/;
+;
 
 --8. Add active synonyms from merged descriptions list
 INSERT INTO concept_synonym_stage (
@@ -662,13 +654,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-/*WITH d AS (
-	SELECT concept_code
-	FROM concept
-	WHERE vocabulary_id = 'dm+d'
-),*/
-
-with attr_rel AS (
+WITH attr_rel AS (
        SELECT sourceid::TEXT,
 			destinationid::TEXT,
 			typeid,
@@ -691,8 +677,6 @@ with attr_rel AS (
 			AND sourceid IS NOT NULL
 			AND destinationid IS NOT NULL
 			AND term <> 'PBCL flag true'
-/*			AND sourceid::TEXT NOT IN (SELECT concept_code FROM d) -- exclude dm+d concepts
-			AND destinationid::TEXT NOT IN (SELECT concept_code FROM d)*/
 )
 
 SELECT concept_code_1,
@@ -717,7 +701,7 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			WHEN typeid = 255234002
 				THEN 'Followed by'
 			WHEN typeid = 260669005
-				THEN 'Has surgical appr' -- looks like old version
+				THEN 'Has surgical appr'
 			WHEN typeid = 246090004
 				THEN 'Has asso finding'
 			WHEN typeid = 116676008
@@ -773,7 +757,7 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			WHEN typeid = 363709002
 				THEN 'Has indir morph'
 			WHEN typeid = 309824003
-				THEN 'Using device' -- looks like an old version
+				THEN 'Using device'
 			WHEN typeid = 363703001
 				THEN 'Has intent'
 			WHEN typeid = 363714003
@@ -789,7 +773,7 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			WHEN typeid = 246454002
 				THEN 'Has occurrence'
 			WHEN typeid = 246100006
-				THEN 'Has clinical course' -- looks like old version
+				THEN 'Has clinical course'
 			WHEN typeid = 123005000
 				THEN 'Part of'
 			WHEN typeid IN (308489006, 370135005, 719722006)
@@ -837,7 +821,7 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			WHEN typeid = 408731000
 				THEN 'Has temporal context'
 			WHEN typeid = 363708005
-				THEN 'Occurs after' -- looks like an old version
+				THEN 'Occurs after'
 			WHEN typeid = 370134009
 				THEN 'Has time aspect'
 			WHEN typeid = 425391005
@@ -1048,11 +1032,6 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-/*WITH d AS (
-	SELECT concept_code
-	FROM concept
-	WHERE vocabulary_id = 'dm+d'
-)*/
 
 SELECT DISTINCT sn.concept_code_1,
 	sn.concept_code_2,
@@ -1094,8 +1073,6 @@ FROM (
 			900000000000527005,
 			900000000000530003
 			)
-	/*AND sc.referencedcomponentid::TEXT NOT IN (SELECT concept_code FROM d)
-	AND sc.targetcomponent::TEXT NOT IN (SELECT concept_code FROM d)*/
 	) sn
 LEFT JOIN concept_stage cs ON -- for valid_end_date
 	cs.concept_code = sn.concept_code_1
@@ -1346,9 +1323,9 @@ FROM (
 			WHEN 'Inactive Concept'
 				THEN 'Metadata'
 			WHEN 'Linkage Assertion'
-				THEN 'Observation'
+				THEN 'Relationship'
 	       WHEN 'Linkage Concept'
-				THEN 'Observation'
+				THEN 'Relationship'
 			WHEN 'Location'
 				THEN 'Observation'
 			WHEN 'Model Comp'
@@ -1698,7 +1675,7 @@ SET domain_id = CASE concept_class_id
 		WHEN 'Inactive Concept'
 			THEN 'Metadata'
 		WHEN 'Linkage Assertion'
-			THEN 'Observation'
+			THEN 'Relationship'
 		WHEN 'Location'
 			THEN 'Observation'
 		WHEN 'Model Comp'
@@ -1777,7 +1754,7 @@ SET domain_id = CASE concept_class_id
 		WHEN 'Inactive Concept'
 			THEN 'Metadata'
 		WHEN 'Linkage Assertion'
-			THEN 'Observation'
+			THEN 'Relationship'
 		WHEN 'Location'
 			THEN 'Observation'
 		WHEN 'Model Comp'
@@ -1908,7 +1885,13 @@ WHERE EXISTS(
        AND sa.ancestor_concept_code::TEXT = '373060007' -- Device status
 );
 
---18.5. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--18.6 Make certain concept classes non-standard:
+UPDATE concept_stage
+SET standard_concept = NULL
+WHERE concept_class_id IN ('Attribute', 'Physical Force', 'Physical Object', 'Social Context')
+AND domain_id NOT IN ('Device', 'Relationship');
+
+--18.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1931,11 +1914,6 @@ WITH concept_status AS (
 					PARTITION BY id ORDER BY effectivetime DESC
 					) AS rn
 			FROM sources.sct2_concept_full_merged c
-/*	WHERE NOT EXISTS(
-		       SELECT 1 FROM concept i
-		      		WHERE i.concept_code = c.id::text
-		      		AND i.vocabulary_id = 'dm+d'
-		)*/
 			) AS s0
 		WHERE rn = 1
 
@@ -2142,15 +2120,16 @@ WHERE cs.concept_code IN (
 		'352741000000109', --Indeterminate laboratory finding
 		'85607003', --Morphology unknown
 		'930901000000104', --Unreliable laboratory result
-		'384281000000108' --Unsatisfactory laboratory analysis
+		'384281000000108', --Unsatisfactory laboratory analysis
+		'441934005' --Measurement procedure result present
 		)
 	AND cs.standard_concept = 'S';
 
 --23. Clean up
-/*DROP TABLE peak;
+DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
-DROP VIEW module_date;*/
+DROP VIEW module_date;
 
 --21. Need to check domains before running the generic_update
 /*temporary disabled for later use

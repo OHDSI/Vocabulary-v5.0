@@ -123,8 +123,7 @@ FROM (
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
 	) sct2
-WHERE sct2.rn = 1
-;
+WHERE sct2.rn = 1;
 
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
 WITH inactive
@@ -475,7 +474,7 @@ WHERE vocabulary_id = 'SNOMED'
 UPDATE concept_stage
 SET concept_class_id = 'Staging / Scales'
 WHERE concept_code in (
-        '821611000000108',
+		'821611000000108',
 		'821551000000108',
 		'821591000000100',
 		'821561000000106',
@@ -530,8 +529,7 @@ WHERE m.sab = 'SNOMEDCT_US'
 		'FN',
 		'MTH_SY',
 		'SB'
-		)
-;
+		);
 
 --8. Add active synonyms from merged descriptions list
 INSERT INTO concept_synonym_stage (
@@ -611,7 +609,7 @@ WITH tmp_rel AS (
 				AND cs.vocabulary_id = 'SNOMED'
 			WHERE c.statusid IN (
 					900000000000073002, --Defined
-					900000000000074008 	--Primitive
+					900000000000074008 --Primitive
 					)
 			) st
 		WHERE st.rn = 1
@@ -625,15 +623,15 @@ SELECT concept_code_1,
 	valid_end_date,
 	invalid_reason
 FROM (
-       SELECT DISTINCT 	concept_code_1,
-                       	concept_code_2,
-                       	'SNOMED' AS vocabulary_id_1,
-						'SNOMED' AS vocabulary_id_2,
-						relationship_id,
-						valid_start_date,
-						TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-						NULL AS invalid_reason
-       FROM tmp_rel
+	SELECT DISTINCT concept_code_1,
+					concept_code_2,
+					'SNOMED' AS vocabulary_id_1,
+					'SNOMED' AS vocabulary_id_2,
+					relationship_id,
+					valid_start_date,
+					TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+					NULL AS invalid_reason
+	FROM tmp_rel
 	 ) sn
 WHERE NOT EXISTS (
 		SELECT 1
@@ -655,7 +653,7 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 WITH attr_rel AS (
-       SELECT sourceid::TEXT,
+		SELECT sourceid::TEXT,
 			destinationid::TEXT,
 			typeid,
 			REPLACE(term, ' (attribute)', '') AS term
@@ -680,14 +678,14 @@ WITH attr_rel AS (
 )
 
 SELECT concept_code_1,
-       concept_code_2,
-       vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason
-       FROM (
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+FROM (
 	--convert SNOMED to OMOP-type relationship_id
 SELECT DISTINCT sourceid AS concept_code_1,
 		destinationid AS concept_code_2,
@@ -1234,11 +1232,11 @@ ANALYZE concept_relationship_stage;
 UPDATE concept_stage cs
 SET invalid_reason = 'U',
 	valid_end_date = LEAST(
-	       cs.valid_end_date,
-	       crs.valid_start_date,
-           (SELECT latest_update
-            FROM vocabulary v
-            WHERE v.vocabulary_id = 'SNOMED'))
+			cs.valid_end_date,
+			crs.valid_start_date,
+			(SELECT latest_update
+				FROM vocabulary v
+				WHERE v.vocabulary_id = 'SNOMED'))
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id IN (
@@ -1252,10 +1250,11 @@ WHERE crs.concept_code_1 = cs.concept_code
 --10.3. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
-    valid_end_date = LEAST(crs.valid_start_date,
-           (SELECT latest_update - 1
-            FROM vocabulary v
-            WHERE v.vocabulary_id = 'SNOMED'))
+    valid_end_date = LEAST(
+			crs.valid_start_date,
+			(SELECT latest_update - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id = 'SNOMED'))
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id = 'Concept poss_eq to'
@@ -1312,19 +1311,19 @@ FROM (
 				THEN 'Observation'
 			WHEN 'Context-dependent'
 				THEN 'Observation'
-	       WHEN 'Disorder'
-	       		THEN 'Condition'
-	       WHEN 'Disposition'
-	       		THEN 'Observation'
-	       WHEN 'Dose Form'
-	       		THEN 'Drug'
+			 WHEN 'Disorder'
+				THEN 'Condition'
+			WHEN 'Disposition'
+				THEN 'Observation'
+			WHEN 'Dose Form'
+				THEN 'Drug'
 			WHEN 'Event'
 				THEN 'Observation'
 			WHEN 'Inactive Concept'
 				THEN 'Metadata'
 			WHEN 'Linkage Assertion'
 				THEN 'Relationship'
-	       WHEN 'Linkage Concept'
+			WHEN 'Linkage Concept'
 				THEN 'Relationship'
 			WHEN 'Location'
 				THEN 'Observation'
@@ -1340,9 +1339,9 @@ FROM (
 				THEN 'Observation'
 			WHEN 'Organism'
 				THEN 'Observation'
-	       WHEN 'Patient Status'
+			WHEN 'Patient Status'
 				THEN 'Observation'
-	       WHEN 'Physical Force'
+			WHEN 'Physical Force'
 				THEN 'Observation'
 			WHEN 'Pharma/Biol Product'
 				THEN 'Drug'
@@ -1374,7 +1373,7 @@ FROM (
 	) i
 WHERE i.concept_code = d.concept_code;
 
---14.1 All concepts mapped to Rx/RxE/CVX should be drugs
+--14 All concepts mapped to Rx/RxE/CVX should be drugs
 WITH a AS (
 	SELECT concept_code_1 AS concept_code
 	FROM concept_relationship_manual crm
@@ -1382,10 +1381,9 @@ WITH a AS (
 	WHERE relationship_id = 'Maps to'
 		AND vocabulary_id_1 = 'SNOMED'
 		AND vocabulary_id_2 IN (
-			   'RxNorm',
-			   'RxNorm Extension',
-			   'CVX'
-			   )
+			'RxNorm',
+			'RxNorm Extension',
+			'CVX')
 		AND crm.invalid_reason IS NULL
 		AND cs.concept_class_id = 'Substance'
 
@@ -1397,10 +1395,9 @@ WITH a AS (
 		JOIN concept cc ON cc.concept_id = cr.concept_id_2
 	WHERE c.vocabulary_id = 'SNOMED'
 		AND cc.vocabulary_id IN (
-			   'RxNorm',
-			   'RxNorm Extension',
-			   'CVX'
-			   )
+			'RxNorm',
+			'RxNorm Extension',
+			'CVX')
 		AND c.concept_class_id = 'Substance'
 		AND cr.relationship_id = 'Maps to'
 		AND cr.invalid_reason IS NULL
@@ -1439,11 +1436,10 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 			crs.concept_code_1 AS descendant_concept_code,
 			1 AS levels_of_separation
 		FROM concept_relationship_stage crs
-		JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1 AND cs.vocabulary_id = crs.vocabulary_id_1
-		JOIN concept_stage ccs ON ccs.concept_code = crs.concept_code_2 AND ccs.vocabulary_id = crs.vocabulary_id_2
 		WHERE crs.invalid_reason IS NULL
 			AND crs.relationship_id = 'Is a'
 			AND crs.vocabulary_id_1 = 'SNOMED'
+			AND crs.vocabulary_id_2 = 'SNOMED'
 
 		UNION
 
@@ -1972,7 +1968,7 @@ SELECT p.conceptid::VARCHAR,
 	'SNOMED',
 	'SNOMED',
 	'Maps to',
-	(SELECT latest_update
+	(SELECT latest_update -1
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'),
 	TO_DATE('20991231', 'yyyymmdd')
@@ -2003,13 +1999,13 @@ INSERT INTO concept_relationship_stage (
        invalid_reason
 )
 SELECT DISTINCT c.concept_code,
-       cc.concept_code,
-       c.vocabulary_id,
-       cc.vocabulary_id,
-       cr.relationship_id,
-       cr.valid_start_date,
-       cr.valid_end_date,
-       cr.invalid_reason
+	cc.concept_code,
+	c.vocabulary_id,
+	cc.vocabulary_id,
+	cr.relationship_id,
+	cr.valid_start_date,
+	cr.valid_end_date,
+	cr.invalid_reason
 FROM concept_relationship cr
 JOIN concept c on c.concept_id = cr.concept_id_1
 JOIN concept cc on cc.concept_id = cr.concept_id_2
@@ -2023,27 +2019,27 @@ AND cr.relationship_id IN (
 				)
 AND cr.invalid_reason IS NULL
 AND NOT EXISTS(
-       SELECT 1 --if a concept already has an active replacement link in crs
-       FROM concept_relationship_stage crs
-       WHERE crs.concept_code_1 = c.concept_code
-       AND crs.relationship_id = cr.relationship_id
-       AND crs.vocabulary_id_1 = c.vocabulary_id
-       AND crs.invalid_reason IS NULL
-)
-  AND NOT EXISTS(
-       SELECT 1 -- if the link from cr has been deprecated earlier in the course of load_stage
-       FROM concept_relationship_stage crs
-       WHERE crs.concept_code_1 = c.concept_code
-         AND crs.concept_code_2 = cc.concept_code
-       AND crs.relationship_id = cr.relationship_id
-       AND crs.vocabulary_id_1 = c.vocabulary_id
-         AND crs.vocabulary_id_2 = cc.vocabulary_id
-       AND crs.invalid_reason IS NOT NULL
+	SELECT 1 --if a concept already has an active replacement link in crs
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = c.concept_code
+			AND crs.relationship_id = cr.relationship_id
+			AND crs.vocabulary_id_1 = c.vocabulary_id
+			AND crs.invalid_reason IS NULL
 )
 AND NOT EXISTS(
-       SELECT 1 -- if a concept has an active 'Maps to' link
-       FROM concept_relationship cr1
-       WHERE cr1.concept_id_1 = cr.concept_id_1
+	SELECT 1 -- if the link from cr has been deprecated earlier in the course of load_stage
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = c.concept_code
+			AND crs.concept_code_2 = cc.concept_code
+			AND crs.relationship_id = cr.relationship_id
+			AND crs.vocabulary_id_1 = c.vocabulary_id
+			AND crs.vocabulary_id_2 = cc.vocabulary_id
+			AND crs.invalid_reason IS NOT NULL
+)
+AND NOT EXISTS(
+	SELECT 1 -- if a concept has an active 'Maps to' link
+		FROM concept_relationship cr1
+		WHERE cr1.concept_id_1 = cr.concept_id_1
        AND cr1.relationship_id = 'Maps to'
        AND cr1.invalid_reason IS NULL
 );
@@ -2131,7 +2127,7 @@ DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
---21. Need to check domains before running the generic_update
+--24. Need to check domains before running the generic_update
 /*temporary disabled for later use
 DO $_$
 DO $_$

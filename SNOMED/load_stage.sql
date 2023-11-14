@@ -1986,7 +1986,7 @@ AND NOT EXISTS (
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---19. Upload all replacement links from basic tables to create 'Maps to' links according to them:
+--19. Upload all replacement links from base tables to create 'Maps to' links according to them:
 ---Remove after refresh.
 INSERT INTO concept_relationship_stage (
        concept_code_1,
@@ -2022,7 +2022,12 @@ AND NOT EXISTS(
 	SELECT 1 --if a concept already has an active replacement link in crs
 		FROM concept_relationship_stage crs
 		WHERE crs.concept_code_1 = c.concept_code
-			AND crs.relationship_id = cr.relationship_id
+			AND crs.relationship_id IN (
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to'
+				)
 			AND crs.vocabulary_id_1 = c.vocabulary_id
 			AND crs.invalid_reason IS NULL
 )
@@ -2095,9 +2100,9 @@ WHERE EXISTS (
 		)
 	AND cs.standard_concept = 'S'
 	AND NOT EXISTS(
-	       SELECT 1 FROM snomed_ancestor sa
-	                WHERE sa.descendant_concept_code::text = cs.concept_code
-	                AND sa.ancestor_concept_code = 411115002 -- Exclude drug-device combinations - should be standard and mapped to drugs
+		SELECT 1 FROM snomed_ancestor sa
+			WHERE sa.descendant_concept_code::text = cs.concept_code
+			AND sa.ancestor_concept_code = 411115002 -- Exclude drug-device combinations - should be standard and mapped to drugs
 );
 
 --22. Make concepts non standard if they represent no information

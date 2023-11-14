@@ -50,10 +50,74 @@ BEGIN
 );
 END $_$;
 
--- Update domain_id in Relationship vocabulary:
+-- Update concept_code and domain_id for concepts in Relationship vocabulary:
 UPDATE concept
-SET domain_id = 'Relationship'
-WHERE vocabulary_id = 'Relationship';
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217056'
+WHERE concept_id = 32668;
 
---
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217057'
+WHERE concept_id = 32669;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217058'
+WHERE concept_id = 581410;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217059'
+WHERE concept_id = 581411;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217060'
+WHERE concept_id = 581436;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217061'
+WHERE concept_id = 581437;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217062'
+WHERE concept_id = 46233680;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217063'
+WHERE concept_id = 46233681;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217064'
+WHERE concept_id = 46233682;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217065'
+WHERE concept_id = 46233683;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217066'
+WHERE concept_id = 46233684;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217067'
+WHERE concept_id = 46233685;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217068'
+WHERE concept_id = 46233688;
+
+UPDATE concept
+SET domain_id = 'Relationship',
+	concept_code = 'OMOP5217069'
+WHERE concept_id = 46233689;
 

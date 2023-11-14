@@ -41,8 +41,7 @@ SELECT moduleid,
 				FROM a)
 			ELSE local_version
 		END AS version
-FROM a
-GROUP BY moduleid, local_version;
+FROM a;
 
 --2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.
@@ -1472,7 +1471,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 		AND cs1.vocabulary_id = 'SNOMED'
 	JOIN concept_stage cs2 ON cs2.concept_code = hc.descendant_concept_code
 		AND cs2.vocabulary_id = 'SNOMED'
-		AND cs2.concept_class_id = cs1.concept_class_id
+		--AND cs2.concept_class_id = cs1.concept_class_id
 	GROUP BY hc.root_ancestor_concept_code,
 		hc.descendant_concept_code;
 

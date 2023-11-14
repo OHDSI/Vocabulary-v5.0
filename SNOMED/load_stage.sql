@@ -19,8 +19,10 @@
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
 CREATE OR REPLACE VIEW module_date AS
+WITH a as (
 SELECT DISTINCT ON (m.id) m.moduleid,
-	TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS version
+		TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS local_version,
+		TO_CHAR(m.targeteffectivetime, 'yyyy-mm-dd') AS int_version
 FROM sources.der2_ssrefset_moduledependency_merged m
 WHERE m.active = 1
 	AND m.referencedcomponentid = 900000000000012004
@@ -31,7 +33,16 @@ WHERE m.active = 1
 		731000124108 --US edition
 		)
 ORDER BY m.id,
-	m.effectivetime DESC;
+	m.effectivetime DESC)
+
+SELECT moduleid,
+		CASE WHEN moduleid = 900000000000207008
+			THEN (SELECT MIN(int_version)
+				FROM a)
+			ELSE local_version
+		END AS version
+FROM a
+GROUP BY moduleid, local_version;
 
 --2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.

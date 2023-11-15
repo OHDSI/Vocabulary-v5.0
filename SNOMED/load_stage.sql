@@ -1894,8 +1894,8 @@ WHERE EXISTS(
 --18.6 Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
-WHERE concept_class_id IN ('Attribute', 'Physical Force', 'Physical Object', 'Social Context')
-AND domain_id NOT IN ('Device', 'Relationship');
+WHERE concept_class_id IN ('Attribute', 'Physical Force', 'Physical Object')
+AND domain_id NOT IN ('Device');
 
 --18.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431

@@ -1471,7 +1471,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 		AND cs1.vocabulary_id = 'SNOMED'
 	JOIN concept_stage cs2 ON cs2.concept_code = hc.descendant_concept_code
 		AND cs2.vocabulary_id = 'SNOMED'
-		--AND cs2.concept_class_id = cs1.concept_class_id
+		AND cs2.concept_class_id = cs1.concept_class_id
 	GROUP BY hc.root_ancestor_concept_code,
 		hc.descendant_concept_code;
 

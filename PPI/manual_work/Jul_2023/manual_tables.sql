@@ -13,7 +13,7 @@ SELECT * FROM concept_manual;
 SELECT * FROM concept_relationship_manual;
 SELECT * FROM concept_synonym_manual;
 
--- 1. insert previous Mental Health and Well-Being Module concepts and their relationships to deprecate from manual file
+-- 1. insert previous Mental Health and Well-Being Module concepts and their relationships to deprecate from manual file and add branching logic
 
 -- 2. insert new concepts into concept_manual
 --insert module bhp
@@ -43,8 +43,7 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
 from bhp_pr
-WHERE flag = 'q'
-and concept_code != 'bhp';
+WHERE flag = 'q';
 
 --insert answers bhp
 INSERT INTO concept_manual
@@ -89,8 +88,7 @@ CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
 FROM ehh_pr
-WHERE flag = 'q'
-and concept_code != 'ehhwb';
+WHERE flag = 'q';
 
 --insert answers ehh
 INSERT INTO concept_manual
@@ -107,8 +105,6 @@ NULL AS invalid_reason
 FROM ehh_pr
 WHERE flag = 'a'
 and concept_code not in ('pmi_prefernottoanswer', 'pmi_dontknow', 'pmi_none'); --concepts will be reused
-
-
 
 -- 3. insert new relationships
 --to add hierarchy 'Has PPI parent code' from Questions to Module
@@ -169,11 +165,48 @@ TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM ehh_qa;
 
+-- add mappings
+TRUNCATE TABLE ppi_mapped;
+CREATE TABLE ppi_mapped
+(concept_code varchar,
+concept_name varchar,
+target_concept_id int,
+target_concept_code varchar,
+target_concept_name varchar,
+target_concept_class varchar,
+target_standard_concept varchar,
+target_invalid_reason varchar,
+target_domain_id varchar,
+target_vocabulary_id varchar);
 
+SELECT * FROM ppi_mapped;
+
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+concept_code as concept_code_1,
+target_concept_code as concept_code_2,
+'PPI' AS vocabulary_id_1,
+target_vocabulary_id AS vocabulary_id_2,
+'Maps to' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM ppi_mapped
+WHERE target_concept_id is not null;
+
+--Destandartization of concepts, which have maps to S
+UPDATE concept_manual
+SET standard_concept = NULL
+WHERE concept_code in (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id = 'Maps to');
+
+-- Make S those without mapping
+UPDATE concept_manual
+SET standard_concept = 'S'
+WHERE concept_code in (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id != 'Maps to');
 
 -- 4. insert concept synonyms from manual file
 
-SELECT * FROM dev_ppi.concept_manual; -- 1002 --237 D
-SELECT * FROM concept_relationship_manual; -- 2437 1057 D
+SELECT * FROM concept_manual;
+SELECT * FROM concept_relationship_manual;
 SELECT * FROM concept_synonym_manual;
 

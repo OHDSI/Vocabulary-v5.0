@@ -36,117 +36,124 @@ BEGIN
 	ELSE
 		--check current schema
 		RAISE NOTICE 'Checking current schema...';
-		PERFORM
-		(
-			SELECT 1
-			FROM devv5.concept c1
-			FULL JOIN concept c2 USING (concept_id)
-			WHERE c1.* IS DISTINCT FROM c2.*
-			LIMIT 1
-		)
+		PERFORM FROM (
+			(
+				SELECT 1
+				FROM devv5.concept c1
+				FULL JOIN concept c2 USING (concept_id)
+				WHERE 
+					ROW(c1.concept_name, c1.domain_id, c1.vocabulary_id, c1.concept_class_id, c1.standard_concept, c1.concept_code, c1.valid_start_date, c1.valid_end_date, c1.invalid_reason)
+					IS DISTINCT FROM 
+					ROW(c2.concept_name, c2.domain_id, c2.vocabulary_id, c2.concept_class_id, c2.standard_concept, c2.concept_code, c2.valid_start_date, c2.valid_end_date, c2.invalid_reason)
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.concept_relationship cr1
-			FULL JOIN concept_relationship cr2 USING (
-					concept_id_1,
-					concept_id_2,
-					relationship_id
-					)
-			WHERE cr1.* IS DISTINCT FROM cr2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.concept_relationship cr1
+				FULL JOIN concept_relationship cr2 USING (
+						concept_id_1,
+						concept_id_2,
+						relationship_id
+						)
+				WHERE
+					ROW(cr1.valid_start_date, cr1.valid_end_date, cr1.invalid_reason)
+					IS DISTINCT FROM 
+					ROW(cr2.valid_start_date, cr2.valid_end_date, cr2.invalid_reason)
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.concept_synonym cs1
-			FULL JOIN concept_synonym cs2 USING (
-					concept_id,
-					concept_synonym_name,
-					language_concept_id
-					)
-			WHERE cs1.* IS DISTINCT FROM cs2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.concept_synonym cs1
+				FULL JOIN concept_synonym cs2 USING (
+						concept_id,
+						concept_synonym_name,
+						language_concept_id
+						)
+				WHERE cs1.* IS DISTINCT FROM cs2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.relationship rel1
-			FULL JOIN relationship rel2 USING (relationship_id)
-			WHERE rel1.* IS DISTINCT FROM rel2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.relationship rel1
+				FULL JOIN relationship rel2 USING (relationship_id)
+				WHERE rel1.* IS DISTINCT FROM rel2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.vocabulary v1
-			FULL JOIN vocabulary v2 USING (vocabulary_id)
-			WHERE v1.* IS DISTINCT FROM v2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.vocabulary v1
+				FULL JOIN vocabulary v2 USING (vocabulary_id)
+				WHERE v1.* IS DISTINCT FROM v2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.concept_class cl1
-			FULL JOIN concept_class cl2 USING (concept_class_id)
-			WHERE cl1.* IS DISTINCT FROM cl2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.concept_class cl1
+				FULL JOIN concept_class cl2 USING (concept_class_id)
+				WHERE cl1.* IS DISTINCT FROM cl2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.domain dm1
-			FULL JOIN domain dm2 USING (domain_id)
-			WHERE dm1.* IS DISTINCT FROM dm2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.domain dm1
+				FULL JOIN domain dm2 USING (domain_id)
+				WHERE dm1.* IS DISTINCT FROM dm2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.drug_strength ds1
-			FULL JOIN drug_strength ds2 USING (
-					drug_concept_id,
-					ingredient_concept_id
-					)
-			WHERE ds1.* IS DISTINCT FROM ds2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.drug_strength ds1
+				FULL JOIN drug_strength ds2 USING (
+						drug_concept_id,
+						ingredient_concept_id
+						)
+				WHERE ds1.* IS DISTINCT FROM ds2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.pack_content pc1
-			FULL JOIN pack_content pc2 ON pc1.pack_concept_id = pc2.pack_concept_id
-				AND pc1.drug_concept_id = pc2.drug_concept_id
-				AND COALESCE(pc1.amount, -1) = COALESCE(pc2.amount, -1)
-			WHERE pc1.* IS DISTINCT FROM pc2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.pack_content pc1
+				FULL JOIN pack_content pc2 ON pc1.pack_concept_id = pc2.pack_concept_id
+					AND pc1.drug_concept_id = pc2.drug_concept_id
+					AND COALESCE(pc1.amount, -1) = COALESCE(pc2.amount, -1)
+				WHERE pc1.* IS DISTINCT FROM pc2.*
+				LIMIT 1
+			)
 
-		UNION ALL
+			UNION ALL
 
-		(
-			SELECT 1
-			FROM devv5.vocabulary_conversion vc1
-			FULL JOIN vocabulary_conversion vc2 USING (vocabulary_id_v4)
-			WHERE vc1.* IS DISTINCT FROM vc2.*
-			LIMIT 1
-		)
+			(
+				SELECT 1
+				FROM devv5.vocabulary_conversion vc1
+				FULL JOIN vocabulary_conversion vc2 USING (vocabulary_id_v4)
+				WHERE vc1.* IS DISTINCT FROM vc2.*
+				LIMIT 1
+			)
+		) s0
 		LIMIT 1;
 
 		IF FOUND THEN
@@ -290,4 +297,4 @@ BEGIN
 	RAISE NOTICE 'Restoring complete';
 END;
 $BODY$
-LANGUAGE 'plpgsql' SECURITY INVOKER;
+LANGUAGE 'plpgsql';

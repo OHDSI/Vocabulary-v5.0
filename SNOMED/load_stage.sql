@@ -13,7 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov, Christian Reich, Oleg Zhuk, Masha Khitrun
+* Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov,
+* Christian Reich, Oleg Zhuk, Masha Khitrun
 * Date: 2023
 **************************************************************************/
 
@@ -120,8 +121,8 @@ FROM (
 						THEN 1 -- International release
 					WHEN 'US'
 						THEN 2 -- SNOMED US
-					WHEN 'GB_DE'
-						THEN 3 -- SNOMED UK Drug extension, updated more often
+					--WHEN 'GB_DE'
+					--	THEN 3 -- SNOMED UK Drug extension, updated more often
 					WHEN 'UK'
 						THEN 4 -- SNOMED UK
 					ELSE 99
@@ -132,8 +133,12 @@ FROM (
 	FROM sources.sct2_concept_full_merged c
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
-	) sct2
-WHERE sct2.rn = 1;
+        WHERE
+            c.moduleid != 999000011000001104 --UK Drug extension
+    ) sct2
+WHERE
+    sct2.rn = 1
+;
 
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
 WITH inactive
@@ -145,8 +150,10 @@ AS (
 		c2.active = 1
 		AND c.id = c2.id
 		AND c.effectivetime < c2.effectivetime
-	WHERE c2.id IS NULL
-		AND c.active = 0
+	WHERE
+	    c2.id IS NULL
+    AND c.active = 0
+    AND c.moduleid != 999000011000001104 --UK Drug extension
 	GROUP BY c.id
 	)
 UPDATE concept_stage cs
@@ -179,7 +186,8 @@ FROM (
 					ROW_NUMBER() OVER (
 						PARTITION BY concept_code
 						-- order of precedence: active, by class relevance
-						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
+						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we
+                        -- have concurrent sources, so this may prevent problems and breaks nothing
 						ORDER BY active DESC,
 							rnb,
 							CASE f7
@@ -308,9 +316,10 @@ FROM (
 						FROM concept_stage c
 						JOIN sources.sct2_desc_full_merged d ON d.conceptid::TEXT = c.concept_code
 						WHERE
-							c.vocabulary_id = 'SNOMED' AND
-							d.typeid = 900000000000003001 -- only Fully Specified Names
-						) AS s0
+							    c.vocabulary_id = 'SNOMED'
+							AND d.typeid = 900000000000003001 -- only Fully Specified Names
+						    AND d.moduleid != 999000011000001104 --UK Drug extension
+					    ) AS s0
 					) AS s1
 				) AS s2
 			WHERE rnc = 1
@@ -493,6 +502,8 @@ WHERE concept_code in (
 		);
 
 --6. --Some old deprecated concepts from UK drug extension module never have had correct FSN, so we can't get explicit hierarchy tag and keep them as Context-dependent class
+-- SNOMED CT UK drug extension module is retired from OMOP starting 2024 release.
+/*
 WITH sub AS (
        SELECT conceptid::TEXT AS concept_code,
               SUBSTRING(term, '-(([^-]+).*)$') AS tag
@@ -514,7 +525,7 @@ WHERE sub.concept_code = c.concept_code
 		FROM sources.sct2_concept_full_merged m
 		WHERE m.id::TEXT = c.concept_code
 			AND m.moduleid = 999000011000001104 --SNOMED CT United Kingdom drug extension module
-		);
+		);*/
 
 --7. Get all the synonyms from UMLS ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
@@ -560,6 +571,8 @@ FROM (
 			PARTITION BY id ORDER BY effectivetime DESC
 			) AS active_status
 	FROM sources.sct2_desc_full_merged m
+    WHERE
+        m.moduleid != 999000011000001104 --UK Drug extension
 	) d
 JOIN concept_stage s ON s.concept_code = d.conceptid
 WHERE d.active_status = 1
@@ -595,7 +608,7 @@ WITH tmp_rel AS (
 				900000000000207008, --Core (international) module
 				999000011000000103, --UK edition
 				731000124108, 		--US edition
-				999000011000001104, --SNOMED CT United Kingdom drug extension module
+				-- 999000011000001104, --SNOMED CT United Kingdom drug extension module
 				900000000000012004, --SNOMED CT model component
 				999000021000001108 	--SNOMED CT United Kingdom drug extension reference set module
 				)
@@ -621,6 +634,7 @@ WITH tmp_rel AS (
 					900000000000073002, --Defined
 					900000000000074008 --Primitive
 					)
+			  AND c.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
 			) st
 		WHERE st.rn = 1
 		)
@@ -679,6 +693,8 @@ WITH attr_rel AS (
 				r.active
 			FROM sources.sct2_rela_full_merged r
 			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
+            WHERE
+                r.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
 			) AS s0
 		WHERE rn = 1
 			AND active = 1
@@ -1081,6 +1097,10 @@ FROM (
 			900000000000527005,
 			900000000000530003
 			)
+            AND sc.moduleid not in (
+                999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+                999000011000001104 --SNOMED CT United Kingdom drug extension module
+            )
 	) sn
 LEFT JOIN concept_stage cs ON -- for valid_end_date
 	cs.concept_code = sn.concept_code_1
@@ -1544,7 +1564,9 @@ JOIN (
 	FROM sources.sct2_rela_full_merged r
 	JOIN concept_stage x ON x.concept_code = r.destinationid::TEXT
 		AND x.invalid_reason IS NULL
-	WHERE r.typeid = 116680003 -- Is a
+	WHERE
+	    r.typeid = 116680003 -- Is a
+    AND r.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
 	) m ON m.sourceid::TEXT = s1.concept_code
 	AND m.effectivetime = m.maxeffectivetime
 JOIN snomed_ancestor a ON m.destinationid = a.descendant_concept_code
@@ -1857,6 +1879,7 @@ WITH concept_status AS (
 					PARTITION BY id ORDER BY effectivetime DESC
 					) AS rn
 			FROM sources.sct2_concept_full_merged c
+			WHERE c.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
 			) AS s0
 		WHERE rn = 1
 
@@ -1876,8 +1899,10 @@ WITH concept_status AS (
 			FROM sources.sct2_desc_full_merged d
 			JOIN concept_status a ON a.conceptid = d.conceptid
 				AND a.active = 1
-			WHERE d.active = 1
-				AND d.typeid = 900000000000003001 -- FSN
+			WHERE
+                    d.active = 1
+                AND d.typeid = 900000000000003001 -- FSN
+                AND d.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
 			) AS s0
 		WHERE rn = 1
 		),

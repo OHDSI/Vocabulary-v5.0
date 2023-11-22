@@ -134,12 +134,16 @@ FROM (
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
         WHERE
-            c.moduleid != 999000011000001104 --UK Drug extension
-    ) sct2
+            c.moduleid NOT IN (
+                999000011000001104, --UK Drug extension
+                999000021000001108  --UK Drug extension reference set module
+            )
+        ) sct2
 WHERE
     sct2.rn = 1
 ;
-
+ANALYSE concept_stage;
+;
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
 WITH inactive
 AS (
@@ -153,15 +157,19 @@ AS (
 	WHERE
 	    c2.id IS NULL
     AND c.active = 0
-    AND c.moduleid != 999000011000001104 --UK Drug extension
-	GROUP BY c.id
-	)
+    AND c.moduleid NOT IN (
+       999000011000001104, --UK Drug extension
+       999000021000001108  --UK Drug extension reference set module
+    )
+    GROUP BY c.id)
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
 	valid_end_date = TO_DATE(i.effectiveend, 'yyyymmdd')
 FROM inactive i
-WHERE i.id::TEXT = cs.concept_code;
-
+WHERE
+        i.id::TEXT = cs.concept_code
+    AND cs.vocabulary_id = 'SNOMED'
+;
 --4.2 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
 UPDATE concept_stage
 SET concept_name = vocabulary_pack.CutConceptName(TRANSLATE(concept_name, '>,<,^', '-'))
@@ -318,8 +326,11 @@ FROM (
 						WHERE
 							    c.vocabulary_id = 'SNOMED'
 							AND d.typeid = 900000000000003001 -- only Fully Specified Names
-						    AND d.moduleid != 999000011000001104 --UK Drug extension
-					    ) AS s0
+						    AND d.moduleid NOT IN (
+                                999000011000001104, --UK Drug extension
+                                999000021000001108  --UK Drug extension reference set module
+                            )
+                        ) AS s0
 					) AS s1
 				) AS s2
 			WHERE rnc = 1
@@ -473,7 +484,10 @@ FROM (
 			END AS concept_class_id
 	FROM tmp_concept_class
 	) i
-WHERE i.concept_code = cs.concept_code;
+WHERE
+        i.concept_code = cs.concept_code
+    AND cs.vocabulary_id = 'SNOMED'
+;
 
 --Assign top SNOMED concept
 UPDATE concept_stage
@@ -492,7 +506,9 @@ WHERE vocabulary_id = 'SNOMED'
 
 UPDATE concept_stage
 SET concept_class_id = 'Staging / Scales'
-WHERE concept_code in (
+WHERE
+        vocabulary_id = 'SNOMED'
+    AND concept_code in (
 		'821611000000108',
 		'821551000000108',
 		'821591000000100',
@@ -563,17 +579,19 @@ SELECT DISTINCT d.conceptid,
 	'SNOMED',
 	vocabulary_pack.CutConceptSynonymName(d.term),
 	4180186 -- English
-FROM (
-	SELECT m.id,
-		m.conceptid::TEXT,
-		m.term,
-		FIRST_VALUE(active) OVER (
-			PARTITION BY id ORDER BY effectivetime DESC
-			) AS active_status
-	FROM sources.sct2_desc_full_merged m
-    WHERE
-        m.moduleid != 999000011000001104 --UK Drug extension
-	) d
+FROM (SELECT m.id,
+             m.conceptid::text,
+             m.term,
+             first_value(active) OVER (
+                 PARTITION BY id ORDER BY effectivetime DESC
+                 ) AS active_status
+      FROM sources.sct2_desc_full_merged m
+      WHERE
+          m.moduleid NOT IN (
+            999000011000001104, -- UK Drug extension
+            999000021000001108  -- UK Drug extension reference set module
+        )
+      ) d
 JOIN concept_stage s ON s.concept_code = d.conceptid
 WHERE d.active_status = 1
 	AND NOT EXISTS (
@@ -608,9 +626,9 @@ WITH tmp_rel AS (
 				900000000000207008, --Core (international) module
 				999000011000000103, --UK edition
 				731000124108, 		--US edition
-				-- 999000011000001104, --SNOMED CT United Kingdom drug extension module
-				900000000000012004, --SNOMED CT model component
-				999000021000001108 	--SNOMED CT United Kingdom drug extension reference set module
+                --999000011000001104, --SNOMED CT United Kingdom drug extension module
+                --999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+				900000000000012004 --SNOMED CT model component
 				)
 
 		UNION ALL
@@ -634,7 +652,10 @@ WITH tmp_rel AS (
 					900000000000073002, --Defined
 					900000000000074008 --Primitive
 					)
-			  AND c.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
+			  AND c.moduleid NOT IN (
+                    999000011000001104, --SNOMED CT United Kingdom drug extension module
+                    999000021000001108  --SNOMED CT United Kingdom drug extension reference set module
+                )
 			) st
 		WHERE st.rn = 1
 		)
@@ -694,7 +715,10 @@ WITH attr_rel AS (
 			FROM sources.sct2_rela_full_merged r
 			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
             WHERE
-                r.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
+                r.moduleid NOT IN (
+                    999000011000001104, --UK Drug extension
+                    999000021000001108  --UK Drug extension reference set module
+                )
 			) AS s0
 		WHERE rn = 1
 			AND active = 1
@@ -1099,7 +1123,7 @@ FROM (
 			)
             AND sc.moduleid not in (
                 999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
-                999000011000001104 --SNOMED CT United Kingdom drug extension module
+                999000011000001104  --SNOMED CT United Kingdom drug extension module
             )
 	) sn
 LEFT JOIN concept_stage cs ON -- for valid_end_date
@@ -1566,7 +1590,10 @@ JOIN (
 		AND x.invalid_reason IS NULL
 	WHERE
 	    r.typeid = 116680003 -- Is a
-    AND r.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
+    AND r.moduleid NOT IN (
+            999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+            999000011000001104  --SNOMED CT United Kingdom drug extension module
+        )
 	) m ON m.sourceid::TEXT = s1.concept_code
 	AND m.effectivetime = m.maxeffectivetime
 JOIN snomed_ancestor a ON m.destinationid = a.descendant_concept_code
@@ -1879,7 +1906,10 @@ WITH concept_status AS (
 					PARTITION BY id ORDER BY effectivetime DESC
 					) AS rn
 			FROM sources.sct2_concept_full_merged c
-			WHERE c.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
+			WHERE c.moduleid NOT IN (
+                    999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+                    999000011000001104 --SNOMED CT United Kingdom drug extension module
+                    )
 			) AS s0
 		WHERE rn = 1
 
@@ -1902,7 +1932,10 @@ WITH concept_status AS (
 			WHERE
                     d.active = 1
                 AND d.typeid = 900000000000003001 -- FSN
-                AND d.moduleid != 999000011000001104 --SNOMED CT United Kingdom drug extension module
+                AND d.moduleid NOT IN (
+                    999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+                    999000011000001105 --SNOMED CT United Kingdom drug extension module
+                )
 			) AS s0
 		WHERE rn = 1
 		),

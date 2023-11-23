@@ -52,7 +52,7 @@ concept_name,
 'Observation' AS domain_id,
 'PPI' AS vocabulary_id,
 'Answer' AS concept_class_id,
-null AS source_standard_concept,
+'S' AS source_standard_concept,
 concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
@@ -97,7 +97,7 @@ concept_name,
 'Observation' AS domain_id,
 'PPI' AS vocabulary_id,
 'Answer' AS concept_class_id,
-null AS source_standard_concept,
+'S' AS source_standard_concept,
 concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
@@ -198,11 +198,6 @@ WHERE target_concept_id is not null;
 UPDATE concept_manual
 SET standard_concept = NULL
 WHERE concept_code in (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id = 'Maps to');
-
--- Make S those without mapping
-UPDATE concept_manual
-SET standard_concept = 'S'
-WHERE concept_code in (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id != 'Maps to');
 
 -- 4. insert concept synonyms from manual file
 

@@ -959,3 +959,4 @@ AND crm1.vocabulary_id_1 = crm2.vocabulary_id_2
 AND crm2.vocabulary_id_1 = crm1.vocabulary_id_2
 AND crm1.vocabulary_id_1 IN (:your_vocabs)
 ORDER BY crm1.concept_code_1;
+

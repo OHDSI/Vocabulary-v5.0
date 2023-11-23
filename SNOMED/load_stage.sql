@@ -145,23 +145,28 @@ WHERE
 ANALYSE concept_stage;
 ;
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
-WITH inactive
+WITH last_active
 AS (
-	SELECT c.id,
-		MAX(c.effectivetime) AS effectiveend
+	SELECT
+	    c.id,
+	    c.effectivetime,
+	    c.active,
+		ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY c.effectivetime DESC) AS rn
 	FROM sources.sct2_concept_full_merged c
-	LEFT JOIN sources.sct2_concept_full_merged c2 ON --ignore all entries before latest one with active = 1
-		c2.active = 1
-		AND c.id = c2.id
-		AND c.effectivetime < c2.effectivetime
-	WHERE
-	    c2.id IS NULL
-    AND c.active = 0
-    AND c.moduleid NOT IN (
+    WHERE c.moduleid NOT IN (
        999000011000001104, --UK Drug extension
        999000021000001108  --UK Drug extension reference set module
     )
-    GROUP BY c.id)
+),
+inactive AS (
+    SELECT DISTINCT
+        id,
+        effectivetime as effectiveend
+    FROM last_active
+    WHERE
+            rn = 1
+        AND active = 0
+)
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
 	valid_end_date = TO_DATE(i.effectiveend, 'yyyymmdd')

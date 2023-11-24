@@ -288,3 +288,267 @@ LEFT JOIN non_uk_replacements ON -- Not duplicated by a "good" replacement
 WHERE
         non_uk_replacements.refsetid IS NULL
     AND cs.vocabulary_id = 'SNOMED'
+;
+-- 5. Make sure concept_manual does not add non-deprecated concepts exclusive to UKDE
+WITH last_non_uk_active AS (
+    SELECT
+        c.id,
+        first_value(c.active) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
+    FROM sources.sct2_concept_full_merged c
+    WHERE moduleid NOT IN (
+                           999000011000001104, --UK Drug extension
+                           999000021000001108  --UK Drug extension reference set module
+        )
+),
+killed_by_intl AS (
+    SELECT id
+    FROM last_non_uk_active
+    WHERE active = 0
+),
+current_module AS (
+    SELECT
+        c.id,
+        first_value(moduleid) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
+    FROM sources.sct2_concept_full_merged c
+)
+SELECT *
+FROM concept_manual c
+JOIN current_module cm ON
+        cm.id :: text = c.concept_code
+    AND cm.moduleid IN (
+        999000011000001104, --UK Drug extension
+        999000021000001108  --UK Drug extension reference set module
+    )
+LEFT JOIN killed_by_intl ki ON
+    ki.id = cm.id
+WHERE
+        ki.id IS NULL
+    AND c.vocabulary_id = 'SNOMED'
+    AND c.invalid_reason IS NULL
+;
+-- 6. Make sure concept_relationship_manual does not add non-deprecated relationships exclusive to UKDE
+WITH last_non_uk_active AS (
+    SELECT
+        c.id,
+        first_value(c.active) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
+    FROM sources.sct2_concept_full_merged c
+    WHERE moduleid NOT IN (
+             99000011000001104, --UK Drug extension
+             99000021000001108  --UK Drug extension reference set module
+        )
+),
+killed_by_intl AS (
+    SELECT id
+    FROM last_non_uk_active
+    WHERE active = 0
+),
+current_module AS (
+    SELECT
+        c.id,
+        first_value(moduleid) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
+    FROM sources.sct2_concept_full_merged c
+)
+SELECT cm.id, concept_relationship_manual.*
+FROM concept_relationship_manual
+JOIN current_module cm ON
+        (
+            (
+                cm.id :: text = concept_code_1
+                AND vocabulary_id_1 = 'SNOMED'
+            )
+                OR
+            (
+                    cm.id :: text = concept_code_2
+                AND concept_code_2 = 'SNOMED'
+            )
+        )
+    AND cm.moduleid IN (
+        999000011000001104, --UK Drug extension
+        999000021000001108  --UK Drug extension reference set module
+    )
+LEFT JOIN killed_by_intl ki ON
+    ki.id = cm.id
+WHERE
+        ki.id IS NULL
+    AND concept_relationship_manual.invalid_reason IS NULL
+    AND 'SNOMED' IN (vocabulary_id_1, vocabulary_id_2)
+;
+-- Get counts:
+CREATE OR REPLACE VIEW ukde_ghosts AS
+WITH last_non_uk_active AS (
+    SELECT
+        c.id,
+        first_value(c.active) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
+    FROM sources.sct2_concept_full_merged c
+    WHERE moduleid NOT IN (
+           999000011000001104, --UK Drug extension
+           999000021000001108  --UK Drug extension reference set module
+        )
+),
+belongs_to_uk_module AS (
+    SELECT
+        c.id,
+        first_value(moduleid) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
+    FROM sources.sct2_concept_full_merged c
+    LEFT JOIN last_non_uk_active na ON
+        na.id = c.id AND
+        na.active = 0
+    WHERE
+            c.moduleid IN (
+                999000011000001104, --UK Drug extension
+                999000021000001108  --UK Drug extension reference set module
+            )
+    AND na.id IS NULL
+)
+SELECT c.*
+FROM devv5.concept c
+JOIN belongs_to_uk_module b ON
+        b.id :: text = c.concept_code
+    AND c.vocabulary_id = 'SNOMED'
+;
+--1. Count of invalid concepts in UK Drug extension
+SELECT count(1) as cnt, 'Total invalid concepts' as lbl, 'Invalid' as shorthand
+FROM ukde_ghosts c
+WHERE c.invalid_reason IS NOT NULL
+    UNION ALL
+--2. Total count of concepts in Drug domain
+SELECT count(1), 'Total concepts in Drug domain', 'Drug'
+FROM ukde_ghosts c
+WHERE
+        c.domain_id = 'Drug'
+    AND c.invalid_reason IS NULL
+
+    UNION ALL
+    --2.1. Among them, matching dm+d concepts
+SELECT
+    count(1),
+    'Total concepts in Drug domain matching dm+d concepts',
+    'Drug/dmd now'
+FROM ukde_ghosts c
+JOIN devv5.concept dm ON
+        dm.concept_code = c.concept_code
+    AND dm.vocabulary_id = 'dm+d'
+WHERE
+        c.domain_id = 'Drug'
+    AND c.invalid_reason IS NULL
+
+    UNION ALL
+    --2.2. Among them, matching dm+d sources, but not existing concepts
+SELECT
+    count(DISTINCT c.concept_code),
+    'Total concepts in Drug domain matching dm+d '||
+        'sources, but not existing concepts',
+    'Drug/dmd next'
+FROM ukde_ghosts c
+LEFT JOIN devv5.concept dm ON
+        dm.concept_code = c.concept_code
+    AND dm.vocabulary_id = 'dm+d'
+JOIN (
+        SELECT vtmid as id from vtms
+            UNION ALL
+        SELECT isid FROM ingredient_substances
+            UNION ALL
+        SELECT vpid FROM vmps
+            UNION ALL
+        SELECT apid FROM amps
+            UNION ALL
+        SELECT vppid FROM vmpps
+            UNION ALL
+        SELECT appid FROM ampps
+    ) dm_sources ON
+        dm_sources.id = c.concept_code
+WHERE
+        c.domain_id = 'Drug'
+    AND c.invalid_reason IS NULL
+    AND dm.concept_code IS NULL
+        UNION ALL
+--3. Total count of concepts in Device domain matching dm+d concepts -- Standard
+SELECT
+    count(1),
+    'Standard concepts in Device domain matching dm+d concepts',
+    'Device/dmd_standard'
+FROM ukde_ghosts c
+JOIN devv5.concept dm ON
+        dm.concept_code = c.concept_code
+    AND dm.vocabulary_id = 'dm+d'
+WHERE
+        c.domain_id = 'Device'
+    AND c.invalid_reason IS NULL
+    AND c.standard_concept = 'S'
+        UNION ALL
+--4. Total count of concepts in Device domain matching dm+d concepts -- Non-standard
+SELECT
+    count(1),
+    'Non-standard concepts in Device domain matching dm+d concepts',
+    'Device/dmd_nonstandard'
+FROM ukde_ghosts c
+JOIN devv5.concept dm ON
+        dm.concept_code = c.concept_code
+    AND dm.vocabulary_id = 'dm+d'
+WHERE
+        c.domain_id = 'Device'
+    AND c.invalid_reason IS NULL
+    AND c.standard_concept IS NULL
+        UNION ALL
+--5. Total count of concepts in Device domain that are not in dm+d, but have dm+d sources
+SELECT
+    count(DISTINCT c.concept_code),
+    'Total concepts in Device domain that are not in dm+d, but have dm+d sources',
+    'Device/dmd_next'
+FROM ukde_ghosts c
+         LEFT JOIN devv5.concept dm ON
+            dm.concept_code = c.concept_code
+        AND dm.vocabulary_id = 'dm+d'
+         JOIN (
+    SELECT vtmid as id from vtms
+    UNION ALL
+    SELECT isid FROM ingredient_substances
+    UNION ALL
+    SELECT vpid FROM vmps
+    UNION ALL
+    SELECT apid FROM amps
+    UNION ALL
+    SELECT vppid FROM vmpps
+    UNION ALL
+    SELECT appid FROM ampps
+) dm_sources ON
+        dm_sources.id = c.concept_code
+WHERE
+        c.domain_id = 'Device'
+    AND c.invalid_reason IS NULL
+    AND dm.concept_code IS NULL
+        UNION ALL
+--5. Total count of concepts in Route domain -- Standard
+SELECT
+    count(1),
+    'Standard concepts in Route domain',
+    'Metadata/Standard Route'
+FROM ukde_ghosts c
+WHERE
+        c.domain_id = 'Route'
+    AND c.invalid_reason IS NULL
+    AND c.standard_concept = 'S'
+        UNION ALL
+--6. Total count of concepts in other domains and Non-standard Routes
+SELECT count(1), 'Other domains and Non-standard Routes', 'Metadata/Other'
+FROM ukde_ghosts c
+WHERE
+        c.domain_id NOT IN ('Drug', 'Device')
+    AND (NOT c.domain_id = 'Route' AND c.standard_concept = 'S')
+    AND c.invalid_reason IS NULL
+        UNION ALL
+--7. Devices total count
+SELECT count(1), 'Total concepts in Device domain', 'Device'
+FROM ukde_ghosts c
+WHERE
+        c.domain_id = 'Device'
+    AND c.invalid_reason IS NULL
+;
+DROP VIEW IF EXISTS ukde_ghosts
+;

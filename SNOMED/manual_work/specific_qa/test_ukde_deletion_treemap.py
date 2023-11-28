@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import squarify
 import pandas as pd
-import numpy as np
 
 CATEGORY_CSS_COLORS: dict[str, list[str]] = {
         # Shades of dark grey for Invalid
@@ -15,11 +14,11 @@ CATEGORY_CSS_COLORS: dict[str, list[str]] = {
         "Metadata": ["#00FF00", "#00EE00", "#00DD00", "#00CC00", "#00BB00"],
     }
 
-cnt = str
+cnt = int
 lbl = str
 shorthand = str
 
-DATA: list[list[cnt, lbl, shorthand]] = [
+DATA = [
         [139515,"Total invalid concepts","Invalid"],
         [179276,"Total concepts in Drug domain","Drug"],
         [176623,"Total concepts in Drug domain matching dm+d concepts","Drug/dmd now"],
@@ -47,7 +46,7 @@ rows: list[dict[str, str | int]] = []
 for category in categories:
     if (
         categories_subcategories[category] and
-        not 'Other' in categories_subcategories[category]
+        'Other' not in categories_subcategories[category]
     ):
         categories_subcategories[category].append('Other')
         cnt_total, lbl_total = df.loc[
@@ -79,10 +78,9 @@ print(df[["Label", "Count"]].to_markdown(index=False))
 
 # Assign colors to Shorthands by Category
 _colors_copy = CATEGORY_CSS_COLORS.copy()
-colors: dict[str, str] = {
+colors = {
         row["Shorthand"]: _colors_copy[row["Shorthand"].split('/')[0]].pop()
         for _, row in df.iterrows()
-
     }
 
 df.sort_values(by=["Count"], inplace=True, ascending=False)
@@ -103,3 +101,4 @@ plt.show()
 
 # Export as navigable SVG
 fig.savefig("ukde_deletion_treemap.svg", format="svg", bbox_inches="tight")
+

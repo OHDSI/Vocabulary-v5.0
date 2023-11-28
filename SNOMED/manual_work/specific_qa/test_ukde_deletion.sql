@@ -378,7 +378,6 @@ WHERE
     AND 'SNOMED' IN (vocabulary_id_1, vocabulary_id_2)
 ;
 -- Get counts:
-CREATE OR REPLACE VIEW ukde_ghosts AS
 WITH last_non_uk_active AS (
     SELECT
         c.id,
@@ -405,13 +404,14 @@ belongs_to_uk_module AS (
                 999000021000001108  --UK Drug extension reference set module
             )
     AND na.id IS NULL
+),
+ukde_ghosts AS (
+    SELECT c.*
+    FROM devv5.concept c
+    JOIN belongs_to_uk_module b ON
+            b.id :: TEXT = c.concept_code
+        AND c.vocabulary_id = 'SNOMED'
 )
-SELECT c.*
-FROM devv5.concept c
-JOIN belongs_to_uk_module b ON
-        b.id :: text = c.concept_code
-    AND c.vocabulary_id = 'SNOMED'
-;
 --1. Count of invalid concepts in UK Drug extension
 SELECT count(1) as cnt, 'Total invalid concepts' as lbl, 'Invalid' as shorthand
 FROM ukde_ghosts c

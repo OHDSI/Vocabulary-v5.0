@@ -1816,6 +1816,8 @@ SET standard_concept = CASE domain_id
 			THEN NULL -- got own Type Concept domain
 		WHEN 'Unit'
 			THEN NULL -- Units are UCUM
+		WHEN 'Route'
+		    THEN NULL -- Routes are community contributed
 		ELSE 'S'
 		END
 WHERE cs.invalid_reason IS NULL

@@ -1,6 +1,9 @@
 /*
- * Apply this script to a clean schema to get stage tables that could be applied
- * as a patch before running SNOMED's load_stage.sql.
+ * Apply this script to a clean* schema to get stage tables that could be
+ applied as a patch before running SNOMED's load_stage.sql.
+
+ * -- vmps, amps, ampps etc. must be created from fresh sources! Execute
+ dmd/load_stage.sql up until line #510.
  */
 
 --1. Create views of rows to be affected
@@ -201,4 +204,34 @@ LEFT JOIN concept_relationship_stage crs ON
 WHERE crs.concept_code_1 IS NULL
 --This should make a 0 rows insert, unless concept_relationship_manual is
 --affecting this
+;
+
+--3. "Steal" SNOMED concepts that will appear in the new release through
+-- concept table surgery
+--3.1. Create a table of SNOMED concepts that will be affected
+DROP TABLE IF EXISTS snomed_concepts_to_steal;
+CREATE TABLE snomed_concepts_to_steal AS
+SELECT DISTINCT
+    c.concept_id
+FROM devv5.concept c
+JOIN (
+    SELECT vtmid as id from vtms
+        UNION ALL
+    SELECT isid FROM ingredient_substances
+        UNION ALL
+    SELECT vpid FROM vmps
+        UNION ALL
+    SELECT apid FROM amps
+        UNION ALL
+    SELECT vppid FROM vmpps
+        UNION ALL
+    SELECT appid FROM ampps
+) dm_sources ON
+        c.concept_code = dm_sources.id
+    AND c.vocabulary_id = 'SNOMED'
+--Not present in current release of dm+d
+LEFT JOIN devv5.concept d ON
+        d.concept_code = c.concept_code
+    AND d.vocabulary_id = 'dm+d'
+WHERE d.concept_id IS NULL
 ;

@@ -1,4 +1,7 @@
---Warning: this script must be executed by user with an access to dev_dmd schema
+/*
+ * Apply this script to a clean schema to get stage tables that could be applied
+ * as a patch before running SNOMED's load_stage.sql.
+ */
 
 --1. Create views of rows to be affected
 --1.1. Create view of manual mappings missing from dm+d
@@ -15,9 +18,15 @@ JOIN devv5.concept cd ON
     cd.vocabulary_id = 'dm+d' AND
     cd.concept_code = cm1.concept_code_1
 LEFT JOIN dev_dmd.concept_relationship_manual cm2 ON
+-- We are only interested in mappings that are:
+--  1. From the same concept code
+--  2. Active
+-- Actual mapping target is unimportant, SNOMED always
+-- loses in this case.
         cm2.concept_code_1 = cm1.concept_code_1
     AND cm2.vocabulary_id_1 = 'dm+d'
     AND cm2.relationship_id = 'Maps to'
+    AND cm2.invalid_reason IS NULL
 WHERE
         cm1.vocabulary_id_1 = 'SNOMED'
     AND cm1.vocabulary_id_2 != 'SNOMED'
@@ -25,7 +34,7 @@ WHERE
     AND cm2.concept_code_1 IS NULL
     AND cm1.invalid_reason IS NULL
 ;
-INSERT INTO dev_dmd.concept_relationship_manual (
+INSERT INTO concept_relationship_manual (
     concept_code_1,
     concept_code_2,
     vocabulary_id_1,
@@ -82,9 +91,9 @@ LEFT JOIN devv5.concept c3 ON
 ;
 --2. Fill the stage tables
 --2.1. Prepare stage tables
-TRUNCATE dev_dmd.concept_stage;
-TRUNCATE dev_dmd.concept_relationship_stage;
-TRUNCATE dev_dmd.concept_synonym_stage;
+TRUNCATE concept_stage;
+TRUNCATE concept_relationship_stage;
+TRUNCATE concept_synonym_stage;
 
 --2.2. Populate the concept_stage with affected concepts only
 INSERT INTO dev_dmd.concept_stage (
@@ -114,7 +123,7 @@ FROM dmd_mapped_to_snomed d
 JOIN concept c USING (concept_id)
 ;
 --2.3. Populate the concept_relationship_stage with new correct mappings only
-INSERT INTO dev_dmd.concept_relationship_stage (
+INSERT INTO concept_relationship_stage (
     concept_code_1,
     concept_code_2,
     vocabulary_id_1,
@@ -137,7 +146,7 @@ SELECT DISTINCT
     'Maps to' AS relationship_id,
     to_date('01-11-2023', 'DD-MM-YYYY') AS valid_start_date,
     to_date('31-12-2099', 'DD-MM-YYYY') AS valid_end_date
-FROM dev_dmd.concept_stage cs
+FROM concept_stage cs
 JOIN dmd_mapped_to_snomed dmts ON
     cs.concept_id = dmts.concept_id
 -- Join to replacement concept does it map anywhere?
@@ -155,7 +164,7 @@ WHERE (
 )
 ;
 --2.4. Explicitly deprecate old existing mappings
-INSERT INTO dev_dmd.concept_relationship_stage (
+INSERT INTO concept_relationship_stage (
     concept_code_1,
     concept_code_2,
     vocabulary_id_1,
@@ -183,7 +192,7 @@ JOIN devv5.concept_relationship r ON
 JOIN devv5.concept t ON
     t.concept_id = r.concept_id_2
 --Unless somehow reinforced by a new mapping
-LEFT JOIN dev_dmd.concept_relationship_stage crs ON
+LEFT JOIN concept_relationship_stage crs ON
         crs.concept_code_1 = c.concept_code
     AND crs.concept_code_2 = t.concept_code
     AND crs.vocabulary_id_1 = 'dm+d'

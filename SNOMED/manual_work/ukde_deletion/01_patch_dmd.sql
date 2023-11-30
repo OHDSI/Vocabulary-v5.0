@@ -211,9 +211,42 @@ WHERE crs.concept_code_1 IS NULL
 --3.1. Create a table of SNOMED concepts that will be affected
 DROP TABLE IF EXISTS snomed_concepts_to_steal;
 CREATE TABLE snomed_concepts_to_steal AS
+--Marginal case: what if the concept is stolen by UK?
+--If this is the case, it should be excluded from transfer, as
+--SNOMED run will restore it's original module
+WITH last_non_uk_active AS (
+    SELECT
+        c.id,
+        first_value(c.active) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
+    FROM sources.sct2_concept_full_merged c
+    WHERE moduleid NOT IN (
+        999000011000001104, --UK Drug extension
+        999000021000001108  --UK Drug extension reference set module
+    )
+),
+killed_by_intl AS (
+    SELECT id
+    FROM last_non_uk_active
+    WHERE active = 0
+),
+current_module AS (
+    SELECT
+        c.id,
+        first_value(moduleid) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
+    FROM sources.sct2_concept_full_merged c
+)
 SELECT DISTINCT
     c.concept_id
 FROM devv5.concept c
+JOIN current_module cm ON
+        c.concept_code = cm.id :: text
+    AND cm.moduleid IN (
+        999000011000001104, --UK Drug extension
+        999000021000001108  --UK Drug extension reference set module
+    )
+    AND c.vocabulary_id = 'SNOMED'
 JOIN (
     SELECT vtmid as id from vtms
         UNION ALL
@@ -233,5 +266,64 @@ JOIN (
 LEFT JOIN devv5.concept d ON
         d.concept_code = c.concept_code
     AND d.vocabulary_id = 'dm+d'
-WHERE d.concept_id IS NULL
+--Not killed by international release
+LEFT JOIN killed_by_intl k ON
+    k.id = c.concept_code
+WHERE
+        d.concept_id IS NULL
+    AND c.invalid_reason IS NULL
 ;
+--3.2. Deprecate all existing relationships -- unless it is an external Maps to
+INSERT INTO concept_relationship_stage (
+    concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason
+)
+SELECT
+    c.concept_code AS concept_code_1,
+    c2.concept_code AS concept_code_2,
+    --'SNOMED' AS vocabulary_id_1,
+    'dm+d' AS vocabulary_id_1,
+    c2.vocabulary_id AS vocabulary_id_2,
+    r.relationship_id AS relationship_id,
+    r.valid_start_date AS valid_start_date,
+    to_date('31-10-2023', 'DD-MM-YYYY') AS valid_end_date,
+    'D' AS invalid_reason
+FROM devv5.concept_relationship r
+JOIN devv5.concept c ON
+    c.concept_id = r.concept_id_1
+JOIN devv5.concept c2 ON
+    c2.concept_id = r.concept_id_2
+JOIN snomed_concepts_to_steal s ON
+    s.concept_id = c.concept_id
+LEFT JOIN snomed_concepts_to_steal s2 ON
+    s2.concept_id = c2.concept_id
+WHERE
+        NOT (
+                r.relationship_id = 'Maps to'
+            AND s2.concept_id IS NOT NULL
+        )
+    AND r.invalid_reason IS NULL
+;
+--TODO: Find a place for this step with Timur V.
+--3.3. Steal the concepts!
+UPDATE concept c SET
+    vocabulary_id = 'dm+d',
+    invalid_reason = 'D',
+    standard_concept = NULL,
+    valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY'),
+    valid_start_date = CASE
+        WHEN valid_start_date >= to_date('31-10-2023', 'DD-MM-YYYY')
+            THEN to_date('01-01-1970', 'DD-MM-YYYY')
+        ELSE valid_start_date
+    END
+FROM snomed_concepts_to_steal s
+WHERE
+        c.concept_id = s.concept_id
+;
+DROP TABLE snomed_concepts_to_steal;

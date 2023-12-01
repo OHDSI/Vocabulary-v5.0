@@ -8,8 +8,8 @@
 
 --1. Create views of rows to be affected
 --1.1. Create view of manual mappings missing from dm+d
-DROP VIEW IF EXISTS dmd_missing_mappings_vacc;
-CREATE OR REPLACE VIEW dmd_missing_mappings_vacc AS
+DROP TABLE IF EXISTS dmd_missing_mappings_vacc;
+CREATE TABLE dmd_missing_mappings_vacc AS
 SELECT
     cm1.concept_code_1,
     cm1.concept_code_2,
@@ -20,7 +20,7 @@ FROM dev_snomed.concept_relationship_manual cm1
 JOIN devv5.concept cd ON
     cd.vocabulary_id = 'dm+d' AND
     cd.concept_code = cm1.concept_code_1
-LEFT JOIN dev_dmd.concept_relationship_manual cm2 ON
+LEFT JOIN concept_relationship_manual cm2 ON
 -- We are only interested in mappings that are:
 --  1. From the same concept code
 --  2. Active
@@ -56,7 +56,7 @@ SELECT
     to_date('31-12-2099', 'DD-MM-YYYY')
 FROM dmd_missing_mappings_vacc dv
 ;
-DROP VIEW dmd_missing_mappings_vacc;
+DROP TABLE dmd_missing_mappings_vacc;
 
 --1.2. Create table of concept codes (Devices) that currently map to SNOMED
 DROP TABLE IF EXISTS dmd_mapped_to_snomed;
@@ -84,7 +84,7 @@ LEFT JOIN devv5.concept_relationship r2 ON
     AND r2.relationship_id = 'Concept replaced by'
 -- Also check for replacement in source dm+d VMPs table, if
 -- one not provided explicitly
-LEFT JOIN dev_dmd.vmps v ON
+LEFT JOIN vmps v ON
         r2.concept_id_2 is NULL
     AND v.vpidprev = c.concept_code
 
@@ -99,7 +99,7 @@ TRUNCATE concept_relationship_stage;
 TRUNCATE concept_synonym_stage;
 
 --2.2. Populate the concept_stage with affected concepts only
-INSERT INTO dev_dmd.concept_stage (
+INSERT INTO concept_stage (
     concept_id,
     concept_name,
     domain_id,
@@ -120,7 +120,10 @@ SELECT
     CASE WHEN d.invalid_reason IS NULL THEN 'S' END AS standard_concept,
     c.concept_code,
     c.valid_start_date,
-    to_date('31-12-2099', 'DD-MM-YYYY') AS valid_end_date,
+    CASE
+        WHEN d.invalid_reason IS NULL THEN to_date('31-12-2099', 'DD-MM-YYYY')
+        ELSE to_date('31-10-2023', 'DD-MM-YYYY')
+    END AS valid_end_date,
     d.invalid_reason
 FROM dmd_mapped_to_snomed d
 JOIN concept c USING (concept_id)
@@ -183,8 +186,8 @@ SELECT
     'dm+d' AS vocabulary_id_1,
     t.vocabulary_id AS vocabulary_id_2,
     'Maps to' AS relationship_id,
-    to_date('01-11-2023', 'DD-MM-YYYY') AS valid_start_date,
-    to_date('31-12-2099', 'DD-MM-YYYY') AS valid_end_date,
+    r.valid_start_date,
+    to_date('31-10-2023', 'DD-MM-YYYY') AS valid_end_date,
     'D' AS invalid_reason
 FROM dmd_mapped_to_snomed dm
 JOIN devv5.concept c USING (concept_id)
@@ -210,16 +213,27 @@ WHERE crs.concept_code_1 IS NULL
 -- concept table surgery
 --3.1. Create a table of SNOMED concepts that will be affected
 DROP TABLE IF EXISTS snomed_concepts_to_steal;
+DROP VIEW IF EXISTS indexed_moduleid_concept;
+CREATE MATERIALIZED VIEW indexed_moduleid_concept AS
+SELECT
+    id,
+    moduleid,
+    active,
+    effectivetime
+FROM sources.sct2_concept_full_merged;
+CREATE INDEX ON indexed_moduleid_concept (moduleid, effectivetime DESC);
+CREATE INDEX ON indexed_moduleid_concept (id, effectivetime DESC);
+ANALYSE indexed_moduleid_concept;
 CREATE TABLE snomed_concepts_to_steal AS
 --Marginal case: what if the concept is stolen by UK?
 --If this is the case, it should be excluded from transfer, as
 --SNOMED run will restore it's original module
 WITH last_non_uk_active AS (
     SELECT
-        c.id,
-        first_value(c.active) OVER
-            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
-    FROM sources.sct2_concept_full_merged c
+        sc.id,
+        first_value(sc.active) OVER
+            (PARTITION BY sc.id ORDER BY effectivetime DESC) AS active
+    FROM indexed_moduleid_concept sc
     WHERE moduleid NOT IN (
         999000011000001104, --UK Drug extension
         999000021000001108  --UK Drug extension reference set module
@@ -235,7 +249,7 @@ current_module AS (
         c.id,
         first_value(moduleid) OVER
             (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
-    FROM sources.sct2_concept_full_merged c
+    FROM indexed_moduleid_concept c
 )
 SELECT DISTINCT
     c.concept_id
@@ -268,62 +282,10 @@ LEFT JOIN devv5.concept d ON
     AND d.vocabulary_id = 'dm+d'
 --Not killed by international release
 LEFT JOIN killed_by_intl k ON
-    k.id = c.concept_code
+    k.id :: text = c.concept_code
 WHERE
         d.concept_id IS NULL
     AND c.invalid_reason IS NULL
 ;
---3.2. Deprecate all existing relationships -- unless it is an external Maps to
-INSERT INTO concept_relationship_stage (
-    concept_code_1,
-    concept_code_2,
-    vocabulary_id_1,
-    vocabulary_id_2,
-    relationship_id,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason
-)
-SELECT
-    c.concept_code AS concept_code_1,
-    c2.concept_code AS concept_code_2,
-    --'SNOMED' AS vocabulary_id_1,
-    'dm+d' AS vocabulary_id_1,
-    c2.vocabulary_id AS vocabulary_id_2,
-    r.relationship_id AS relationship_id,
-    r.valid_start_date AS valid_start_date,
-    to_date('31-10-2023', 'DD-MM-YYYY') AS valid_end_date,
-    'D' AS invalid_reason
-FROM devv5.concept_relationship r
-JOIN devv5.concept c ON
-    c.concept_id = r.concept_id_1
-JOIN devv5.concept c2 ON
-    c2.concept_id = r.concept_id_2
-JOIN snomed_concepts_to_steal s ON
-    s.concept_id = c.concept_id
-LEFT JOIN snomed_concepts_to_steal s2 ON
-    s2.concept_id = c2.concept_id
-WHERE
-        NOT (
-                r.relationship_id = 'Maps to'
-            AND s2.concept_id IS NOT NULL
-        )
-    AND r.invalid_reason IS NULL
+DROP MATERIALIZED VIEW indexed_moduleid_concept
 ;
---TODO: Find a place for this step with Timur V.
---3.3. Steal the concepts!
-UPDATE concept c SET
-    vocabulary_id = 'dm+d',
-    invalid_reason = 'D',
-    standard_concept = NULL,
-    valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY'),
-    valid_start_date = CASE
-        WHEN valid_start_date >= to_date('31-10-2023', 'DD-MM-YYYY')
-            THEN to_date('01-01-1970', 'DD-MM-YYYY')
-        ELSE valid_start_date
-    END
-FROM snomed_concepts_to_steal s
-WHERE
-        c.concept_id = s.concept_id
-;
-DROP TABLE snomed_concepts_to_steal;

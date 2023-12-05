@@ -7,50 +7,6 @@
 --2. Add replacement relationships for retired concepts
 -- We assume that dm+d is in fixed state by now, including taking
 -- ownership of the UK Drug Extension module concepts where relevant.
---2.1. Table of retired concepts
-DROP TABLE IF EXISTS retired_concepts;
-CREATE TABLE retired_concepts AS
-WITH last_non_uk_active AS (
-    SELECT
-        c.id,
-        first_value(c.active) OVER
-            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
-    FROM sources.sct2_concept_full_merged c
-    WHERE moduleid NOT IN (
-           999000011000001104, --UK Drug extension
-           999000021000001108  --UK Drug extension reference set module
-        )
-),
-killed_by_intl AS (
-    SELECT id
-    FROM last_non_uk_active
-    WHERE active = 0
-),
-current_module AS (
-    SELECT
-        c.id,
-        first_value(moduleid) OVER
-            (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
-    FROM sources.sct2_concept_full_merged c
-)
-SELECT DISTINCT
-    c.concept_id
-FROM concept c
-JOIN current_module cm ON
-        c.concept_code = cm.id :: text
-    AND cm.moduleid IN (
-        999000011000001104, --UK Drug extension
-        999000021000001108  --UK Drug extension reference set module
-    )
-    AND c.vocabulary_id = 'SNOMED'
---Not killed by international release
---Concepts here are expected to be "recovered" by their original
---module and deprecated normally.
-LEFT JOIN killed_by_intl k ON
-    k.id = c.concept_code
-WHERE
-    k.id IS NULL
-;
 --2.2. Deprecate existing relationships except for external "Maps to"
 INSERT INTO concept_relationship_stage (
     concept_code_1,
@@ -84,9 +40,19 @@ LEFT JOIN retired_concepts r2 ON
 WHERE
     NOT (
             r.relationship_id = 'Maps to'
-        AND r2.concept_id IS NOT NULL
+        AND r2.concept_id IS NULL
     )
+ON CONFLICT ON CONSTRAINT idx_pk_crs
+    DO UPDATE
+    SET
+        invalid_reason = 'D',
+        valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY')
 ;
+ALTER TABLE retired_concepts ADD PRIMARY KEY (concept_id);
+ALTER TABLE retired_concepts ADD FOREIGN KEY (concept_id)
+    REFERENCES concept (concept_id);
+ANALYSE retired_concepts;
+
 --2.3. Delete all staged relationships except for external "Maps to" and
 -- possible external replacements
 DELETE FROM concept_relationship_stage crs
@@ -152,6 +118,7 @@ JOIN concept dmd ON
     AND c.vocabulary_id = 'SNOMED'
 LEFT JOIN concept_relationship rep ON
         dmd.invalid_reason = 'U'
+    AND dmd.concept_id = rep.concept_id_1
     AND rep.relationship_id = 'Concept replaced by'
     AND rep.invalid_reason IS NULL
 LEFT JOIN concept dmd2 ON
@@ -164,6 +131,11 @@ LEFT JOIN concept_relationship_stage crs ON
     AND crs.relationship_id = 'Concept replaced by'
 WHERE
     crs.concept_code_1 IS NULL
+ON CONFLICT ON CONSTRAINT idx_pk_crs
+    DO UPDATE
+    SET
+        invalid_reason = 'D',
+        valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY')
 ;
 --2.5. Add Maps to from replaced by
 SELECT vocabulary_pack.addFreshMapsTo();

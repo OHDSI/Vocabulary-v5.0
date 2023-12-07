@@ -9,7 +9,8 @@ def _main(
     Return all versions combos of each module
 so that they can form a valid graph.
     """
-    from typing import Set, List, Tuple, Dict, Generator, Union
+    from functools import lru_cache
+    from typing import Set, List, Tuple, Dict, Generator
     # Helper types:
     Module = str
     Version = str
@@ -36,19 +37,29 @@ so that they can form a valid graph.
             mvs.update(dependencies)
         return mvs
 
-    def _dependencies_fullfilled(_subgraph: VersionedDigraph,
-            node: VersionedModule) -> Set[VersionedDependency]:
-        _mv_dependencies = set(ALL_VERSIONED_GRAPH.get(node, []))
-        fullfilled_dependencies = set(_subgraph.keys())
-        intx = _mv_dependencies.intersection(fullfilled_dependencies)
-        return intx
+    @lru_cache(maxsize=None)
+    def _node_dependencies(node: VersionedModule) -> Set[VersionedDependency]:
+        node_dependencies = set(ALL_VERSIONED_GRAPH.get(node, []))
+        return node_dependencies
+
+    @lru_cache(maxsize=None)
+    def _module_dependencies(module: Module) -> Set[Dependency]:
+        module_dependencies = set(GRAPH.get(module, []))
+        return module_dependencies
 
     def _try_add_node(_subgraph: VersionedDigraph,
             _mv: VersionedModule) -> bool:
         # WARNING: This function mutates!
-        intx = _dependencies_fullfilled(_subgraph, _mv)
-        if intx:
-            _subgraph[_mv] = list(intx)
+        node_dependencies = _node_dependencies(_mv)
+        module_dependencies = _module_dependencies(_mv[0])
+        subgraph_modules = [m for m, _ in _subgraph]
+
+        # Speed hack:
+        #if not module_dependencies.issubset(subgraph_modules):
+        #    return False
+
+        if node_dependencies.issubset(_subgraph):
+            _subgraph[_mv] = list(node_dependencies)
             return True
         return False
 
@@ -102,13 +113,7 @@ so that they can form a valid graph.
         ordered: List[VersionedModule] = [root]
         nodes = set(_subgraph.keys())
         nodes.remove(root)
-        while nodes:
-            for node in nodes:
-                dependencies = _dependencies_fullfilled(_subgraph, node)
-                if dependencies.issubset(set(ordered)):
-                    ordered.append(node)
-                    nodes.remove(node)
-        return ordered
+        raise NotImplementedError
 
     # Parse input graph:
     ALL_VERSIONED_GRAPH: VersionedDigraph = _parse_graph(mv_dependency_graph)
@@ -137,6 +142,7 @@ so that they can form a valid graph.
     if len(_roots) != 1:
         raise ValueError("There should be only one root.")
     root = _roots.pop()
+    print(f"Root: {root}")
 
     def _build_mv_subgraphs() -> List[VersionedDigraph]:
 
@@ -160,7 +166,7 @@ so that they can form a valid graph.
                     for version in unique_modules[module]:
                         if _try_add_node(_subgraph, (module, version)):
                             changes = True
-                        yield from _build_subgraph(_subgraph)
+                            yield from _build_subgraph(_subgraph)
                 if not changes:
                     break
 
@@ -174,4 +180,10 @@ so that they can form a valid graph.
 if __name__ == "__main__":
     with open("graph.csv", "r") as f:
         lines = [line.replace('"', '') for line in f.read().splitlines()]
-    print(_main(lines))
+    import pstats
+    import cProfile
+    with cProfile.Profile() as pr:
+        print(_main(lines))
+    stats = pstats.Stats(pr)
+    stats.sort_stats(pstats.SortKey.TIME)
+    stats.dump_stats("profile.pstats")

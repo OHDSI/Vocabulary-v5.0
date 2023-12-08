@@ -23,7 +23,7 @@ WITH a as (
 SELECT DISTINCT ON (m.id) m.moduleid,
 		TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS local_version,
 		TO_CHAR(m.targeteffectivetime, 'yyyy-mm-dd') AS int_version
-FROM sources.der2_ssrefset_moduledependency_merged m
+FROM sources_archive.der2_ssrefset_moduledependency_merged m
 WHERE m.active = 1
 	AND m.referencedcomponentid = 900000000000012004
 	AND --Model component module; Synthetic target, contains source version in each row
@@ -49,7 +49,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'SNOMED',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.sct2_concept_full_merged LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources_archive.sct2_concept_full_merged LIMIT 1),
 	pVocabularyVersion		=>
 		(SELECT version FROM module_date where moduleid = 900000000000207008) || ' SNOMED CT International Edition; ' ||
 		(SELECT version FROM module_date where moduleid = 731000124108) || ' SNOMED CT US Edition; ' ||
@@ -129,9 +129,9 @@ FROM (
 				l.effectivetime DESC,
 				d.term
 			) AS rn
-	FROM sources.sct2_concept_full_merged c
-	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
-	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
+	FROM sources_archive.sct2_concept_full_merged c
+	JOIN sources_archive.sct2_desc_full_merged d ON d.conceptid = c.id
+	JOIN sources_archive.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
 	) sct2
 WHERE sct2.rn = 1;
 
@@ -140,8 +140,8 @@ WITH inactive
 AS (
 	SELECT c.id,
 		MAX(c.effectivetime) AS effectiveend
-	FROM sources.sct2_concept_full_merged c
-	LEFT JOIN sources.sct2_concept_full_merged c2 ON --ignore all entries before latest one with active = 1
+	FROM sources_archive.sct2_concept_full_merged c
+	LEFT JOIN sources_archive.sct2_concept_full_merged c2 ON --ignore all entries before latest one with active = 1
 		c2.active = 1
 		AND c.id = c2.id
 		AND c.effectivetime < c2.effectivetime
@@ -179,7 +179,7 @@ FROM (
 					ROW_NUMBER() OVER (
 						PARTITION BY concept_code
 						-- order of precedence: active, by class relevance
-						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
+						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources_archive, so this may prevent problems and breaks nothing
 						ORDER BY active DESC,
 							rnb,
 							CASE f7
@@ -306,7 +306,7 @@ FROM (
 									d.effectivetime DESC -- latest active ones
 								) rna -- row number in sct2_desc_full_merged
 						FROM concept_stage c
-						JOIN sources.sct2_desc_full_merged d ON d.conceptid::TEXT = c.concept_code
+						JOIN sources_archive.sct2_desc_full_merged d ON d.conceptid::TEXT = c.concept_code
 						WHERE
 							c.vocabulary_id = 'SNOMED' AND
 							d.typeid = 900000000000003001 -- only Fully Specified Names
@@ -496,7 +496,7 @@ WHERE concept_code in (
 WITH sub AS (
        SELECT conceptid::TEXT AS concept_code,
               SUBSTRING(term, '-(([^-]+).*)$') AS tag
-       FROM sources.sct2_desc_full_merged m
+       FROM sources_archive.sct2_desc_full_merged m
 )
 UPDATE concept_stage c
  SET concept_class_id = (
@@ -511,7 +511,7 @@ WHERE sub.concept_code = c.concept_code
 	AND --Make sure we only affect old concepts and not mask new classes additions
 	EXISTS (
 		SELECT 1
-		FROM sources.sct2_concept_full_merged m
+		FROM sources_archive.sct2_concept_full_merged m
 		WHERE m.id::TEXT = c.concept_code
 			AND m.moduleid = 999000011000001104 --SNOMED CT United Kingdom drug extension module
 		);
@@ -527,7 +527,7 @@ SELECT DISTINCT m.code,
 	'SNOMED',
 	vocabulary_pack.CutConceptSynonymName(m.str),
 	4180186 -- English
-FROM sources.mrconso m
+FROM sources_archive.mrconso m
 JOIN concept_stage s ON s.concept_code = m.code
 WHERE m.sab = 'SNOMEDCT_US'
 	AND m.tty IN (
@@ -559,7 +559,7 @@ FROM (
 		FIRST_VALUE(active) OVER (
 			PARTITION BY id ORDER BY effectivetime DESC
 			) AS active_status
-	FROM sources.sct2_desc_full_merged m
+	FROM sources_archive.sct2_desc_full_merged m
 	) d
 JOIN concept_stage s ON s.concept_code = d.conceptid
 WHERE d.active_status = 1
@@ -588,7 +588,7 @@ WITH tmp_rel AS (
 			moduleid::TEXT AS concept_code_2,
 			'Has Module' AS relationship_id,
 			cs.valid_start_date
-		FROM sources.sct2_concept_full_merged c
+		FROM sources_archive.sct2_concept_full_merged c
 		JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
 			AND cs.vocabulary_id = 'SNOMED'
 		WHERE c.moduleid IN (
@@ -614,7 +614,7 @@ WITH tmp_rel AS (
 				ROW_NUMBER() OVER (
 					PARTITION BY id ORDER BY TO_DATE(effectivetime, 'YYYYMMDD') DESC
 					) rn
-			FROM sources.sct2_concept_full_merged c
+			FROM sources_archive.sct2_concept_full_merged c
 			JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
 				AND cs.vocabulary_id = 'SNOMED'
 			WHERE c.statusid IN (
@@ -677,8 +677,8 @@ WITH attr_rel AS (
 						d.id DESC -- fix for AVOF-650
 					) AS rn, -- get the latest in a sequence of relationships, to decide whether it is still active
 				r.active
-			FROM sources.sct2_rela_full_merged r
-			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
+			FROM sources_archive.sct2_rela_full_merged r
+			JOIN sources_archive.sct2_desc_full_merged d ON d.conceptid = r.typeid
 			) AS s0
 		WHERE rn = 1
 			AND active = 1
@@ -1073,7 +1073,7 @@ FROM (
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid, sc.targetcomponent, sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
-	FROM sources.der2_crefset_assreffull_merged sc
+	FROM sources_archive.der2_crefset_assreffull_merged sc
 	WHERE sc.refsetid IN (
 			900000000000526001,
 			900000000000523009,
@@ -1518,7 +1518,7 @@ WHERE NOT EXISTS (
 		FROM snomed_ancestor x
 		WHERE x.descendant_concept_code::TEXT = s1.concept_code_1
 		)
-AND ccs.concept_class_id = cs.concept_class_id
+--AND ccs.concept_class_id = cs.concept_class_id
 GROUP BY ancestor_concept_code, s1.concept_code_1;
 
 ANALYZE snomed_ancestor;
@@ -1541,7 +1541,7 @@ JOIN (
 			) AS destinationid, --pick one parent at random
 		r.effectivetime,
 		max(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime
-	FROM sources.sct2_rela_full_merged r
+	FROM sources_archive.sct2_rela_full_merged r
 	JOIN concept_stage x ON x.concept_code = r.destinationid::TEXT
 		AND x.invalid_reason IS NULL
 	WHERE r.typeid = 116680003 -- Is a
@@ -1675,9 +1675,12 @@ WHERE concept_name ~* 'score'
 
 --Trim word 'route' from the concepts in 'Route' domain [AVOC-4087]
 UPDATE concept_stage
-SET concept_name = TRIM(TRAILING ' route' FROM concept_name)
+SET concept_name = RTRIM(concept_name, '\s+route')
 WHERE concept_name ~* '\sroute$'
 AND domain_id = 'Route';
+
+UPDATE concept_stage
+SET concept_name = RTRIM(concept_name);
 
 --Fix navigational concepts
 UPDATE concept_stage
@@ -1834,6 +1837,16 @@ SET standard_concept = NULL
 WHERE concept_class_id IN ('Attribute', 'Physical Force', 'Physical Object')
 AND domain_id NOT IN ('Device');
 
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE concept_class_id IN ('Social Context')
+AND NOT EXISTS (
+       SELECT 1 FROM snomed_ancestor sa
+       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
+       AND sa.ancestor_concept_code::TEXT IN ('14679004', -- Occupation
+                                             '108334009') -- Religion AND/OR philosophy
+);
+
 --18.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
@@ -1856,7 +1869,7 @@ WITH concept_status AS (
 				rank() OVER (
 					PARTITION BY id ORDER BY effectivetime DESC
 					) AS rn
-			FROM sources.sct2_concept_full_merged c
+			FROM sources_archive.sct2_concept_full_merged c
 			) AS s0
 		WHERE rn = 1
 
@@ -1873,7 +1886,7 @@ WITH concept_status AS (
 				rank() OVER (
 					PARTITION BY d.conceptid ORDER BY d.effectivetime DESC
 					) AS rn
-			FROM sources.sct2_desc_full_merged d
+			FROM sources_archive.sct2_desc_full_merged d
 			JOIN concept_status a ON a.conceptid = d.conceptid
 				AND a.active = 1
 			WHERE d.active = 1
@@ -2022,6 +2035,11 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
 -- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
@@ -2073,11 +2091,11 @@ WHERE cs.concept_code IN (
 		)
 	AND cs.standard_concept = 'S';
 
---23. Clean up
+/*--23. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
-DROP VIEW module_date;
+DROP VIEW module_date;*/
 
 --24. Need to check domains before running the generic_update
 /*temporary disabled for later use

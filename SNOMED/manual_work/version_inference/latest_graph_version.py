@@ -6,11 +6,11 @@ def _main(
                              # varchar[][], where each element is an array of
                              # strings of the form "module==version"
     """\
-    Return all versions combos of each module
-so that they can form a valid graph.
+    Return all versions combos of each module so
+    that they can form a valid graph.
     """
     from functools import lru_cache
-    from typing import Set, List, Tuple, Dict, Generator
+    from typing import Set, List, Tuple, Dict, Generator, TypeVar
     # Helper types:
     Module = str
     Version = str
@@ -19,6 +19,8 @@ so that they can form a valid graph.
     VersionedDependency = VersionedModule
     Digraph = Dict[Module, List[Dependency]]
     VersionedDigraph = Dict[VersionedModule, List[VersionedDependency]]
+
+    GenericGraph = TypeVar("GenericGraph", Digraph, VersionedDigraph)
 
     #Helper functions:
     def _split_mv(_mv: str) -> VersionedModule:
@@ -39,29 +41,13 @@ so that they can form a valid graph.
 
     @lru_cache(maxsize=None)
     def _node_dependencies(node: VersionedModule) -> Set[VersionedDependency]:
-        node_dependencies = set(ALL_VERSIONED_GRAPH.get(node, []))
+        node_dependencies = set(VERSIONED_GRAPH.get(node, []))
         return node_dependencies
 
     @lru_cache(maxsize=None)
     def _module_dependencies(module: Module) -> Set[Dependency]:
         module_dependencies = set(GRAPH.get(module, []))
         return module_dependencies
-
-    def _try_add_node(_subgraph: VersionedDigraph,
-            _mv: VersionedModule) -> bool:
-        # WARNING: This function mutates!
-        node_dependencies = _node_dependencies(_mv)
-        module_dependencies = _module_dependencies(_mv[0])
-        subgraph_modules = [m for m, _ in _subgraph]
-
-        # Speed hack:
-        #if not module_dependencies.issubset(subgraph_modules):
-        #    return False
-
-        if node_dependencies.issubset(_subgraph):
-            _subgraph[_mv] = list(node_dependencies)
-            return True
-        return False
 
     def _parse_graph(_graph: List[str]) -> VersionedDigraph:
         edges = [_parse_edge(edge) for edge in _graph]
@@ -81,6 +67,10 @@ so that they can form a valid graph.
         versions = {}
         for module, version in _uvm:
             versions.setdefault(module, []).append(version)
+
+        # Sort versions as newest first.
+        for vs in versions.values():
+            vs.sort(reverse=True)
         return versions
 
     def _join_subgraphs(_subgraphs: List[VersionedDigraph]
@@ -94,7 +84,7 @@ so that they can form a valid graph.
     def _validate_subgraph(_subgraph: VersionedDigraph) -> bool:
         # Validate that the subgraph is valid.
         # That means that it contains a version of each unique module.
-        return set(m for m, _ in _subgraph) == set(unique_modules)
+        return set(m for m, _ in _subgraph) == set(unique_modules) | {root}
 
     def _get_subgraph_versions(_subgraph: VersionedDigraph
             ) -> Dict[Module, Version]:
@@ -115,10 +105,22 @@ so that they can form a valid graph.
         nodes.remove(root)
         raise NotImplementedError
 
+    def _invert_graph(_graph: GenericGraph) -> GenericGraph:
+        # Invert the (versioned) graph.
+        # That means that the dependencies become the modules,
+        # and the modules become the dependencies.
+        inverted_graph = {}
+        for module, dependencies in _graph.items():
+            for dependency in dependencies:
+                inverted_graph.setdefault(dependency, []).append(module)
+
+        # Looks like pyright does not support generic type narrowing.
+        return inverted_graph  # type:ignore
+
     # Parse input graph:
-    ALL_VERSIONED_GRAPH: VersionedDigraph = _parse_graph(mv_dependency_graph)
-    GRAPH: Digraph = _unvers_graph(ALL_VERSIONED_GRAPH)
-    unique_versioned_modules = _unique_versioned_modules(ALL_VERSIONED_GRAPH)
+    VERSIONED_GRAPH: VersionedDigraph = _parse_graph(mv_dependency_graph)
+    GRAPH: Digraph = _unvers_graph(VERSIONED_GRAPH)
+    unique_versioned_modules = _unique_versioned_modules(VERSIONED_GRAPH)
     unique_modules = _module_versions(unique_versioned_modules)
 
     # Solution functions:
@@ -140,50 +142,56 @@ so that they can form a valid graph.
     leaves = _leaf_modules(GRAPH)
     _roots = _root_modules(GRAPH)
     if len(_roots) != 1:
-        raise ValueError("There should be only one root.")
+        raise ValueError("There should be only one root. Input is incorrect")
     root = _roots.pop()
-    print(f"Root: {root}")
+    # print(f"Root: {root}")
+    # print(f"Leaves: {leaves}")
 
-    def _build_mv_subgraphs() -> List[VersionedDigraph]:
+    # Start building graphs from the leaves:
+    def _graphs_from_leaves(
+            _leaves: List[VersionedModule],
+            _parent_graph: VersionedDigraph
+            ) -> Generator[VersionedDigraph, None, None]:
+        # Build graphs from the leaves.
+        # The graphs will be built from the leaves to the root.
+        for leaf in _leaves:
+            subgraph: VersionedDigraph = _parent_graph.copy()
+            leaf_deps_mv = list(_node_dependencies(leaf))
+            leaf_deps_m = [m for m, _ in leaf_deps_mv]
 
-        root_sg: VersionedDigraph = {}
-        def _build_subgraph(_parent_subgraph: VersionedDigraph
-                ) -> Generator[VersionedDigraph, None, None]:
-
-            # If the subgraph is valid, yield it.
-            if _validate_subgraph(_parent_subgraph):
-                yield _parent_subgraph
-                # Stop iterating if the subgraph is valid.
-                return
-
-            # Otherwise, try to add a node if possible
-            _subgraph = _parent_subgraph.copy()
-            while True:
-                changes = False
-                for module in GRAPH:
-                    if module in [m for m, _ in _subgraph]:
-                        continue
-                    for version in unique_modules[module]:
-                        if _try_add_node(_subgraph, (module, version)):
-                            changes = True
-                            yield from _build_subgraph(_subgraph)
-                if not changes:
+            # Check if a conflicting module is already in the graph
+            for node in subgraph:
+                if node[0] in leaf_deps_m and node not in leaf_deps_mv:
+                    # Graph already contains a different version of the module
+                    # that the leaf depends on.
                     break
+            else:  # Rare syntax: means that the loop did not break.
+                # No conflicting module found in the graph.
+                subgraph[leaf] = leaf_deps_mv
+                if _validate_subgraph(subgraph):
+                    # The subgraph is complete.
+                    yield subgraph
+                else:
+                # Continue building the graph from the leaf's dependencies.
+                    yield from _graphs_from_leaves(leaf_deps_mv, subgraph)
 
-        return list(_build_subgraph(root_sg))
-
-    # Build subgraphs:
-    subgraphs = _build_mv_subgraphs()
-    return subgraphs
-
+    # Build graphs from the leaves:
+    versioned_leaves = [mv
+                        for mv
+                        in unique_versioned_modules
+                        if mv[0] in leaves]
+    G0 = next(_graphs_from_leaves(versioned_leaves, {}))
+    return _module_versions(_unique_versioned_modules(G0))
 
 if __name__ == "__main__":
     with open("graph.csv", "r") as f:
         lines = [line.replace('"', '') for line in f.read().splitlines()]
     import pstats
     import cProfile
+    import json
     with cProfile.Profile() as pr:
-        print(_main(lines))
+        G = _main(lines)
+        print(json.dumps(G, indent=4))
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME)
     stats.dump_stats("profile.pstats")

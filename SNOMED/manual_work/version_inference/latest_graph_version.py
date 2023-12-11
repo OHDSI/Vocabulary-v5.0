@@ -21,7 +21,7 @@ def _main(
     Return all versions combos of each module so
     that they can form a valid graph.
     """
-    from typing import Set, List, Tuple, Dict, Generator
+    from typing import Set, List, Tuple, Dict, Generator, Optional
     from datetime import datetime, timedelta
     release_date = datetime.strptime(str(release_version), "%Y%m%d")
     min_version = int(
@@ -37,8 +37,6 @@ def _main(
     Digraph = Dict[Module, Set[Dependency]]
     VersionedDigraph = Dict[VersionedModule, Set[VersionedDependency]]
     ValidatedGraph = Dict[Module, Version]
-
-    KNOWN_CIRCULAR_DEPENDENCIES = []
 
     #Helper functions:
     def _split_mv(_mv: str) -> VersionedModule:
@@ -90,16 +88,56 @@ def _main(
     def _check_version(_version: Version) -> bool:
         return release_version > _version >= min_version
 
+    def _add_to_graph(node: VersionedModule,
+                      graph: VersionedDigraph,
+                      constraint: Optional[Dict[Module, Set[Version]]] = None
+                    ):
+        if constraint is None:
+            constraint = {}
+
+        if node in graph:
+            return
+
+        if node[0] in [m for m, _ in graph]:
+            # Node is already in the graph at another version!
+            raise ValueError(f"Node {node} is already in the graph at"
+                             f"different version.")
+
+        if node[0] == root:
+            # Root is always valid.
+            graph[node] = set()
+            return
+
+        if node not in VERSIONED_GRAPH:
+            # UK module shenanigans
+            raise ValueError(f"Dependency {node} can not be added to"
+                             f"the graph as it is not a known module "
+                             f"version.")
+
+        for dependency in VERSIONED_GRAPH[node]:
+            if dependency not in graph:
+                if dependency[0] in constraint and \
+                        dependency[1] not in constraint[dependency[0]]:
+                    # This dependency can not be added to the graph.
+                    raise ValueError(f"Dependency {dependency} can not be"
+                                     f"added to the graph at required "
+                                     f"version")
+                _add_to_graph(dependency, graph, constraint)
+
+        graph[node] = VERSIONED_GRAPH[node]
+
+    def _get_checked_versions(node: Module) -> List[VersionedModule]:
+        versions = filter(_check_version, unique_modules[node])
+        return [(node, version) for version in versions]
+
     # Parse input graph:
     VERSIONED_GRAPH: VersionedDigraph = _parse_graph(mv_dependency_graph)
     GRAPH: Digraph = _unvers_graph(VERSIONED_GRAPH)
-    unique_versioned_modules = _unique_versioned_modules(VERSIONED_GRAPH)
-    unique_modules = _module_versions(unique_versioned_modules)
 
     # Solution functions:
     def _leaf_modules(_graph: Digraph) -> Set[Module]:
         # Leaves only depend, and do not serve as dependencies.
-        leaves = set(unique_modules)
+        leaves = set(_graph)
         for _, dependencies in _graph.items():
             leaves.difference_update(dependencies)
         return leaves
@@ -107,56 +145,57 @@ def _main(
     def _root_modules(_graph: Digraph) -> Set[Module]:
         # Roots only serve as dependencies, and do not depend.
         # Since this is SNOMED, there should be only one root.
-        roots = set(unique_modules)
-        for module, _ in _graph.items():
-            roots.difference_update([module])
+        all_modules = set()
+        for _, dependencies in _graph.items():
+            all_modules.update(dependencies)
+        roots = set(all_modules).difference(_graph)
         return roots
 
     leaves = _leaf_modules(GRAPH)
     _roots = _root_modules(GRAPH)
     if len(_roots) != 1:
+        print(_roots)
         raise ValueError("There should be only one root. Input is incorrect")
     root = _roots.pop()
     # print(f"Root: {root}")
     # print(f"Leaves: {leaves}")
 
-    # Find circular dependencies:
-    def _find_circular_dependencies(
-            entry_points: List[Module],
-            path: List[Module],
-            ) -> Generator[List[Module], None, None]:
-        while entry_points:
-            entry_point = entry_points.pop()
-            if entry_point == root:
-                continue
-            path.append(entry_point)
-            for dependency in GRAPH[entry_point]:
-                if dependency in path:
-                    yield path[path.index(dependency):]
-                else:
-                    entry_points.append(dependency)
-            path.pop()
+    # If a node has multiple dependencies on the same module,
+    # keep only the newest.
+    _new_graph = {}
+    for mv, dependencies_v in VERSIONED_GRAPH.items():
+        modules = GRAPH[mv[0]]
+        new_deps = set()
+        for module in modules:
+            versions = [v for m, v in dependencies_v if m == module]
+            if versions:
+                versions.sort()
+                new_deps.add((module, versions[-1]))
+        _new_graph[mv] = new_deps
+    VERSIONED_GRAPH = _new_graph
+    unique_versioned_modules = _unique_versioned_modules(VERSIONED_GRAPH)
+    unique_modules = _module_versions(unique_versioned_modules)
 
-    circular_dependencies = _find_circular_dependencies(list(leaves), [])
-    for circular_dependency in list(circular_dependencies):
-        if not circular_dependency:
-            continue
-        # Check if dependency is intentional:
-        intentional = False
-        for known_cd in KNOWN_CIRCULAR_DEPENDENCIES:
-            if set(known_cd).issubset(circular_dependency):
-                intentional = True
-                break
-        if not intentional:
-            raise ValueError(f"Circular dependency: {circular_dependency}")
-        # Resolve circular dependency by removing
-        # the last link in the chain.
-        trailing, last = circular_dependency[:-2]
-        GRAPH[last].remove(trailing)
-        tr_mvs = {mv for mv in unique_versioned_modules if mv[0] == trailing}
-        lt_mvs = {mv for mv in unique_versioned_modules if mv[0] == last}
-        for mv in lt_mvs:
-            VERSIONED_GRAPH[mv] -= tr_mvs
+    # If a node depends on a module at a non-existent version, change the
+    # dependency to the next most recent version.
+    _new_graph = {}
+    for mv, dependencies_v in VERSIONED_GRAPH.items():
+        new_deps = set()
+        for dependency in dependencies_v:
+            if dependency in VERSIONED_GRAPH or dependency[0] == root:
+                new_deps.add(dependency)
+            else:
+                versions = unique_modules[dependency[0]]
+                newer_versions = [v for v in versions if v > dependency[1]]
+                if newer_versions:
+                    newer_versions.sort()
+                    new_deps.add((dependency[0], newer_versions[0]))
+                else:
+                    raise ValueError(f"Dependency {dependency} can not be"
+                                     f"satisfied by any version of "
+                                     f"target module")
+        _new_graph[mv] = new_deps
+    VERSIONED_GRAPH = _new_graph
 
     # Start building graphs from the leaves:
     def _graphs_from_leaves(
@@ -271,9 +310,69 @@ def _main(
                             ).difference(m for m, _ in graph)
                         while next_nodes:
                             yield from _graphs_from_root(list(next_nodes), graph)
-    # Build graphs from the leaves:
+
+
+    # Build graph from missing nodes:
+    def _graphs_from_missing(
+        missing_node_stack: List[Module],
+        parent_graph: VersionedDigraph,
+        node_constraints: Dict[Module, Set[Version]]
+        ) -> Generator[ValidatedGraph, None, None]:
+        # Get all available versions of the missing node -- with version
+        # limitations for nodes of interest.
+        missing_node = missing_node_stack.pop()
+        if missing_node in newest_wanted:
+            versions = _get_checked_versions(missing_node)
+        else:
+            versions = [(missing_node, v) for v in unique_modules[missing_node]]
+
+        if not versions:
+            # No versions of the missing node are available.
+            return
+        else:
+            versions = list(sorted(versions))
+            node_success = False
+
+            for mv in versions:
+                graph = parent_graph.copy()
+                try:
+                    _add_to_graph(mv, graph, node_constraints)
+                    node_success = True
+                except ValueError:
+                    # Version contains conflicts with another module's
+                    # dependency.
+                    continue
+
+                # Yield the graph if it is complete or iterate down the stack
+                if not missing_node_stack:
+                    # The subgraph is complete.
+                    import json
+                    print(json.dumps(list(graph.keys()), indent=4))
+
+                    validated_graph = {m: v for m, v in graph}
+                    print({m: validated_graph[m] for m in newest_wanted})
+                    yield validated_graph
+                else:
+                    graphs= _graphs_from_missing(
+                                missing_node_stack,
+                                graph,
+                                node_constraints)
+                    for g in graphs:
+                        yield g
+                        node_success = True
+            # If versions are exhausted, but none of the graphs are go to
+            # the next iteration branch.
+            if not node_success:
+                return
+
     #valid_graphs = _graphs_from_leaves(list(leaves), {})
-    valid_graphs = _graphs_from_root([root], {})
+    #valid_graphs = _graphs_from_root([root], {})
+    version_constraints = {}
+    for module in newest_wanted:
+        versions = _get_checked_versions(module)
+        version_constraints[module] = {v for _, v in versions}
+    valid_graphs = _graphs_from_missing(list(unique_modules),
+                                        {}, version_constraints)
 
     def _compare_by_needed(graph: ValidatedGraph) -> Tuple[Version]:
         return tuple(graph[m] for m in newest_wanted) # type: ignore

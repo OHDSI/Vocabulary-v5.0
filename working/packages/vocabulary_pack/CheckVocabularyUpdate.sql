@@ -170,7 +170,7 @@ BEGIN
             WHEN cVocabularyName = 'HCPCS'
             THEN
               --cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs files*">'),'month yyyy');
-              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a href="/media/\d+".+?<span.+?>(.+?) alpha-numeric hcpcs files</span>'),'month yyyy');
+              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a href="/media/\d+".*?>(.+?) alpha-numeric hcpcs files'),'month yyyy');
               cVocabVer := to_char(cVocabDate,'YYYYMMDD')||' Alpha Numeric HCPCS File';
             WHEN cVocabularyName IN ('ICD9CM', 'ICD9PROC')
             THEN

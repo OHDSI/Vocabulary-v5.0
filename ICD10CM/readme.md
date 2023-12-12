@@ -8,7 +8,7 @@
 - Working directory, e.g. dev_icd10cm
 
 #### Sequence of actions
-1. Download the latest ICD-10-CM version ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/YYYY
+1. Download the latest ICD-10-CM version from https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/
 2. Unzip the file ICD10CM_FYYYYY_code_descriptions.zip, extract icd10cm_order_YYYY.txt and rename to icd10cm.txt
 3. Run [create_source_tables.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/ICD10CM/create_source_tables.sql)
 4. Run in devv5 (with fresh vocabulary date and version, e.g. according "The 2018 ICD-10-CM codes are to be used from October 1, 2017 through September 30, 2018" so 20171001): 

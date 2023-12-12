@@ -124,3 +124,22 @@ AND c.domain_id not in ('Drug', 'Provider')
 AND vocabulary_id != 'AMIS' -- in German
 ORDER BY vocabulary_id, domain_id, standard_concept, concept_name
 ;
+
+
+--concept is present in drug_strength but has not Drug domain
+SELECT * FROM concept c
+JOIN drug_strength ds
+    ON ds.drug_concept_id =c.concept_id
+WHERE c.domain_id != 'Drug'
+;
+
+--Standard drugs are either in drug_strength or in pack_content
+SELECT *
+FROM concept c
+LEFT JOIN drug_strength ds
+    ON ds.drug_concept_id = c.concept_id
+LEFT JOIN pack_content
+    ON pack_concept_id = c.concept_id
+WHERE c.domain_id = 'Drug' AND c.standard_concept = 'S'
+AND coalesce (ds.drug_concept_id, pack_concept_id) IS NULL
+;

@@ -110,7 +110,7 @@ FROM snomed_ancestor hc
 ;
 --3.3. Add missing relation to Primary Malignant Neoplasm where needed
 insert into snomed_ancestor (ancestor_concept_code, descendant_concept_code)
-select distinct '86049000', snomed_code
+select distinct '1240414004', snomed_code
 from r_to_c_all r
 where
 	r.concept_code ~ '\d{4}\/3' and
@@ -120,7 +120,7 @@ where
 			select 1
 			from snomed_ancestor a
 			where
-				a.ancestor_concept_code = '86049000' and --PMN
+				a.ancestor_concept_code = '1240414004' and --PMN
 				a.descendant_concept_code = r.snomed_code
 		) 
 /*	and	not exists -- no common descendants with Secondary malignant neoplasm
@@ -590,7 +590,7 @@ snomed_concept as
 					ancestor_concept_code in 
 						(
 							'400177003',	--Neoplasm
-							'4216275',	--Proliferation of hematopoietic cell type
+							'415181008',	--Proliferation of hematopoietic cell type
 							'25723000',	--Dysplasia
 							'76197007'	--Hyperplasia
 						) and

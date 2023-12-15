@@ -130,9 +130,9 @@ FROM (
 				l.effectivetime DESC,
 				d.term
 			) AS rn
-	FROM sources.sct2_concept_full_merged c
-	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
-	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
+	FROM sources_archive.sct2_concept_full_merged c
+	JOIN sources_archive.sct2_desc_full_merged d ON d.conceptid = c.id
+	JOIN sources_archive.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
         WHERE
             c.moduleid NOT IN (
                 999000011000001104, --UK Drug extension
@@ -152,7 +152,7 @@ AS (
 	    c.effectivetime,
 	    c.active,
 		ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY c.effectivetime DESC) AS rn
-	FROM sources.sct2_concept_full_merged c
+	FROM sources_archive.sct2_concept_full_merged c
     WHERE c.moduleid NOT IN (
        999000011000001104, --UK Drug extension
        999000021000001108  --UK Drug extension reference set module
@@ -1172,7 +1172,7 @@ SELECT cs.concept_code AS concept_code_1,
 	cr.relationship_id,
 	cr.valid_start_date,
 	(
-		SELECT latest_update - 1
+		SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'
 		) AS valid_end_date,
@@ -1729,7 +1729,7 @@ WHERE concept_name ~* 'score'
 
 --Trim word 'route' from the concepts in 'Route' domain [AVOC-4087]
 UPDATE concept_stage
-SET concept_name = TRIM(TRAILING ' route' FROM concept_name)
+SET concept_name = REGEXP_REPLACE(concept_name, '\s*route\s*', '')
 WHERE concept_name ~* '\sroute$'
 AND domain_id = 'Route';
 
@@ -1890,6 +1890,17 @@ SET standard_concept = NULL
 WHERE concept_class_id IN ('Attribute', 'Physical Force', 'Physical Object')
 AND domain_id NOT IN ('Device');
 
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE concept_class_id = 'Social Context'
+AND NOT EXISTS (
+       SELECT 1 FROM snomed_ancestor sa
+       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
+       AND sa.ancestor_concept_code::TEXT IN ('14679004', -- Occupation
+                                             '410597007',
+                                             '108334009') -- Religion AND/OR philosophy
+);
+
 --18.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
@@ -1980,7 +1991,7 @@ SELECT p.conceptid::VARCHAR,
 	'SNOMED',
 	'SNOMED',
 	'Maps to',
-	(SELECT latest_update -1
+	(SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'),
 	TO_DATE('20991231', 'yyyymmdd')
@@ -2031,8 +2042,9 @@ AND cr.relationship_id IN (
 				)
 AND cr.invalid_reason IS NULL
 AND NOT EXISTS(
-	SELECT 1 --if a concept already has an active replacement link in crs
+	SELECT 1 --if a concept already has an active replacement link to a standard concept in crs
 		FROM concept_relationship_stage crs
+		JOIN concept_stage cs ON cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2
 		WHERE crs.concept_code_1 = c.concept_code
 			AND crs.relationship_id IN (
 				'Concept replaced by',
@@ -2042,6 +2054,7 @@ AND NOT EXISTS(
 				)
 			AND crs.vocabulary_id_1 = c.vocabulary_id
 			AND crs.invalid_reason IS NULL
+			AND cs.standard_concept = 'S'
 )
 AND NOT EXISTS(
 	SELECT 1 -- if the link from cr has been deprecated earlier in the course of load_stage

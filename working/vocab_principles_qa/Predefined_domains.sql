@@ -99,7 +99,7 @@ AND c.domain_id != 'Drug';
 
 
 --Presumably, all concepts that have ingredient name in their concept_name, are drugs:
---! Very heavy query
+--! Very heavy query - DO NOT RUN, see below
 WITH ingredients AS (
        SELECT DISTINCT concept_name
        FROM concept
@@ -124,7 +124,22 @@ AND c.domain_id not in ('Drug', 'Provider')
 AND vocabulary_id != 'AMIS' -- in German
 ORDER BY vocabulary_id, domain_id, standard_concept, concept_name
 ;
-
+--here's much more optimized query
+--it returns so many 
+reactions to drug, 
+measurement of drugs, 
+similarly sounding things Entire alveolar epit*helium* -> helium: this can be fixed by adding spaces or symbols around the ingredient name
+-- not sure it worth to look at all these exclusions
+create table inged_domain_check as
+select c2.concept_id as checked_concept_id, c2.concept_name as checked_concept_name,
+c.concept_id as ingred_concept_id, c.concept_name as ingred_concept_name
+from concept c 
+join concept c2 on position (lower (c.concept_name) in lower (c2.concept_name)) >0
+where c.standard_concept ='S' and c.concept_class_id ='Ingredient' and c.vocabulary_id ='RxNorm' and length (c.concept_name)>4 --exclude things such as  lead, air, tin, urea, neon, tin, etc
+and c2.standard_concept ='S'
+and c2.domain_id not in ('Drug', 'Regimen')
+--and c2.vocabulary_id ='SNOMED' -- you can analyze one particulary vocabulary
+;
 
 --concept is present in drug_strength but has not Drug domain
 SELECT * FROM concept c

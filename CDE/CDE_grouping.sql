@@ -11,6 +11,7 @@ CREATE TABLE cde_manual_group (
 CREATE UNIQUE INDEX idx_pk_cde_manual_group ON cde_manual_group ((source_code || ':' || source_vocabulary_id));
 CREATE INDEX idx_cde_manual_group_gid ON cde_manual_group (group_id);
 
+--Server functions
 --test Case 1:
 SELECT cde_groups.SplitGroup('cde_manual_group',2);
 --test Case 1a:
@@ -21,3 +22,13 @@ SELECT cde_groups.MergeGroupsByConcept('cde_manual_group', 3, ARRAY['H40.149:ICD
 SELECT cde_groups.MergeGroupsByGroupID('cde_manual_group', 1, 2, 3);
 --test Case 2b:
 SELECT cde_groups.MergeSeparateConcepts('cde_manual_group', ARRAY['A18.002:ICD10CN','T80.902:ICD10CN']);
+
+--Functions to proceed Google sheets
+--test: mapping harmonization
+SELECT cde_groups.GSheetMappingHarmonization('cde_manual_group', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs','Test_set_groups');
+--test Case 2.1: merge groups
+SELECT cde_groups.GSheetMergeGroups('cde_manual_group', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs','Test_set_groups');
+--test The rest of the cases (split the group, regroup concepts within one group, detach concepts and add them into the group not represented in the spreadsheet
+SELECT cde_groups.GSheetReGroup('cde_manual_group', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs','Test_set_concepts'); ----Split the group case, regroup concepts within one group case 1/2, detach (то есть общая функция для всех остальных случаев)
+--to add function output as a new tab in a spreadsheet
+SELECT google_pack.SetSpreadSheet ('cde_manual_group', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs', 'test automation')

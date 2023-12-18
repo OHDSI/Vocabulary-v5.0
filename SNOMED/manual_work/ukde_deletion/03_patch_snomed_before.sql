@@ -53,6 +53,10 @@ LEFT JOIN killed_by_intl k ON
 WHERE
     k.id IS NULL
 ;
+ALTER TABLE retired_concepts ADD PRIMARY KEY (concept_id);
+ALTER TABLE retired_concepts ADD FOREIGN KEY (concept_id)
+    REFERENCES concept (concept_id);
+ANALYSE retired_concepts;
 --1.2. Delete concept_manual entries
 /*EMPTY*/
 DELETE FROM concept_manual m

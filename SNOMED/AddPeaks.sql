@@ -751,9 +751,14 @@ SELECT a.*, NULL FROM ( VALUES
 	(10628711000119101, 'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
 	(424909003,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Toxic retinopathy
 	(418634005,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic reaction to substance
+	(956271000000104,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aliskiren allergy
+	(1104821000000102,  'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to diagnostic dye
+	(201551000000109,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to plasters
+	(956291000000100,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Prasugrel allergy
+	(956311000000104,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ticagrelor allergy
 	(64572001,         	'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disease
 	(193570009,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cataract
-	(77667008,         	'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug reaction with eosinophilia and systemic symptoms
+	(702809001,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug reaction with eosinophilia and systemic symptoms
 	(238986007,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Chemical-induced dermatological disorder
 
 	(232032008, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug-induced retinopathy
@@ -1205,7 +1210,8 @@ SELECT a.*, NULL FROM ( VALUES
 	(84478008,    	    'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Occupational therapy
 	(12799001,    	    'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Physiotherapy class activities
 	(409073007,    	    'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Education
-	(16830007,  		'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Visual acuity testing
+	(252314007,  		'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood transfusion test
+	(16830007,  		'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Visual acuity testing
 
 	--Qualifier Value
 	(260245000,         'Meas Value',   TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding Value

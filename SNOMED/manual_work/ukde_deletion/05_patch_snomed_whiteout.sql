@@ -12,11 +12,11 @@ SET
     END,
     concept_name = CASE c.domain_id
         WHEN 'Route' THEN c.concept_name || ' (retired module, do not use)'
-        ELSE 'Concept belonged to retired SNOMED CT module'
+        ELSE 'Concept belonged to retired SNOMED CT module, do not use'
     END,
     valid_end_date = LEAST(
         c.valid_end_date,
-        to_date('31-10-2023', 'DD-MM-YYYY')
+        TO_DATE('20220128', 'yyyymmdd')
     ),
     standard_concept = NULL,
     invalid_reason = COALESCE(c.invalid_reason, 'D')

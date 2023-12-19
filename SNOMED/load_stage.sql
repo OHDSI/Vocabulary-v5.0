@@ -598,8 +598,6 @@ WITH tmp_rel AS (
 				900000000000207008, --Core (international) module
 				999000011000000103, --UK edition
 				731000124108, 		--US edition
-                --999000011000001104, --SNOMED CT United Kingdom drug extension module
-                --999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
 				900000000000012004 --SNOMED CT model component
 				)
 

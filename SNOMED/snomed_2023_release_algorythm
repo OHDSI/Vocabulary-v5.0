@@ -1,0 +1,33 @@
+1. Run FastRecreate:
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true, include_deprecated_rels=> true, include_synonyms=> true);
+   ```
+2. Change archive parameters:
+```sql
+DO $$
+BEGIN
+	PERFORM sources_archive.ResetArchiveParams();
+END $$;
+
+DO $$
+BEGIN
+	PERFORM sources_archive.SetArchiveParams(
+		'SNOMED',
+		TO_DATE('20220128','yyyymmdd')
+	);
+END $$;
+   ```
+3. Upload manual changes
+4. Run 03_patch_snomed_after
+5. Run load_stage
+6. Run 04_patch_snomed
+7. Run 2023-10-11
+8. Run GenericUpdate
+   ```sql
+   DO $_$
+   BEGIN
+       PERFORM devv5.GenericUpdate();
+   END $_$;
+   ```
+9. Run 05_patch_snomed
+10. Run checks

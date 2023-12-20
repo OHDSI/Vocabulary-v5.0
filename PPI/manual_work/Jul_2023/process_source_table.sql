@@ -100,7 +100,7 @@ UPDATE bhp_qa SET answer_code = 'PMI_DontKnow' WHERE answer_code = 'pmi_dontknow
 UPDATE bhp_qa SET answer_code = 'PMI_PreferNotToAnswer' WHERE answer_code = 'pmi_prefernottoanswer';
 UPDATE bhp_qa SET answer_code = 'PMI_None' WHERE answer_code = 'pmi_none';
 
-
+SELECT * FROM bhp_qa;
 
 
 -- EHH (Emotional Health history and Wellbeing) source table

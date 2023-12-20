@@ -150,7 +150,8 @@ question_code as concept_code_2,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
-FROM bhp_qa;
+FROM bhp_qa
+WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None');
 
 --to add hierarchy 'Has PPI parent code' from Answers to Questions
 INSERT INTO concept_relationship_manual
@@ -163,7 +164,8 @@ question_code as concept_code_2,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
-FROM ehh_qa;
+FROM ehh_qa
+WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None');
 
 -- add mappings
 TRUNCATE TABLE ppi_mapped;

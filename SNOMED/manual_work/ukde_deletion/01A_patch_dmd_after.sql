@@ -12,10 +12,10 @@ SET
 WHERE
     EXISTS (
         SELECT 1
-        FROM devv5.concept_relationship r
-        JOIN devv5.concept c ON
+        FROM concept_relationship r
+        JOIN concept c ON
             c.concept_id = r.concept_id_1
-        JOIN devv5.concept c2 ON
+        JOIN concept c2 ON
             c2.concept_id = r.concept_id_2
         JOIN snomed_concepts_to_steal s ON
             s.concept_id = c.concept_id

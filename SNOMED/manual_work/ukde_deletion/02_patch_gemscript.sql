@@ -89,9 +89,9 @@ JOIN devv5.concept c ON
 DROP TABLE IF EXISTS gemscript_mapped_to_snomed;
 SELECT
 	VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'dm+d',
+	pVocabularyName			=> 'Gemscript',
 	pVocabularyDate			=> to_date('01-11-2023', 'dd-mm-yyyy'),
-	pVocabularyVersion		=> 'DMD 2023-05-22',
+	pVocabularyVersion		=> 'Gemscript 2021-02-01',
 	pVocabularyDevSchema	=> 'dev_test3'
 )
 ;

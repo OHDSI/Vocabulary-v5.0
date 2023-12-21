@@ -368,7 +368,7 @@ SELECT
     cm1.vocabulary_id_2,
     cm1.invalid_reason
 FROM dev_snomed.concept_relationship_manual cm1
-JOIN devv5.concept cd ON
+JOIN concept cd ON
     cd.vocabulary_id = 'dm+d' AND
     cd.concept_code = cm1.concept_code_1
 LEFT JOIN concept_relationship_manual cm2 ON
@@ -419,17 +419,17 @@ SELECT
     c.invalid_reason AS invalid_reason,
     c3.concept_id AS replacement_concept_id,
     c3.vocabulary_id AS replacement_vocabulary_id
-FROM devv5.concept c
-JOIN devv5.concept_relationship r ON
+FROM concept c
+JOIN concept_relationship r ON
         c.concept_id = r.concept_id_1
     AND r.relationship_id = 'Maps to'
     AND c.vocabulary_id = 'dm+d'
     AND r.invalid_reason IS NULL
-JOIN devv5.concept c2 ON
+JOIN concept c2 ON
         c2.concept_id = r.concept_id_2
     AND c2.vocabulary_id = 'SNOMED'
 -- For deprecated concepts, check if replacement exists
-LEFT JOIN devv5.concept_relationship r2 ON
+LEFT JOIN concept_relationship r2 ON
         c.concept_id = r2.concept_id_1
     AND c.invalid_reason IS NOT NULL
     AND r2.relationship_id = 'Concept replaced by'
@@ -439,7 +439,7 @@ LEFT JOIN vmps v ON
         r2.concept_id_2 is NULL
     AND v.vpidprev = c.concept_code
 
-LEFT JOIN devv5.concept c3 ON
+LEFT JOIN concept c3 ON
         c3.concept_id = r2.concept_id_2 OR
         (c3.concept_code = v.vpid AND c3.vocabulary_id = 'dm+d')
 ;
@@ -507,13 +507,13 @@ FROM concept_stage cs
 JOIN dmd_mapped_to_snomed dmts ON
     cs.concept_id = dmts.concept_id
 -- Join to replacement concept does it map anywhere?
-LEFT JOIN devv5.concept r ON
+LEFT JOIN concept r ON
     r.concept_id = dmts.replacement_concept_id
-LEFT JOIN devv5.concept_relationship r2 ON
+LEFT JOIN concept_relationship r2 ON
         r.concept_id = r2.concept_id_1
     AND r2.relationship_id = 'Maps to'
     AND r2.invalid_reason IS NULL
-LEFT JOIN devv5.concept t ON
+LEFT JOIN concept t ON
     t.concept_id = r2.concept_id_2
 WHERE (
     cs.standard_concept = 'S' OR
@@ -541,12 +541,12 @@ SELECT
     to_date('31-10-2023', 'DD-MM-YYYY') AS valid_end_date,
     'D' AS invalid_reason
 FROM dmd_mapped_to_snomed dm
-JOIN devv5.concept c USING (concept_id)
-JOIN devv5.concept_relationship r ON
+JOIN concept c USING (concept_id)
+JOIN concept_relationship r ON
         r.concept_id_1 = dm.concept_id
     AND r.relationship_id = 'Maps to'
     AND r.invalid_reason IS NULL
-JOIN devv5.concept t ON
+JOIN concept t ON
     t.concept_id = r.concept_id_2
 --Unless somehow reinforced by a new mapping
 LEFT JOIN concept_relationship_stage crs ON
@@ -604,7 +604,7 @@ current_module AS (
 )
 SELECT DISTINCT
     c.concept_id
-FROM devv5.concept c
+FROM concept c
 JOIN current_module cm ON
         c.concept_code = cm.id :: text
     AND cm.moduleid IN (
@@ -628,7 +628,7 @@ JOIN (
         c.concept_code = dm_sources.id
     AND c.vocabulary_id = 'SNOMED'
 --Not present in current release of dm+d
-LEFT JOIN devv5.concept d ON
+LEFT JOIN concept d ON
         d.concept_code = c.concept_code
     AND d.vocabulary_id = 'dm+d'
 --Not killed by international release

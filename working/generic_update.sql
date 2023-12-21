@@ -1,6 +1,14 @@
 CREATE OR REPLACE FUNCTION devv5.GenericUpdate (
+	pMode character varying DEFAULT 'VOCABULARY'
 )
 RETURNS void AS
+	/*
+	pMode parameter modifies the behavior of the function:
+	- FULL: Assumes that the stage tables contain a full set of concepts for the vocabulary. Will deprecate
+		missing concepts in the concept table.
+	- DELTA: Assumes that the stage tables contain only the concepts that have changed since the last release.
+	- VOCABULARY (default): Will make the assumption between Full and Delta based on the vocabulary_id.
+	*/
 $BODY$
 BEGIN
 	--1. Prerequisites:
@@ -198,6 +206,11 @@ BEGIN
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 	AND c.invalid_reason IS NULL -- not already deprecated
 	AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
+		-- Check if desired behavior is specified
+		WHEN pMode = 'FULL' THEN 1
+		WHEN pMode = 'DELTA' THEN 0
+		--WHEN pMode = 'VOCABULARY' THEN 1
+		-- Default state for vocabularies
 		WHEN c.vocabulary_id = 'SNOMED' THEN 1
 		WHEN c.vocabulary_id = 'LOINC' THEN 1
 		WHEN c.vocabulary_id = 'ICD9CM' THEN 1

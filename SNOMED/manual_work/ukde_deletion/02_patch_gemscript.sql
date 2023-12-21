@@ -87,3 +87,11 @@ JOIN devv5.concept c ON
     r.concept_id_2 = c.concept_id
 ;
 DROP TABLE IF EXISTS gemscript_mapped_to_snomed;
+SELECT
+	VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'Gemscript',
+	pVocabularyDate			=> to_date('01-11-2023', 'dd-mm-yyyy'),
+	pVocabularyVersion		=> 'Gemscript 2021-02-01',
+	pVocabularyDevSchema	=> 'dev_test3'
+)
+;

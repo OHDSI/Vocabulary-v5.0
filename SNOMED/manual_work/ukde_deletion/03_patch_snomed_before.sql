@@ -124,7 +124,3 @@ WHERE
         )
     )
 ;
---2. TODO
--- Unless new information comes in, I assume this is
--- handled in concept_relationship_manual
-;

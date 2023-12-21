@@ -1,9 +1,6 @@
 /*
  * Apply this script to a schema after running 01_patch_dmd.sql and a generic
- update in schema mode.
-
- * -- vmps, amps, ampps etc. must be created from fresh sources! Execute
- dmd/load_stage.sql up until line #510.
+ update in delta mode.
  */
 
 --TODO: Find a place for these steps with Timur V.
@@ -15,10 +12,10 @@ SET
 WHERE
     EXISTS (
         SELECT 1
-        FROM devv5.concept_relationship r
-        JOIN devv5.concept c ON
+        FROM concept_relationship r
+        JOIN concept c ON
             c.concept_id = r.concept_id_1
-        JOIN devv5.concept c2 ON
+        JOIN concept c2 ON
             c2.concept_id = r.concept_id_2
         JOIN snomed_concepts_to_steal s ON
             s.concept_id = c.concept_id

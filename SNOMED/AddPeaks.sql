@@ -487,6 +487,8 @@ SELECT a.*, NULL FROM ( VALUES
 	(81647003,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Increased serum protein level
 	(250243009,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dacrocytosis
 	(373372005,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Histological grade finding
+	(372048000,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pregnancy with abnormal glucose tolerance test
+	(1156100006,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pregnancy with normal glucose tolerance test
 
 	(397852001,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- V/Q - Ventilation/perfusion ratio
 	(302083008,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of Apgar score
@@ -643,6 +645,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(442670009,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Motile microorganism
 	(15173006,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Rare organisms
 	(427824002,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Small Gram-negative rods
+	(722945007,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Androgen excess caused by drug
 	(56709009,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Target cell of immunologic reaction
 	(313424005,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- At increased risk of disease
 	(70733008,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Limitation of joint movement
@@ -735,6 +738,9 @@ SELECT a.*, NULL FROM ( VALUES
 	(107645002,  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Size finding
 	(1149085006,  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Satisfied with management of pain
 	(366636003,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Facial appearance finding
+	(281457009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Breakage of bone fixation device
+	(6071000119100,		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Upper respiratory tract allergy
+
 	--Context-dependent
 	(395098000,         'Condition',    TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disorder confirmed
 	(443938003,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Procedure carried out on subject
@@ -751,11 +757,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(10628711000119101, 'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
 	(424909003,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Toxic retinopathy
 	(418634005,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic reaction to substance
-	(956271000000104,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aliskiren allergy
-	(1104821000000102,  'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to diagnostic dye
-	(201551000000109,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to plasters
-	(956291000000100,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Prasugrel allergy
-	(956311000000104,   'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ticagrelor allergy
+
 	(64572001,         	'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disease
 	(193570009,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cataract
 	(702809001,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug reaction with eosinophilia and systemic symptoms
@@ -769,7 +771,12 @@ SELECT a.*, NULL FROM ( VALUES
 	(62014003,          'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20201110', 'YYYYMMDD')), -- Adverse reaction to drug
 	(62014003,          'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction to drug
 	--history: off
-	--Location
+	(956271000000104,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aliskiren allergy
+	(1104821000000102,  'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to diagnostic dye
+	(201551000000109,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to plasters
+	(956291000000100,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Prasugrel allergy
+	(956311000000104,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ticagrelor allergy	--Location
+
 	--history:on
 	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20210217', 'YYYYMMDD')), -- Site of care
 	(43741000,      'Visit',            TO_DATE('20210217', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
@@ -1320,7 +1327,8 @@ SELECT a.*, NULL FROM ( VALUES
 	(373273002,         'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- General inhalation anesthetic
 	(373703002,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Intravenous fluids and electrolytes
 	(373523004,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Skin antifungal agent
-	(417901007,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) -- Oxymetazoline
+	(417901007,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Oxymetazoline
+	(406463001,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) -- Drug allergen
 
 ) AS a
 
@@ -1339,7 +1347,9 @@ SELECT b.* FROM (VALUES
 	(364069001,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Cardiac conduction system feature
 	(427751006,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of cardiac perfusion defect
 	(429162008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of myocardial stress ischemia
-	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1)  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
+	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1),  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
+	(24942001,  		'Condition',  	TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0)  --Urobilinogenuria
+	(18165001,  		'Condition',  	TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0)  --Jaundice
 				) as b
 ;
 

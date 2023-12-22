@@ -162,7 +162,8 @@ AND target_standard_concept is null) -- 3719
 --strict group (identical source_code_description and same codes with identical mappings)
 DROP TABLE grouped;
 CREATE TABLE grouped as (
-SELECT c.source_code as source_code_1,
+SELECT DISTINCT
+       c.source_code as source_code_1,
        c.source_code_description as source_code_description_1,
        c.source_vocabulary_id as source_vocabulary_1,
        c.group_id as group_id_1,
@@ -177,15 +178,21 @@ FROM dev_icd10.icd_cde_source c
     and c.source_vocabulary_id = 'ICD10');
 
 SELECT * FROM grouped;
+DELETE FROM grouped WHERE group_id_1 = group_id;
 
 do $$
 declare
 r record;
 begin
-for r in select source_code, source_code_description, source_vocabulary_id, group_id, group_id_1, group_name from grouped where group_id_1 != group_id loop
+for r in select source_code, source_code_description, source_vocabulary_id, group_id, group_id_1, group_name from grouped  loop
 perform cde_groups.MergeGroupsByGroupID ('grouped', r.group_id_1::int, r.group_id ::int);
 end loop;
 end $$;
+
+
+
+
+
 
 
 

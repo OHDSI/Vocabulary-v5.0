@@ -273,8 +273,6 @@ ORDER BY source_code, relationship_id, count_aggr DESC;
 -- 6.2.6 Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema. Run manual checks for meddra_environment table
 
 -- 6.2.7 Change concept_relationship_manual table according to meddra_environment table.
-
--- 6.2.7  Change concept_relationship_manual table according to meddra_environment  table.
 --Insert new relationships
 --Update existing relationships
 

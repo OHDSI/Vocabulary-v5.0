@@ -2058,6 +2058,11 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
 -- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN

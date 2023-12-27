@@ -20,11 +20,7 @@ SELECT a.*, NULL FROM ( VALUES
 -- Outdated
 	--2014-Dec-18
 	(218496004,         'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Adverse reaction to primarily systemic agents
-	--history:on
-	(65367001,          'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Victim status
-	(65367001,          'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20150311', 'YYYYMMDD')), -- Victim status
-	(65367001,          'Observation',  TO_DATE('20150311', 'YYYYMMDD'), TO_DATE('20170106', 'YYYYMMDD')), -- Victim status
-	--history:off
+
 	(162565002,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Patient aware of diagnosis
 	(418138009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Patient condition finding
 	(405503005,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member inattention
@@ -343,10 +339,7 @@ SELECT a.*, NULL FROM ( VALUES
 
 	(365866002,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of HIV status
 	(438508001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Virus present
-	--history:on
-	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20220504', 'YYYYMMDD')), -- Bacteria present
-	(710954001,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bacteria present
-	--history:off
+
 	(871000124102,      'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Virus not detected
 	(426000000,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Fever greater than 100.4 Fahrenheit
 	(164304001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- O/E - hyperpyrexia - greater than 40.5 degrees Celsius
@@ -385,13 +378,17 @@ SELECT a.*, NULL FROM ( VALUES
 	(365956009,         'Observation',  TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of sexual orientation
 
 	(106028002,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Musculoskeletal finding
-	(65367001,          'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Victim status
+	--history:on
+	(65367001,          'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Victim status
+	(65367001,          'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20150311', 'YYYYMMDD')), -- Victim status
+	(65367001,          'Observation',  TO_DATE('20150311', 'YYYYMMDD'), TO_DATE('20170106', 'YYYYMMDD')), -- Victim status
+	(65367001,          'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Victim status
+	--history:off
 	(106132005,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Speech finding
 	(248982007,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pregnancy, childbirth and puerperium finding
 	(106089007,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Metabolic finding
 	(714628002,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Prediabetes
 	(419026008,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Effect of exposure to physical force
-	(105721009,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- General problem AND/OR complaint
 	(300848003,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mass of body structure
 	(84452004,         	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hormone abnormality
 	(299691001,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of blood, lymphatics and immune system
@@ -419,7 +416,6 @@ SELECT a.*, NULL FROM ( VALUES
 	(431950004,        	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bloodstream finding
 	(118235002,        	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Eye / vision finding
 	(106048009,        	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Respiratory finding
-	(118228005,        	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Functional finding
 	(300577008,        	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of lesion
 	(247441003,       	'Condition',   	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Erythema
 	(225552003,    	    'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Wound finding
@@ -487,6 +483,10 @@ SELECT a.*, NULL FROM ( VALUES
 	(81647003,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Increased serum protein level
 	(250243009,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dacrocytosis
 	(373372005,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Histological grade finding
+	(372048000,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pregnancy with abnormal glucose tolerance test
+	(1156100006,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pregnancy with normal glucose tolerance test
+	(84445001,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Joint stiffness
+	(67374007,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Instability of joint
 
 	(397852001,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- V/Q - Ventilation/perfusion ratio
 	(302083008,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of Apgar score
@@ -533,6 +533,12 @@ SELECT a.*, NULL FROM ( VALUES
 	(395536008,		 	'Measurement',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Surgical margin finding
 	(165014009,		 	'Measurement',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy test positive
 	(165009005,		 	'Measurement',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy testing - no reaction
+	(1236949008,        'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of placental volume
+	(1187035007,        'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood viscosity below reference range
+	(298717003,        	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of measures of thorax
+	(366147009,        	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Respiratory measurements - finding
+	(249131000,        	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of amniotic fluid volume
+	(34641000087106,    'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hematology test outside reference range
 
 	(705075002,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Able to see
 	(719749006,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Able to see using assistive device
@@ -643,6 +649,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(442670009,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Motile microorganism
 	(15173006,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Rare organisms
 	(427824002,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Small Gram-negative rods
+	(722945007,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Androgen excess caused by drug
 	(56709009,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Target cell of immunologic reaction
 	(313424005,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- At increased risk of disease
 	(70733008,      	'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Limitation of joint movement
@@ -735,7 +742,71 @@ SELECT a.*, NULL FROM ( VALUES
 	(107645002,  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Size finding
 	(1149085006,  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Satisfied with management of pain
 	(366636003,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Facial appearance finding
+	(281457009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Breakage of bone fixation device
 	(6071000119100,		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Upper respiratory tract allergy
+	(451321000124108,	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Needs maximal assistance
+	(451311000124100,	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Needs moderate assistance
+	(442076002,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Early satiety
+	(716366009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Requires continuous home oxygen supply
+	(428264009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Painful gait
+	(236556004,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bloodstained peritoneal dialysis effluent
+	(25911000175109,	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Eyelid normal
+	(413585005,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aspiration into respiratory tract
+	(364747001,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Presentation of fetus - finding
+	(1231194004,		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal visual motion detection
+	(1149054002,		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal reproductive system function
+	(1260401008,		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Epiphyseal closure
+	(1220629002,		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Impaired response to stem cell mobilization procedure
+	(366140006,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Method of breathing - finding
+	(365430005,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of urine appearance
+	(118231006,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Communication finding
+	(105721009,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- General problem AND/OR complaint
+	(110302009,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Clenching teeth
+	(714527000,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Decreased mandibular vestibule depth
+	(714526009,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Decreased maxillary vestibular depth
+	(789510003,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dental arch length loss
+	(278655007,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dental center-line finding
+	(110323003,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Distal step occlusion of primary dentition
+	(698066001,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Edentulous interarch space limited
+	(710011009,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Edentulous muscle attachment
+	(289144006,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of food in mouth
+	(709027003,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of location and extent of edentulous area of oral cavity
+	(699749004,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Narrow mandibular arch form
+	(699751000,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Narrow maxillary arch form
+	(711635006,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal periapical tissue
+	(714482007,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal periodontal tissue
+	(609433001,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hypersensitivity disposition
+	(1236949008,        'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of placental volume
+	(118228005,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Functional finding
+	(301346001,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of appearance of lip
+	(1209208002,        'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pale face
+	(59901004,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cheek biting
+	(711292003,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Decrease of chin to throat length
+	(711291005,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Increase of chin to throat length
+	(710781009,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Deep mentolabial sulcus
+	(737034006,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Obtuse nasolabial angle
+	(471397004,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Long lower third of face
+	(699440004,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Long middle third of face
+	(1209208002,        'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pale face
+	(767358005,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Shallow mentolabial sulcus
+	(73595000,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Stress
+	(106126000,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Emotional state finding
+	(42688000,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Preoccupation of thought
+	(1177022006,        'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Colonization of respiratory tract with Pneumocystis jirovecii
+	(127325009,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Procedure related finding
+	(30693006,       	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aerophagy
+	(1217022005,       	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Colonization of genitourinary tract by Streptococcus agalactiae
+	(249131000,     	'Observation',		TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of amniotic fluid volume
+	(283021003, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mobile tooth
+	(86569001, 	      	'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Postpartum state
+	(248727005, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Venous finding
+	(298180004, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of range of joint movement
+
+	--history:on
+	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20220504', 'YYYYMMDD')), -- Bacteria present
+	(710954001,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20230914', 'YYYYMMDD')), -- Bacteria present
+	(710954001,         'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bacteria present
+	--history:off
 
 	--Context-dependent
 	(395098000,         'Condition',    TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disorder confirmed
@@ -744,36 +815,46 @@ SELECT a.*, NULL FROM ( VALUES
 	--Disorder
 	--history:on
 	(282100009,         'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20171116', 'YYYYMMDD')), -- Adverse reaction caused by substance
-	(282100009,         'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction caused by substance
+	--(282100009,         'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction caused by substance
 	--history:off
-	(293104008,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction to vaccine product
+	--(293104008,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction to vaccine product
 	(28926001,          'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Eruption due to drug
 	(402752000,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dermatosis resulting from cytotoxic therapy
 	(407674008,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aspirin-induced asthma
 	(10628711000119101, 'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
 	(424909003,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Toxic retinopathy
-	(418634005,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic reaction to substance
+	(418634005,         'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic reaction to substance
 
 	(64572001,         	'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disease
 	(193570009,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cataract
 	(702809001,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug reaction with eosinophilia and systemic symptoms
 	(238986007,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Chemical-induced dermatological disorder
+	(702809001,         'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug reaction with eosinophilia and systemic symptoms
+	(422593004,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Acute renal failure due to ACE inhibitor
 
 	(232032008, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug-induced retinopathy
 	(448177004,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse drug interaction
 	(294842007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hematological agents allergy
+	--history:on
+	(62014003,          'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20180820', 'YYYYMMDD')), -- Adverse reaction to drug
+	(62014003,          'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20201110', 'YYYYMMDD')), -- Adverse reaction to drug
+	--(62014003,          'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction to drug
+	--history: off
 	(956271000000104,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aliskiren allergy
 	(1104821000000102,  'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to diagnostic dye
 	(201551000000109,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to plasters
 	(956291000000100,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Prasugrel allergy
-	(956311000000104,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ticagrelor allergy
+	(956311000000104,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ticagrelor allergy	--Location
 	(325651000000108,   'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Contact allergy
-	--history:on
-	(62014003,          'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20180820', 'YYYYMMDD')), -- Adverse reaction to drug
-	(62014003,          'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20201110', 'YYYYMMDD')), -- Adverse reaction to drug
-	(62014003,          'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction to drug
-	--history: off
-	--Location
+	(275322007,   		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Scar
+	(281647001,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction
+	(20558004,         	'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse effect of radiation therapy
+	(403753000,         'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse cutaneous reaction to acupuncture
+	(402763002,         'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse cutaneous reaction to diagnostic procedure
+	(56317004,         	'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Alopecia
+	(112401000119106,   'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lesion of conjunctiva
+	(15250008,   		'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disorder of cornea
+
 	--history:on
 	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20210217', 'YYYYMMDD')), -- Site of care
 	(43741000,      'Visit',            TO_DATE('20210217', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
@@ -1009,6 +1090,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(143471000237109,  	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Microbiology laboratory observable
 	(1290195007,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Detection of antibody to infective organism
 	(4401000237103,  	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mass concentration ratio of immunoglobulin G antibody to albumin in cerebrospinal fluid
+	(143441000237100,  	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Clinical chemistry observable
 
 	(363884002,        	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Recognition observable
 	(6769007,        	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Attention
@@ -1206,6 +1288,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(252441003,         'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Buerger's test
 	(31724009,         	'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Measurement of venous pressure
 	(21727005,         	'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Audiometric test
+	(77667008,         	'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Therapeutic drug monitoring, qualitative
 	(183452005,         'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Emergency hospital admission
 	(183851006,         'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Referral to clinic
 	(105396008,         'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Visit of patient by chaplain
@@ -1292,6 +1375,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(289122001,         'Device',       TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cosmetic material
 	(256673003,         'Device',       TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mucosa, skin and subcutaneous material
 	(256899007,         'Device',       TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cardiovascular material
+	(418588009,         'Device',       TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dusting powder agent
 
 	(255640000,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Biocide
 	(301054007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Phytochemical
@@ -1325,6 +1409,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(373703002,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Intravenous fluids and electrolytes
 	(373523004,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Skin antifungal agent
 	(417901007,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Oxymetazoline
+	(255955006,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Local anesthetic allergen
 	(406463001,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) -- Drug allergen
 
 ) AS a
@@ -1344,7 +1429,9 @@ SELECT b.* FROM (VALUES
 	(364069001,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Cardiac conduction system feature
 	(427751006,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of cardiac perfusion defect
 	(429162008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of myocardial stress ischemia
-	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1)  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
+	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1),  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
+	(24942001,  		'Condition',  	TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Urobilinogenuria
+	(18165001,  		'Condition',  	TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0)  --Jaundice
 				) as b
 ;
 

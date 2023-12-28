@@ -21,7 +21,7 @@ WHERE
         cr.invalid_reason IS NULL
     AND NOT (
             cr.relationship_id = 'Maps to'
-        AND s2.concept_id IS NOT NULL)
+        AND s2.concept_id IS NULL)
 ;
 --3.3. Steal the concepts!
 UPDATE concept c SET

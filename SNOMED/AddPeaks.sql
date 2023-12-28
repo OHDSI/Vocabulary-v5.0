@@ -1299,6 +1299,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(409073007,    	    'Observation', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Education
 	(252314007,  		'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood transfusion test
 	(16830007,  		'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Visual acuity testing
+	(441813004,  		'Measurement', TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Evaluation of peritoneal fluid
 
 	--Qualifier Value
 	(260245000,         'Meas Value',   TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding Value

@@ -11,6 +11,11 @@ RETURNS void AS
 	*/
 $BODY$
 BEGIN
+	--0. Check if the pMode parameter is valid
+	IF pMode NOT IN ('FULL', 'DELTA', 'VOCABULARY') THEN
+		RAISE EXCEPTION 'Invalid pMode parameter: %', pMode;
+	END IF;
+
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
 	DO $$

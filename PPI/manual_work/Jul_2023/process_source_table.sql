@@ -99,6 +99,7 @@ SELECT * FROM bhp_qa;
 UPDATE bhp_qa SET answer_code = 'PMI_DontKnow' WHERE answer_code = 'pmi_dontknow';
 UPDATE bhp_qa SET answer_code = 'PMI_PreferNotToAnswer' WHERE answer_code = 'pmi_prefernottoanswer';
 UPDATE bhp_qa SET answer_code = 'PMI_None' WHERE answer_code = 'pmi_none';
+UPDATE ehh_qa SET answer_code = 'PMI_DoesNotApplyToMe' WHERE answer_code = 'pmi_doesnotapplytome';
 
 SELECT * FROM bhp_qa;
 
@@ -206,5 +207,6 @@ SELECT * FROM ehh_qa;
 UPDATE ehh_qa SET answer_code = 'PMI_DontKnow' WHERE answer_code = 'pmi_dontknow';
 UPDATE ehh_qa SET answer_code = 'PMI_PreferNotToAnswer' WHERE answer_code = 'pmi_prefernottoanswer';
 UPDATE ehh_qa SET answer_code = 'PMI_None' WHERE answer_code = 'pmi_none';
+UPDATE ehh_qa SET answer_code = 'PMI_DoesNotApplyToMe' WHERE answer_code = 'pmi_doesnotapplytome';
 
 

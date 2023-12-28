@@ -1,8 +1,25 @@
 /*
- * Apply this script to a clean* schema to get stage tables that could be
+ * Apply this script to a clean schema to get stage tables that could be
  applied as a patch before running SNOMED's load_stage.sql.
  */
---0. Source dm+d tables
+--0.1. Empty stage tables and get dm+d *_manual data
+TRUNCATE concept_relationship_stage;
+TRUNCATE concept_synonym_stage;
+TRUNCATE concept_stage;
+TRUNCATE concept_relationship_manual;
+TRUNCATE concept_synonym_manual;
+TRUNCATE concept_manual;
+
+INSERT INTO concept_manual
+SELECT *
+FROM dev_dmd.concept_manual;
+INSERT INTO concept_synonym_manual
+SELECT *
+FROM dev_dmd.concept_synonym_manual;
+INSERT INTO concept_relationship_manual
+SELECT *
+FROM dev_dmd.concept_relationship_manual;
+--0.2. Source dm+d tables
 DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
     vtms, ont_drug_form, drug_form, ap_ingredient, ingredient_substances, combination_pack_ind, combination_prod_ind,
     unit_of_measure, forms, supplier, fake_supp, df_indicator, dmd2atc, dmd2bnf;

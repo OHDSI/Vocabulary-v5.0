@@ -2,6 +2,23 @@
  * Apply this script to a clean schema to get stage tables that could be applied
  * as a patch before running SNOMED's load_stage.sql.
  */
+--0. Clean stage tables and load Gemscript *_manual tables
+TRUNCATE concept_relationship_stage;
+TRUNCATE concept_synonym_stage;
+TRUNCATE concept_stage;
+TRUNCATE concept_relationship_manual;
+TRUNCATE concept_synonym_manual;
+TRUNCATE concept_manual;
+
+INSERT INTO concept_manual
+SELECT *
+FROM dev_gemscript.concept_manual;
+INSERT INTO concept_synonym_manual
+SELECT *
+FROM dev_gemscript.concept_synonym_manual;
+INSERT INTO concept_relationship_manual
+SELECT *
+FROM dev_gemscript.concept_relationship_manual;
 
 --1. Create table of concepts currently mapped to SNOMED, but that could be
 -- mapped to dm+d

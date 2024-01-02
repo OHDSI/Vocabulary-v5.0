@@ -18,13 +18,13 @@ TRUNCATE concept_manual;
 
 INSERT INTO concept_manual
 SELECT *
-FROM dev_test4.concept_manual;
+FROM dev_snomed.concept_manual;
 INSERT INTO concept_synonym_manual
 SELECT *
-FROM dev_test4.concept_synonym_manual;
+FROM dev_snomed.concept_synonym_manual;
 INSERT INTO concept_relationship_manual
 SELECT *
-FROM dev_test4.concept_relationship_manual;
+FROM dev_snomed.concept_relationship_manual;
 --1.
 --1.1. Table of retired concepts
 DROP TABLE IF EXISTS retired_concepts CASCADE;

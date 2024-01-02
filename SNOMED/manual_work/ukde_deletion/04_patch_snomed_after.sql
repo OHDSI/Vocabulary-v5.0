@@ -12,25 +12,33 @@ UPDATE concept_relationship_stage crs
 SET
     invalid_reason = 'D',
     valid_end_date = GREATEST(
-        TO_DATE('20220128', 'yyyymmdd'),
+        TO_DATE('20231030', 'yyyymmdd'),
         valid_start_date + INTERVAL '1 day' -- If somehow added this release
     )
 WHERE
         crs.invalid_reason IS NULL
-    AND EXISTS (
+    AND EXISTS ( -- Target and/or source is UKDE retired concept
         SELECT 1
         FROM concept c
         JOIN retired_concepts rc ON
-            rc.concept_id = c.concept_id
-                    AND c.concept_code = crs.concept_code_1
-                    AND c.vocabulary_id = crs.vocabulary_id_1)
+                rc.concept_id = c.concept_id
+            AND (
+                    (c.concept_code, c.vocabulary_id = crs.concept_code_1, crs.vocabulary_id_1) OR
+                    (c.concept_code, c.vocabulary_id = crs.concept_code_2, crs.vocabulary_id_2)
+                )
+    )
     AND NOT -- Not an external Maps to/CRB
     (
-            crs.relationship_id IN (
-                'Maps to'--,
-                --'Concept replaced by'
-                                   )
-        AND NOT EXISTS (
+            crs.relationship_id in ('Maps to', 'Concept replaced by')
+        AND EXISTS ( --Source is retired
+            SELECT 1
+            FROM retired_concepts rc
+            JOIN concept c ON
+                    c.concept_id = rc.concept_id
+                AND c.concept_code = crs.concept_code_1
+                AND c.vocabulary_id = crs.vocabulary_id_1
+        )
+        AND NOT EXISTS ( -- Target is not
             SELECT 1
             FROM retired_concepts rc
             JOIN concept c ON
@@ -96,44 +104,7 @@ WHERE
             )
     )
 ;
-
---2.3. Deprecate all staged relationships except for external "Maps to" and
--- possible external replacements
-UPDATE concept_relationship_stage crs
-SET
-    invalid_reason = 'D',
-    valid_end_date = GREATEST(
-        TO_DATE('20220128', 'yyyymmdd'),
-        valid_start_date + INTERVAL '1 day' -- If somehow added this release
-    )
-WHERE
-        crs.invalid_reason IS NULL
-    AND EXISTS (
-        SELECT 1
-        FROM retired_concepts rc
-        JOIN concept c ON
-                c.concept_id = rc.concept_id
-            AND c.concept_code = crs.concept_code_1
-            AND c.vocabulary_id = crs.vocabulary_id_1
-        WHERE
-            rc.concept_id = c.concept_id
-        )
-    AND NOT ( -- External Maps to and replacement
-            crs.relationship_id IN (
-                'Maps to'--,
-                --'Concept replaced by'
-            )
-        AND NOT EXISTS (
-            SELECT 1
-            FROM retired_concepts rc
-            JOIN concept c ON
-                    c.concept_id = rc.concept_id
-                AND c.concept_code = crs.concept_code_2
-                AND c.vocabulary_id = crs.vocabulary_id_2
-        )
-    )
-;
---2.4. Add concept replaced by relationships where possible
+--2.3. Add concept replaced by relationships where possible
 INSERT INTO concept_relationship_stage (
     concept_code_1,
     concept_code_2,
@@ -178,26 +149,30 @@ WHERE
         SELECT 1
         FROM concept_relationship_stage x
         WHERE
-            (
-                c.concept_code,
-                coalesce(
-                    dmd2.concept_code,
-                    dmd.concept_code
-                ),
-                c.vocabulary_id,
-                coalesce(
-                    dmd2.vocabulary_id,
-                    dmd.vocabulary_id
-                ),
-                'Concept replaced by'
-            ) = (
-                x.concept_code_1,
-                x.concept_code_2,
-                x.vocabulary_id_1,
-                x.vocabulary_id_2,
-                x.relationship_id
-            )
+                    x.invalid_reason IS NULL
+            AND (
+                    c.concept_code,
+                    coalesce(
+                        dmd2.concept_code,
+                        dmd.concept_code
+                    ),
+                    c.vocabulary_id,
+                    coalesce(
+                        dmd2.vocabulary_id,
+                        dmd.vocabulary_id
+                    ),
+                    'Concept replaced by'
+                ) = (
+                    x.concept_code_1,
+                    x.concept_code_2,
+                    x.vocabulary_id_1,
+                    x.vocabulary_id_2,
+                    x.relationship_id
+                )
     )
 ;
---2.5. Add Maps to from replaced by
+--2.5. Bizzare edge case: Nebraska Lexicon concept mapped to a concept which
+-- is not yet standard in dm+d.
+;
+--2.6. Add Maps to from replaced by
 SELECT vocabulary_pack.addFreshMapsTo();

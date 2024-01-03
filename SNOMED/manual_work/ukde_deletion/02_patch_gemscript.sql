@@ -97,7 +97,7 @@ SELECT
     p.patch_date - INTERVAL '1 day',
     'D'
 FROM gemscript_mapped_to_snomed g
-JOIN patch_date d ON TRUE
+JOIN patch_date p ON TRUE
 JOIN devv5.concept_relationship r ON
         r.concept_id_1 = g.gemscript_concept_id
     AND r.relationship_id = 'Maps to'

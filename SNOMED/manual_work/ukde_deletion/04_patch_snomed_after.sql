@@ -11,10 +11,8 @@
 UPDATE concept_relationship_stage crs
 SET
     invalid_reason = 'D',
-    valid_end_date = GREATEST(
-        p.patch_date - INTERVAL '1 day',
-        valid_start_date + INTERVAL '1 day' -- If somehow added this release
-    )
+    valid_end_date = GREATEST(p.patch_date, crs.valid_start_date) -- If somehow added this release
+
 FROM patch_date p
 WHERE
         crs.invalid_reason IS NULL
@@ -24,8 +22,8 @@ WHERE
         JOIN retired_concepts rc ON
                 rc.concept_id = c.concept_id
             AND (
-                    (c.concept_code, c.vocabulary_id = crs.concept_code_1, crs.vocabulary_id_1) OR
-                    (c.concept_code, c.vocabulary_id = crs.concept_code_2, crs.vocabulary_id_2)
+                    (c.concept_code, c.vocabulary_id) = (crs.concept_code_1, crs.vocabulary_id_1) OR
+                    (c.concept_code, c.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
                 )
     )
     AND NOT -- Not an external Maps to/CRB
@@ -68,7 +66,7 @@ SELECT
     c2.vocabulary_id,
     r.relationship_id,
     r.valid_start_date,
-    p.patch_date - INTERVAL '1 day',
+    GREATEST(p.patch_date, r.valid_start_date),
     'D'
 FROM concept_relationship r
 JOIN patch_date p ON TRUE
@@ -138,6 +136,7 @@ JOIN retired_concepts rc ON
 JOIN concept dmd ON
         dmd.concept_code = c.concept_code
     AND dmd.vocabulary_id = 'dm+d'
+	AND (dmd.invalid_reason = 'U' OR dmd.invalid_reason IS NULL)
     AND c.vocabulary_id = 'SNOMED'
 LEFT JOIN concept_relationship rep ON
         dmd.invalid_reason IS NOT NULL
@@ -147,6 +146,7 @@ LEFT JOIN concept_relationship rep ON
 LEFT JOIN concept dmd2 ON
         dmd2.concept_id = rep.concept_id_2
     AND dmd2.vocabulary_id = 'dm+d'
+	AND (dmd2.invalid_reason = 'U' OR dmd2.invalid_reason IS NULL)
 WHERE
     -- Replacement not already given in concept_relationship_stage
     NOT EXISTS(
@@ -175,6 +175,32 @@ WHERE
                 )
     )
 ;
+
+--2.5. Deprecate all 'Maps to' links from the retired concepts, that obtained replacement link above:
+
+UPDATE concept_relationship_stage i
+SET invalid_reason = 'D',
+    valid_end_date = GREATEST(p.patch_date, crs.valid_start_date)
+FROM concept_relationship_stage crs
+join concept c on c.concept_code = crs.concept_code_1
+         and c.vocabulary_id = crs.vocabulary_id_1
+join patch_date p on TRUE
+WHERE i.concept_code_1 = crs.concept_code_1
+  and i.vocabulary_id_1 = crs.vocabulary_id_1
+  and i.relationship_id = crs.relationship_id
+  and i.concept_code_2 = crs.concept_code_2
+  and i.vocabulary_id_2 = crs.vocabulary_id_2
+  and c.concept_id in (SELECT concept_id
+                     from retired_concepts)
+  and crs.relationship_id = 'Maps to'
+  AND crs.invalid_reason IS NULL
+  AND exists(SELECT 1
+             FROM concept_relationship_stage r
+             WHERE crs.concept_code_1 = r.concept_code_1
+             AND c.vocabulary_id = r.vocabulary_id_1
+             AND r.relationship_id = 'Concept replaced by'
+             AND r.invalid_reason IS NULL);
+
 --2.5. Bizzare edge case: Nebraska Lexicon concept mapped to a concept which
 -- is not yet standard in dm+d.
 ;

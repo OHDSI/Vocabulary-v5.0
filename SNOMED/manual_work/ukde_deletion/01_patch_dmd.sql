@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS patch_date;
 CREATE TABLE patch_date (
     patch_date DATE
 );
-INSERT INTO patch_date (patch_date) VALUES (to_date('01-11-2023', 'DD-MM-YYYY'));
+INSERT INTO patch_date (patch_date) VALUES (to_date('27-01-2022', 'DD-MM-YYYY'));
 
 --0.2. Source dm+d tables
 DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
@@ -566,7 +566,7 @@ SELECT
     t.vocabulary_id AS vocabulary_id_2,
     'Maps to' AS relationship_id,
     r.valid_start_date,
-    p.patch_date - INTERVAL '1 day' AS valid_end_date,
+    TO_DATE('20231101', 'YYYYMMDD') AS valid_end_date,
     'D' AS invalid_reason
 FROM dmd_mapped_to_snomed dm
 JOIN patch_date p ON TRUE
@@ -672,7 +672,7 @@ DROP MATERIALIZED VIEW indexed_moduleid_concept
 SELECT
     VOCABULARY_PACK.SetLatestUpdate(
             pVocabularyName			=> 'dm+d',
-            pVocabularyDate			=> p.patch_date,
+            pVocabularyDate			=> '2023-11-01',
             pVocabularyVersion		=> 'DMD 2023-05-22',
             pVocabularyDevSchema	=> 'dev_test3'
     )

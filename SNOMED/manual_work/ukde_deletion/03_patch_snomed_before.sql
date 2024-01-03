@@ -34,7 +34,7 @@ WITH last_non_uk_active AS (
         c.id,
         first_value(c.active) OVER
             (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
-    FROM sources.sct2_concept_full_merged c
+    FROM sources_archive.sct2_concept_full_merged c
     WHERE moduleid NOT IN (
            999000011000001104, --UK Drug extension
            999000021000001108  --UK Drug extension reference set module
@@ -50,7 +50,7 @@ current_module AS (
         c.id,
         first_value(moduleid) OVER
             (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
-    FROM sources.sct2_concept_full_merged c
+    FROM sources_archive.sct2_concept_full_merged c
 )
 SELECT DISTINCT
     c.concept_id

@@ -7,8 +7,9 @@
 --3.2. Deprecate all existing relationships -- unless it is an external Maps to
 UPDATE concept_relationship cr
 SET
-    valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY'),
+    valid_end_date = p.patch_date - INTERVAL '1 day',
     invalid_reason = 'D'
+FROM patch_date p
 WHERE
     EXISTS (
         SELECT 1
@@ -26,8 +27,9 @@ WHERE
 --3.2. Ditto, for reverse relationships
 UPDATE concept_relationship cr
 SET
-    valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY'),
+    valid_end_date = p.patch_date - INTERVAL '1 day',
     invalid_reason = 'D'
+FROM patch_date p
 WHERE
     EXISTS (
         SELECT 1
@@ -47,13 +49,14 @@ UPDATE concept c SET
      vocabulary_id = 'dm+d',
      invalid_reason = 'D',
      standard_concept = NULL,
-     valid_end_date = to_date('31-10-2023', 'DD-MM-YYYY'),
+     valid_end_date = p.patch_date - INTERVAL '1 day',
      valid_start_date = CASE
-                            WHEN valid_start_date >= to_date('31-10-2023', 'DD-MM-YYYY')
+                            WHEN valid_start_date >= p.patch_date - INTERVAL '1 day'
                                 THEN to_date('01-01-1970', 'DD-MM-YYYY')
                             ELSE valid_start_date
                         END
 FROM snomed_concepts_to_steal s
+JOIN patch_date p ON TRUE
 WHERE
     c.concept_id = s.concept_id
 ;

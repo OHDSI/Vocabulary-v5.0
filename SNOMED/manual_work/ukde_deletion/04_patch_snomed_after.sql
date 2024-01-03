@@ -12,9 +12,10 @@ UPDATE concept_relationship_stage crs
 SET
     invalid_reason = 'D',
     valid_end_date = GREATEST(
-        TO_DATE('20231030', 'yyyymmdd'),
+        p.patch_date - INTERVAL '1 day',
         valid_start_date + INTERVAL '1 day' -- If somehow added this release
     )
+FROM patch_date p
 WHERE
         crs.invalid_reason IS NULL
     AND EXISTS ( -- Target and/or source is UKDE retired concept
@@ -66,9 +67,10 @@ SELECT
     c2.vocabulary_id,
     r.relationship_id,
     r.valid_start_date,
-    TO_DATE('31-10-2023', 'DD-MM-YYYY'),
+    p.patch_date - INTERVAL '1 day',
     'D'
 FROM concept_relationship r
+JOIN patch_date p ON TRUE
 JOIN concept c1 ON
     c1.concept_id = r.concept_id_1
 JOIN concept c2 ON
@@ -126,9 +128,10 @@ SELECT
         dmd.vocabulary_id
     ),
     'Concept replaced by',
-    TO_DATE('20231101', 'yyyymmdd'),
+    p.patch_date,
     TO_DATE('20991231', 'yyyymmdd')
 FROM concept c
+JOIN patch_date p ON TRUE
 JOIN retired_concepts rc ON
     rc.concept_id = c.concept_id
 JOIN concept dmd ON

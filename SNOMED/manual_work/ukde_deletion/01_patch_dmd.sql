@@ -19,6 +19,14 @@ FROM dev_dmd.concept_synonym_manual;
 INSERT INTO concept_relationship_manual
 SELECT *
 FROM dev_dmd.concept_relationship_manual;
+
+--0.3. Persisting storage for patch the date: will be used to control date of the patch
+DROP TABLE IF EXISTS patch_date;
+CREATE TABLE patch_date (
+    patch_date DATE
+);
+INSERT INTO patch_date (patch_date) VALUES (to_date('01-11-2023', 'DD-MM-YYYY'));
+
 --0.2. Source dm+d tables
 DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
     vtms, ont_drug_form, drug_form, ap_ingredient, ingredient_substances, combination_pack_ind, combination_prod_ind,
@@ -420,9 +428,10 @@ SELECT
     'dm+d',
     dv.vocabulary_id_2,
     dv.relationship_id,
-    to_date('01-11-2023', 'DD-MM-YYYY'),
+    p.patch_date,
     to_date('31-12-2099', 'DD-MM-YYYY')
 FROM dmd_missing_mappings_vacc dv
+JOIN patch_date p ON TRUE
 ;
 DROP TABLE dmd_missing_mappings_vacc;
 
@@ -490,11 +499,12 @@ SELECT
     c.valid_start_date,
     CASE
         WHEN d.invalid_reason IS NULL THEN to_date('31-12-2099', 'DD-MM-YYYY')
-        ELSE to_date('31-10-2023', 'DD-MM-YYYY')
+        ELSE p.patch_date - INTERVAL '1 day'
     END AS valid_end_date,
     d.invalid_reason
 FROM dmd_mapped_to_snomed d
 JOIN concept c USING (concept_id)
+JOIN patch_date p ON TRUE
 ;
 --2.3. Populate the concept_relationship_stage with new correct mappings only
 INSERT INTO concept_relationship_stage (
@@ -518,9 +528,10 @@ SELECT DISTINCT
         ELSE t.vocabulary_id
     END AS vocabulary_id_2,
     'Maps to' AS relationship_id,
-    to_date('01-11-2023', 'DD-MM-YYYY') AS valid_start_date,
+    p.patch_date AS valid_start_date,
     to_date('31-12-2099', 'DD-MM-YYYY') AS valid_end_date
 FROM concept_stage cs
+JOIN patch_date p ON TRUE
 JOIN dmd_mapped_to_snomed dmts ON
     cs.concept_id = dmts.concept_id
 -- Join to replacement concept does it map anywhere?
@@ -555,9 +566,10 @@ SELECT
     t.vocabulary_id AS vocabulary_id_2,
     'Maps to' AS relationship_id,
     r.valid_start_date,
-    to_date('31-10-2023', 'DD-MM-YYYY') AS valid_end_date,
+    p.patch_date - INTERVAL '1 day' AS valid_end_date,
     'D' AS invalid_reason
 FROM dmd_mapped_to_snomed dm
+JOIN patch_date p ON TRUE
 JOIN concept c USING (concept_id)
 JOIN concept_relationship r ON
         r.concept_id_1 = dm.concept_id
@@ -660,8 +672,9 @@ DROP MATERIALIZED VIEW indexed_moduleid_concept
 SELECT
     VOCABULARY_PACK.SetLatestUpdate(
             pVocabularyName			=> 'dm+d',
-            pVocabularyDate			=> to_date('01-11-2023', 'dd-mm-yyyy'),
+            pVocabularyDate			=> p.patch_date,
             pVocabularyVersion		=> 'DMD 2023-05-22',
             pVocabularyDevSchema	=> 'dev_test3'
     )
+FROM patch_date p
 ;

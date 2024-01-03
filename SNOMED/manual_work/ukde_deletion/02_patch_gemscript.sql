@@ -78,9 +78,10 @@ SELECT
     'Gemscript',
     'dm+d',
     'Maps to',
-    to_date('2023-11-01', 'YYYY-MM-DD'),
+    p.patch_date,
     to_date('2099-12-31', 'YYYY-MM-DD')
 FROM gemscript_mapped_to_snomed
+JOIN patch_date p ON TRUE
 ;
 --3. Deprecate existing mappings
 INSERT INTO concept_relationship_stage
@@ -93,9 +94,10 @@ SELECT
     c.vocabulary_id,
     'Maps to',
     c.valid_start_date,
-    to_date('2023-10-31', 'YYYY-MM-DD'),
+    p.patch_date - INTERVAL '1 day',
     'D'
 FROM gemscript_mapped_to_snomed g
+JOIN patch_date d ON TRUE
 JOIN devv5.concept_relationship r ON
         r.concept_id_1 = g.gemscript_concept_id
     AND r.relationship_id = 'Maps to'
@@ -107,8 +109,9 @@ DROP TABLE IF EXISTS gemscript_mapped_to_snomed;
 SELECT
 	VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'Gemscript',
-	pVocabularyDate			=> to_date('01-11-2023', 'dd-mm-yyyy'),
+	pVocabularyDate			=> p.patch_date,
 	pVocabularyVersion		=> 'Gemscript 2021-02-01',
 	pVocabularyDevSchema	=> 'dev_test3'
 )
+FROM patch_date p
 ;

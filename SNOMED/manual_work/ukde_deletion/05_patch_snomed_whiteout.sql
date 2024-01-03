@@ -30,4 +30,8 @@ WHERE concept_id IN (
     SELECT concept_id
     FROM retired_concepts
 );
-DROP TABLE retired_concepts CASCADE;
+DROP TABLE IF EXISTS retired_concepts CASCADE;
+DROP TABLE IF EXISTS patch_date CASCADE;
+DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
+    vtms, ont_drug_form, drug_form, ap_ingredient, ingredient_substances, combination_pack_ind, combination_prod_ind,
+    unit_of_measure, forms, supplier, fake_supp, df_indicator, dmd2atc, dmd2bnf;

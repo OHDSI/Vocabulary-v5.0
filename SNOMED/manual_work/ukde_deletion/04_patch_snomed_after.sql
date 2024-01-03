@@ -12,25 +12,27 @@ UPDATE concept_relationship_stage crs
 SET
     invalid_reason = 'D',
     valid_end_date = GREATEST(
-        TO_DATE('20231030', 'YYYYMMDD'),
-        valid_start_date + INTERVAL '1 day'
+        p.patch_date - INTERVAL '1 day',
+        valid_start_date + INTERVAL '1 day' -- If somehow added this release
     )
+FROM patch_date p
 WHERE
         crs.invalid_reason IS NULL
-    AND EXISTS (
+    AND EXISTS ( -- Target and/or source is UKDE retired concept
         SELECT 1
         FROM concept c
         JOIN retired_concepts rc ON
                 rc.concept_id = c.concept_id
             AND (
-                    (c.concept_code, c.vocabulary_id) = (crs.concept_code_1, crs.vocabulary_id_1) OR
-                    (c.concept_code, c.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
+                    (c.concept_code, c.vocabulary_id = crs.concept_code_1, crs.vocabulary_id_1) OR
+                    (c.concept_code, c.vocabulary_id = crs.concept_code_2, crs.vocabulary_id_2)
                 )
     )
-    AND NOT (
-            crs.relationship_id IN ('Maps to'--, 'Concept replaced by'
+    AND NOT -- Not an external Maps to/CRB
+    (
+            crs.relationship_id in ('Maps to'--, 'Concept replaced by'
                                    )
-        AND EXISTS (
+        AND EXISTS ( --Source is retired
             SELECT 1
             FROM retired_concepts rc
             JOIN concept c ON
@@ -46,8 +48,8 @@ WHERE
                 AND c.concept_code = crs.concept_code_2
                 AND c.vocabulary_id = crs.vocabulary_id_2
         )
-    );
-
+    )
+;
 --2.2. Deprecate existing relationships except for external "Maps to" -- expl
 INSERT INTO concept_relationship_stage (
     concept_code_1,
@@ -66,9 +68,10 @@ SELECT
     c2.vocabulary_id,
     r.relationship_id,
     r.valid_start_date,
-    TO_DATE('31-10-2023', 'DD-MM-YYYY'),
+    p.patch_date - INTERVAL '1 day',
     'D'
 FROM concept_relationship r
+JOIN patch_date p ON TRUE
 JOIN concept c1 ON
     c1.concept_id = r.concept_id_1
 JOIN concept c2 ON
@@ -126,9 +129,10 @@ SELECT
         dmd.vocabulary_id
     ),
     'Concept replaced by',
-    TO_DATE('20231101', 'yyyymmdd'),
+    p.patch_date,
     TO_DATE('20991231', 'yyyymmdd')
 FROM concept c
+JOIN patch_date p ON TRUE
 JOIN retired_concepts rc ON
     rc.concept_id = c.concept_id
 JOIN concept dmd ON

@@ -137,3 +137,65 @@ GROUP BY (
     c1.invalid_reason
 )
 ;
+-- 6. Look at surviving concepts (expect only Routes):
+WITH last_non_uk_active AS (
+    SELECT
+        c.id,
+        first_value(c.active) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
+    FROM sources.sct2_concept_full_merged c
+    WHERE moduleid NOT IN (
+           999000011000001104, --UK Drug extension
+           999000021000001108  --UK Drug extension reference set module
+        )
+),
+killed_by_intl AS (
+    SELECT id
+    FROM last_non_uk_active
+    WHERE active = 0
+),
+current_module AS (
+    SELECT
+        c.id,
+        first_value(moduleid) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
+    FROM sources.sct2_concept_full_merged c
+)
+SELECT DISTINCT
+    c.domain_id,
+    c.concept_name LIKE '% (retired module, do not use)' AS concept_name_mangled,
+    count(1) AS surviving_count
+FROM concept c
+JOIN current_module cm ON
+        c.concept_code = cm.id :: text
+    AND cm.moduleid IN (
+        999000011000001104, --UK Drug extension
+        999000021000001108  --UK Drug extension reference set module
+    )
+    AND c.vocabulary_id = 'SNOMED'
+--Not killed by international release
+--Concepts here are expected to be "recovered" by their original
+--module and deprecated normally.
+LEFT JOIN killed_by_intl k ON
+    k.id :: text = c.concept_code
+WHERE
+    k.id IS NULL
+GROUP BY 1, 2
+;
+-- 7. Look at remaining active relationships for fully mangled concepts:
+SELECT
+    r.relationship_id,
+    c2.vocabulary_id as target_vocab,
+    c2.domain_id as target_domain,
+    count(1) as cnt
+FROM concept c
+JOIN concept_relationship r ON
+        c.concept_id = r.concept_id_1
+    AND r.invalid_reason IS NULL
+JOIN concept c2 ON
+    r.concept_id_2 = c2.concept_id
+WHERE
+        c.vocabulary_id = 'SNOMED'
+    AND length(c.concept_code) = 36 -- UUID
+GROUP BY 1, 2, 3
+;

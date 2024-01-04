@@ -177,7 +177,6 @@ WHERE
 ;
 
 --2.5. Deprecate all 'Maps to' links from the retired concepts, that obtained replacement link above:
-
 UPDATE concept_relationship_stage i
 SET invalid_reason = 'D',
     valid_end_date = GREATEST(p.patch_date, crs.valid_start_date)

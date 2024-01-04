@@ -256,7 +256,7 @@ SELECT
     t.vocabulary_id AS vocabulary_id_2,
     'Maps to' AS relationship_id,
     r.valid_start_date,
-    p.patch_date AS valid_end_date,
+    GREATEST(p.patch_date, r.valid_start_date) AS valid_end_date,
     'D' AS invalid_reason
 FROM dmd_mapped_to_snomed dm
 JOIN patch_date p ON TRUE
@@ -282,7 +282,7 @@ WHERE crs.concept_code_1 IS NULL
 SELECT
     VOCABULARY_PACK.SetLatestUpdate(
             pVocabularyName			=> 'dm+d',
-            pVocabularyDate			=> p.patch_date,
+            pVocabularyDate			=> '2023-05-22',
             pVocabularyVersion		=> 'DMD 2023-05-22',
             pVocabularyDevSchema	=> 'dev_test3'
     )

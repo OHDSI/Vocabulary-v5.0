@@ -12,15 +12,17 @@ SET
     END,
     concept_name = CASE c.domain_id
         WHEN 'Route' THEN c.concept_name || ' (retired module, do not use)'
-        ELSE 'Concept belonged to retired SNOMED CT module, do not use'
+        ELSE 'Retired SNOMED UK Drug extension concept, do not use, use ' ||
+             'concept indicated by the CONCEPT_RELATIONSHIP table, if any'
     END,
     valid_end_date = LEAST(
         c.valid_end_date,
-        TO_DATE('20220128', 'yyyymmdd')
+        p.patch_date - INTERVAL '1 day'
     ),
     standard_concept = NULL,
     invalid_reason = COALESCE(c.invalid_reason, 'D')
 FROM retired_concepts rc
+JOIN patch_date p ON TRUE
 WHERE
     c.concept_id = rc.concept_id
 ;
@@ -32,6 +34,4 @@ WHERE concept_id IN (
 );
 --DROP TABLE IF EXISTS retired_concepts CASCADE; --Used by QA scripts
 DROP TABLE IF EXISTS patch_date CASCADE;
-DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
-    vtms, ont_drug_form, drug_form, ap_ingredient, ingredient_substances, combination_pack_ind, combination_prod_ind,
-    unit_of_measure, forms, supplier, fake_supp, df_indicator, dmd2atc, dmd2bnf;
+DROP TABLE IF EXISTS vmps;

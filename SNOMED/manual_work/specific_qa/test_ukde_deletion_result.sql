@@ -199,3 +199,25 @@ WHERE
     AND length(c.concept_code) = 36 -- UUID
 GROUP BY 1, 2, 3
 ;
+-- 8. Evaluate number of UKDE concepts that end up without any active 'Maps to'
+-- or CRB relationships
+SELECT  --Expect around 4k counts -- metadata concepts
+    count(1) AS cnt,
+    c.domain_id,
+    c.concept_class_id,
+    c.invalid_reason,
+    x.invalid_reason
+FROM concept c
+JOIN devv5.concept x ON
+    x.concept_id = c.concept_id
+LEFT JOIN concept_relationship r ON
+        c.concept_id = r.concept_id_1
+    AND r.invalid_reason IS NULL
+    AND r.relationship_id IN ('Maps to', 'Concept replaced by')
+WHERE
+        length(c.concept_code) = 36 -- UUID
+    AND c.vocabulary_id = 'SNOMED'
+    AND r.concept_id_1 IS NULL
+GROUP BY 2, 3, 4, 5
+ORDER BY 5, 1 DESC
+;

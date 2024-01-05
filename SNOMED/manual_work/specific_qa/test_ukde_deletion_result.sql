@@ -2,7 +2,7 @@
 SELECT
     count(1) as cnt,
     concept_name LIKE '% (retired%' AS name_preserved,
-    concept_name LIKE 'Concept belonged to %' AS name_replaced,
+    concept_name LIKE 'Retired SNOMED UK Drug%' AS name_replaced,
     length(concept_code)=36 AS code_is_uuid,
     concept_class_id,
     domain_id,
@@ -12,7 +12,7 @@ FROM retired_concepts r
 NATURAL JOIN concept c
 GROUP BY (
     concept_name LIKE '% (retired%',
-    concept_name LIKE 'Concept belonged to %',
+    concept_name LIKE 'Retired SNOMED UK Drug%',
     length(concept_code)=36,
     concept_class_id,
     domain_id,

@@ -1,3 +1,8 @@
+CREATE TABLE icd_cde_source_backup as SELECT * FROM icd_cde_source;
+TRUNCATE TABLE icd_cde_source;
+INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup);
+SELECT * FROM icd_cde_source;
+
 --СDE source insertion
 DROP TABLE dev_icd10.icd_cde_source;
 TRUNCATE TABLE dev_icd10.icd_cde_source;
@@ -7,7 +12,7 @@ CREATE TABLE dev_icd10.icd_cde_source
     source_code_description varchar(255),
     source_vocabulary_id    varchar(20),
     group_name              varchar(255),
-    group_id                SERIAL,
+    group_id                int,
     --group_code              varchar, -- group code is dynamic and is assembled after grouping just before insertion data into the google sheet
     medium_group_id         integer,
     --medium_group_code       varchar,
@@ -28,7 +33,7 @@ CREATE TABLE dev_icd10.icd_cde_source
 -- Run load_stage for every Vocabulary to be included into the CDE
 -- Insert the whole source with existing mappings into the CDE. We want to preserve mappings to non-S or non valid concepts at this stage.
 -- Concepts, that are not supposed to have mappings are not included
--- If there are several mapping sources all the versions should be included, excluding duplicates within one vocabulary. --Ask Mikita
+-- If there are several mapping sources all the versions should be included, excluding duplicates within one vocabulary.
 -- Mapping duplicates between vocabularies are preserved
 
 --ICD10 with mappings
@@ -149,7 +154,7 @@ SELECT * FROM icd_cde_source
     OR source_code_description is null
     or source_vocabulary_id is null;
 
---potential replacement mapping insertion for concepts, which do not have standard target
+--Potential replacement mapping insertion for concepts, which do not have standard target
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
                             source_vocabulary_id,
@@ -191,9 +196,32 @@ AND target_standard_concept is null) -- 3534
        AND c.invalid_reason is null
        AND (m.source_code, c.concept_id) NOT IN (SELECT source_code, target_concept_id FROM icd_cde_source) ;
 
--- to review all soure_codes with mappings, including potential replacement mappings
+-- Review all source_codes with mappings, including potential replacement mappings
 SELECT * FROM icd_cde_source
 ORDER BY source_code;
+
+-- Assign the unique group_id to unique source concept
+CREATE TABLE cde_source_concepts (
+    source_code TEXT NOT NULL,
+	source_code_description TEXT,
+	source_vocabulary_id TEXT NOT NULL,
+	group_id SERIAL,
+	group_name TEXT NOT NULL);
+
+INSERT INTO cde_source_concepts (source_code,
+                                 source_code_description,
+                                 source_vocabulary_id,
+                                 group_name)
+SELECT DISTINCT source_code,
+                source_code_description,
+                source_vocabulary_id,
+                group_name FROM icd_cde_source;
+
+--UPDATE group_id in the initial source table
+UPDATE icd_cde_source s SET group_id =
+    (SELECT m.group_id FROM cde_source_concepts m WHERE m.source_code = s.source_code
+                                                 AND m.source_code_description = s.source_code_description
+                                                 AND m.source_vocabulary_id = s.source_vocabulary_id);
 
 --GROUPING CRITERIUM 1: (same codes with identical mappings)
 DROP TABLE grouped1;
@@ -202,7 +230,6 @@ SELECT DISTINCT
        c1.source_code as source_code,
        c1.source_code_description as source_code_description,
        c1.source_vocabulary_id as source_vocabulary_id,
-       --c1.group_id as group_id,
        c.source_code as source_code_1,
        c.source_code_description as source_code_description_1,
        c.source_vocabulary_id as source_vocabulary_id_1
@@ -218,38 +245,19 @@ SELECT DISTINCT
 --Deduplication
 DELETE FROM grouped1 WHERE (source_code, source_vocabulary_id) = (source_code_1, source_vocabulary_id_1);
 
---DROP TABLE c;
---CREATE TABLE c as
---SELECT * FROM grouped g WHERE EXISTS (
---    SELECT 1 FROM grouped g1
---    WHERE g.source_code = g1.source_code
---    AND g.source_code in (SELECT source_code
---FROM grouped
---group by source_code
---HAVING count (source_code) >1));
---SELECT * FROM c;
---
---DELETE FROM grouped g WHERE EXISTS (
---    SELECT 1 FROM grouped g1
---    WHERE g.source_code = g1.source_code
---    AND g.source_code in (SELECT source_code
---FROM grouped
---group by source_code
---HAVING count (source_code) >1));
-
---Source table must be in this format (may contain extra fields) according to the documentation
+--Temporary table for grouping
 DROP TABLE IF EXISTS cde_manual_group1;
 CREATE TABLE cde_manual_group1 (
 	source_code TEXT NOT NULL,
 	source_code_description TEXT,
 	source_vocabulary_id TEXT NOT NULL,
-	group_id SERIAL,
+	group_id int,
 	group_name TEXT NOT NULL,
 	target_concept_id INT4
 );
 
 CREATE UNIQUE INDEX idx_pk_cde_manual_group1 ON cde_manual_group1 ((source_code || ':' || source_vocabulary_id));
-CREATE INDEX idx_cde_manual_group_gid ON cde_manual_group1 (group_id);
+CREATE INDEX idx_cde_manual_group_gid_1 ON cde_manual_group1 (group_id);
 
 INSERT INTO cde_manual_group1 (source_code, source_code_description, source_vocabulary_id, group_name)
 SELECT DISTINCT source_code,
@@ -266,6 +274,13 @@ SELECT DISTINCT source_code_1,
     FROM grouped1
 WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group1)
 ;
+
+--generate unique group_id
+DROP SEQUENCE cde_group_id_1;
+CREATE SEQUENCE cde_group_id_1 START 111086;
+UPDATE cde_manual_group1
+SET group_id = nextval('cde_group_id_1')
+WHERE group_id IS NULL;
 
 --group the concepts
 DO $$
@@ -285,7 +300,21 @@ UPDATE icd_cde_source s SET group_id =
 WHERE source_code in (SELECT source_code FROM cde_manual_group1)
   and source_code_description in (SELECT source_code_description FROM cde_manual_group1);
 
--- Check if one group concepts from temporary table have the same group in source table
+-- Check if the concepts from one group in temporary table have the same group in source table
+with temporary_group_code as
+    (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
+FROM cde_manual_group1
+GROUP BY group_id
+ORDER BY group_id),
+     source_group_code as
+         (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
+FROM icd_cde_source
+GROUP BY group_id
+ORDER BY group_id)
+SELECT * FROM source_group_code s
+JOIN temporary_group_code t ON s.group_id = t.group_id
+WHERE s.group_code != t.group_code;
+
 
 --GROUPING CRITERIUM 2: identical source_code_description
 DROP TABLE grouped2;
@@ -302,9 +331,6 @@ FROM icd_cde_source c
     JOIN dev_icd10.icd_cde_source c1
     ON c.source_code_description = c1.source_code_description
     and c1.source_vocabulary_id = 'ICD10');
-
-SELECT * FROM grouped2
-WHERE (source_code, group_id) not in (SELECT source_code, group_id FROM cde_manual_group);
 
 --Deduplication
 DELETE FROM grouped2 WHERE (source_code, source_vocabulary_id) = (source_code_1, source_vocabulary_id_1);
@@ -337,7 +363,7 @@ CREATE TABLE cde_manual_group2 (
 	);
 
 CREATE UNIQUE INDEX idx_pk_cde_manual_group ON cde_manual_group2 ((source_code || ':' || source_vocabulary_id));
-CREATE INDEX idx_cde_manual_group_gid ON cde_manual_group2 (group_id);
+CREATE INDEX idx_cde_manual_group_gid2 ON cde_manual_group2 (group_id);
 
 INSERT INTO cde_manual_group2 (source_code, source_code_description, source_vocabulary_id, group_name)
 SELECT DISTINCT source_code, source_code_description, source_vocabulary_id, source_code_description
@@ -347,25 +373,24 @@ GROUP BY source_code, source_code_description, source_vocabulary_id, source_code
 INSERT INTO cde_manual_group2 (source_code, source_code_description, source_vocabulary_id, group_name)
 SELECT DISTINCT source_code_1, source_code_description_1, source_vocabulary_id_1, source_code_description_1
     FROM grouped2
-WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group)
+WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group2)
 ;
 
 --generate unique group_id
-DROP SEQUENCE cde_group_id;
-CREATE SEQUENCE cde_group_id START 1376461;
+DROP SEQUENCE cde_group_id_2;
+CREATE SEQUENCE cde_group_id_2 START 1400157;
 UPDATE cde_manual_group2
-SET group_id = nextval('cde_group_id')
+SET group_id = nextval('cde_group_id_2')
 WHERE group_id IS NULL;
 
 --DO $$
 --DECLARE
 --r RECORD;
 --BEGIN
---FOR r IN SELECT DISTINCT group_id, source_code_1, source_vocabulary_id_1 FROM grouped  LOOP
---PERFORM cde_groups.MergeGroupsByConcept('cde_manual_group', r.group_id::int, ARRAY [concat(r.source_code_1, ':', r.source_vocabulary_id_1)]);
+--FOR r IN SELECT DISTINCT group_id, source_code_1, source_vocabulary_id_1 FROM grouped2  LOOP
+--PERFORM cde_groups.MergeGroupsByConcept('cde_manual_group2', r.group_id::int, ARRAY [concat(r.source_code_1, ':', r.source_vocabulary_id_1)]);
 --END LOOP;
 --END $$;
-
 
 --group the concepts
 DO $$
@@ -385,6 +410,21 @@ WHERE source_code in
       (SELECT source_code FROM cde_manual_group2)
   and source_code_description in (SELECT source_code_description FROM cde_manual_group2);
 
+-- Check if the concepts from one group in temporary table have the same group in source table
+with temporary_group_code as
+    (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
+FROM cde_manual_group2
+GROUP BY group_id
+ORDER BY group_id),
+     source_group_code as
+         (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
+FROM icd_cde_source
+GROUP BY group_id
+ORDER BY group_id)
+SELECT * FROM source_group_code s
+JOIN temporary_group_code t ON s.group_id = t.group_id
+WHERE s.group_code != t.group_code;
+
 -- check every concept is represented in only one group
 SELECT DISTINCT
 source_code,
@@ -394,8 +434,11 @@ FROM icd_cde_source
 GROUP BY source_code, source_vocabulary_id
 HAVING COUNT (group_id) > 1;
 
+SELECT * FROM icd_cde_source;
+
 --Table for manual mapping and review creation
 DROP TABLE icd_cde_manual;
+TRUNCATE TABLE icd_cde_manual;
 CREATE TABLE icd_cde_manual
 (
 group_name varchar,
@@ -437,38 +480,33 @@ target_invalid_reason,
 target_domain_id,
 target_vocabulary_id,
 mapper_id)
-SELECT DISTINCT
-group_name,
-group_id,
-array_agg (CONCAT (source_vocabulary_id || ':' || source_code))  as group_code,
-mappings_origin,
-relationship_id,
-target_concept_id,
-target_concept_code,
-target_concept_name,
-target_concept_class_id,
-target_standard_concept,
-target_invalid_reason,
-target_domain_id,
-target_vocabulary_id,
-null as mapper_id
+
+with code_agg as (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code))) as group_code
 FROM icd_cde_source
-GROUP BY group_name,
-         group_id,
-         relationship_id,
-         target_concept_id,
-         target_concept_code,
-         target_concept_name,
-         target_concept_class_id,
-         target_standard_concept,
-         target_invalid_reason,
-         target_domain_id,
-         target_vocabulary_id,
-         mappings_origin
-order by group_id
+GROUP BY group_id
+ORDER BY group_id)
+SELECT DISTINCT
+s.group_name,
+s.group_id,
+c.group_code,
+s.mappings_origin,
+s.relationship_id,
+s.target_concept_id,
+s.target_concept_code,
+s.target_concept_name,
+s.target_concept_class_id,
+s.target_standard_concept,
+s.target_invalid_reason,
+s.target_domain_id,
+s.target_vocabulary_id,
+null as mapper_id
+FROM icd_cde_source s
+JOIN code_agg c
+ON s.group_id = c.group_id
+ORDER BY s.group_id
 ;
 
-SELECT * FROM icd_cde_manual LIMIT 1000;
+SELECT * FROM icd_cde_manual;
 select google_pack.SetSpreadSheet ('icd_cde_manual', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs','ICD_CDE')
 
 

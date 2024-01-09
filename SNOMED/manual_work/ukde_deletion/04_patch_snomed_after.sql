@@ -4,6 +4,52 @@
 -- This script adds replacement relationships for SNOMED UKDE retired concepts
 -- and whites them out in concept_stage.
 
+--1.1. Table of retired concepts
+DROP TABLE IF EXISTS retired_concepts CASCADE;
+CREATE TABLE retired_concepts AS
+WITH last_non_uk_active AS (
+    SELECT
+        c.id,
+                first_value(c.active) OVER
+            (PARTITION BY c.id ORDER BY effectivetime DESC) AS active
+    FROM sources_archive.sct2_concept_full_merged c
+    WHERE moduleid NOT IN (
+                           999000011000001104, --UK Drug extension
+                           999000021000001108  --UK Drug extension reference set module
+        )
+),
+    killed_by_intl AS (
+        SELECT id
+        FROM last_non_uk_active
+        WHERE active = 0
+    ),
+    current_module AS (
+        SELECT
+            c.id,
+                    first_value(moduleid) OVER
+                (PARTITION BY c.id ORDER BY effectivetime DESC) AS moduleid
+        FROM sources_archive.sct2_concept_full_merged c
+    )
+SELECT DISTINCT
+    c.concept_id,
+    c.concept_code,
+    c.vocabulary_id
+FROM concept c
+JOIN current_module cm ON
+    c.concept_code = cm.id :: text
+            AND cm.moduleid IN (
+                                999000011000001104, --UK Drug extension
+                                999000021000001108  --UK Drug extension reference set module
+        )
+            AND c.vocabulary_id = 'SNOMED'
+    --Not killed by international release
+--Concepts here are expected to be "recovered" by their original
+--module and deprecated normally.
+LEFT JOIN killed_by_intl k ON
+    k.id :: text = c.concept_code
+WHERE
+    k.id IS NULL
+;
 
 --2. Add replacement relationships for retired concepts
 -- We assume that dm+d is in fixed state by now, including taking

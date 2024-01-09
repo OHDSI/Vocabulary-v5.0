@@ -7,7 +7,7 @@ See the [forum post](https://forums.ohdsi.org/t/announcing-the-retirement-of-sno
 * A clean schema with current versions of dm+d and Gemscript
 * Any `SNOMED/load_stage.sql` version that excludes UKDE modules
 ## Execution order
-1. Only in devv5: Run `00_patch_dmd.sql`
+1. Only in devv5: Run `00_patch_manual_tables.sql`
 2. Update patch date in step '--0.3' of 01_patch_dmd.sql
 3. Run `01_patch_dmd.sql`
 4. Run `GenericUpdate('DELTA')`

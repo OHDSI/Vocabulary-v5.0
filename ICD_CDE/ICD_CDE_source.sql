@@ -223,6 +223,7 @@ UPDATE icd_cde_source s SET group_id =
                                                  AND m.source_code_description = s.source_code_description
                                                  AND m.source_vocabulary_id = s.source_vocabulary_id);
 
+
 --GROUPING CRITERIUM 1: (same codes with identical mappings)
 DROP TABLE grouped1;
 CREATE TABLE grouped1 as (
@@ -366,19 +367,31 @@ CREATE UNIQUE INDEX idx_pk_cde_manual_group ON cde_manual_group2 ((source_code |
 CREATE INDEX idx_cde_manual_group_gid2 ON cde_manual_group2 (group_id);
 
 INSERT INTO cde_manual_group2 (source_code, source_code_description, source_vocabulary_id, group_name)
-SELECT DISTINCT source_code, source_code_description, source_vocabulary_id, source_code_description
-    FROM grouped2
-GROUP BY source_code, source_code_description, source_vocabulary_id, source_code_description;
+SELECT DISTINCT g2.source_code,
+                g2.source_code_description,
+                g2.source_vocabulary_id,
+                --s.group_id,
+                g2.source_code_description
+    FROM grouped2 g2;
+    --JOIN icd_cde_source s
+    --ON g2.source_code = s.source_code
+    --AND g2.source_vocabulary_id = s.source_vocabulary_id;
 
 INSERT INTO cde_manual_group2 (source_code, source_code_description, source_vocabulary_id, group_name)
-SELECT DISTINCT source_code_1, source_code_description_1, source_vocabulary_id_1, source_code_description_1
-    FROM grouped2
-WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group2)
+SELECT DISTINCT g2.source_code_1,
+                g2.source_code_description_1,
+                g2.source_vocabulary_id_1,
+                --s.group_id,
+                g2.source_code_description_1
+    FROM grouped2 g2
+    --JOIN icd_cde_source s
+    --ON g2.source_code_1 = s.source_code
+    --AND g2.source_vocabulary_id_1 = s.source_vocabulary_id
+ WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group2)
 ;
-
 --generate unique group_id
 DROP SEQUENCE cde_group_id_2;
-CREATE SEQUENCE cde_group_id_2 START 1400157;
+CREATE SEQUENCE cde_group_id_2 START 1900000;
 UPDATE cde_manual_group2
 SET group_id = nextval('cde_group_id_2')
 WHERE group_id IS NULL;
@@ -429,12 +442,10 @@ WHERE s.group_code != t.group_code;
 SELECT DISTINCT
 source_code,
 source_vocabulary_id,
-COUNT (group_id)
+COUNT (DISTINCT group_id)
 FROM icd_cde_source
-GROUP BY source_code, source_vocabulary_id
-HAVING COUNT (group_id) > 1;
-
-SELECT * FROM icd_cde_source;
+GROUP BY group_id, source_code, source_vocabulary_id
+HAVING COUNT (DISTINCT group_id) > 1;
 
 --Table for manual mapping and review creation
 DROP TABLE icd_cde_manual;

@@ -295,8 +295,16 @@ WHERE source_code NOT IN (
         OR relationship_id_predicate='up'
         OR relationship_id_predicate='down');
 
+-- Check if any discrepancies between relationship_id_predicate and decision fields
+SELECT DISTINCT source_code
+FROM dev_meddra.meddra_environment
+WHERE (relationship_id_predicate='' AND decision='1')
+   OR (relationship_id_predicate!='' AND decision='');
+
+
 
 -- 6.2.7 Change concept_relationship_manual table according to meddra_environment table.
+
 --Insert new and update existing relationships
 
 INSERT INTO dev_meddra.concept_relationship_manual AS mapped
@@ -348,6 +356,47 @@ AND crm.concept_code_1 = m.source_code AND crm.vocabulary_id_1 = m.source_vocabu
 AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.target_vocabulary_id
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL;
+
+-- Creation of MedDRA-SNOMED hierarchical relationships
+
+
+WITH tab AS(
+
+SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN source_code
+			WHEN relationship_id_predicate='up' THEN target_concept_code END AS concept_code_1,
+		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code
+			WHEN relationship_id_predicate='up' THEN source_code END AS concept_code_2,
+		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN source_vocabulary_id
+			WHEN relationship_id_predicate='up' THEN target_vocabulary_id END AS vocabulary_id_1,
+		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate= 'down' THEN target_vocabulary_id
+			WHEN relationship_id_predicate='up' THEN source_vocabulary_id END AS vocabulary_id_2,
+		'Is a' as relationship_id,
+	       current_date AS valid_start_date,
+           to_date('20991231','yyyymmdd') AS valid_end_date,
+           NULL AS invalid_reason
+FROM dev_meddra.meddra_environment
+WHERE decision='1')
+
+
+INSERT INTO dev_meddra.concept_relationship_manual AS mapped
+    (concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+
+SELECT *
+FROM tab;
+
+
+
+
+
+
+
 
 
 

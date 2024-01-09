@@ -362,20 +362,23 @@ AND crm.invalid_reason IS NOT NULL;
 
 WITH tab AS(
 
-SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN source_code
-			WHEN relationship_id_predicate='up' THEN target_concept_code END AS concept_code_1,
-		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code
-			WHEN relationship_id_predicate='up' THEN source_code END AS concept_code_2,
-		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN source_vocabulary_id
-			WHEN relationship_id_predicate='up' THEN target_vocabulary_id END AS vocabulary_id_1,
-		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate= 'down' THEN target_vocabulary_id
-			WHEN relationship_id_predicate='up' THEN source_vocabulary_id END AS vocabulary_id_2,
+SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code
+			WHEN relationship_id_predicate='up' THEN source_code END AS concept_code_1,
+		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN source_code
+			WHEN relationship_id_predicate='up' THEN target_concept_code END AS concept_code_2,
+		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_vocabulary_id
+			WHEN relationship_id_predicate='up' THEN source_vocabulary_id END AS vocabulary_id_1,
+		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate= 'down' THEN source_vocabulary_id
+			WHEN relationship_id_predicate='up' THEN target_vocabulary_id END AS vocabulary_id_2,
 		'Is a' as relationship_id,
-	       current_date AS valid_start_date,
-           to_date('20991231','yyyymmdd') AS valid_end_date,
-           NULL AS invalid_reason
+	    current_date AS valid_start_date,
+        to_date('20991231','yyyymmdd') AS valid_end_date,
+        NULL AS invalid_reason
 FROM dev_meddra.meddra_environment
-WHERE decision='1')
+WHERE decision='1'
+
+
+    )
 
 
 INSERT INTO dev_meddra.concept_relationship_manual AS mapped

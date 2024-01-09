@@ -4,6 +4,7 @@
 -- This script adds replacement relationships for SNOMED UKDE retired concepts
 -- and whites them out in concept_stage.
 
+
 --2. Add replacement relationships for retired concepts
 -- We assume that dm+d is in fixed state by now, including taking
 -- ownership of the UK Drug Extension module concepts where relevant.
@@ -11,20 +12,19 @@
 UPDATE concept_relationship_stage crs
 SET
     invalid_reason = 'D',
-    valid_end_date = GREATEST(p.patch_date, crs.valid_start_date) -- If somehow added this release
+    valid_end_date = GREATEST(
+        p.patch_date - INTERVAL '1 day',
+        crs.valid_start_date) -- If somehow added this release
 
 FROM patch_date p
 WHERE
         crs.invalid_reason IS NULL
     AND EXISTS ( -- Target and/or source is UKDE retired concept
         SELECT 1
-        FROM concept c
-        JOIN retired_concepts rc ON
-                rc.concept_id = c.concept_id
-            AND (
-                    (c.concept_code, c.vocabulary_id) = (crs.concept_code_1, crs.vocabulary_id_1) OR
-                    (c.concept_code, c.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
-                )
+        FROM retired_concepts c
+        WHERE
+                (c.concept_code, c.vocabulary_id) = (crs.concept_code_1, crs.vocabulary_id_1)
+            OR  (c.concept_code, c.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
     )
     AND NOT -- Not an external Maps to/CRB
     (
@@ -32,18 +32,16 @@ WHERE
                                    )
         AND EXISTS ( --Source is retired
             SELECT 1
-            FROM retired_concepts rc
-            JOIN concept c ON
-                    c.concept_id = rc.concept_id
-                AND c.concept_code = crs.concept_code_1
+            FROM retired_concepts c
+            WHERE
+                    c.concept_code = crs.concept_code_1
                 AND c.vocabulary_id = crs.vocabulary_id_1
         )
         AND NOT EXISTS ( -- Target is not
             SELECT 1
-            FROM retired_concepts rc
-            JOIN concept c ON
-                    c.concept_id = rc.concept_id
-                AND c.concept_code = crs.concept_code_2
+            FROM retired_concepts c
+            WHERE
+                    c.concept_code = crs.concept_code_2
                 AND c.vocabulary_id = crs.vocabulary_id_2
         )
     )
@@ -60,20 +58,16 @@ INSERT INTO concept_relationship_stage (
     invalid_reason
 )
 SELECT
-    c1.concept_code,
-    c2.concept_code,
-    c1.vocabulary_id,
-    c2.vocabulary_id,
+    rc.concept_code,
+    r2.concept_code,
+    rc.vocabulary_id,
+    r2.vocabulary_id,
     r.relationship_id,
     r.valid_start_date,
-    GREATEST(p.patch_date, r.valid_start_date),
+    GREATEST(p.patch_date - INTERVAL '1 day', r.valid_start_date),
     'D'
 FROM concept_relationship r
 JOIN patch_date p ON TRUE
-JOIN concept c1 ON
-    c1.concept_id = r.concept_id_1
-JOIN concept c2 ON
-    c2.concept_id = r.concept_id_2
 JOIN retired_concepts rc ON
         r.concept_id_1 = rc.concept_id
     AND r.invalid_reason IS NULL
@@ -91,10 +85,10 @@ WHERE
         FROM concept_relationship_stage x
         WHERE
             (
-                c1.concept_code,
-                c2.concept_code,
-                c1.vocabulary_id,
-                c2.vocabulary_id,
+                rc.concept_code,
+                r2.concept_code,
+                rc.vocabulary_id,
+                r2.vocabulary_id,
                 r.relationship_id
             ) = (
                 x.concept_code_1,
@@ -116,12 +110,12 @@ INSERT INTO concept_relationship_stage (
     valid_end_date
 )
 SELECT
-    c.concept_code,
+    rc.concept_code,
     coalesce(
         dmd2.concept_code,
         dmd.concept_code
     ),
-    c.vocabulary_id,
+    rc.vocabulary_id,
     coalesce(
         dmd2.vocabulary_id,
         dmd.vocabulary_id
@@ -129,15 +123,12 @@ SELECT
     'Concept replaced by',
     p.patch_date,
     TO_DATE('20991231', 'yyyymmdd')
-FROM concept c
+FROM retired_concepts rc
 JOIN patch_date p ON TRUE
-JOIN retired_concepts rc ON
-    rc.concept_id = c.concept_id
 JOIN concept dmd ON
-        dmd.concept_code = c.concept_code
+        dmd.concept_code = rc.concept_code
     AND dmd.vocabulary_id = 'dm+d'
 	AND (dmd.invalid_reason = 'U' OR dmd.invalid_reason IS NULL)
-    AND c.vocabulary_id = 'SNOMED'
 LEFT JOIN concept_relationship rep ON
         dmd.invalid_reason IS NOT NULL
     AND dmd.concept_id = rep.concept_id_1
@@ -155,12 +146,12 @@ WHERE
         WHERE
                     x.invalid_reason IS NULL
             AND (
-                    c.concept_code,
+                    rc.concept_code,
                     coalesce(
                         dmd2.concept_code,
                         dmd.concept_code
                     ),
-                    c.vocabulary_id,
+                    rc.vocabulary_id,
                     coalesce(
                         dmd2.vocabulary_id,
                         dmd.vocabulary_id

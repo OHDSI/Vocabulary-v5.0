@@ -2,23 +2,10 @@
  * Apply this script to a clean schema to get stage tables that could be
  applied as a patch before running SNOMED's load_stage.sql.
  */
---0.1. Empty stage tables and get dm+d *_manual data
+--0.1. Empty stage tables
 TRUNCATE concept_relationship_stage;
 TRUNCATE concept_synonym_stage;
 TRUNCATE concept_stage;
-TRUNCATE concept_relationship_manual;
-TRUNCATE concept_synonym_manual;
-TRUNCATE concept_manual;
-
-INSERT INTO concept_manual
-SELECT *
-FROM dev_dmd.concept_manual;
-INSERT INTO concept_synonym_manual
-SELECT *
-FROM dev_dmd.concept_synonym_manual;
-INSERT INTO concept_relationship_manual
-SELECT *
-FROM dev_dmd.concept_relationship_manual;
 
 --0.3. Persisting storage for patch the date: will be used to control date of the patch
 DROP TABLE IF EXISTS patch_date;

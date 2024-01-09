@@ -1,13 +1,18 @@
-/*
- * Apply this script to a clean schema to get stage tables that could be applied
- * as a patch before running SNOMED's load_stage.sql.
- */
---0. Clean stage tables
-TRUNCATE concept_relationship_stage;
-TRUNCATE concept_synonym_stage;
-TRUNCATE concept_stage;
+--0. Persisting storage for patch the date: will be used to control date of the patch
+DROP TABLE IF EXISTS patch_date;
+CREATE TABLE patch_date (
+    patch_date DATE
+);
 
---1.1. Table of retired concepts
+--1. Manual override of a single concept
+INSERT INTO patch_date (patch_date) VALUES (to_date('01-11-2023', 'DD-MM-YYYY'));
+UPDATE devv5.base_concept_relationship_manual m
+SET
+    concept_code_2 = '704098003'
+WHERE
+    concept_code_2 = '71831000001102'
+    AND vocabulary_id_2 = 'SNOMED'
+;
 DROP TABLE IF EXISTS retired_concepts CASCADE;
 CREATE TABLE retired_concepts AS
 WITH last_non_uk_active AS (
@@ -53,29 +58,27 @@ LEFT JOIN killed_by_intl k ON
 WHERE
     k.id IS NULL
 ;
---2. Delete references to retired concepts from _manual tables
--- Separate script deprecaes them, should have no effect when ran in devv5
-DELETE FROM concept_relationship_manual crm
+--1.2. Delete concept_manual entries
+DELETE FROM devv5.base_concept_manual m
+WHERE
+    EXISTS(
+        SELECT 1
+        FROM retired_concepts c
+        WHERE
+                c.concept_code = m.concept_code
+            AND c.vocabulary_id = m.vocabulary_id
+    )
+;
+DELETE FROM devv5.base_concept_synonym_manual m
 WHERE
     EXISTS (
         SELECT 1
-        FROM retired_concepts rc
+        FROM retired_concepts c
         WHERE
-            (rc.concept_code, 'SNOMED') IN (
-                (crm.concept_code_1, crm.vocabulary_id_1),
-                (crm.concept_code_2, crm.vocabulary_id_2))
+                c.concept_code = m.synonym_concept_code
+            AND c.vocabulary_id = m.synonym_vocabulary_id
     )
 ;
-DELETE FROM concept_synonym_manual csm
-WHERE
-    (csm.synonym_concept_code, csm.synonym_vocabulary_id) IN (
-        SELECT concept_code, vocabulary_id
-        FROM retired_concepts
-    )
-;
-DELETE FROM concept_manual cm
-WHERE
-    (cm.concept_code, cm.vocabulary_id) IN (
-        SELECT concept_code, vocabulary_id
-        FROM retired_concepts
-    )
+--2. Drop temporary tables
+DROP TABLE IF EXISTS retired_concepts CASCADE;
+DROP TABLE IF EXISTS patch_date;

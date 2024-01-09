@@ -267,14 +267,38 @@ meddra_environment
 ORDER BY source_code, relationship_id, count_aggr DESC;
 
 
+
 -- 6.2.5.Truncate meddra_environment table.
 --TRUNCATE TABLE dev_meddra.meddra_environment;
 
--- 6.2.6 Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema. Run manual checks for meddra_environment table
+-- 6.2.6 Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema. Run manual checks (+ specific checks) for meddra_environment table
+
+-- Check if rows are uploaded correctly
+
+SELECT * FROM dev_meddra.meddra_environment;
+
+-- Check if field 'decision' doesn't contain value '1' (ideally must be NULL rows)
+
+SELECT DISTINCT source_code, source_code_description
+FROM dev_meddra.meddra_environment
+WHERE source_code NOT IN (SELECT DISTINCT source_code FROM dev_meddra.meddra_environment WHERE decision = '1');
+
+-- Check if field 'relationship_id_predicate' doesn't contain any value (ideally must be NULL rows)
+
+SELECT DISTINCT source_code, source_code_description
+FROM dev_meddra.meddra_environment
+WHERE source_code NOT IN (
+        SELECT DISTINCT source_code
+        FROM dev_meddra.meddra_environment
+        WHERE relationship_id_predicate = 'eq'
+        OR relationship_id_predicate='up'
+        OR relationship_id_predicate='down');
+
 
 -- 6.2.7 Change concept_relationship_manual table according to meddra_environment table.
 --Insert new relationships
 --Update existing relationships
+
 
 -- INSERT INTO dev_meddra.concept_relationship_manual AS mapped
 --     (concept_code_1,

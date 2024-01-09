@@ -14,9 +14,9 @@ $body$;
 
 
 --restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_meddra.concept_relationship_manual;
-INSERT INTO dev_meddra.concept_relationship_manual
-SELECT * FROM dev_meddra.concept_relationship_manual_backup_YYYY_MM_DD;*/
+-- TRUNCATE TABLE dev_meddra.concept_relationship_manual;
+-- INSERT INTO dev_meddra.concept_relationship_manual
+-- SELECT * FROM dev_meddra.concept_relationship_manual_backup_2024_01_09;
 
 DO
 $body$
@@ -43,7 +43,7 @@ CREATE TABLE dev_meddra.meddra_pt_only_081123 AS
 
 WITH tab AS (
 
--- вывод всех маппингов из meddra_mapped
+-- all MedDRA-SNOMED mappings from manual table (meddra_mapped)
 
 SELECT m.source_code, m.source_code_description, m.to_value, m.target_concept_code, m.target_concept_name,
        m.target_concept_id,m.target_concept_class_id, m.target_standard_concept, m.target_invalid_reason,
@@ -55,7 +55,7 @@ WHERE c.vocabulary_id='MedDRA' AND c.concept_class_id='PT'
 
 UNION ALL
 
--- вывод всех маппингов meddra_snomed и инвертированных snomed-meddra
+-- all MedDRA-SNOMED / inverted SNOMED-MedDRA mappings from MSSO
 
 
 (SELECT mts.meddra_code AS source_code, mts.meddra_llt AS source_code_description,  '' AS to_value, c.concept_code AS target_concept_code,
@@ -85,7 +85,7 @@ INNER JOIN devv5.concept AS cc
 
 UNION ALL
 
--- Вывод ранее существовавших MedDRA-SNOMED eq
+-- all MedDRA-SNOMED mappings from previously existed MedDRA-SNOMED eq
 
 (SELECT c.concept_code AS source_code, c.concept_name AS source_code_description, '' AS to_value,
        cc.concept_code AS target_concept_code,
@@ -106,7 +106,7 @@ ORDER BY c.concept_id)
 
 UNION ALL
 
--- Вывод маппингов через ICD10
+-- all MedDRA-SNOMED mappings via ICD10
 
 (
     WITH tab AS(
@@ -138,7 +138,7 @@ ON tab.meddra_code=c5.concept_code AND c5.vocabulary_id='MedDRA' AND c5.concept_
 
 UNION ALL
 
--- вывод всех маппингов UMLS
+-- all MedDRA-SNOMED mappings from UMLS
 
 (WITH cte_concept_code AS (
   SELECT concept_code
@@ -279,6 +279,7 @@ SELECT * FROM dev_meddra.meddra_environment;
 
 -- Check if field 'decision' doesn't contain value '1' (ideally must be NULL rows)
 
+
 SELECT DISTINCT source_code, source_code_description
 FROM dev_meddra.meddra_environment
 WHERE source_code NOT IN (SELECT DISTINCT source_code FROM dev_meddra.meddra_environment WHERE decision = '1');
@@ -296,19 +297,17 @@ WHERE source_code NOT IN (
 
 
 -- 6.2.7 Change concept_relationship_manual table according to meddra_environment table.
---Insert new relationships
---Update existing relationships
+--Insert new and update existing relationships
 
-
--- INSERT INTO dev_meddra.concept_relationship_manual AS mapped
---     (concept_code_1,
---     concept_code_2,
---     vocabulary_id_1,
---     vocabulary_id_2,
---     relationship_id,
---     valid_start_date,
---     valid_end_date,
---     invalid_reason)
+INSERT INTO dev_meddra.concept_relationship_manual AS mapped
+    (concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
 
 	SELECT source_code,
 	       target_concept_code,
@@ -332,7 +331,6 @@ WHERE source_code NOT IN (
 	IS DISTINCT FROM
 	ROW (excluded.invalid_reason);
 
-
 --Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables
 UPDATE concept_relationship_manual crm
 SET valid_start_date = cr.valid_start_date,
@@ -351,74 +349,6 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
--- Additional scrips
-
--- To create table with python + chatgpt automapping in meddra_mapped format for manual review
-
-WITH tab AS
-    (
-SELECT c.concept_code, c.concept_name, c.concept_class_id, string_agg (CONCAT (cc.concept_name,'(', cc.concept_class_id,')'), '-'
-    ORDER BY ca.max_levels_of_separation DESC) AS hierarchy
-FROM dev_meddra.concept c
-JOIN dev_meddra.concept_ancestor ca
-    ON c.concept_id = ca.descendant_concept_id
-JOIN dev_meddra.concept cc
-    ON ca.ancestor_concept_id = cc.concept_id
-WHERE
-c.vocabulary_id = 'MedDRA'
-AND cc.vocabulary_id = 'MedDRA'
-AND ca.max_levels_of_separation!=0
-GROUP BY c.concept_code, c.concept_name, c.concept_class_id
-ORDER BY c.concept_code)
-
-SELECT
-        t.source_code_description,
-        c.concept_code AS source_code,
-        tab.hierarchy,
-        'MedDRA' AS source_vocabulary_id,
-        c.concept_class_id AS source_concept_class_id,
-        c.domain_id AS source_domain_id,
-        'Python+ChatGPT' AS origin_of_mapping,
-        '' AS count_aggr,
-        '' AS for_review,
-        'Maps to' AS relationship_id,
-        '' AS relationship_id_predicate,
-        '' AS decision_date,
-        CASE
-            WHEN t.target_concept_id IS NOT NULL THEN '1'
-            ELSE ''
-            END AS decision, -- ставим только 1 для принятого, Null для отклоненного
-        '' AS comments,
-        cc.concept_id AS target_concept_id,
-        cc.concept_code AS target_concept_code,
-        cc.concept_name AS target_concept_name,
-        cc.concept_class_id AS target_concept_class_id,
-        cc.standard_concept AS target_standard_concept,
-        cc.invalid_reason AS target_invalid_reason,
-        cc.domain_id AS target_domain_id,
-        cc.vocabulary_id AS target_vocabulary_id,
-        '' AS mapper_id,
-        '' AS reviewer_id
-FROM dev_test5.am_gpt_meddra_pt_first_2000_051223_out_75 AS t
-INNER JOIN devv5.concept AS c
-ON t.source_code_description = c.concept_name AND c.vocabulary_id='MedDRA'
-INNER JOIN tab ON tab.concept_code=c.concept_code
-INNER JOIN devv5.concept AS cc
-ON t.potential_target_concept_id = cc.concept_id
-ORDER BY t.source_code_description;
 
 
 

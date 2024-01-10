@@ -165,8 +165,7 @@ JOIN concept cb2 ON
 WHERE
         r.invalid_reason IS NULL
     AND NOT (
-            r.relationship_id in ('Maps to', 'Concept replaced by'
-				   )
+            r.relationship_id in ('Maps to', 'Concept replaced by')
         AND r2.concept_id IS NULL
     )
     -- Not already given in concept_relationship_stage
@@ -176,9 +175,9 @@ WHERE
         WHERE
             (
                 rc.concept_code,
-                r2.concept_code,
+                coalesce(r2.concept_code, cb2.concept_code),
                 rc.vocabulary_id,
-                r2.vocabulary_id,
+                coalesce(r2.vocabulary_id, cb2.vocabulary_id),
                 r.relationship_id
             ) = (
                 x.concept_code_1,
@@ -259,27 +258,25 @@ WHERE
 
 --2.5. Deprecate all 'Maps to' links from the retired concepts, that obtained replacement link above:
 UPDATE concept_relationship_stage i
-SET invalid_reason = 'D',
-    valid_end_date = GREATEST(p.patch_date, crs.valid_start_date)
-FROM concept_relationship_stage crs
-join concept c on c.concept_code = crs.concept_code_1
-         and c.vocabulary_id = crs.vocabulary_id_1
-join patch_date p on TRUE
-WHERE i.concept_code_1 = crs.concept_code_1
-  and i.vocabulary_id_1 = crs.vocabulary_id_1
-  and i.relationship_id = crs.relationship_id
-  and i.concept_code_2 = crs.concept_code_2
-  and i.vocabulary_id_2 = crs.vocabulary_id_2
-  and c.concept_id in (SELECT concept_id
-                     from retired_concepts)
-  and crs.relationship_id = 'Maps to'
-  AND crs.invalid_reason IS NULL
-  AND exists(SELECT 1
-             FROM concept_relationship_stage r
-             WHERE crs.concept_code_1 = r.concept_code_1
-             AND c.vocabulary_id = r.vocabulary_id_1
-             AND r.relationship_id = 'Concept replaced by'
-             AND r.invalid_reason IS NULL);
+SET
+    invalid_reason = 'D',
+    valid_end_date = GREATEST(p.patch_date, valid_start_date)
+FROM retired_concepts r
+JOIN patch_date p on TRUE
+WHERE
+        r.concept_code = i.concept_code_1
+    AND r.vocabulary_id = i.vocabulary_id_1
+    AND i.relationship_id = 'Maps to'
+    AND i.invalid_reason IS NULL
+    AND EXISTS(
+        SELECT 1
+        FROM concept_relationship_stage rp
+        WHERE
+                r.concept_code = rp.concept_code_1
+            AND r.vocabulary_id = rp.vocabulary_id_1
+            AND rp.relationship_id = 'Concept replaced by'
+            AND rp.invalid_reason IS NULL)
+;
 
 --2.5. Bizzare edge case: Nebraska Lexicon concept mapped to a concept which
 -- is not yet standard in dm+d.

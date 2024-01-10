@@ -50,7 +50,11 @@ LEFT JOIN killed_by_intl k ON
 WHERE
     k.id IS NULL
 ;
-
+CREATE INDEX idx_retired_concepts_cv ON retired_concepts (concept_code, vocabulary_id);
+;
+ANALYSE patch_date;
+ANALYSE retired_concepts;
+;
 --2. Add replacement relationships for retired concepts
 -- We assume that dm+d is in fixed state by now, including taking
 -- ownership of the UK Drug Extension module concepts where relevant.
@@ -74,21 +78,14 @@ WHERE
     )
     AND NOT -- Not an external Maps to/CRB
     (
-            crs.relationship_id in ('Maps to', 'Concept replaced by'
-                                   )
-        AND EXISTS ( --Source is retired
-            SELECT 1
-            FROM retired_concepts c
-            WHERE
-                    c.concept_code = crs.concept_code_1
-                AND c.vocabulary_id = crs.vocabulary_id_1
+            crs.relationship_id in ('Maps to', 'Concept replaced by')
+        AND (crs.concept_code_1, crs.vocabulary_id_1) IN (
+            SELECT concept_code, vocabulary_id
+            FROM retired_concepts
         )
-        AND NOT EXISTS ( -- Target is not
-            SELECT 1
-            FROM retired_concepts c
-            WHERE
-                    c.concept_code = crs.concept_code_2
-                AND c.vocabulary_id = crs.vocabulary_id_2
+        AND NOT (crs.concept_code_2, crs.vocabulary_id_2) IN (
+            SELECT concept_code, vocabulary_id
+            FROM retired_concepts
         )
     )
 ;

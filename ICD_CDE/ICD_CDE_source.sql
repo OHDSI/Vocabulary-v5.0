@@ -1,4 +1,5 @@
 CREATE TABLE icd_cde_source_backup as SELECT * FROM icd_cde_source;
+CREATE TABLE icd_cde_source_backup_local_ver as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup);
 SELECT * FROM icd_cde_source;
@@ -41,8 +42,8 @@ INSERT INTO icd_cde_source (source_code,
                             source_code_description,
                             source_vocabulary_id,
                             group_name,
-                            medium_group_id,
-                            broad_group_id,
+                            --medium_group_id,
+                            --broad_group_id,
                             relationship_id,
                             target_concept_id,
                             target_concept_code,
@@ -53,13 +54,12 @@ INSERT INTO icd_cde_source (source_code,
                             target_domain_id,
                             target_vocabulary_id,
                             mappings_origin)
--- Check Select before insertion --18046 S valid, 34947 non-S valid, --35397 non-S not valid
+-- Check Select before insertion
+-- To insert mappings from concept_relationship_stage
 SELECT cs.concept_code     as source_code,
        cs.concept_name     as source_code_description,
        'ICD10'             as source_vocabulary_id,
        cs.concept_name     as group_name,
-       null                as medium_group_id,
-       null                as broad_group_id,
        crs.relationship_id as relationship_id,
        c.concept_id        as target_concept_id,
        crs.concept_code_2  as target_concept_code,
@@ -81,15 +81,44 @@ LEFT JOIN concept c
     --and c.standard_concept = 'S' -- to preserve mappings to non-S, not valid concepts
     --and c.invalid_reason is null
 where cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy')
-;
+
+UNION
+
+--to insert additional mappings from base_concept_relationship_manual
+SELECT cs.concept_code     as source_code,
+       cs.concept_name     as source_code_description,
+       'ICD10'             as source_vocabulary_id,
+       cs.concept_name     as group_name,
+       crm.relationship_id as relationship_id,
+       c.concept_id        as target_concept_id,
+       crm.concept_code_2  as target_concept_code,
+       c.concept_name      as target_concept_name,
+       c.concept_class_id  as target_concept_class,
+       c.standard_concept  as target_standard_concept,
+       c.invalid_reason    as target_invalid_reason,
+       c.domain_id         as target_domain_id,
+       crm.vocabulary_id_2 as target_vocabulary_id,
+       'crm' as mappings_origin
+FROM dev_icd10.concept_stage cs
+LEFT JOIN devv5.base_concept_relationship_manual crm
+    on cs.concept_code = crm.concept_code_1
+    and crm.relationship_id in ('Maps to', 'Maps to value')
+    and crm.vocabulary_id_1 = 'ICD10'
+LEFT JOIN concept c
+    on crm.concept_code_2 = c.concept_code
+    and crm.vocabulary_id_2 = c.vocabulary_id
+    --and c.standard_concept = 'S' -- to preserve mappings to non-S, not valid concepts
+    --and c.invalid_reason is null
+WHERE cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy')
+AND (crm.concept_code_1, crm.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM dev_icd10.concept_relationship_stage);
 
 --ICD10CM with mappings
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
                             source_vocabulary_id,
                             group_name,
-                            medium_group_id,
-                            broad_group_id,
+                            --medium_group_id,
+                            --broad_group_id,
                             relationship_id,
                             target_concept_id,
                             target_concept_code,
@@ -105,8 +134,6 @@ SELECT cs.concept_code     as source_code,
        cs.concept_name     as source_code_description,
        'ICD10CM'           as source_vocabulary_id,
        cs.concept_name     as group_name,
-       null                as medium_group_id,
-       null                as broad_group_id,
        crs.relationship_id as relationship_id,
        c.concept_id        as target_concept_id,
        crs.concept_code_2  as target_concept_code,
@@ -127,9 +154,205 @@ LEFT JOIN concept c
     and crs.vocabulary_id_2 = c.vocabulary_id
     --and c.standard_concept = 'S'
     --and c.invalid_reason is null
-    ;
 
---check all the inserted rows --152026
+UNION
+
+--to insert additional mappings from base_concept_relationship_manual
+SELECT cs.concept_code     as source_code,
+       cs.concept_name     as source_code_description,
+       'ICD10CM'           as source_vocabulary_id,
+       cs.concept_name     as group_name,
+       crm.relationship_id as relationship_id,
+       c.concept_id        as target_concept_id,
+       crm.concept_code_2  as target_concept_code,
+       c.concept_name      as target_concept_name,
+       c.concept_class_id  as target_concept_class,
+       c.standard_concept  as target_standard_concept,
+       c.invalid_reason    as target_invalid_reason,
+       c.domain_id         as target_domain_id,
+       crm.vocabulary_id_2 as target_vocabulary_id,
+       'crm' as mappings_origin
+FROM dev_icd10cm.concept_stage cs
+LEFT JOIN devv5.base_concept_relationship_manual crm
+    on cs.concept_code = crm.concept_code_1
+    and crm.relationship_id in ('Maps to', 'Maps to value')
+    and crm.vocabulary_id_1 = 'ICD10CM'
+LEFT JOIN concept c
+    on crm.concept_code_2 = c.concept_code
+    and crm.vocabulary_id_2 = c.vocabulary_id
+    --and c.standard_concept = 'S' -- to preserve mappings to non-S, not valid concepts
+    --and c.invalid_reason is null
+WHERE (crm.concept_code_1, crm.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM dev_icd10cm.concept_relationship_stage);
+
+--ICD10GM with mappings (only manual mappings are inserted)
+INSERT INTO icd_cde_source (source_code,
+                            source_code_description,
+                            source_vocabulary_id,
+                            group_name,
+                            --medium_group_id,
+                            --broad_group_id,
+                            relationship_id,
+                            target_concept_id,
+                            target_concept_code,
+                            target_concept_name,
+                            target_concept_class_id,
+                            target_standard_concept,
+                            target_invalid_reason,
+                            target_domain_id,
+                            target_vocabulary_id,
+                            mappings_origin)
+-- Check Select before insertion
+SELECT cs.concept_code     as source_code,
+       cs.concept_name     as source_code_description,
+       'ICD10GM'             as source_vocabulary_id,
+       cs.concept_name     as group_name,
+       crm.relationship_id as relationship_id,
+       c.concept_id        as target_concept_id,
+       crm.concept_code_2  as target_concept_code,
+       c.concept_name      as target_concept_name,
+       c.concept_class_id  as target_concept_class,
+       c.standard_concept  as target_standard_concept,
+       c.invalid_reason    as target_invalid_reason,
+       c.domain_id         as target_domain_id,
+       crm.vocabulary_id_2 as target_vocabulary_id,
+       'crm' as mappings_origin
+FROM dev_icd10gm.concept_stage cs
+LEFT JOIN devv5.base_concept_relationship_manual crm
+    on cs.concept_code = crm.concept_code_1
+    and crm.relationship_id in ('Maps to', 'Maps to value')
+    and crm.vocabulary_id_1 = 'ICD10GM'
+LEFT JOIN concept c
+    on crm.concept_code_2 = c.concept_code
+    and crm.vocabulary_id_2 = c.vocabulary_id
+WHERE crm.concept_code_2 is not null;
+
+--CIM10 with mappings (only manual mappings are inserted)
+INSERT INTO icd_cde_source (source_code,
+                            source_code_description,
+                            source_vocabulary_id,
+                            group_name,
+                            --medium_group_id,
+                            --broad_group_id,
+                            relationship_id,
+                            target_concept_id,
+                            target_concept_code,
+                            target_concept_name,
+                            target_concept_class_id,
+                            target_standard_concept,
+                            target_invalid_reason,
+                            target_domain_id,
+                            target_vocabulary_id,
+                            mappings_origin)
+-- Check Select before insertion
+SELECT cs.concept_code     as source_code,
+       cs.concept_name     as source_code_description,
+       'CIM10'             as source_vocabulary_id,
+       cs.concept_name     as group_name,
+       crm.relationship_id as relationship_id,
+       c.concept_id        as target_concept_id,
+       crm.concept_code_2  as target_concept_code,
+       c.concept_name      as target_concept_name,
+       c.concept_class_id  as target_concept_class,
+       c.standard_concept  as target_standard_concept,
+       c.invalid_reason    as target_invalid_reason,
+       c.domain_id         as target_domain_id,
+       crm.vocabulary_id_2 as target_vocabulary_id,
+       'crm' as mappings_origin
+FROM dev_cim10.concept_stage cs
+LEFT JOIN devv5.base_concept_relationship_manual crm
+    on cs.concept_code = crm.concept_code_1
+    and crm.relationship_id in ('Maps to', 'Maps to value')
+    and crm.vocabulary_id_1 = 'CIM10'
+LEFT JOIN concept c
+    on crm.concept_code_2 = c.concept_code
+    and crm.vocabulary_id_2 = c.vocabulary_id
+WHERE crm.concept_code_2 is not null;
+
+--ICD10CN with mappings (only manual mappings are inserted)
+INSERT INTO icd_cde_source (source_code,
+                            source_code_description,
+                            source_vocabulary_id,
+                            group_name,
+                            --medium_group_id,
+                            --broad_group_id,
+                            relationship_id,
+                            target_concept_id,
+                            target_concept_code,
+                            target_concept_name,
+                            target_concept_class_id,
+                            target_standard_concept,
+                            target_invalid_reason,
+                            target_domain_id,
+                            target_vocabulary_id,
+                            mappings_origin)
+-- Check Select before insertion
+SELECT cs.concept_code     as source_code,
+       cs.concept_name     as source_code_description,
+       'ICD10CN'             as source_vocabulary_id,
+       cs.concept_name     as group_name,
+       crm.relationship_id as relationship_id,
+       c.concept_id        as target_concept_id,
+       crm.concept_code_2  as target_concept_code,
+       c.concept_name      as target_concept_name,
+       c.concept_class_id  as target_concept_class,
+       c.standard_concept  as target_standard_concept,
+       c.invalid_reason    as target_invalid_reason,
+       c.domain_id         as target_domain_id,
+       crm.vocabulary_id_2 as target_vocabulary_id,
+       'crm' as mappings_origin
+FROM dev_icd10cn.concept_stage cs
+LEFT JOIN devv5.base_concept_relationship_manual crm
+    on cs.concept_code = crm.concept_code_1
+    and crm.relationship_id in ('Maps to', 'Maps to value')
+    and crm.vocabulary_id_1 = 'ICD10CN'
+LEFT JOIN concept c
+    on crm.concept_code_2 = c.concept_code
+    and crm.vocabulary_id_2 = c.vocabulary_id
+WHERE crm.concept_code_2 is not null;
+
+--KCD7 with mappings (only manual mappings are inserted)
+INSERT INTO icd_cde_source (source_code,
+                            source_code_description,
+                            source_vocabulary_id,
+                            group_name,
+                            --medium_group_id,
+                            --broad_group_id,
+                            relationship_id,
+                            target_concept_id,
+                            target_concept_code,
+                            target_concept_name,
+                            target_concept_class_id,
+                            target_standard_concept,
+                            target_invalid_reason,
+                            target_domain_id,
+                            target_vocabulary_id,
+                            mappings_origin)
+-- Check Select before insertion
+SELECT cs.concept_code     as source_code,
+       cs.concept_name     as source_code_description,
+       'KCD7'             as source_vocabulary_id,
+       cs.concept_name     as group_name,
+       crm.relationship_id as relationship_id,
+       c.concept_id        as target_concept_id,
+       crm.concept_code_2  as target_concept_code,
+       c.concept_name      as target_concept_name,
+       c.concept_class_id  as target_concept_class,
+       c.standard_concept  as target_standard_concept,
+       c.invalid_reason    as target_invalid_reason,
+       c.domain_id         as target_domain_id,
+       crm.vocabulary_id_2 as target_vocabulary_id,
+       'crm' as mappings_origin
+FROM dev_kcd7.concept_stage cs
+LEFT JOIN devv5.base_concept_relationship_manual crm
+    on cs.concept_code = crm.concept_code_1
+    and crm.relationship_id in ('Maps to', 'Maps to value')
+    and crm.vocabulary_id_1 = 'KCD7'
+LEFT JOIN concept c
+    on crm.concept_code_2 = c.concept_code
+    and crm.vocabulary_id_2 = c.vocabulary_id
+WHERE crm.concept_code_2 is not null;
+
+--check all the inserted rows --157702
 SELECT * FROM icd_cde_source
 ORDER BY source_code;
 
@@ -154,6 +377,12 @@ SELECT * FROM icd_cde_source
     OR source_code_description is null
     or source_vocabulary_id is null;
 
+
+
+-- VOCABULARY_PACK.AddFreshMAPSTO() could be run here as the crm mappings were added.
+-- However, in every vocabulary load stage this has been already done for manual relationships
+
+
 --Potential replacement mapping insertion for concepts, which do not have standard target
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
@@ -172,7 +401,7 @@ INSERT INTO icd_cde_source (source_code,
 with mis_map as
 (SELECT DISTINCT * FROM icd_cde_source
 WHERE target_concept_id is not null
-AND target_standard_concept is null) -- 3534
+AND target_standard_concept is null) -- 7522
        SELECT DISTINCT m.source_code,
               m.source_code_description,
               m.source_vocabulary_id,
@@ -201,6 +430,7 @@ SELECT * FROM icd_cde_source
 ORDER BY source_code;
 
 -- Assign the unique group_id to unique source concept
+DROP TABLE cde_source_concepts;
 CREATE TABLE cde_source_concepts (
     source_code TEXT NOT NULL,
 	source_code_description TEXT,
@@ -223,6 +453,7 @@ UPDATE icd_cde_source s SET group_id =
                                                  AND m.source_code_description = s.source_code_description
                                                  AND m.source_vocabulary_id = s.source_vocabulary_id);
 
+SELECT * FROM icd_cde_source_backup_local_ver;
 
 --GROUPING CRITERIUM 1: (same codes with identical mappings)
 DROP TABLE grouped1;
@@ -278,7 +509,7 @@ WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source
 
 --generate unique group_id
 DROP SEQUENCE cde_group_id_1;
-CREATE SEQUENCE cde_group_id_1 START 111086;
+CREATE SEQUENCE cde_group_id_1 START 114886;
 UPDATE cde_manual_group1
 SET group_id = nextval('cde_group_id_1')
 WHERE group_id IS NULL;

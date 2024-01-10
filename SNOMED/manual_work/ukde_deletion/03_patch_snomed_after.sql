@@ -102,9 +102,9 @@ INSERT INTO concept_relationship_stage (
 )
 SELECT
     rc.concept_code,
-    r2.concept_code,
+    coalesce(r2.concept_code, cb2.concept_code),
     rc.vocabulary_id,
-    r2.vocabulary_id,
+    coalesce(r2.vocabulary_id, cb2.vocabulary_id),
     r.relationship_id,
     r.valid_start_date,
     GREATEST(p.patch_date - INTERVAL '1 day', r.valid_start_date),
@@ -116,8 +116,11 @@ JOIN retired_concepts rc ON
     AND r.invalid_reason IS NULL
 LEFT JOIN retired_concepts r2 ON
     r2.concept_id = r.concept_id_2
+JOIN concept cb2 ON
+    cb2.concept_id = r.concept_id_2
 WHERE
-    NOT (
+        r.invalid_reason IS NULL
+    AND NOT (
             r.relationship_id in ('Maps to', 'Concept replaced by'
 				   )
         AND r2.concept_id IS NULL

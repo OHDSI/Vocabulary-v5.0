@@ -79,6 +79,23 @@ WHERE
             AND c.vocabulary_id = m.synonym_vocabulary_id
     )
 ;
+DELETE FROM devv5.base_concept_relationship_manual m
+WHERE
+    EXISTS (
+        SELECT 1
+        FROM retired_concepts c
+        WHERE
+                c.concept_code = m.concept_code_1
+            AND c.vocabulary_id = m.vocabulary_id_1
+    )
+    OR EXISTS (
+        SELECT 1
+        FROM retired_concepts c
+        WHERE
+            (c.concept_code, c.vocabulary_id) IN
+                (m.concept_code_2, m.vocabulary_id_2)
+    )
+;
 --2. Drop temporary tables
 DROP TABLE IF EXISTS retired_concepts CASCADE;
 DROP TABLE IF EXISTS patch_date;

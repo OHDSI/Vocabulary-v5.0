@@ -350,8 +350,7 @@ JOIN concept_relationship cr
 ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
 JOIN concept c1
 ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.target_concept_code AND c1.vocabulary_id = m.target_vocabulary_id
-WHERE
-m.decision = '1'
+WHERE m.decision = '1'
 AND crm.concept_code_1 = m.source_code AND crm.vocabulary_id_1 = m.source_vocabulary_id
 AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.target_vocabulary_id
 AND crm.relationship_id = m.relationship_id
@@ -361,7 +360,6 @@ AND crm.invalid_reason IS NOT NULL;
 
 
 WITH tab AS(
-
 SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code
 			WHEN relationship_id_predicate='up' THEN source_code END AS concept_code_1,
 		CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN source_code
@@ -376,11 +374,7 @@ SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = '
         NULL AS invalid_reason
 FROM dev_meddra.meddra_environment
 WHERE decision='1'
-
-
-    )
-
-
+)
 INSERT INTO dev_meddra.concept_relationship_manual AS mapped
     (concept_code_1,
     concept_code_2,
@@ -390,7 +384,6 @@ INSERT INTO dev_meddra.concept_relationship_manual AS mapped
     valid_start_date,
     valid_end_date,
     invalid_reason)
-
 SELECT *
 FROM tab;
 

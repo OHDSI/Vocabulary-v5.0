@@ -6,6 +6,7 @@
 TRUNCATE concept_relationship_stage;
 TRUNCATE concept_synonym_stage;
 TRUNCATE concept_stage;
+TRUNCATE concept_relationship_manual;--To delete changes from the previous step
 
 --1. Create table of concepts currently mapped to SNOMED, but that could be
 -- mapped to dm+d

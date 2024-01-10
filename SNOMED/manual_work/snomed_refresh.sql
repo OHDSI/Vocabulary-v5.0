@@ -37,8 +37,8 @@ SELECT * FROM concept_manual_backup_YYYY_MM_DD;*/
 
 --3.2. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous snomed refresh.
 
-/*DROP TABLE dev_test4.snomed_mapped;
-CREATE TABLE dev_test4.snomed_mapped
+/*DROP TABLE dev_snomed.snomed_mapped;
+CREATE TABLE dev_snomed.snomed_mapped
 (
     id SERIAL PRIMARY KEY,
     source_code_description varchar(255),
@@ -61,19 +61,19 @@ CREATE TABLE dev_test4.snomed_mapped
 ); */
 
 --Adding constraints for unique records
-ALTER TABLE dev_test4.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
+ALTER TABLE dev_snomed.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
 
 --3.3 Truncate the 'snomed_mapped' table. Save the spreadsheet as the 'snomed_mapped table' and upload it into the working schema.
-TRUNCATE TABLE dev_test4.snomed_mapped;
+TRUNCATE TABLE dev_snomed.snomed_mapped;
 
 --Format after uploading
-UPDATE dev_test4.snomed_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
-UPDATE dev_test4.snomed_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
+UPDATE dev_snomed.snomed_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
+UPDATE dev_snomed.snomed_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
 
 --9.2.4 Change concept_relationship_manual table according to snomed_mapped table.
 --Insert new relationships
 --Update existing relationships
-INSERT INTO dev_test4.concept_relationship_manual AS mapped
+INSERT INTO dev_snomed.concept_relationship_manual AS mapped
     (concept_code_1,
     concept_code_2,
     vocabulary_id_1,
@@ -93,7 +93,7 @@ INSERT INTO dev_test4.concept_relationship_manual AS mapped
                   THEN to_date('20991231','yyyymmdd')
                   ELSE current_date END AS valid_end_date,
            m.cr_invalid_reason
-	FROM dev_test4.snomed_mapped m
+	FROM dev_snomed.snomed_mapped m
 	--Only related to SNOMED vocabulary
 	WHERE (source_vocabulary_id = 'SNOMED' OR target_vocabulary_id = 'SNOMED')
 	    AND (target_concept_id != 0 OR target_concept_id IS NULL)

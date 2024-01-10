@@ -74,7 +74,7 @@ WHERE
     )
     AND NOT -- Not an external Maps to/CRB
     (
-            crs.relationship_id in ('Maps to'--, 'Concept replaced by'
+            crs.relationship_id in ('Maps to', 'Concept replaced by'
                                    )
         AND EXISTS ( --Source is retired
             SELECT 1
@@ -121,7 +121,7 @@ LEFT JOIN retired_concepts r2 ON
     r2.concept_id = r.concept_id_2
 WHERE
     NOT (
-            r.relationship_id in ('Maps to'--, 'Concept replaced by'
+            r.relationship_id in ('Maps to', 'Concept replaced by'
 				   )
         AND r2.concept_id IS NULL
     )
@@ -241,4 +241,24 @@ WHERE i.concept_code_1 = crs.concept_code_1
 -- is not yet standard in dm+d.
 ;
 --2.6. Add Maps to from replaced by
-SELECT vocabulary_pack.addFreshMapsTo();
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+-- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+-- Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;

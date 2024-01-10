@@ -13,9 +13,8 @@ See the [forum post](https://forums.ohdsi.org/t/announcing-the-retirement-of-sno
 4. Run `GenericUpdate('DELTA')`
 5. Run `02_patch_gemscript.sql`
 6. Run `GenericUpdate('DELTA').`
-7. Run `03_patch_snomed_before.sql`
-8. Run `SNOMED/load_stage.sql`
-9. Run `04_patch_snomed_after.sql`
-10. Run `GenericUpdate()`
-11. Run `05_patch_snomed_whiteout.sql`
-12. Run normal QA routines and `specific_qa/test_ukde_deletion_result.sql`
+7. Run `SNOMED/load_stage.sql`
+8. Run `03_patch_snomed_after.sql`
+9. Run `GenericUpdate()`
+10. Run `04_patch_snomed_whiteout.sql`
+11. Run normal QA routines and `specific_qa/test_ukde_deletion_result.sql`

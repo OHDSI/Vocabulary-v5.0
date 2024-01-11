@@ -58,7 +58,7 @@ ANALYSE retired_concepts;
 --2. Add replacement relationships for retired concepts
 -- We assume that dm+d is in fixed state by now, including taking
 -- ownership of the UK Drug Extension module concepts where relevant.
--- 2.0. Upload all replacement relationships that exist in base tables only:
+-- 2.0. Upload all relationships for the retired concepts that exist in base tables only:
 INSERT INTO concept_relationship_stage (
        concept_code_1,
        concept_code_2,
@@ -80,26 +80,15 @@ SELECT DISTINCT c.concept_code,
 FROM concept_relationship cr
 JOIN retired_concepts c on c.concept_id = cr.concept_id_1
 JOIN concept cc on cc.concept_id = cr.concept_id_2
-WHERE cr.relationship_id = 'Concept replaced by'
-AND cr.invalid_reason IS NULL
+WHERE cr.invalid_reason IS NULL
 AND NOT EXISTS(
-	SELECT 1 --if a concept already has an active replacement link to a standard concept in crs
-		FROM concept_relationship_stage crs
-		JOIN concept_stage cs ON cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2
-		WHERE crs.concept_code_1 = c.concept_code
-			AND crs.relationship_id = cr.relationship_id
-			AND crs.vocabulary_id_1 = c.vocabulary_id
-			AND crs.invalid_reason IS NULL
-)
-AND NOT EXISTS(
-	SELECT 1 -- if the link from cr has been deprecated earlier in the course of load_stage
+	SELECT 1 -- if the link from cr already exists in crs
 		FROM concept_relationship_stage crs
 		WHERE crs.concept_code_1 = c.concept_code
 			AND crs.concept_code_2 = cc.concept_code
 			AND crs.relationship_id = cr.relationship_id
 			AND crs.vocabulary_id_1 = c.vocabulary_id
 			AND crs.vocabulary_id_2 = cc.vocabulary_id
-			AND crs.invalid_reason IS NOT NULL
 );
 
 --2.1. Deprecate existing relationships except for external "Maps to" -- update
@@ -133,7 +122,7 @@ WHERE
         )
     )
 ;
---2.2. Deprecate existing relationships except for external "Maps to" -- expl
+/*--2.2. Deprecate existing relationships except for external "Maps to" -- expl
 INSERT INTO concept_relationship_stage (
     concept_code_1,
     concept_code_2,
@@ -187,7 +176,7 @@ WHERE
                 x.relationship_id
             )
     )
-;
+;*/
 --2.3. Add concept replaced by relationships where possible
 INSERT INTO concept_relationship_stage (
     concept_code_1,

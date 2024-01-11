@@ -1,7 +1,7 @@
 CREATE TABLE icd_cde_source_backup as SELECT * FROM icd_cde_source;
 CREATE TABLE icd_cde_source_backup_local_ver as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
-INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup);
+INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_local_ver);
 SELECT * FROM icd_cde_source;
 
 --СDE source insertion
@@ -22,7 +22,7 @@ CREATE TABLE dev_icd10.icd_cde_source
     relationship_id         varchar(20),
     target_concept_id       integer,
     target_concept_code     varchar(50),
-    target_concept_name     varchar (255),
+    target_concept_name     varchar(255),
     target_concept_class_id varchar(20),
     target_standard_concept varchar(1),
     target_invalid_reason   varchar(1),
@@ -471,11 +471,7 @@ SELECT DISTINCT
     and c.source_vocabulary_id != c1.source_vocabulary_id
     and c.source_code_description != c1.source_code_description
     and c.target_concept_id = c1.target_concept_id
-    and c1.source_vocabulary_id = 'ICD10')
-;
-
---Deduplication
-DELETE FROM grouped1 WHERE (source_code, source_vocabulary_id) = (source_code_1, source_vocabulary_id_1);
+    and c1.source_vocabulary_id = 'ICD10');
 
 --Temporary table for grouping
 DROP TABLE IF EXISTS cde_manual_group1;
@@ -530,7 +526,8 @@ UPDATE icd_cde_source s SET group_id =
                                                  AND m.source_code_description = s.source_code_description
                                                  AND m.source_vocabulary_id = s.source_vocabulary_id)
 WHERE source_code in (SELECT source_code FROM cde_manual_group1)
-  and source_code_description in (SELECT source_code_description FROM cde_manual_group1);
+  and source_code_description in (SELECT source_code_description FROM cde_manual_group1)
+AND source_vocabulary_id in (SELECT source_vocabulary_id FROM cde_manual_group1);
 
 -- Check if the concepts from one group in temporary table have the same group in source table
 with temporary_group_code as
@@ -547,7 +544,6 @@ SELECT * FROM source_group_code s
 JOIN temporary_group_code t ON s.group_id = t.group_id
 WHERE s.group_code != t.group_code;
 
-
 --GROUPING CRITERIUM 2: identical source_code_description
 DROP TABLE grouped2;
 CREATE TABLE grouped2 as (
@@ -562,10 +558,9 @@ SELECT DISTINCT
 FROM icd_cde_source c
     JOIN dev_icd10.icd_cde_source c1
     ON c.source_code_description = c1.source_code_description
-    and c1.source_vocabulary_id = 'ICD10');
+    and c1.source_vocabulary_id = 'ICD10'
+    and (c.source_code, c.source_vocabulary_id) != (c1.source_code, c1.source_vocabulary_id))
 
---Deduplication
-DELETE FROM grouped2 WHERE (source_code, source_vocabulary_id) = (source_code_1, source_vocabulary_id_1);
 --Remove "cross-links"
 --! These records should be processed very accurately
 --Only one entry per entity is allowed

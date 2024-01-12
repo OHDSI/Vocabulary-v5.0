@@ -99,7 +99,7 @@ SELECT
 	pVocabularyName			=> 'Gemscript',
 	pVocabularyDate			=> p.patch_date,
 	pVocabularyVersion		=> 'Gemscript 2021-02-01',
-	pVocabularyDevSchema	=> 'dev_test3'
+	pVocabularyDevSchema	=> 'dev_snomed'
 )
 FROM patch_date p
 ;

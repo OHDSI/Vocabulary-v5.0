@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS patch_date;
 CREATE TABLE patch_date (
     patch_date DATE
 );
-INSERT INTO patch_date (patch_date) VALUES (to_date('27-01-2022', 'DD-MM-YYYY'));
+INSERT INTO patch_date (patch_date) VALUES (to_date('28-01-2022', 'DD-MM-YYYY'));
 
 --0.2. Source dm+d tables
 DROP TABLE IF EXISTS vmps;
@@ -271,7 +271,7 @@ SELECT
             pVocabularyName			=> 'dm+d',
             pVocabularyDate			=> '2023-05-22',
             pVocabularyVersion		=> 'DMD 2023-05-22',
-            pVocabularyDevSchema	=> 'dev_test3'
+            pVocabularyDevSchema	=> 'dev_snomed'
     )
 FROM patch_date p
 ;

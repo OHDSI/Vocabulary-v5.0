@@ -11,7 +11,7 @@ SET
         ELSE gen_random_uuid() :: text
     END,
     concept_name = CASE c.domain_id
-        WHEN 'Route' THEN c.concept_name || ' (retired module, do not use)'
+        WHEN 'Route' THEN c.concept_name -- || ' (retired module, do not use)'
         ELSE 'Retired SNOMED UK Drug extension concept, do not use, use ' ||
              'concept indicated by the CONCEPT_RELATIONSHIP table, if any'
     END,

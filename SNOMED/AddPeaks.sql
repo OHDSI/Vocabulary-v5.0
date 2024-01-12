@@ -1091,6 +1091,15 @@ SELECT a.*, NULL FROM ( VALUES
 	(1290195007,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Detection of antibody to infective organism
 	(4401000237103,  	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mass concentration ratio of immunoglobulin G antibody to albumin in cerebrospinal fluid
 	(143441000237100,  	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Clinical chemistry observable
+	(164835000,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Limb length
+	(106054005,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lung volume AND/OR capacity
+	(70337006,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cardiovascular function
+	(11953005,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Renal function
+	(130953005,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Rate of urine output, function
+	(985791000000107,  	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Total fluid estimated need
+	(364400009,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Feature of fluid loss
+	(1179058006,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Estimated quantity of intake of fluid
+	(364399002,  		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Measure of fluid intake
 
 	(363884002,        	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Recognition observable
 	(6769007,        	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Attention

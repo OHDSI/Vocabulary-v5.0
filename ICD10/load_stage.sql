@@ -366,18 +366,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---8. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
 --10. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
@@ -423,80 +411,6 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		'ICD10 SubChapter'
 		);
 DROP INDEX trgm_idx;
-
---11. Update domain_id for ICD10 from target vocabularies
-UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'ICD10'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id IN ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-	
-	UNION ALL
-	
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'ICD10'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id IN ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
-	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
-		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_1 = cs1.concept_code
-				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
-	) i
-WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'ICD10';
-
---TODO: check why the actual U* code limitation is not used.
---Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
-UPDATE concept_stage
-SET domain_id = 'Observation'
-WHERE domain_id IS NULL;
 
 --12. Add hierarchical relationships
 --add relationship from chapters to subchapters and vice versa
@@ -591,11 +505,142 @@ FROM classes
 WHERE rubric_kind = 'preferred'
 	AND superclass_code LIKE '%-%';
 
+
+
+--8. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
 --13. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
+
+-- Deprecate wrong maps to value
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id = 'Maps to value'
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-valid (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.invalid_reason IN (
+						'U',
+						'D'
+						)
+				);
+
+-- Deprecate mapping to non-S concepts
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id in ('Maps to','Maps to value')
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-S (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.standard_concept is null
+				);
+
+--11. Update domain_id for ICD10 from target vocabularies
+UPDATE concept_stage cs
+SET domain_id = i.domain_id
+FROM (
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Condition'
+						THEN 1
+					WHEN 'Observation'
+						THEN 2
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Measurement'
+						THEN 4
+					WHEN 'Device'
+						THEN 5
+					ELSE 6
+					END
+			) AS domain_id
+	FROM concept_relationship_stage crs
+	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+		AND cs1.vocabulary_id = crs.vocabulary_id_1
+		AND cs1.vocabulary_id = 'ICD10'
+	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+		AND c2.vocabulary_id = crs.vocabulary_id_2
+		AND c2.vocabulary_id IN ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
+	
+	UNION ALL
+	
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Condition'
+						THEN 1
+					WHEN 'Observation'
+						THEN 2
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Measurement'
+						THEN 4
+					WHEN 'Device'
+						THEN 5
+					ELSE 6
+					END
+			)
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+		AND c1.vocabulary_id = 'ICD10'
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		AND c2.vocabulary_id IN ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
+	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
+		AND cs1.vocabulary_id = c1.vocabulary_id
+	WHERE cr.relationship_id = 'Maps to'
+		AND cr.invalid_reason IS NULL
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_relationship_stage crs_int
+			WHERE crs_int.concept_code_1 = cs1.concept_code
+				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
+				AND crs_int.relationship_id = cr.relationship_id
+			)
+	) i
+WHERE i.concept_code = cs.concept_code
+	AND cs.vocabulary_id = 'ICD10';
+
+--TODO: check why the actual U* code limitation is not used.
+--Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
+UPDATE concept_stage
+SET domain_id = 'Observation'
+WHERE domain_id IS NULL;
 
 --14. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (

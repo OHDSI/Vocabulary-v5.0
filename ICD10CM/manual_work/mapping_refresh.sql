@@ -61,6 +61,7 @@ FROM concept_relationship_stage a
   JOIN concept_stage c
     ON a.concept_code_1 = c.concept_code
     AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
+AND a.invalid_reason is null
 UNION
 -- 'without mapping'
 SELECT a.concept_code,

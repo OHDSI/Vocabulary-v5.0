@@ -1344,6 +1344,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(9906801000001108,  'Device',       TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Nebuliser
 	(90213003,         	'Meas Value',   TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --False positive
 	(61707005,         	'Meas Value',   TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --False negative
+	(420719007,         'Route',   		TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Intraventricular route
 
 -- Social context
 	--history:on
@@ -1420,7 +1421,8 @@ SELECT a.*, NULL FROM ( VALUES
 	(373523004,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Skin antifungal agent
 	(417901007,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Oxymetazoline
 	(255955006,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Local anesthetic allergen
-	(406463001,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) -- Drug allergen
+	(406463001,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug allergen
+	(782573007,  		'Drug',         TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) -- Glycerol phenylbutyrate
 
 ) AS a
 

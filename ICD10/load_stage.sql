@@ -366,7 +366,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---10. Add "subsumes" relationship between concepts where the concept_code is like of another
+--8. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -412,7 +412,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---12. Add hierarchical relationships
+--9. Add hierarchical relationships
 --add relationship from chapters to subchapters and vice versa
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -505,21 +505,19 @@ FROM classes
 WHERE rubric_kind = 'preferred'
 	AND superclass_code LIKE '%-%';
 
-
-
---8. Add mapping from deprecated to fresh concepts
+--10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---13. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--12. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
@@ -568,7 +566,7 @@ UPDATE concept_relationship_stage crs
 				WHERE a.standard_concept is null
 				);
 
---11. Update domain_id for ICD10 from target vocabularies
+--13. Update domain_id for ICD10 from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (

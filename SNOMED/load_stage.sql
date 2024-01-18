@@ -1492,6 +1492,82 @@ ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ances
 ANALYZE snomed_ancestor;
 
 --14.1. Append deprecated concepts that have mappings or replacement links as extensions of their mapping target
+WITH relationships AS (
+				SELECT i.concept_code_1,
+					i.concept_code_2,
+					i.vocabulary_id_1,
+					i.vocabulary_id_2,
+					--if concepts have more than one relationship_id, then we take only the one with following precedence
+					CASE
+						WHEN i.relationship_id = 'Maps to'
+							THEN 1
+						WHEN i.relationship_id = 'Concept replaced by'
+							THEN 2
+						WHEN i.relationship_id = 'Concept same_as to'
+							THEN 3
+						WHEN i.relationship_id = 'Concept alt_to to'
+							THEN 4
+						WHEN i.relationship_id = 'Concept was_a to'
+							THEN 5
+						END AS rel_id
+				FROM (SELECT concept_code_1,
+							vocabulary_id_1,
+							concept_code_2,
+							vocabulary_id_2,
+							relationship_id
+				      FROM concept_relationship_stage crs
+						WHERE crs.relationship_id IN (
+						'Concept replaced by',
+						'Concept same_as to',
+						'Concept alt_to to',
+						'Concept was_a to',
+						'Maps to'
+						)
+					AND crs.invalid_reason IS NULL
+					AND crs.vocabulary_id_1 = 'SNOMED'
+					AND crs.vocabulary_id_2 = 'SNOMED'
+
+						UNION
+-- Relationships for some concepts may exist only in concept_relationship
+					SELECT c.concept_code,
+							c.vocabulary_id,
+							cc.concept_code,
+							cc.vocabulary_id,
+							relationship_id
+						FROM concept c
+							JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id
+							JOIN concept cc on cc.concept_id = cr.concept_id_2
+						WHERE c.vocabulary_id = 'SNOMED'
+							AND cc.vocabulary_id = 'SNOMED'
+							AND cr.relationship_id IN (
+							   'Concept replaced by',
+							   'Concept same_as to',
+							   'Concept alt_to to',
+							   'Concept was_a to',
+							   'Maps to')
+							AND cr.invalid_reason IS NULL
+							AND NOT EXISTS (SELECT 1
+							                FROM concept_relationship_stage crs
+							                WHERE (crs.concept_code_1, crs.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
+							                AND crs.relationship_id IN (
+														   'Concept replaced by',
+														   'Concept same_as to',
+														   'Concept alt_to to',
+														   'Concept was_a to',
+														   'Maps to'
+														   )
+							                AND crs.invalid_reason IS NULL)
+						) i),
+
+invalid_concepts AS (
+SELECT r.concept_code_1,
+       r.concept_code_2
+FROM relationships r
+ORDER BY r.concept_code_1,
+         r.vocabulary_id_1,
+         r.rel_id
+)
+
 INSERT INTO snomed_ancestor (
 	ancestor_concept_code,
 	descendant_concept_code,
@@ -1503,38 +1579,24 @@ SELECT a.ancestor_concept_code,
 FROM (SELECT r.concept_code_1,
              r.concept_code_2
              from concept_stage s1
-JOIN concept_relationship_stage r ON s1.invalid_reason IS NOT NULL
+JOIN invalid_concepts r ON s1.invalid_reason IS NOT NULL
 	AND s1.concept_code = r.concept_code_1
-	AND r.vocabulary_id_1 = 'SNOMED'
-	AND r.vocabulary_id_2 = 'SNOMED'
-	AND r.relationship_id IN ('Maps to', 'Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
-	AND r.invalid_reason IS NULL
-
-UNION
-
-SELECT c.concept_code AS concept_code_1,
-       cc.concept_code AS concept_code_2
-FROM concept c
-       JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id
-       JOIN concept cc on cc.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id = 'SNOMED'
-AND cc.vocabulary_id = 'SNOMED'
-AND cr.relationship_id in ('Maps to', 'Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
-AND cr.invalid_reason IS NULL) s1
+			) s1
 JOIN snomed_ancestor a ON s1.concept_code_2 = a.descendant_concept_code::TEXT
 JOIN concept_stage cs ON cs.concept_code = s1.concept_code_1
-AND cs.vocabulary_id = 'SNOMED'
+	AND cs.vocabulary_id = 'SNOMED'
 JOIN concept_stage ccs ON ccs.concept_code = s1.concept_code_2
-AND ccs.vocabulary_id = 'SNOMED'
+	AND ccs.vocabulary_id = 'SNOMED'
 WHERE NOT EXISTS (
 		SELECT
 		FROM snomed_ancestor x
 		WHERE x.descendant_concept_code::TEXT = s1.concept_code_1
 		)
-AND ccs.concept_class_id = cs.concept_class_id
+	AND ccs.concept_class_id = cs.concept_class_id
 GROUP BY ancestor_concept_code, s1.concept_code_1;
 
 ANALYZE snomed_ancestor;
+
 
 --14.2. For deprecated concepts without mappings, take the latest 116680003 'Is a' relationship to active concept
 INSERT INTO snomed_ancestor (
@@ -2093,11 +2155,11 @@ WHERE EXISTS (
 			AND sa.ancestor_concept_code = 411115002 -- Exclude drug-device combinations - should be standard and mapped to drugs
 );
 
---21. Clean up
+/*--21. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
-DROP VIEW module_date;
+DROP VIEW module_date;*/
 
 --22. Need to check domains before running the generic_update
 /*temporary disabled for later use

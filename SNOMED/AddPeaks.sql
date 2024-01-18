@@ -668,7 +668,6 @@ SELECT a.*, NULL FROM ( VALUES
 	(442703001,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aspiration test negative for air during procedure
 	(442718000,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aspiration test negative for blood during procedure
 	(442710007,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aspiration test negative for cerebrospinal fluid during procedure
-	(62117008,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bacterial antibody increase, paired specimens
 	(365855009,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Biopsy finding
 	(250247005,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bite cells
 	(165547005,   		'Observation',  TO_DATE('20230927', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blast cells present
@@ -796,7 +795,6 @@ SELECT a.*, NULL FROM ( VALUES
 	(127325009,        	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Procedure related finding
 	(30693006,       	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aerophagy
 	(1217022005,       	'Observation',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Colonization of genitourinary tract by Streptococcus agalactiae
-	(249131000,     	'Observation',		TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of amniotic fluid volume
 	(283021003, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mobile tooth
 	(86569001, 	      	'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Postpartum state
 	(248727005, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Venous finding

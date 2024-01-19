@@ -2035,66 +2035,7 @@ AND NOT EXISTS (
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---18. Upload all replacement links from base tables to create 'Maps to' links according to them:
----Remove after refresh.
-INSERT INTO concept_relationship_stage (
-       concept_code_1,
-       concept_code_2,
-       vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason
-)
-SELECT DISTINCT c.concept_code,
-	cc.concept_code,
-	c.vocabulary_id,
-	cc.vocabulary_id,
-	cr.relationship_id,
-	cr.valid_start_date,
-	cr.valid_end_date,
-	cr.invalid_reason
-FROM concept_relationship cr
-JOIN concept c on c.concept_id = cr.concept_id_1
-JOIN concept cc on cc.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id = 'SNOMED'
-AND cc.vocabulary_id = 'SNOMED'
-AND cr.relationship_id IN (
-				'Concept replaced by',
-				'Concept same_as to',
-				'Concept alt_to to',
-				'Concept was_a to'
-				)
-AND cr.invalid_reason IS NULL
-AND NOT EXISTS(
-	SELECT 1 --if a concept already has an active replacement link to a standard concept in crs
-		FROM concept_relationship_stage crs
-		JOIN concept_stage cs ON cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2
-		WHERE crs.concept_code_1 = c.concept_code
-			AND crs.relationship_id = cr.relationship_id
-			AND crs.vocabulary_id_1 = c.vocabulary_id
-			AND crs.invalid_reason IS NULL
-)
-AND NOT EXISTS(
-	SELECT 1 -- if the link from cr has been deprecated earlier in the course of load_stage
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = c.concept_code
-			AND crs.concept_code_2 = cc.concept_code
-			AND crs.relationship_id = cr.relationship_id
-			AND crs.vocabulary_id_1 = c.vocabulary_id
-			AND crs.vocabulary_id_2 = cc.vocabulary_id
-			AND crs.invalid_reason IS NOT NULL
-)
-AND NOT EXISTS(
-	SELECT 1 -- if a concept has an active 'Maps to' link
-		FROM concept_relationship cr1
-		WHERE cr1.concept_id_1 = cr.concept_id_1
-       AND cr1.relationship_id = 'Maps to'
-       AND cr1.invalid_reason IS NULL
-);
-
---19. Implement manual changes:
+--18. Implement manual changes:
 
 -- Append manual concepts
 DO $_$
@@ -2137,7 +2078,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---20. Make concepts non standard if they have a 'Maps to' relationship
+--19. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -2155,13 +2096,13 @@ WHERE EXISTS (
 			AND sa.ancestor_concept_code = 411115002 -- Exclude drug-device combinations - should be standard and mapped to drugs
 );
 
-/*--21. Clean up
+/*--20. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;*/
 
---22. Need to check domains before running the generic_update
+--21. Need to check domains before running the generic_update
 /*temporary disabled for later use
 DO $_$
 DO $_$

@@ -487,6 +487,9 @@ SELECT a.*, NULL FROM ( VALUES
 	(1156100006,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pregnancy with normal glucose tolerance test
 	(84445001,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Joint stiffness
 	(67374007,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Instability of joint
+	(302690004,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Encopresis
+	(416113008,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disorder characterized by fever
+	(103075007,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Humoral immune defect
 
 	(397852001,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- V/Q - Ventilation/perfusion ratio
 	(302083008,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of Apgar score
@@ -799,6 +802,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(86569001, 	      	'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Postpartum state
 	(248727005, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Venous finding
 	(298180004, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of range of joint movement
+	(252041008, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Micturition finding
 
 	--history:on
 	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20220504', 'YYYYMMDD')), -- Bacteria present
@@ -821,6 +825,9 @@ SELECT a.*, NULL FROM ( VALUES
 	(407674008,         'Condition',    TO_DATE('20220504', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aspirin-induced asthma
 	(10628711000119101, 'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
 	(424909003,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Toxic retinopathy
+	(312963001,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Methanol retinopathy
+	(82545002,         	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood transfusion reaction
+	(234992005,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Plasma cell gingivitis
 	(418634005,         'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic reaction to substance
 
 	(64572001,         	'Condition', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disease
@@ -852,7 +859,9 @@ SELECT a.*, NULL FROM ( VALUES
 	(56317004,         	'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Alopecia
 	(112401000119106,   'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lesion of conjunctiva
 	(15250008,   		'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disorder of cornea
+	(402150002,   		'Condition',  	TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Insect bite reaction
 
+	--Location
 	--history:on
 	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20210217', 'YYYYMMDD')), -- Site of care
 	(43741000,      'Visit',            TO_DATE('20210217', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care

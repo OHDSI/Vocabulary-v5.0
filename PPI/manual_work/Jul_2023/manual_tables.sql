@@ -1,9 +1,10 @@
-CREATE TABLE concept_manual_backup_12_2023 as SELECT * FROM concept_manual;
-SELECT * FROM concept_manual_backup_12_2023;
-CREATE TABLE concept_relationship_manual_backup_12_2023 as SELECT * FROM concept_relationship_manual;
-SELECT * FROM concept_relationship_manual_backup_12_2023;
-CREATE TABLE concept_synonym_manual_backup_12_2023 as SELECT * FROM concept_synonym_manual;
-SELECT * FROM concept_synonym_manual_backup_12_2023;
+CREATE TABLE concept_manual_backup_01_2024 as SELECT * FROM concept_manual;
+SELECT * FROM concept_manual_backup_01_2024;
+CREATE TABLE concept_relationship_manual_backup_01_2024 as SELECT * FROM concept_relationship_manual;
+SELECT * FROM concept_relationship_manual_backup_01_2024;
+CREATE TABLE concept_synonym_manual_backup_01_2024 as SELECT * FROM concept_synonym_manual;
+SELECT * FROM concept_synonym_manual_backup_01_2024;
+
 
 --TRUNCATE concept_manual;
 --TRUNCATE concept_relationship_manual;
@@ -168,7 +169,7 @@ FROM ehh_qa
 WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
 
 -- add mappings
-TRUNCATE TABLE ppi_mapped;
+--TRUNCATE TABLE ppi_mapped;
 CREATE TABLE ppi_mapped
 (concept_code varchar,
 concept_name varchar,
@@ -201,6 +202,10 @@ and concept_code not in ('pmi_none', 'pmi_doesnotapplytome');
 UPDATE concept_manual
 SET standard_concept = NULL
 WHERE concept_code in (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id = 'Maps to');
+
+--Update domain for all the concepts
+UPDATE concept_manual
+SET domain_id = 'Observation';
 
 -- 4. insert concept synonyms from manual file
 

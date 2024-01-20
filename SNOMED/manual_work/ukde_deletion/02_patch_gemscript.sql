@@ -7,6 +7,18 @@ TRUNCATE concept_relationship_stage;
 TRUNCATE concept_synonym_stage;
 TRUNCATE concept_stage;
 TRUNCATE concept_relationship_manual;--To delete changes from the previous step
+INSERT INTO concept_relationship_manual
+SELECT concept_code_1,
+		concept_code_2,
+		vocabulary_id_1,
+		vocabulary_id_2,
+		relationship_id,
+		valid_start_date,
+		valid_end_date,
+		invalid_reason
+FROM devv5.base_concept_relationship_manual
+WHERE concept_id_1 <> 0
+	AND concept_id_2 <> 0;
 
 --1. Create table of concepts currently mapped to SNOMED, but that could be
 -- mapped to dm+d

@@ -86,41 +86,54 @@ LEFT JOIN concept c
 where cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy')
 and crs.concept_code_2 IS NOT NULL
 
-UNION
-
---to insert additional mappings from base_concept_relationship_manual
-SELECT cs.concept_code     as source_code,
-       cs.concept_name     as source_code_description,
-       'ICD10'             as source_vocabulary_id,
-       cs.concept_name     as group_name,
-       crm.relationship_id as relationship_id,
-       c.concept_id        as target_concept_id,
-       crm.concept_code_2  as target_concept_code,
-       c.concept_name      as target_concept_name,
-       c.concept_class_id  as target_concept_class,
-       c.standard_concept  as target_standard_concept,
-       c.invalid_reason    as target_invalid_reason,
-       c.domain_id         as target_domain_id,
-       crm.vocabulary_id_2 as target_vocabulary_id,
-       crm.valid_start_date as valid_start_date,
-       crm.valid_end_date as valid_end_date,
-       'crm' as mappings_origin
-FROM dev_icd10.concept_stage cs
-LEFT JOIN devv5.base_concept_relationship_manual crm
-    on cs.concept_code = crm.concept_code_1
-    and crm.relationship_id in ('Maps to', 'Maps to value')
-    and crm.vocabulary_id_1 = 'ICD10'
-LEFT JOIN concept c
-    on crm.concept_code_2 = c.concept_code
-    and crm.vocabulary_id_2 = c.vocabulary_id
-WHERE cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy')
-AND (crm.concept_code_1, crm.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM dev_icd10.concept_relationship_stage);
+--UNION
+--
+----to insert additional mappings from base_concept_relationship_manual
+--SELECT cs.concept_code     as source_code,
+--       cs.concept_name     as source_code_description,
+--       'ICD10'             as source_vocabulary_id,
+--       cs.concept_name     as group_name,
+--       crm.relationship_id as relationship_id,
+--       c.concept_id        as target_concept_id,
+--       crm.concept_code_2  as target_concept_code,
+--       c.concept_name      as target_concept_name,
+--       c.concept_class_id  as target_concept_class,
+--       c.standard_concept  as target_standard_concept,
+--       c.invalid_reason    as target_invalid_reason,
+--       c.domain_id         as target_domain_id,
+--       crm.vocabulary_id_2 as target_vocabulary_id,
+--       crm.valid_start_date as valid_start_date,
+--       crm.valid_end_date as valid_end_date,
+--       'crm' as mappings_origin
+--FROM dev_icd10.concept_stage cs
+--LEFT JOIN devv5.base_concept_relationship_manual crm
+--    on cs.concept_code = crm.concept_code_1
+--    and crm.relationship_id in ('Maps to', 'Maps to value')
+--    and crm.vocabulary_id_1 = 'ICD10'
+--LEFT JOIN concept c
+--    on crm.concept_code_2 = c.concept_code
+--    and crm.vocabulary_id_2 = c.vocabulary_id
+--WHERE cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy')
+--AND (crm.concept_code_1, crm.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM dev_icd10.concept_relationship_stage)
+;
 
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source SET
 mappings_origin = 'functions_updated'
-WHERE valid_start_date = '2022-08-09' or
-      valid_end_date = '2022-08-09';
+WHERE valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
+FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
+			FROM dev_icd10.concept_relationship_stage crs
+			JOIN dev_icd10.vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			JOIN dev_icd10.vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d)
+   OR valid_end_date = (SELECT valid_end_date FROM dev_icd10.concept_relationship_stage crs
+               WHERE valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM dev_icd10.vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)));
 
 --Insertion of the potential replacement mappings and concepts without mappings
 INSERT INTO icd_cde_source (source_code,
@@ -199,40 +212,54 @@ LEFT JOIN concept c
     and crs.vocabulary_id_2 = c.vocabulary_id
 WHERE crs.concept_code_2 IS NOT NULL
 
-UNION
+--UNION
+--
+----to insert additional mappings from base_concept_relationship_manual
+--SELECT cs.concept_code     as source_code,
+--       cs.concept_name     as source_code_description,
+--       'ICD10CM'           as source_vocabulary_id,
+--       cs.concept_name     as group_name,
+--       crm.relationship_id as relationship_id,
+--       c.concept_id        as target_concept_id,
+--       crm.concept_code_2  as target_concept_code,
+--       c.concept_name      as target_concept_name,
+--       c.concept_class_id  as target_concept_class,
+--       c.standard_concept  as target_standard_concept,
+--       c.invalid_reason    as target_invalid_reason,
+--       c.domain_id         as target_domain_id,
+--       crm.vocabulary_id_2 as target_vocabulary_id,
+--       crm.valid_start_date as valid_start_date,
+--       crm.valid_end_date as valid_end_date,
+--       'crm' as mappings_origin
+--FROM dev_icd10cm.concept_stage cs
+--LEFT JOIN devv5.base_concept_relationship_manual crm
+--    on cs.concept_code = crm.concept_code_1
+--    and crm.relationship_id in ('Maps to', 'Maps to value')
+--    and crm.vocabulary_id_1 = 'ICD10CM'
+--LEFT JOIN concept c
+--    on crm.concept_code_2 = c.concept_code
+--    and crm.vocabulary_id_2 = c.vocabulary_id
+--WHERE (crm.concept_code_1, crm.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM dev_icd10cm.concept_relationship_stage)
+;
 
---to insert additional mappings from base_concept_relationship_manual
-SELECT cs.concept_code     as source_code,
-       cs.concept_name     as source_code_description,
-       'ICD10CM'           as source_vocabulary_id,
-       cs.concept_name     as group_name,
-       crm.relationship_id as relationship_id,
-       c.concept_id        as target_concept_id,
-       crm.concept_code_2  as target_concept_code,
-       c.concept_name      as target_concept_name,
-       c.concept_class_id  as target_concept_class,
-       c.standard_concept  as target_standard_concept,
-       c.invalid_reason    as target_invalid_reason,
-       c.domain_id         as target_domain_id,
-       crm.vocabulary_id_2 as target_vocabulary_id,
-       crm.valid_start_date as valid_start_date,
-       crm.valid_end_date as valid_end_date,
-       'crm' as mappings_origin
-FROM dev_icd10cm.concept_stage cs
-LEFT JOIN devv5.base_concept_relationship_manual crm
-    on cs.concept_code = crm.concept_code_1
-    and crm.relationship_id in ('Maps to', 'Maps to value')
-    and crm.vocabulary_id_1 = 'ICD10CM'
-LEFT JOIN concept c
-    on crm.concept_code_2 = c.concept_code
-    and crm.vocabulary_id_2 = c.vocabulary_id
-WHERE (crm.concept_code_1, crm.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM dev_icd10cm.concept_relationship_stage);
-
+--Update 'mappings_origin' flag
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source SET
 mappings_origin = 'functions_updated'
-WHERE valid_start_date = '2023-10-01' or
-      valid_end_date = '2023-09-30'
+WHERE valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
+FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
+			FROM dev_icd10cm.concept_relationship_stage crs
+			JOIN dev_icd10cm.vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			JOIN dev_icd10cm.vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d)
+   OR valid_end_date = (SELECT valid_end_date FROM dev_icd10cm.concept_relationship_stage crs
+               WHERE valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM dev_icd10cm.vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)))
 AND source_vocabulary_id = 'ICD10CM';
 
 --Insertion of the potential replacement mappings and concepts without mappings
@@ -285,55 +312,26 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            valid_start_date,
+                            valid_end_date,
                             mappings_origin)
--- Manual mappings
-SELECT cs.concept_code     as source_code,
-       cs.concept_name     as source_code_description,
-       'ICD10GM'             as source_vocabulary_id,
-       cs.concept_name     as group_name,
-       crm.relationship_id as relationship_id,
-       c.concept_id        as target_concept_id,
-       crm.concept_code_2  as target_concept_code,
-       c.concept_name      as target_concept_name,
-       c.concept_class_id  as target_concept_class,
-       c.standard_concept  as target_standard_concept,
-       c.invalid_reason    as target_invalid_reason,
-       c.domain_id         as target_domain_id,
-       crm.vocabulary_id_2 as target_vocabulary_id,
-       'crm' as mappings_origin
-FROM dev_icd10gm.concept_stage cs
-LEFT JOIN devv5.base_concept_relationship_manual crm
-    on cs.concept_code = crm.concept_code_1
-    and crm.relationship_id in ('Maps to', 'Maps to value')
-    and crm.vocabulary_id_1 = 'ICD10GM'
-LEFT JOIN concept c
-    on crm.concept_code_2 = c.concept_code
-    and crm.vocabulary_id_2 = c.vocabulary_id
-WHERE crm.concept_code_2 is not null
-
-UNION ALL
-
-SELECT
-cs.concept_code     as source_code,
-cs.concept_name     as source_code_description,
-'ICD10GM'             as source_vocabulary_id,
-cs.concept_name     as group_name,
-crs.relationship_id as relationship_id,
-c.concept_id        as target_concept_id,
-crs.concept_code_2  as target_concept_code,
-c.concept_name      as target_concept_name,
-c.concept_class_id  as target_concept_class,
-c.standard_concept  as target_standard_concept,
-c.invalid_reason    as target_invalid_reason,
-c.domain_id         as target_domain_id,
-crs.vocabulary_id_2 as target_vocabulary_id,
-'crs' as mappings_origin
-FROM dev_icd10gm.concept_stage cs
-LEFT JOIN dev_icd10gm.concept_relationship_stage crs
-    on cs.concept_code = crs.concept_code_1
-    AND crs.concept_code_2 IS NOT NULL
-LEFT JOIN concept c on crs.concept_code_2 = c.concept_code
-WHERE cs.concept_code not in (SELECT concept_code FROM dev_icd10.concept_stage);
+SELECT source_code,
+       source_code_description,
+       source_vocabulary_id,
+       source_code_description,
+       relationship_id,
+       target_concept_id,
+       target_concept_code,
+       target_concept_name,
+       target_concept_class_id,
+       target_standard_concept,
+       target_invalid_reason,
+       target_domain_id,
+       target_vocabulary_id,
+       valid_start_date,
+       valid_end_date,
+       mappings_origin
+FROM icd10gm_refresh;
 
 ;
 

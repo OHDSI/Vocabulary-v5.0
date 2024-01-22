@@ -115,6 +115,8 @@ INSERT INTO icd10gm_refresh
      target_invalid_reason,
      target_domain_id,
      target_vocabulary_id,
+     valid_start_date,
+     valid_end_date,
      mappings_origin)
 with deprecated_mappings as
 (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_end_date
@@ -142,7 +144,10 @@ SELECT
     c.concept_class_id as target_concept_class_id,
     c.standard_concept as target_standard_concept,
     c.invalid_reason as target_invalid_reason,
+    c.domain_id as target_domain_id,
     crs.vocabulary_id_2 as target_vocabulary_id,
+    crs.valid_start_date,
+    crs.valid_end_date,
     CASE WHEN crs.valid_end_date =  (SELECT DISTINCT valid_end_date FROM deprecated_mappings) THEN 'functions_updated' ELSE 'crm' END as mappings_origin
 FROM concept_relationship_stage crs
 LEFT JOIN concept_stage cs ON crs.concept_code_1 = cs.concept_code
@@ -165,7 +170,10 @@ crs.concept_code_1 as source_code,
     c.concept_class_id as target_concept_class_id,
     c.standard_concept as target_standard_concept,
     c.invalid_reason as target_invalid_reason,
+    c.domain_id as target_domain_id,
     crs.vocabulary_id_2 as target_vocabulary_id,
+    crs.valid_start_date,
+    crs.valid_end_date,
     CASE WHEN crs.valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
     FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
 			FROM concept_relationship_stage crs
@@ -179,11 +187,12 @@ WHERE (concept_code_1, vocabulary_id_1, relationship_id) IN
 (SELECT concept_code_1, vocabulary_id_1, relationship_id FROM deprecated_mappings)
 and crs.invalid_reason is null;
 
-
+-- Check with ICD10 for same codes with different mappings
 SELECT * FROM concept_relationship_stage crs1
 JOIN dev_icd10.concept_relationship_stage crs2
 ON crs1.concept_code_1 = crs2.concept_code_1
 and crs1.relationship_id = crs2.relationship_id
+and crs1.invalid_reason = crs2.invalid_reason
 and crs1.concept_code_2 != crs2.concept_code_2
 AND crs1.relationship_id in ('Maps to', 'Maps to value');
 

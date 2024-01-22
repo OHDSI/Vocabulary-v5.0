@@ -101,6 +101,92 @@ CREATE TABLE icd10gm_refresh
     mappings_origin         varchar
 );
 
+--Insert concepts, which are represented in the crm
+INSERT INTO icd10gm_refresh
+    (source_code,
+     source_code_description,
+     source_vocabulary_id,
+     relationship_id,
+     target_concept_id,
+     target_concept_code,
+     target_concept_name,
+     target_concept_class_id,
+     target_standard_concept,
+     target_invalid_reason,
+     target_domain_id,
+     target_vocabulary_id,
+     mappings_origin)
+with deprecated_mappings as
+(SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_end_date
+    FROM concept_relationship_stage crs
+    WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
+    (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
+    FROM concept_relationship_manual)
+    and invalid_reason = 'D'
+    and valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)))
+SELECT
+    crs.concept_code_1 as source_code,
+    cs.concept_name as source_code_description,
+    crs.vocabulary_id_1 as source_vocabulary_id,
+    crs.relationship_id as relationship_id,
+    c.concept_id as target_concept_id,
+    c.concept_code as target_concept_code,
+    c.concept_name as target_concept_name,
+    c.concept_class_id as target_concept_class_id,
+    c.standard_concept as target_standard_concept,
+    c.invalid_reason as target_invalid_reason,
+    crs.vocabulary_id_2 as target_vocabulary_id,
+    CASE WHEN crs.valid_end_date =  (SELECT DISTINCT valid_end_date FROM deprecated_mappings) THEN 'functions_updated' ELSE 'crm' END as mappings_origin
+FROM concept_relationship_stage crs
+LEFT JOIN concept_stage cs ON crs.concept_code_1 = cs.concept_code
+AND crs.vocabulary_id_1 = cs.vocabulary_id
+LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id_2 = c.vocabulary_id
+    WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
+    (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
+    FROM concept_relationship_manual)
+
+UNION ALL
+
+SELECT
+crs.concept_code_1 as source_code,
+    cs.concept_name as source_code_description,
+    crs.vocabulary_id_1 as source_vocabulary_id,
+    crs.relationship_id as relationship_id,
+    c.concept_id as target_concept_id,
+    c.concept_code as target_concept_code,
+    c.concept_name as target_concept_name,
+    c.concept_class_id as target_concept_class_id,
+    c.standard_concept as target_standard_concept,
+    c.invalid_reason as target_invalid_reason,
+    crs.vocabulary_id_2 as target_vocabulary_id,
+    CASE WHEN crs.valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
+    FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
+			FROM concept_relationship_stage crs
+			JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d) THEN 'functions_updated' ELSE 'crm' END as mappings_origin
+FROM concept_relationship_stage crs
+LEFT JOIN concept_stage cs ON crs.concept_code_1 = cs.concept_code
+AND crs.vocabulary_id_1 = cs.vocabulary_id
+LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id_2 = c.vocabulary_id
+WHERE (concept_code_1, vocabulary_id_1, relationship_id) IN
+(SELECT concept_code_1, vocabulary_id_1, relationship_id FROM deprecated_mappings)
+and crs.invalid_reason is null;
+
+
+SELECT * FROM concept_relationship_stage crs1
+JOIN dev_icd10.concept_relationship_stage crs2
+ON crs1.concept_code_1 = crs2.concept_code_1
+and crs1.relationship_id = crs2.relationship_id
+and crs1.concept_code_2 != crs2.concept_code_2
+AND crs1.relationship_id in ('Maps to', 'Maps to value');
+
 --Insert other potential replacement mappings
 INSERT INTO icd10gm_refresh
     (source_code,
@@ -156,7 +242,9 @@ AND concept_code_1 NOT IN
        AND c.standard_concept = 'S'
        AND c.invalid_reason is null);
 
---Insert concepts without mapping
+
+
+--Insert concepts without mapping --Not used at every refresh
 INSERT INTO icd10gm_refresh
     (source_code,
      source_code_description,

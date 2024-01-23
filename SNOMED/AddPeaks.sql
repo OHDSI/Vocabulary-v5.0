@@ -396,7 +396,6 @@ SELECT a.*, NULL FROM ( VALUES
 	(267038008,         'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Edema
 	(65124004,      	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Swelling
 	(276438008,      	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Swelling / lump finding
-	(36456004,         	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mental state finding
 	(1157237004,        'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Altered perception
 	(25470001000004105, 'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cognitive impairment due to multiple sclerosis
 	(386806002,        	'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Impaired cognition
@@ -455,6 +454,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(247845000,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Specific fear
 	(268637002,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Psychosexual dysfunction
 	(272030005,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Syncope
+	(271787007,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Collapse
 	(63384009,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Distorted body image
 	(29738008,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Proteinuria
 	(61373006,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Bacteriuria
@@ -490,6 +490,11 @@ SELECT a.*, NULL FROM ( VALUES
 	(302690004,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Encopresis
 	(416113008,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Disorder characterized by fever
 	(103075007,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Humoral immune defect
+	(42341009,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Agnosia
+	(37057007,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Psychophysiologic disorder
+	(162274004,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Visual symptoms
+	(106134006,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Perception AND/OR perception disturbance
+	(12479006,  		'Condition',    TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Compulsive behavior
 
 	(397852001,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- V/Q - Ventilation/perfusion ratio
 	(302083008,         'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of Apgar score
@@ -542,6 +547,8 @@ SELECT a.*, NULL FROM ( VALUES
 	(366147009,        	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Respiratory measurements - finding
 	(249131000,        	'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of amniotic fluid volume
 	(34641000087106,    'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hematology test outside reference range
+	(366092004,    		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Eye measurements - finding
+	(366158000,    		'Measurement',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Vascular measurements - finding
 
 	(705075002,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Able to see
 	(719749006,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Able to see using assistive device
@@ -554,7 +561,9 @@ SELECT a.*, NULL FROM ( VALUES
 	(422256009,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Counts fingers - distance vision
 	(424348007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Difficulty seeing distant objects
 	(277754002,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ocular test distance as specified
-	(830128004,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal near vision
+	(45089002,         	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal vision
+	(301979008,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of color vision
+	(246638009,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Interference with vision
 	(260296003,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Perceives light only
 	(260295004,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Sees hand movements
 	(427013000,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Alcohol consumption during pregnancy
@@ -562,7 +571,7 @@ SELECT a.*, NULL FROM ( VALUES
 	(289750007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of involution of uterus
 	(249211006,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lochia finding
 	(271880003,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- O/E - specified examination findings
-	(365441007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drive - finding
+	--(365441007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drive - finding
 	(371078007,         'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of eating pattern
 	(106131003,        	'Observation',  TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mood finding
 	(58424009,        	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Overeating
@@ -803,6 +812,18 @@ SELECT a.*, NULL FROM ( VALUES
 	(248727005, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Venous finding
 	(298180004, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of range of joint movement
 	(252041008, 	    'Observation',  	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Micturition finding
+	(36456004,         	'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mental state finding
+	(118242002,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding by palpation
+	(118244001,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding by percussion
+	(247700009,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal perception
+	(102500002,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Good neonatal condition at birth
+	(297976006,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of temperature of skin
+	(106146005,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Reflex finding
+	(299956006,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Normal sensation
+	(609625009,         'Observation',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of pelvic region of trunk
+	(30473006,         	'Condition',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pain in pelvis
+	(309524007,         'Condition',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Mass pf trunk
+	(724386005,         'Condition',    	TO_DATE('20230914', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lesion of genitalia
 
 	--history:on
 	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20220504', 'YYYYMMDD')), -- Bacteria present
@@ -1448,6 +1469,7 @@ SELECT b.* FROM (VALUES
 	(364069001,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Cardiac conduction system feature
 	(427751006,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of cardiac perfusion defect
 	(429162008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of myocardial stress ischemia
+	(301978000,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1),  --Finding of vision of eye
 	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1),  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
 	(24942001,  		'Condition',  	TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Urobilinogenuria
 	(18165001,  		'Condition',  	TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0)  --Jaundice

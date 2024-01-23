@@ -1923,7 +1923,8 @@ AND NOT EXISTS (
        SELECT 1 FROM snomed_ancestor sa
        WHERE sa.descendant_concept_code::TEXT = cs.concept_code
        AND sa.ancestor_concept_code::TEXT IN ('14679004', -- Occupation
-                                             '410597007',
+                                             '125677006', -- Relative
+                                             '410597007', -- Person categorized by religious affiliation
                                              '108334009') -- Religion AND/OR philosophy
 );
 

@@ -28,6 +28,7 @@ CREATE TABLE dev_icd10.icd_cde_source
     target_invalid_reason   varchar(1),
     target_domain_id        varchar(20),
     target_vocabulary_id    varchar(20),
+    rel_invalid_reason      varchar (1),
     valid_start_date        date,
     valid_end_date          date,
     mappings_origin         varchar
@@ -55,6 +56,7 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
                             valid_start_date,
                             valid_end_date,
                             mappings_origin)
@@ -73,6 +75,7 @@ SELECT cs.concept_code     as source_code,
        c.invalid_reason    as target_invalid_reason,
        c.domain_id         as target_domain_id,
        crs.vocabulary_id_2 as target_vocabulary_id,
+       crs.invalid_reason  as rel_invalid_reason,
        crs.valid_start_date as valid_start_date,
        crs.valid_end_date  as valid_end_date,
        CASE WHEN c.concept_id is not null THEN 'crs' ELSE null END as mappings_origin
@@ -118,22 +121,11 @@ and crs.concept_code_2 IS NOT NULL
 ;
 
 --Update 'mappings_origin' flag
-UPDATE icd_cde_source SET
+UPDATE icd_cde_source s SET
 mappings_origin = 'functions_updated'
-WHERE valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
-FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
-			FROM dev_icd10.concept_relationship_stage crs
-			JOIN dev_icd10.vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
-			JOIN dev_icd10.vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d)
-   OR valid_end_date = (SELECT valid_end_date FROM dev_icd10.concept_relationship_stage crs
-               WHERE valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM dev_icd10.vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)));
+WHERE valid_start_date = (SELECT MAX(valid_start_date) FROM icd_cde_source WHERE rel_invalid_reason IS NULL)
+OR valid_end_date = (SELECT MAX(valid_end_date) FROM icd_cde_source WHERE rel_invalid_reason is not null);
+
 
 --Insertion of the potential replacement mappings and concepts without mappings
 INSERT INTO icd_cde_source (source_code,
@@ -149,6 +141,9 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
+                            valid_start_date,
+                            valid_end_date,
                             mappings_origin)
 SELECT
 source_code,
@@ -164,6 +159,9 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id,
+rel_invalid_reason,
+valid_start_date,
+valid_end_date,
 mappings_origin
 FROM icd10_refresh;
 
@@ -183,6 +181,7 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
                             valid_start_date,
                             valid_end_date,
                             mappings_origin)
@@ -200,6 +199,7 @@ SELECT cs.concept_code     as source_code,
        c.invalid_reason    as target_invalid_reason,
        c.domain_id         as target_domain_id,
        crs.vocabulary_id_2 as target_vocabulary_id,
+       crs.invalid_reason  as rel_invalid_reason,
        crs.valid_start_date as valid_start_date,
        crs.valid_end_date as valid_end_date,
        CASE WHEN c.concept_id is not null THEN 'crs' ELSE null END as mappings_origin
@@ -243,24 +243,11 @@ WHERE crs.concept_code_2 IS NOT NULL
 ;
 
 --Update 'mappings_origin' flag
---Update 'mappings_origin' flag
-UPDATE icd_cde_source SET
+UPDATE icd_cde_source s SET
 mappings_origin = 'functions_updated'
-WHERE valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
-FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
-			FROM dev_icd10cm.concept_relationship_stage crs
-			JOIN dev_icd10cm.vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
-			JOIN dev_icd10cm.vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d)
-   OR valid_end_date = (SELECT valid_end_date FROM dev_icd10cm.concept_relationship_stage crs
-               WHERE valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM dev_icd10cm.vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)))
-AND source_vocabulary_id = 'ICD10CM';
+WHERE (valid_start_date = (SELECT MAX(valid_start_date) FROM icd_cde_source WHERE rel_invalid_reason IS NULL AND source_vocabulary_id = 'ICD10CM')
+OR valid_end_date = (SELECT MAX(valid_end_date) FROM icd_cde_source WHERE rel_invalid_reason is not null AND source_vocabulary_id = 'ICD10CM'))
+;
 
 --Insertion of the potential replacement mappings and concepts without mappings
 INSERT INTO icd_cde_source (source_code,
@@ -276,6 +263,9 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
+                            valid_start_date,
+                            valid_end_date,
                             mappings_origin)
 SELECT
 source_code,
@@ -291,7 +281,10 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id,
-mappings_origin
+mappings_origin,
+rel_invalid_reason,
+valid_start_date,
+valid_end_date
 FROM dev_icd10cm.icd10cm_refresh;
 
 SELECT * FROM icd_cde_source;
@@ -312,6 +305,7 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
                             valid_start_date,
                             valid_end_date,
                             mappings_origin)
@@ -328,14 +322,13 @@ SELECT source_code,
        target_invalid_reason,
        target_domain_id,
        target_vocabulary_id,
+       rel_invalid_reason,
        valid_start_date,
        valid_end_date,
        mappings_origin
-FROM icd10gm_refresh;
+FROM dev_icd10gm.icd10gm_refresh;
 
-;
-
---CIM10 with mappings (only manual mappings are inserted)
+--CIM10 with mappings (only manual mappings, conflicts and unique codes are inserted)
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
                             source_vocabulary_id,
@@ -351,31 +344,28 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
+                            valid_start_date,
+                            valid_end_date,
                             mappings_origin)
--- Check Select before insertion
-SELECT cs.concept_code     as source_code,
-       cs.concept_name     as source_code_description,
-       'CIM10'             as source_vocabulary_id,
-       cs.concept_name     as group_name,
-       crm.relationship_id as relationship_id,
-       c.concept_id        as target_concept_id,
-       crm.concept_code_2  as target_concept_code,
-       c.concept_name      as target_concept_name,
-       c.concept_class_id  as target_concept_class,
-       c.standard_concept  as target_standard_concept,
-       c.invalid_reason    as target_invalid_reason,
-       c.domain_id         as target_domain_id,
-       crm.vocabulary_id_2 as target_vocabulary_id,
-       'crm' as mappings_origin
-FROM dev_cim10.concept_stage cs
-LEFT JOIN devv5.base_concept_relationship_manual crm
-    on cs.concept_code = crm.concept_code_1
-    and crm.relationship_id in ('Maps to', 'Maps to value')
-    and crm.vocabulary_id_1 = 'CIM10'
-LEFT JOIN concept c
-    on crm.concept_code_2 = c.concept_code
-    and crm.vocabulary_id_2 = c.vocabulary_id
-WHERE crm.concept_code_2 is not null;
+SELECT source_code,
+       source_code_description,
+       source_vocabulary_id,
+       source_code_description,
+       relationship_id,
+       target_concept_id,
+       target_concept_code,
+       target_concept_name,
+       target_concept_class_id,
+       target_standard_concept,
+       target_invalid_reason,
+       target_domain_id,
+       target_vocabulary_id,
+       rel_invalid_reason,
+       valid_start_date,
+       valid_end_date,
+       mappings_origin
+FROM dev_cim10.cim10_refresh;
 
 --ICD10CN with mappings (only manual mappings are inserted)
 INSERT INTO icd_cde_source (source_code,
@@ -393,31 +383,28 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
+                            valid_start_date,
+                            valid_end_date,
                             mappings_origin)
--- Check Select before insertion
-SELECT cs.concept_code     as source_code,
-       cs.concept_name     as source_code_description,
-       'ICD10CN'             as source_vocabulary_id,
-       cs.concept_name     as group_name,
-       crm.relationship_id as relationship_id,
-       c.concept_id        as target_concept_id,
-       crm.concept_code_2  as target_concept_code,
-       c.concept_name      as target_concept_name,
-       c.concept_class_id  as target_concept_class,
-       c.standard_concept  as target_standard_concept,
-       c.invalid_reason    as target_invalid_reason,
-       c.domain_id         as target_domain_id,
-       crm.vocabulary_id_2 as target_vocabulary_id,
-       'crm' as mappings_origin
-FROM dev_icd10cn.concept_stage cs
-LEFT JOIN devv5.base_concept_relationship_manual crm
-    on cs.concept_code = crm.concept_code_1
-    and crm.relationship_id in ('Maps to', 'Maps to value')
-    and crm.vocabulary_id_1 = 'ICD10CN'
-LEFT JOIN concept c
-    on crm.concept_code_2 = c.concept_code
-    and crm.vocabulary_id_2 = c.vocabulary_id
-WHERE crm.concept_code_2 is not null;
+SELECT source_code,
+       source_code_description,
+       source_vocabulary_id,
+       source_code_description,
+       relationship_id,
+       target_concept_id,
+       target_concept_code,
+       target_concept_name,
+       target_concept_class_id,
+       target_standard_concept,
+       target_invalid_reason,
+       target_domain_id,
+       target_vocabulary_id,
+       rel_invalid_reason,
+       valid_start_date,
+       valid_end_date,
+       mappings_origin
+FROM dev_icd10cn.icd10cn_refresh;;
 
 --KCD7 with mappings (only manual mappings are inserted)
 INSERT INTO icd_cde_source (source_code,
@@ -435,31 +422,28 @@ INSERT INTO icd_cde_source (source_code,
                             target_invalid_reason,
                             target_domain_id,
                             target_vocabulary_id,
+                            rel_invalid_reason,
+                            valid_start_date,
+                            valid_end_date,
                             mappings_origin)
--- Check Select before insertion
-SELECT cs.concept_code     as source_code,
-       cs.concept_name     as source_code_description,
-       'KCD7'             as source_vocabulary_id,
-       cs.concept_name     as group_name,
-       crm.relationship_id as relationship_id,
-       c.concept_id        as target_concept_id,
-       crm.concept_code_2  as target_concept_code,
-       c.concept_name      as target_concept_name,
-       c.concept_class_id  as target_concept_class,
-       c.standard_concept  as target_standard_concept,
-       c.invalid_reason    as target_invalid_reason,
-       c.domain_id         as target_domain_id,
-       crm.vocabulary_id_2 as target_vocabulary_id,
-       'crm' as mappings_origin
-FROM dev_kcd7.concept_stage cs
-LEFT JOIN devv5.base_concept_relationship_manual crm
-    on cs.concept_code = crm.concept_code_1
-    and crm.relationship_id in ('Maps to', 'Maps to value')
-    and crm.vocabulary_id_1 = 'KCD7'
-LEFT JOIN concept c
-    on crm.concept_code_2 = c.concept_code
-    and crm.vocabulary_id_2 = c.vocabulary_id
-WHERE crm.concept_code_2 is not null;
+SELECT source_code,
+       source_code_description,
+       source_vocabulary_id,
+       source_code_description,
+       relationship_id,
+       target_concept_id,
+       target_concept_code,
+       target_concept_name,
+       target_concept_class_id,
+       target_standard_concept,
+       target_invalid_reason,
+       target_domain_id,
+       target_vocabulary_id,
+       rel_invalid_reason,
+       valid_start_date,
+       valid_end_date,
+       mappings_origin
+FROM dev_kcd7.kcd7_refresh;;
 
 --check all the inserted rows --157702
 SELECT * FROM icd_cde_source
@@ -485,8 +469,6 @@ SELECT * FROM icd_cde_source
     WHERE source_code is null
     OR source_code_description is null
     or source_vocabulary_id is null;
-
-
 
 -- Review all source_codes with mappings, including potential replacement mappings
 SELECT * FROM icd_cde_source

@@ -96,6 +96,7 @@ CREATE TABLE icd10gm_refresh
     target_invalid_reason   varchar(1),
     target_domain_id        varchar(20),
     target_vocabulary_id    varchar(20),
+    rel_invalid_reason      varchar(1),
     valid_start_date        date,
     valid_end_date          date,
     mappings_origin         varchar
@@ -115,6 +116,7 @@ INSERT INTO icd10gm_refresh
      target_invalid_reason,
      target_domain_id,
      target_vocabulary_id,
+     rel_invalid_reason,
      valid_start_date,
      valid_end_date,
      mappings_origin)
@@ -146,6 +148,7 @@ SELECT
     c.invalid_reason as target_invalid_reason,
     c.domain_id as target_domain_id,
     crs.vocabulary_id_2 as target_vocabulary_id,
+    crs.invalid_reason as rel_invalid_reason,
     crs.valid_start_date,
     crs.valid_end_date,
     CASE WHEN crs.valid_end_date =  (SELECT DISTINCT valid_end_date FROM deprecated_mappings) THEN 'functions_updated' ELSE 'crm' END as mappings_origin
@@ -172,6 +175,7 @@ crs.concept_code_1 as source_code,
     c.invalid_reason as target_invalid_reason,
     c.domain_id as target_domain_id,
     crs.vocabulary_id_2 as target_vocabulary_id,
+    crs.invalid_reason as rel_invalid_reason,
     crs.valid_start_date,
     crs.valid_end_date,
     CASE WHEN crs.valid_start_date = (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
@@ -210,6 +214,9 @@ INSERT INTO icd10gm_refresh
      target_invalid_reason,
      target_domain_id,
      target_vocabulary_id,
+     rel_invalid_reason,
+     valid_start_date,
+     valid_end_date,
      mappings_origin)
 (with mis_map as
 (SELECT
@@ -217,7 +224,10 @@ cs.concept_code as source_code,
 cs.concept_name as source_code_description,
 cs.vocabulary_id as source_vocabulary_id,
 crs.relationship_id as relationship_id,
-c.concept_id as target_concept_id
+c.concept_id as target_concept_id,
+crs.invalid_reason as rel_invalid_reason,
+crs.valid_start_date as valid_start_date,
+crs.valid_end_date as valid_end_date
 FROM concept_relationship_stage crs
 LEFT JOIN concept c
 ON crs.concept_code_2 = c.concept_code
@@ -242,6 +252,9 @@ AND concept_code_1 NOT IN
               c.invalid_reason as target_invalid_reason,
               c.domain_id as target_domain_id,
               c.vocabulary_id as target_vocabulary_id,
+              m.rel_invalid_reason as rel_invalid_reason,
+              m.valid_start_date as valid_start_date,
+              m.valid_end_date as valid_end_date,
               'replaced through relationships' as mapping_origin
        FROM mis_map m JOIN concept_relationship cr
        ON m.target_concept_id = cr.concept_id_1

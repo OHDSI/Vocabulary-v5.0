@@ -96,6 +96,7 @@ CREATE TABLE icd10_refresh
     target_invalid_reason   varchar(1),
     target_domain_id        varchar(20),
     target_vocabulary_id    varchar(20),
+    rel_invalid_reason      varchar(1),
     valid_start_date        date,
     valid_end_date          date,
     mappings_origin         varchar
@@ -115,6 +116,9 @@ INSERT INTO icd10_refresh
      target_invalid_reason,
      target_domain_id,
      target_vocabulary_id,
+     rel_invalid_reason,
+     valid_start_date,
+     valid_end_date,
      mappings_origin)
 (with mis_map as
 (SELECT
@@ -122,6 +126,9 @@ cs.concept_code as source_code,
 cs.concept_name as source_code_description,
 cs.vocabulary_id as source_vocabulary_id,
 crs.relationship_id as relationship_id,
+crs.invalid_reason as rel_invalid_reason,
+crs.valid_start_date as valid_start_date,
+crs.valid_end_date as valid_end_date,
 c.concept_id as target_concept_id
 FROM concept_relationship_stage crs
 LEFT JOIN concept c
@@ -147,6 +154,9 @@ AND concept_code_1 NOT IN
               c.invalid_reason as target_invalid_reason,
               c.domain_id as target_domain_id,
               c.vocabulary_id as target_vocabulary_id,
+              m.rel_invalid_reason as rel_invalid_reason,
+              m.valid_start_date as valid_start_date,
+              m.valid_end_date as valid_end_date,
               'replaced through relationships' as mapping_origin
        FROM mis_map m JOIN concept_relationship cr
        ON m.target_concept_id = cr.concept_id_1

@@ -316,24 +316,6 @@ JOIN sources.icd10cn_concept ic2 ON ic2.concept_id = r.concept_id_2
 WHERE r.relationship_id = 'Is a'
 	AND ic1.concept_code_clean <> ic2.concept_code_clean;
 
---9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---10. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
 --12. Update Domains
 --ICD10 Histologies are always Condition
 UPDATE concept_stage
@@ -343,7 +325,6 @@ WHERE concept_class_id = 'ICD10 Histology';
 --13 Find parents among ICD10 and ICDO3 to inherit mapping relationships from
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --For LIKE patterns
 ANALYZE concept_stage;
-
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -418,7 +399,74 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'Maps to'
 		);
 
---From mapping target
+--9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--14. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--15. 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--Add mapping from deprecated to fresh concepts (value level)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+-- Deprecate wrong maps to value
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id = 'Maps to value'
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-valid (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.invalid_reason IN (
+						'U',
+						'D'
+						)
+				);
+
+-- Deprecate mapping to non-S concepts
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id in ('Maps to','Maps to value')
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-S (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.standard_concept is null
+				);
+
+--Update domain from mapping target
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -449,7 +497,7 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.domain_id = 'Undefined';
 
---From descendants - for cathegories and groupers
+--Update domain from descendants - for cathegories and groupers
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -485,25 +533,6 @@ WHERE i.concept_code = cs.concept_code
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
-
---14. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---14.1 BRAND NEW Add mapping from deprecated to fresh concepts (value level)
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
-
---15. Deprecate
--- 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
 
 --16. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now

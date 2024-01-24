@@ -304,8 +304,6 @@ FROM (
 	FROM sources.icd10cm
 	) AS s0;
 
-
-
 --16. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

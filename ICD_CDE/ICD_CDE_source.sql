@@ -10,25 +10,25 @@ TRUNCATE TABLE dev_icd10.icd_cde_source;
 CREATE TABLE dev_icd10.icd_cde_source
 (
     source_code             TEXT NOT NULL,
-    source_code_description varchar(255),
-    source_vocabulary_id    varchar(20),
-    group_name              varchar(255),
+    source_code_description varchar,
+    source_vocabulary_id    varchar,
+    group_name              varchar,
     group_id                int,
     --group_code              varchar, -- group code is dynamic and is assembled after grouping just before insertion data into the google sheet
     medium_group_id         integer,
     --medium_group_code       varchar,
     broad_group_id          integer,
     --broad_group_code        varchar,
-    relationship_id         varchar(20),
+    relationship_id         varchar,
     target_concept_id       integer,
-    target_concept_code     varchar(50),
-    target_concept_name     varchar(255),
-    target_concept_class_id varchar(20),
-    target_standard_concept varchar(1),
-    target_invalid_reason   varchar(1),
-    target_domain_id        varchar(20),
-    target_vocabulary_id    varchar(20),
-    rel_invalid_reason      varchar (1),
+    target_concept_code     varchar,
+    target_concept_name     varchar,
+    target_concept_class_id varchar,
+    target_standard_concept varchar,
+    target_invalid_reason   varchar,
+    target_domain_id        varchar,
+    target_vocabulary_id    varchar,
+    rel_invalid_reason      varchar,
     valid_start_date        date,
     valid_end_date          date,
     mappings_origin         varchar
@@ -125,7 +125,6 @@ UPDATE icd_cde_source s SET
 mappings_origin = 'functions_updated'
 WHERE valid_start_date = (SELECT MAX(valid_start_date) FROM icd_cde_source WHERE rel_invalid_reason IS NULL)
 OR valid_end_date = (SELECT MAX(valid_end_date) FROM icd_cde_source WHERE rel_invalid_reason is not null);
-
 
 --Insertion of the potential replacement mappings and concepts without mappings
 INSERT INTO icd_cde_source (source_code,
@@ -281,13 +280,11 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id,
-mappings_origin,
 rel_invalid_reason,
 valid_start_date,
-valid_end_date
+valid_end_date,
+mappings_origin
 FROM dev_icd10cm.icd10cm_refresh;
-
-SELECT * FROM icd_cde_source;
 
 --ICD10GM with mappings (only manual mappings, conflicts and unique codes are inserted)
 INSERT INTO icd_cde_source (source_code,
@@ -445,7 +442,7 @@ SELECT source_code,
        mappings_origin
 FROM dev_kcd7.kcd7_refresh;;
 
---check all the inserted rows --157702
+--check all the inserted rows
 SELECT * FROM icd_cde_source
 ORDER BY source_code;
 
@@ -470,244 +467,63 @@ SELECT * FROM icd_cde_source
     OR source_code_description is null
     or source_vocabulary_id is null;
 
--- Review all source_codes with mappings, including potential replacement mappings
-SELECT * FROM icd_cde_source
-ORDER BY source_code;
 
--- Assign the unique group_id to unique source concept
-DROP TABLE cde_source_concepts;
-CREATE TABLE cde_source_concepts (
-    source_code TEXT NOT NULL,
-	source_code_description TEXT,
-	source_vocabulary_id TEXT NOT NULL,
-	group_id SERIAL,
-	group_name TEXT NOT NULL);
+WITH RECURSIVE hierarchy_concepts
+AS (
+	SELECT c.ancestor_id AS root_source_code_description, --create virtual group by description
+		c.ancestor_id,
+		c.descendant_id,
+		ARRAY [c.descendant_id] AS full_path
+	FROM concepts c
+	WHERE c.ancestor_id IN (
+			--each code+target can have several descriptions, so to simplify the hierarchy, we take only one "minimum" description
+			SELECT MIN(cr.source_code_description)
+			FROM concepts_raw cr
+			GROUP BY cr.source_code,
+				cr.target_concept_code
+			)
 
-INSERT INTO cde_source_concepts (source_code,
-                                 source_code_description,
-                                 source_vocabulary_id,
-                                 group_name)
-SELECT DISTINCT source_code,
-                source_code_description,
-                source_vocabulary_id,
-                group_name FROM icd_cde_source;
+	UNION ALL
 
---UPDATE group_id in the initial source table
-UPDATE icd_cde_source s SET group_id =
-    (SELECT m.group_id FROM cde_source_concepts m WHERE m.source_code = s.source_code
-                                                 AND m.source_code_description = s.source_code_description
-                                                 AND m.source_vocabulary_id = s.source_vocabulary_id);
+	SELECT hc.root_source_code_description,
+		c.ancestor_id,
+		c.descendant_id,
+		hc.full_path || c.descendant_id AS full_path
+	FROM concepts c
+	JOIN hierarchy_concepts hc ON hc.descendant_id = c.ancestor_id
+	WHERE c.descendant_id <> ALL (hc.full_path)
+	),
+concepts_raw AS (
+    SELECT * FROM icd_cde_source),
+concepts AS (
+	/*the general idea is to "group" by description first, resulting in pairs
+	name1->(code1,target1),(code2,target2), ...
+	name2->(code2,target2),(code3,target3), ...
+	... etc
+	and then convert the code+target pair back into names so that we can build a hierarchy from the first name (name1/name2) to all other names of all pairs
 
-SELECT * FROM icd_cde_source_backup_local_ver;
-
---GROUPING CRITERIUM 1: (same codes with identical mappings)
-DROP TABLE grouped1;
-CREATE TABLE grouped1 as (
-SELECT DISTINCT
-       c1.source_code as source_code,
-       c1.source_code_description as source_code_description,
-       c1.source_vocabulary_id as source_vocabulary_id,
-       c.source_code as source_code_1,
-       c.source_code_description as source_code_description_1,
-       c.source_vocabulary_id as source_vocabulary_id_1
-    FROM dev_icd10.icd_cde_source c
-    JOIN dev_icd10.icd_cde_source c1
-    ON c.source_code = c1.source_code
-    and c.source_vocabulary_id != c1.source_vocabulary_id
-    and c.source_code_description != c1.source_code_description
-    and c.target_concept_id = c1.target_concept_id
-    and c1.source_vocabulary_id = 'ICD10');
-
---Temporary table for grouping
-DROP TABLE IF EXISTS cde_manual_group1;
-CREATE TABLE cde_manual_group1 (
-	source_code TEXT NOT NULL,
-	source_code_description TEXT,
-	source_vocabulary_id TEXT NOT NULL,
-	group_id int,
-	group_name TEXT NOT NULL,
-	target_concept_id INT4
-);
-
-CREATE UNIQUE INDEX idx_pk_cde_manual_group1 ON cde_manual_group1 ((source_code || ':' || source_vocabulary_id));
-CREATE INDEX idx_cde_manual_group_gid_1 ON cde_manual_group1 (group_id);
-
-INSERT INTO cde_manual_group1 (source_code, source_code_description, source_vocabulary_id, group_name)
-SELECT DISTINCT source_code,
-                source_code_description,
-                source_vocabulary_id,
-                source_code_description
-    FROM grouped1;
-
-INSERT INTO cde_manual_group1 (source_code, source_code_description, source_vocabulary_id, group_name)
-SELECT DISTINCT source_code_1,
-                source_code_description_1,
-                source_vocabulary_id_1,
-                source_code_description_1
-    FROM grouped1
-WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group1)
-;
-
---generate unique group_id
-DROP SEQUENCE cde_group_id_1;
-CREATE SEQUENCE cde_group_id_1 START 114886;
-UPDATE cde_manual_group1
-SET group_id = nextval('cde_group_id_1')
-WHERE group_id IS NULL;
-
---group the concepts
-DO $$
-DECLARE
-r RECORD;
-BEGIN
-FOR r IN SELECT DISTINCT source_code, source_vocabulary_id, source_code_1, source_vocabulary_id_1 FROM grouped1  LOOP
-PERFORM cde_groups.MergeSeparateConcepts('cde_manual_group1', ARRAY[concat(r.source_code, ':', r.source_vocabulary_id), concat(r.source_code_1, ':', r.source_vocabulary_id_1)]);
-END LOOP;
-END $$;
-
--- Update group_id in the original source table
-UPDATE icd_cde_source s SET group_id =
-    (SELECT m.group_id FROM cde_manual_group1 m WHERE m.source_code = s.source_code
-                                                 AND m.source_code_description = s.source_code_description
-                                                 AND m.source_vocabulary_id = s.source_vocabulary_id)
-WHERE source_code in (SELECT source_code FROM cde_manual_group1)
-  and source_code_description in (SELECT source_code_description FROM cde_manual_group1)
-AND source_vocabulary_id in (SELECT source_vocabulary_id FROM cde_manual_group1);
-
--- Check if the concepts from one group in temporary table have the same group in source table
-with temporary_group_code as
-    (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
-FROM cde_manual_group1
-GROUP BY group_id
-ORDER BY group_id),
-     source_group_code as
-         (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
-FROM icd_cde_source
-GROUP BY group_id
-ORDER BY group_id)
-SELECT * FROM source_group_code s
-JOIN temporary_group_code t ON s.group_id = t.group_id
-WHERE s.group_code != t.group_code;
-
---GROUPING CRITERIUM 2: identical source_code_description
-DROP TABLE grouped2;
-CREATE TABLE grouped2 as (
-SELECT DISTINCT
-       c.source_code as source_code,
-       c.source_code_description as source_code_description,
-       c.source_vocabulary_id as source_vocabulary_id,
-       --c.group_id,
-       c1.source_code as source_code_1,
-       c1.source_code_description as source_code_description_1,
-       c1.source_vocabulary_id as source_vocabulary_id_1
-FROM icd_cde_source c
-    JOIN dev_icd10.icd_cde_source c1
-    ON c.source_code_description = c1.source_code_description
-    and c1.source_vocabulary_id = 'ICD10'
-    and (c.source_code, c.source_vocabulary_id) != (c1.source_code, c1.source_vocabulary_id))
-
---Remove "cross-links"
---! These records should be processed very accurately
---Only one entry per entity is allowed
-DROP TABLE IF EXISTS excluded_records;
-CREATE TABLE excluded_records AS
-SELECT * FROM grouped2 g
-    WHERE exists(
-        select 1 from grouped2 g1
-                 where (g1.source_code_1, g1.source_vocabulary_id_1) = (g.source_code, g.source_vocabulary_id)
-                 and (g1.source_code, g1.source_vocabulary_id) = (g1.source_code, g1.source_vocabulary_id)
-    );
-
-DELETE FROM grouped2 g
-    WHERE exists(
-        SELECT 1 FROM grouped2 g1
-                 WHERE (g1.source_code_1, g1.source_vocabulary_id_1) = (g.source_code, g.source_vocabulary_id)
-                 AND (g1.source_code, g1.source_vocabulary_id) = (g1.source_code, g1.source_vocabulary_id)
-    );
-
-DROP TABLE IF EXISTS cde_manual_group2;
-CREATE TABLE cde_manual_group2 (
-	source_code TEXT NOT NULL,
-	source_code_description TEXT,
-	source_vocabulary_id TEXT NOT NULL,
-	group_id int,
-	group_name TEXT NOT NULL
-	);
-
-CREATE UNIQUE INDEX idx_pk_cde_manual_group ON cde_manual_group2 ((source_code || ':' || source_vocabulary_id));
-CREATE INDEX idx_cde_manual_group_gid2 ON cde_manual_group2 (group_id);
-
-INSERT INTO cde_manual_group2 (source_code, source_code_description, source_vocabulary_id, group_name)
-SELECT DISTINCT g2.source_code,
-                g2.source_code_description,
-                g2.source_vocabulary_id,
-                --s.group_id,
-                g2.source_code_description
-    FROM grouped2 g2;
-    --JOIN icd_cde_source s
-    --ON g2.source_code = s.source_code
-    --AND g2.source_vocabulary_id = s.source_vocabulary_id;
-
-INSERT INTO cde_manual_group2 (source_code, source_code_description, source_vocabulary_id, group_name)
-SELECT DISTINCT g2.source_code_1,
-                g2.source_code_description_1,
-                g2.source_vocabulary_id_1,
-                --s.group_id,
-                g2.source_code_description_1
-    FROM grouped2 g2
-    --JOIN icd_cde_source s
-    --ON g2.source_code_1 = s.source_code
-    --AND g2.source_vocabulary_id_1 = s.source_vocabulary_id
- WHERE (source_code_1, source_vocabulary_id_1) NOT IN (SELECT source_code, source_vocabulary_id FROM cde_manual_group2)
-;
---generate unique group_id
-DROP SEQUENCE cde_group_id_2;
-CREATE SEQUENCE cde_group_id_2 START 1900000;
-UPDATE cde_manual_group2
-SET group_id = nextval('cde_group_id_2')
-WHERE group_id IS NULL;
-
---DO $$
---DECLARE
---r RECORD;
---BEGIN
---FOR r IN SELECT DISTINCT group_id, source_code_1, source_vocabulary_id_1 FROM grouped2  LOOP
---PERFORM cde_groups.MergeGroupsByConcept('cde_manual_group2', r.group_id::int, ARRAY [concat(r.source_code_1, ':', r.source_vocabulary_id_1)]);
---END LOOP;
---END $$;
-
---group the concepts
-DO $$
-DECLARE
-r RECORD;
-BEGIN
-FOR r IN SELECT DISTINCT source_code, source_vocabulary_id, source_code_1, source_vocabulary_id_1 FROM grouped2  LOOP
-PERFORM cde_groups.MergeSeparateConcepts('cde_manual_group2', ARRAY[concat(r.source_code, ':', r.source_vocabulary_id), concat(r.source_code_1, ':', r.source_vocabulary_id_1)]);
-END LOOP;
-END $$;
-
--- Update the original source table
-UPDATE icd_cde_source s SET group_id =
-    (SELECT m.group_id FROM cde_manual_group2 m
-    WHERE m.source_code = s.source_code AND m.source_code_description = s.source_code_description AND m.source_vocabulary_id = s.source_vocabulary_id)
-WHERE source_code in
-      (SELECT source_code FROM cde_manual_group2)
-  and source_code_description in (SELECT source_code_description FROM cde_manual_group2);
-
--- Check if the concepts from one group in temporary table have the same group in source table
-with temporary_group_code as
-    (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
-FROM cde_manual_group2
-GROUP BY group_id
-ORDER BY group_id),
-     source_group_code as
-         (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code) ORDER BY (CONCAT (source_vocabulary_id || ':' || source_code)))) as group_code
-FROM icd_cde_source
-GROUP BY group_id
-ORDER BY group_id)
-SELECT * FROM source_group_code s
-JOIN temporary_group_code t ON s.group_id = t.group_id
-WHERE s.group_code != t.group_code;
+	in this query we get "ancestor" (source_code_description) and all its "descendants" by code+target, but use their descriptions so that we can build a hierarchy by "source_code_description" field
+	*/
+	SELECT cr1.source_code_description AS ancestor_id,
+		cr2.source_code_description AS descendant_id
+	FROM concepts_raw cr1
+	--get source_code_description instead of code+target
+	--some pairs may be in a single copy - that's why LEFT JOIN
+	LEFT JOIN concepts_raw cr2 ON cr2.source_code = cr1.source_code
+		AND cr2.target_concept_code = cr1.target_concept_code
+		AND cr1.source_code_description <> cr2.source_code_description
+	),
+groups AS (
+	SELECT MIN(root_source_code_description) AS root_source_code_description, --in some cases, a concept may fall into several groups at once. we take only one. remember, this field is just an indicator (partition) of groups
+		COALESCE(descendant_id, root_source_code_description) AS descendant_id
+	FROM hierarchy_concepts hc
+	GROUP BY COALESCE(descendant_id, root_source_code_description)
+)
+--now we're ready to make a real grouping
+SELECT DENSE_RANK() OVER (ORDER BY g.root_source_code_description) AS group_id,
+	cr.*
+FROM groups g
+JOIN concepts_raw cr ON cr.source_code_description = g.descendant_id;
 
 -- check every concept is represented in only one group
 SELECT DISTINCT

@@ -243,9 +243,7 @@ WHERE crs.concept_code_2 IS NOT NULL
 
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source s SET
-mappings_origin = 'functions_updated'
-WHERE (valid_start_date = (SELECT MAX(valid_start_date) FROM icd_cde_source WHERE rel_invalid_reason IS NULL AND source_vocabulary_id = 'ICD10CM')
-OR valid_end_date = (SELECT MAX(valid_end_date) FROM icd_cde_source WHERE rel_invalid_reason is not null AND source_vocabulary_id = 'ICD10CM'))
+
 ;
 
 --Insertion of the potential replacement mappings and concepts without mappings
@@ -467,7 +465,7 @@ SELECT * FROM icd_cde_source
     OR source_code_description is null
     or source_vocabulary_id is null;
 
-
+--Grouping
 WITH RECURSIVE hierarchy_concepts
 AS (
 	SELECT c.ancestor_id AS root_source_code_description, --create virtual group by description
@@ -521,9 +519,20 @@ groups AS (
 )
 --now we're ready to make a real grouping
 SELECT DENSE_RANK() OVER (ORDER BY g.root_source_code_description) AS group_id,
+	FIRST_VALUE(cr.source_code_description) OVER (
+		PARTITION BY g.root_source_code_description ORDER BY CASE
+				WHEN cr.source_vocabulary_id = 'ICD10'
+					THEN 0
+				ELSE 1
+				END,
+			LENGTH(cr.source_code_description) DESC,
+			cr.source_code_description --in case different groups have the same length
+		) AS group_name,
 	cr.*
 FROM groups g
 JOIN concepts_raw cr ON cr.source_code_description = g.descendant_id;
+
+SELECT * FROM icd_cde_source;
 
 -- check every concept is represented in only one group
 SELECT DISTINCT

@@ -355,6 +355,21 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
+-- Make non-standard all LLT and PT concepts without valid 'maps to / maps to value' links (and hierarchy)
+UPDATE dev_meddra.concept_stage AS s
+SET standard_concept = NULL
+WHERE concept_class_id IN ('PT', 'LLT')
+AND NOT EXISTS (
+    SELECT 1
+    FROM dev_meddra.concept_relationship_stage AS crs
+    INNER JOIN dev_meddra.concept_stage AS c
+    ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1
+    WHERE vocabulary_id_1 != vocabulary_id_2
+    AND relationship_id LIKE 'Maps to%'
+    AND crs.invalid_reason IS NULL
+    AND c.concept_class_id IN ('PT', 'LLT') AND c.invalid_reason IS NULL
+    AND s.concept_code = crs.concept_code_1);
+
 
 -- 6. Working with concept_manual table
 DO $_$
@@ -392,37 +407,5 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
--- 12. Insert 'MedDRA-SNOMED eq' mappings to crs in order to deprecate those having valid 'Maps to'
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c.concept_code,
-	c2.concept_code,
-	c.vocabulary_id,
-	c2.vocabulary_id,
-	cr.relationship_id,
-	cr.valid_start_date,
-	CURRENT_DATE,
-	'D'
-FROM concept_relationship cr
-JOIN concept c ON c.concept_id = cr.concept_id_1
-	AND c.vocabulary_id = 'MedDRA'
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-WHERE cr.relationship_id = 'MedDRA - SNOMED eq'
-	AND cr.invalid_reason IS NULL
-	AND EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs_int
-		WHERE crs_int.concept_code_1 = c.concept_code
-			AND crs_int.vocabulary_id_1 = c.vocabulary_id
-			AND crs_int.relationship_id = 'Maps to'
-			AND crs_int.invalid_reason IS NULL
-		);
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

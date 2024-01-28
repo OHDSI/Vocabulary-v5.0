@@ -117,6 +117,7 @@ SELECT cs.concept_code as source_code,
        NULL as target_concept_id,
        'without mapping' as mapping_origin
 FROM concept_stage cs LEFT JOIN concept_relationship_stage crs on cs.concept_code = crs.concept_code_1
+and crs.relationship_id in ('Maps to', 'Maps to value')
 WHERE crs.concept_code_2 is null
 and cs.invalid_reason is null
 and cs.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy');

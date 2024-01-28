@@ -403,6 +403,73 @@ SELECT source_code,
        mappings_origin
 FROM dev_kcd7.KCD7_refresh;
 
+-- Insert community contribution
+CREATE TABLE dev_icd10.icd_community_contribution
+(
+    source_code             TEXT NOT NULL,
+    source_code_description varchar,
+    source_vocabulary_id    varchar,
+    group_name              varchar,
+    group_id                int,
+    --group_code              varchar, -- group code is dynamic and is assembled after grouping just before insertion data into the google sheet
+    medium_group_id         integer,
+    --medium_group_code       varchar,
+    broad_group_id          integer,
+    --broad_group_code        varchar,
+    for_review              varchar,
+    relationship_id         varchar,
+    target_concept_id       integer,
+    target_concept_code     varchar,
+    target_concept_name     varchar,
+    target_concept_class_id varchar,
+    target_standard_concept varchar,
+    target_invalid_reason   varchar,
+    target_domain_id        varchar,
+    target_vocabulary_id    varchar,
+    rel_invalid_reason      varchar,
+    valid_start_date        date,
+    valid_end_date          date,
+    mappings_origin         varchar
+);
+
+INSERT INTO icd_cde_source (source_code,
+                            source_code_description,
+                            source_vocabulary_id,
+                            group_name,
+                            --medium_group_id,
+                            --broad_group_id,
+                            relationship_id,
+                            target_concept_id,
+                            target_concept_code,
+                            target_concept_name,
+                            target_concept_class_id,
+                            target_standard_concept,
+                            target_invalid_reason,
+                            target_domain_id,
+                            target_vocabulary_id,
+                            rel_invalid_reason,
+                            valid_start_date,
+                            valid_end_date,
+                            mappings_origin)
+SELECT source_code,
+       source_code_description,
+       source_vocabulary_id,
+       source_code_description,
+       relationship_id,
+       target_concept_id,
+       target_concept_code,
+       target_concept_name,
+       target_concept_class_id,
+       target_standard_concept,
+       target_invalid_reason,
+       target_domain_id,
+       target_vocabulary_id,
+       rel_invalid_reason,
+       valid_start_date,
+       valid_end_date,
+       'CC' as mappings_origin
+FROM dev_icd10.icd_community_contribution;
+
 --2. check all the inserted rows
 SELECT * FROM icd_cde_source
 ORDER BY source_code;

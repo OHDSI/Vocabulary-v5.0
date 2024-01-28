@@ -286,18 +286,19 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT code AS synonym_concept_code,
+SELECT DISTINCT
+    code AS synonym_concept_code,
 	synonym_name,
 	'ICD10CM' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 FROM (
-	SELECT long_name AS synonym_name,
+	SELECT DISTINCT long_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	
 	UNION
 	
-	SELECT short_name AS synonym_name,
+	SELECT DISTINCT short_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	) AS s0;

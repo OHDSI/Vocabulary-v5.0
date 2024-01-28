@@ -16,70 +16,7 @@
 * Authors: Dmitry Dymshyts, Polina Talapova, Daryna Ivakhnenko
 * Date: 2021
 **************************************************************************/
--- 1. Update concept_relationship_stage
-
--- Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---Add mapping from deprecated to fresh concepts for 'Maps to value'
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
-
--- Deprecate wrong maps to value
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id = 'Maps to value'
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-valid (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.invalid_reason IN (
-						'U',
-						'D'
-						)
-				);
-
--- Deprecate mapping to non-S concepts
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id in ('Maps to','Maps to value')
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-S (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.standard_concept is null
-				);
-
---2. Create table CIM10_refresh
+--Create table CIM10_refresh
 DROP TABLE CIM10_refresh;
 TRUNCATE TABLE CIM10_refresh;
 CREATE TABLE CIM10_refresh

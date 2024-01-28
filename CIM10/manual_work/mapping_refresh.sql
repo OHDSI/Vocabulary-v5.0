@@ -253,7 +253,7 @@ WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relatio
               m.rel_invalid_reason as rel_invalid_reason,
               m.valid_start_date as valid_start_date,
               m.valid_end_date as valid_end_date,
-              'replaced through relationships' as mapping_origin
+              'Concept poss_eq to' as mapping_origin
        FROM mis_map m JOIN concept_relationship cr
        ON m.target_concept_id = cr.concept_id_1
        JOIN concept c

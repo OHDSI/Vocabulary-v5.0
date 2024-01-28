@@ -201,8 +201,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
-
-
 --12. Update domain_id for ICD10CM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id

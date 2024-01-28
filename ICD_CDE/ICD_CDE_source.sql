@@ -123,8 +123,19 @@ and crs.concept_code_2 IS NOT NULL
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source s SET
 mappings_origin = 'functions_updated'
-WHERE valid_start_date = (SELECT MAX(valid_start_date) FROM icd_cde_source WHERE rel_invalid_reason IS NULL)
-OR valid_end_date = (SELECT MAX(valid_end_date) FROM icd_cde_source WHERE rel_invalid_reason is not null);
+WHERE valid_start_date in (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
+FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
+			FROM concept_relationship_stage crs
+			JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d)
+OR valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+					)
+			)) FROM concept_relationship_stage crs);
 
 --Insertion of the potential replacement mappings and concepts without mappings
 INSERT INTO icd_cde_source (source_code,
@@ -243,6 +254,20 @@ WHERE crs.concept_code_2 IS NOT NULL
 
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source s SET
+mappings_origin = 'functions_updated'
+WHERE valid_start_date in (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
+FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
+			FROM dev_icd10cm.concept_relationship_stage crs
+			JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
+			JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2 WHERE crs.concept_code_2 IS NOT NULL) d )
+OR valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+					)
+			)) FROM dev_icd10cm.concept_relationship_stage crs);
 
 ;
 
@@ -360,7 +385,7 @@ SELECT source_code,
        valid_start_date,
        valid_end_date,
        mappings_origin
-FROM dev_cim10.cim10_refresh;
+FROM dev_cim10.CIM10_refresh;
 
 --ICD10CN with mappings (only manual mappings are inserted)
 INSERT INTO icd_cde_source (source_code,
@@ -438,7 +463,7 @@ SELECT source_code,
        valid_start_date,
        valid_end_date,
        mappings_origin
-FROM dev_kcd7.kcd7_refresh;;
+FROM dev_kcd7.KCD7_refresh;
 
 --check all the inserted rows
 SELECT * FROM icd_cde_source
@@ -466,6 +491,8 @@ SELECT * FROM icd_cde_source
     or source_vocabulary_id is null;
 
 --Grouping
+DROP TABLE grouped;
+CREATE TABLE grouped as (
 WITH RECURSIVE hierarchy_concepts
 AS (
 	SELECT c.ancestor_id AS root_source_code_description, --create virtual group by description
@@ -518,7 +545,7 @@ groups AS (
 	GROUP BY COALESCE(descendant_id, root_source_code_description)
 )
 --now we're ready to make a real grouping
-SELECT DENSE_RANK() OVER (ORDER BY g.root_source_code_description) AS group_id,
+SELECT DENSE_RANK() OVER (ORDER BY g.root_source_code_description) AS strict_group_id,
 	FIRST_VALUE(cr.source_code_description) OVER (
 		PARTITION BY g.root_source_code_description ORDER BY CASE
 				WHEN cr.source_vocabulary_id = 'ICD10'
@@ -527,12 +554,16 @@ SELECT DENSE_RANK() OVER (ORDER BY g.root_source_code_description) AS group_id,
 				END,
 			LENGTH(cr.source_code_description) DESC,
 			cr.source_code_description --in case different groups have the same length
-		) AS group_name,
+		) AS strict_group_name,
 	cr.*
 FROM groups g
-JOIN concepts_raw cr ON cr.source_code_description = g.descendant_id;
+JOIN concepts_raw cr ON cr.source_code_description = g.descendant_id);
 
-SELECT * FROM icd_cde_source;
+UPDATE icd_cde_source
+SET group_id = strict_group_id, group_name = strict_group_name FROM grouped
+WHERE icd_cde_source.source_code = grouped.source_code
+AND icd_cde_source.source_code_description = grouped.source_code_description
+AND icd_cde_source.source_vocabulary_id = grouped.source_vocabulary_id;
 
 -- check every concept is represented in only one group
 SELECT DISTINCT
@@ -610,10 +641,10 @@ null as mapper_id
 FROM icd_cde_source s
 JOIN code_agg c
 ON s.group_id = c.group_id
-ORDER BY s.group_id
+ORDER BY s.group_id desc
 ;
 
-SELECT * FROM icd_cde_manual;
+SELECT * FROM icd_cde_manual LIMIT 1000;
 select google_pack.SetSpreadSheet ('icd_cde_manual', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs','ICD_CDE')
 
 

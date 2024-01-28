@@ -158,7 +158,7 @@ AND concept_code_1 NOT IN
               m.rel_invalid_reason as rel_invalid_reason,
               m.valid_start_date as valid_start_date,
               m.valid_end_date as valid_end_date,
-              'replaced through relationships' as mapping_origin
+              'Concept poss_eq to' as mapping_origin
        FROM mis_map m JOIN concept_relationship cr
        ON m.target_concept_id = cr.concept_id_1
        JOIN concept c

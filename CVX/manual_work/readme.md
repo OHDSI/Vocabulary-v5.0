@@ -43,20 +43,65 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 3. Work with [cvx_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/manual_work/cvx_refresh.sql) file:
 
-3.1. Backup concept_relationship_manual table and concept_manual table.
+3.1. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous CVX refresh. You may need to introduce new concepts first.
 
-3.2. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous CVX refresh.
+3.2. Review the previous mapping and map new concepts. If previous mapping should be changed or deprecated, use cr_invalid_reason field.
 
-3.3. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+3.3. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
 
-3.4. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
+3.4. Perform any mapping checks you have set.
 
-3.5. Perform any mapping checks you have set.
+3.5. Iteratively repeat steps 3.3-3.5 if found any issues.
 
-3.6. Iteratively repeat steps 3.3-3.5 if found any issues.
+3.6. Insert new and update existing relationships according to _mapped table.
 
-3.7. Deprecate all mappings that differ from the new version of resulting mapping file.
+3.7. Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables.
 
-3.8. Insert new and corrected mappings into the concept_relationship_manual table.
+##### Filling stage and basic tables
+4. Run FULL FastRecreate:
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
+                                include_deprecated_rels=> true, include_synonyms=> true);
+```
+5. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/load_stage.sql).
+6. Run check_stage_tables function (should retrieve NULL):
+```sql
+SELECT * FROM qa_tests.check_stage_tables();
+```
+7. Run generic_update:
+```sql
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+```
+8. Run basic tables check (should retrieve NULL):
+```sql
+SELECT * FROM qa_tests.get_checks();
+```
+9. Run scripts to get summary, and interpret the results:
+```sql
+SELECT * FROM qa_tests.get_summary('concept');
+```
+```sql
+SELECT * FROM qa_tests.get_summary('concept_relationship');
+```
+10. Run scripts to collect statistics, and interpret the results:
+```sql
+SELECT * FROM qa_tests.get_domain_changes();
+```
+```sql
+SELECT * FROM qa_tests.get_newly_concepts();
+```
+```sql
+SELECT * FROM qa_tests.get_standard_concept_changes();
+```
+```sql
+SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+```
+```sql
+SELECT * FROM qa_tests.get_changes_concept_mapping();
+```
 
-3.9 Activate mapping, that became valid again
+11. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+12. If no problems, enjoy!

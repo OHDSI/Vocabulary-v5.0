@@ -15,34 +15,33 @@
 *
 * Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov,
 * Christian Reich, Oleg Zhuk, Masha Khitrun
-* Date: 2023
+* Date: 2024
 **************************************************************************/
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
 CREATE OR REPLACE VIEW module_date AS
-WITH a as (
-SELECT DISTINCT ON (m.id) m.moduleid,
-		TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS local_version,
-		TO_CHAR(m.targeteffectivetime, 'yyyy-mm-dd') AS int_version
-FROM sources.der2_ssrefset_moduledependency_merged m
-WHERE m.active = 1
-	AND m.referencedcomponentid = 900000000000012004
-	AND --Model component module; Synthetic target, contains source version in each row
-	m.moduleid IN (
-		900000000000207008, --Core (international) module
-		999000011000000103, --UK edition
-		731000124108 --US edition
-		)
-ORDER BY m.id,
-	m.effectivetime DESC)
-
-SELECT moduleid,
-		CASE WHEN moduleid = 900000000000207008
-			THEN (SELECT MIN(int_version)
-				FROM a)
-			ELSE local_version
+SELECT s0.moduleid,
+	CASE 
+		WHEN s0.moduleid = 900000000000207008
+			THEN TO_CHAR(MIN(s0.int_version) OVER (), 'yyyy-mm-dd')
+		ELSE s0.local_version
 		END AS version
-FROM a;
+FROM (
+	SELECT DISTINCT ON (m.id) m.moduleid,
+		TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS local_version,
+		m.targeteffectivetime AS int_version
+	FROM sources.der2_ssrefset_moduledependency_merged m
+	WHERE m.active = 1
+		AND m.referencedcomponentid = 900000000000012004
+		AND --Model component module; Synthetic target, contains source version in each row
+		m.moduleid IN (
+			900000000000207008, --Core (international) module
+			999000011000000103, --UK edition
+			731000124108 --US edition
+			)
+	ORDER BY m.id,
+		m.effectivetime DESC
+	) s0;
 
 --2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.
@@ -78,15 +77,16 @@ INSERT INTO concept_stage (
 SELECT sct2.concept_name,
 	'SNOMED' AS vocabulary_id,
 	sct2.concept_code,
-	TO_DATE(effectivestart, 'yyyymmdd') AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	TO_DATE(effectivestart, 'YYYYMMDD') AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
 	SELECT vocabulary_pack.CutConceptName(d.term) AS concept_name,
 		d.conceptid::TEXT AS concept_code,
 		c.active,
 		FIRST_VALUE(c.effectivetime) OVER (
-			PARTITION BY c.id ORDER BY c.active DESC, c.effectivetime --if there ever were active versions of the concept, take the earliest one
+			PARTITION BY c.id ORDER BY c.active DESC,
+				c.effectivetime --if there ever were active versions of the concept, take the earliest one
 			) AS effectivestart,
 		ROW_NUMBER() OVER (
 			PARTITION BY d.conceptid
@@ -121,8 +121,8 @@ FROM (
 						THEN 1 -- International release
 					WHEN 'US'
 						THEN 2 -- SNOMED US
-					--WHEN 'GB_DE'
-					--	THEN 3 -- SNOMED UK Drug extension, updated more often
+							--WHEN 'GB_DE'
+							--	THEN 3 -- SNOMED UK Drug extension, updated more often
 					WHEN 'UK'
 						THEN 4 -- SNOMED UK
 					ELSE 99
@@ -133,51 +133,43 @@ FROM (
 	FROM sources.sct2_concept_full_merged c
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
-		WHERE c.moduleid NOT IN (
-				999000011000001104, --UK Drug extension
-				999000021000001108  --UK Drug extension reference set module
-				)
-		) sct2
-WHERE sct2.rn = 1
-;
-
-ANALYSE concept_stage;
-;
---4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
-WITH last_active
-AS (
-	SELECT
-		c.id,
-		c.effectivetime,
-		c.active,
-		ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY c.effectivetime DESC) AS rn
-	FROM sources.sct2_concept_full_merged c
 	WHERE c.moduleid NOT IN (
-		999000011000001104, --UK Drug extension
-		999000021000001108  --UK Drug extension reference set module
-	)
-),
-inactive AS (
-    SELECT DISTINCT
-        id,
-        effectivetime as effectiveend
-    FROM last_active
-    WHERE
-            rn = 1
-        AND active = 0
-)
+			999000011000001104, --UK Drug extension
+			999000021000001108 --UK Drug extension reference set module
+			)
+	) sct2
+WHERE sct2.rn = 1;
+
+ANALYZE concept_stage;
+
+--4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
-	valid_end_date = TO_DATE(i.effectiveend, 'yyyymmdd')
-FROM inactive i
-WHERE i.id::TEXT = cs.concept_code
-	AND cs.vocabulary_id = 'SNOMED'
-;
+	valid_end_date = i.effectiveend
+FROM (
+	SELECT s0.*
+	FROM (
+		SELECT DISTINCT ON (c.id) c.id::TEXT,
+			TO_DATE(c.effectivetime, 'YYYYMMDD') AS effectiveend,
+			c.active
+		FROM sources.sct2_concept_full_merged c
+		WHERE c.moduleid NOT IN (
+				999000011000001104, --UK Drug extension
+				999000021000001108 --UK Drug extension reference set module
+				)
+		ORDER BY c.id,
+			TO_DATE(c.effectivetime, 'YYYYMMDD') DESC
+		) s0
+	WHERE s0.active = 0
+	) i
+WHERE i.id = cs.concept_code;
+
 --4.2 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
 UPDATE concept_stage
 SET concept_name = vocabulary_pack.CutConceptName(TRANSLATE(concept_name, '>,<,^', '-'))
 WHERE (
-		(concept_name LIKE '%>%'
+		(
+			concept_name LIKE '%>%'
 			AND concept_name LIKE '%<%'
 			)
 		OR (concept_name LIKE '%^%^%')
@@ -507,7 +499,7 @@ WHERE vocabulary_id = 'SNOMED'
 UPDATE concept_stage
 SET concept_class_id = 'Staging / Scales'
 WHERE vocabulary_id = 'SNOMED'
-	AND concept_code in (
+	AND concept_code IN (
 		'821611000000108',
 		'821551000000108',
 		'821591000000100',
@@ -552,26 +544,26 @@ SELECT DISTINCT d.conceptid,
 	'SNOMED',
 	vocabulary_pack.CutConceptSynonymName(d.term),
 	4180186 -- English
-FROM (SELECT m.id,
-			m.conceptid::text,
-			m.term,
-			first_value(active) OVER (
-			PARTITION BY id ORDER BY effectivetime DESC
+FROM (
+	SELECT m.id,
+		m.conceptid::TEXT,
+		m.term,
+		FIRST_VALUE(m.active) OVER (
+			PARTITION BY m.id ORDER BY TO_DATE(m.effectivetime, 'YYYYMMDD') DESC
 			) AS active_status
-		FROM sources.sct2_desc_full_merged m
-		WHERE m.moduleid NOT IN (
+	FROM sources.sct2_desc_full_merged m
+	WHERE m.moduleid NOT IN (
 			999000011000001104, -- UK Drug extension
-			999000021000001108  -- UK Drug extension reference set module
+			999000021000001108 -- UK Drug extension reference set module
 			)
 	) d
-JOIN concept_stage s ON s.concept_code = d.conceptid
-WHERE d.active_status = 1
-	AND NOT EXISTS (
+WHERE EXISTS (
 		SELECT 1
-		FROM concept_synonym_stage css_int
-		WHERE css_int.synonym_concept_code = d.conceptid
-			AND css_int.synonym_name = vocabulary_pack.CutConceptSynonymName(d.term)
-		);
+		FROM concept_stage s
+		WHERE s.concept_code = d.conceptid
+		)
+	AND d.active_status = 1
+ON CONFLICT DO NOTHING;
 
 --8. Fill concept_relationship_stage from merged SNOMED source
 -- 8.1 Add relationships from concept to module and from concept to status:
@@ -585,76 +577,55 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-WITH tmp_rel AS (
-		--add relationships from concept to module
-		SELECT cs.concept_code AS concept_code_1,
-			moduleid::TEXT AS concept_code_2,
-			'Has Module' AS relationship_id,
-			cs.valid_start_date
-		FROM sources.sct2_concept_full_merged c
-		JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
-			AND cs.vocabulary_id = 'SNOMED'
-		WHERE c.moduleid IN (
-				900000000000207008, --Core (international) module
-				999000011000000103, --UK edition
-				731000124108, 		--US edition
-				900000000000012004 --SNOMED CT model component
-				)
-
-		UNION ALL
-
-		--add relationship from concept to status
-		SELECT st.concept_code::TEXT,
-			st.statusid::TEXT,
-			'Has status',
-			valid_start_date
-		FROM (
-			SELECT cs.concept_code,
-				statusid::TEXT,
-				TO_DATE(effectivetime, 'YYYYMMDD') AS valid_start_date,
-				ROW_NUMBER() OVER (
-					PARTITION BY id ORDER BY TO_DATE(effectivetime, 'YYYYMMDD') DESC
-					) rn
-			FROM sources.sct2_concept_full_merged c
-			JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
-				AND cs.vocabulary_id = 'SNOMED'
-			WHERE c.statusid IN (
-					900000000000073002, --Defined
-					900000000000074008 --Primitive
-					)
-			  AND c.moduleid NOT IN (
-					999000011000001104, --SNOMED CT United Kingdom drug extension module
-					999000021000001108  --SNOMED CT United Kingdom drug extension reference set module
-					)
-			) st
-		WHERE st.rn = 1
+--add relationships from concept to module
+SELECT cs.concept_code AS concept_code_1,
+	c.moduleid::TEXT AS concept_code_2,
+	'SNOMED' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	'Has Module' AS relationship_id,
+	cs.valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.sct2_concept_full_merged c
+JOIN concept_stage cs ON cs.concept_code = c.id::TEXT
+	AND cs.vocabulary_id = 'SNOMED'
+WHERE c.moduleid IN (
+		900000000000207008, --Core (international) module
+		999000011000000103, --UK edition
+		731000124108, --US edition
+		900000000000012004 --SNOMED CT model component
 		)
-SELECT concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-FROM (
-	SELECT DISTINCT concept_code_1,
-					concept_code_2,
-					'SNOMED' AS vocabulary_id_1,
-					'SNOMED' AS vocabulary_id_2,
-					relationship_id,
-					valid_start_date,
-					TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-					NULL AS invalid_reason
-	FROM tmp_rel
-	 ) sn
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = sn.concept_code_1
-			AND crs.concept_code_2 = sn.concept_code_2
-			AND crs.relationship_id = sn.relationship_id
-		);
+
+UNION ALL
+
+--add relationship from concept to status
+(
+	SELECT DISTINCT ON (c.id) c.id::TEXT AS concept_code_1,
+		c.statusid::TEXT AS concept_code_2,
+		'SNOMED' AS vocabulary_id_1,
+		'SNOMED' AS vocabulary_id_2,
+		'Has status' AS relationship_id,
+		TO_DATE(c.effectivetime, 'YYYYMMDD') AS valid_start_date,
+		TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+		NULL AS invalid_reason
+	FROM sources.sct2_concept_full_merged c
+	WHERE EXISTS (
+			SELECT 1
+			FROM concept_stage s
+			WHERE s.concept_code = c.id::TEXT
+			)
+		AND c.statusid IN (
+			900000000000073002, --Defined
+			900000000000074008 --Primitive
+			)
+		AND c.moduleid NOT IN (
+			999000011000001104, --SNOMED CT United Kingdom drug extension module
+			999000021000001108 --SNOMED CT United Kingdom drug extension reference set module
+			)
+	ORDER BY c.id,
+		TO_DATE(c.effectivetime, 'YYYYMMDD') DESC
+)
+ON CONFLICT DO NOTHING;
 
 -- 8.2. Add other attribute relationships:
 INSERT INTO concept_relationship_stage (
@@ -668,370 +639,367 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 WITH attr_rel AS (
-		SELECT sourceid::TEXT,
-			destinationid::TEXT,
-			typeid,
-			REPLACE(term, ' (attribute)', '') AS term
+		SELECT s0.sourceid::TEXT,
+			s0.destinationid::TEXT,
+			s0.typeid,
+			REPLACE(s0.term, ' (attribute)', '') AS term
 		FROM (
-			SELECT r.sourceid,
+			SELECT DISTINCT ON (r.id) r.sourceid,
 				r.destinationid,
 				r.typeid,
-				term,
-				ROW_NUMBER() OVER (
-					PARTITION BY r.id ORDER BY r.effectivetime DESC,
-						d.id DESC -- fix for AVOF-650
-					) AS rn, -- get the latest in a sequence of relationships, to decide whether it is still active
+				d.term,
 				r.active
 			FROM sources.sct2_rela_full_merged r
 			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
 			WHERE r.moduleid NOT IN (
 					999000011000001104, --UK Drug extension
-					999000021000001108  --UK Drug extension reference set module
+					999000021000001108 --UK Drug extension reference set module
 					)
+			-- get the latest in a sequence of relationships, to decide whether it is still active
+			ORDER BY r.id,
+				TO_DATE(r.effectivetime, 'YYYYMMDD') DESC,
+				d.id DESC -- fix for AVOF-650
 			) AS s0
-		WHERE rn = 1
-			AND active = 1
-			AND sourceid IS NOT NULL
-			AND destinationid IS NOT NULL
-			AND term <> 'PBCL flag true'
-)
-
-SELECT concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-FROM (
-	--convert SNOMED to OMOP-type relationship_id
+		WHERE s0.active = 1
+			AND s0.sourceid IS NOT NULL
+			AND s0.destinationid IS NOT NULL
+			AND s0.term <> 'PBCL flag true'
+		)
+--convert SNOMED to OMOP-type relationship_id
 SELECT DISTINCT sourceid AS concept_code_1,
-		destinationid AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		CASE
-			WHEN typeid = 260507000
-				THEN 'Has access'
-			WHEN typeid = 363715002
-				THEN 'Has etiology'
-			WHEN typeid = 255234002
-				THEN 'Followed by'
-			WHEN typeid = 260669005
-				THEN 'Has surgical appr'
-			WHEN typeid = 246090004
-				THEN 'Has asso finding'
-			WHEN typeid = 116676008
-				THEN 'Has asso morph'
-			WHEN typeid = 363589002
-				THEN 'Has asso proc'
-			WHEN typeid = 47429007
-				THEN 'Finding asso with'
-			WHEN typeid = 246075003
-				THEN 'Has causative agent'
-			WHEN typeid = 263502005
-				THEN 'Has clinical course'
-			WHEN typeid = 246093002
-				THEN 'Has component'
-			WHEN typeid = 363699004
-				THEN 'Has dir device'
-			WHEN typeid = 363700003
-				THEN 'Has dir morph'
-			WHEN typeid = 363701004
-				THEN 'Has dir subst'
-			WHEN typeid = 42752001
-				THEN 'Has due to'
-			WHEN typeid = 246456000
-				THEN 'Has episodicity'
-			WHEN typeid = 260858005
-				THEN 'Has extent'
-			WHEN typeid = 408729009
-				THEN 'Has finding context'
-			WHEN typeid = 419066007
-				THEN 'Using finding inform'
-			WHEN typeid = 418775008
-				THEN 'Using finding method'
-			WHEN typeid = 363698007
-				THEN 'Has finding site'
-			WHEN typeid = 127489000
-				THEN 'Has active ing'
-			WHEN typeid = 363705008
-				THEN 'Has manifestation'
-			WHEN typeid IN (411116001, 411116001)
-				THEN 'Has dose form'
-			WHEN typeid = 363702006
-				THEN 'Has focus'
-			WHEN typeid = 363713009
-				THEN 'Has interpretation'
-			WHEN typeid = 116678009
-				THEN 'Has meas component'
-			WHEN typeid = 116686009
-				THEN 'Has specimen'
-			WHEN typeid = 258214002
-				THEN 'Has stage'
-			WHEN typeid = 363710007
-				THEN 'Has indir device'
-			WHEN typeid = 363709002
-				THEN 'Has indir morph'
-			WHEN typeid = 309824003
-				THEN 'Using device'
-			WHEN typeid = 363703001
-				THEN 'Has intent'
-			WHEN typeid = 363714003
-				THEN 'Has interprets'
-			WHEN typeid = 116680003
-				THEN 'Is a'
-			WHEN typeid = 272741003
-				THEN 'Has laterality'
-			WHEN typeid = 370129005
-				THEN 'Has measurement'
-			WHEN typeid = 260686004
-				THEN 'Has method'
-			WHEN typeid = 246454002
-				THEN 'Has occurrence'
-			WHEN typeid = 246100006
-				THEN 'Has clinical course'
-			WHEN typeid = 123005000
-				THEN 'Part of'
-			WHEN typeid IN (308489006, 370135005, 719722006)
-				THEN 'Has pathology'
-			WHEN typeid = 260870009
-				THEN 'Has priority'
-			WHEN typeid = 408730004
-				THEN 'Has proc context'
-			WHEN typeid = 405815000
-				THEN 'Has proc device'
-			WHEN typeid = 405816004
-				THEN 'Has proc morph'
-			WHEN typeid = 405813007
-				THEN 'Has dir proc site'
-			WHEN typeid = 405814001
-				THEN 'Has indir proc site'
-			WHEN typeid = 363704007
-				THEN 'Has proc site'
-			WHEN typeid = 370130000
-				THEN 'Has property'
-			WHEN typeid = 370131001
-				THEN 'Has recipient cat'
-			WHEN typeid = 246513007
-				THEN 'Has revision status'
-			WHEN typeid = 410675002
-				THEN 'Has route of admin'
-			WHEN typeid = 370132008
-				THEN 'Has scale type'
-			WHEN typeid = 246112005
-				THEN 'Has severity'
-			WHEN typeid = 118171006
-				THEN 'Has specimen proc'
-			WHEN typeid = 118170007
-				THEN 'Has specimen source'
-			WHEN typeid = 118168003
-				THEN 'Has specimen morph'
-			WHEN typeid = 118169006
-				THEN 'Has specimen topo'
-			WHEN typeid = 370133003
-				THEN 'Has specimen subst'
-			WHEN typeid = 408732007
-				THEN 'Has relat context'
-			WHEN typeid = 424876005
-				THEN 'Has surgical appr'
-			WHEN typeid = 408731000
-				THEN 'Has temporal context'
-			WHEN typeid = 363708005
-				THEN 'Occurs after'
-			WHEN typeid = 370134009
-				THEN 'Has time aspect'
-			WHEN typeid = 425391005
-				THEN 'Using acc device'
-			WHEN typeid = 424226004
-				THEN 'Using device'
-			WHEN typeid = 424244007
-				THEN 'Using energy'
-			WHEN typeid = 424361007
-				THEN 'Using subst'
-			WHEN typeid = 255234002
-				THEN 'Followed by'
-			WHEN typeid = 8940601000001102
-				THEN 'Has non-avail ind'
-			WHEN typeid = 12223201000001101
-				THEN 'Has ARP'
-			WHEN typeid = 12223101000001108
-				THEN 'Has VRP'
-			WHEN typeid = 9191701000001107
-				THEN 'Has trade family grp'
-			WHEN typeid = 8941101000001104
-				THEN 'Has flavor'
-			WHEN typeid = 8941901000001101
-				THEN 'Has disc indicator'
-			WHEN typeid = 12223501000001103
-				THEN 'VRP has prescr stat'
-			WHEN typeid = 10362801000001104
-				THEN 'Has spec active ing'
-			WHEN typeid = 8653101000001104
-				THEN 'Has excipient'
-			WHEN typeid IN (732943007, 10363001000001101)
-				THEN 'Has basis str subst'
-			WHEN typeid = 10362601000001103
-				THEN 'Has VMP'
-			WHEN typeid = 10362701000001108
-				THEN 'Has AMP'
-			WHEN typeid = 10362901000001105
-				THEN 'Has disp dose form'
-			WHEN typeid = 8940001000001105
-				THEN 'VMP has prescr stat'
-			WHEN typeid IN (8941301000001102, 4074701000001107)
-				THEN 'Has legal category'
-			WHEN typeid = 42752001
-				THEN 'Caused by'
-			WHEN typeid = 704326004
-				THEN 'Has precondition'
-			WHEN typeid = 718497002
-				THEN 'Has inherent loc'
-			WHEN typeid = 246501002
-				THEN 'Has technique'
-			WHEN typeid = 719715003
-				THEN 'Has relative part'
-			WHEN typeid = 704324001
-				THEN 'Has process output'
-			WHEN typeid = 704318007
-				THEN 'Has property type'
-			WHEN typeid = 704319004
-				THEN 'Inheres in'
-			WHEN typeid = 704327008
-				THEN 'Has direct site'
-			WHEN typeid = 704321009
-				THEN 'Characterizes'
-					--added 20171116
-			WHEN typeid = 371881003
-				THEN 'During'
-			WHEN typeid = 732947008
-				THEN 'Has denominator unit'
-			WHEN typeid = 732946004
-				THEN 'Has denomin value'
-			WHEN typeid = 732945000
-				THEN 'Has numerator unit'
-			WHEN typeid = 732944001
-				THEN 'Has numerator value'
-					--added 20180205
-			WHEN typeid = 736476002
-				THEN 'Has basic dose form'
-			WHEN typeid = 726542003
-				THEN 'Has disposition'
-			WHEN typeid = 736472000
-				THEN 'Has admin method'
-			WHEN typeid = 736474004
-				THEN 'Has intended site'
-			WHEN typeid = 736475003
-				THEN 'Has release charact'
-			WHEN typeid = 736473005
-				THEN 'Has transformation'
-			WHEN typeid = 736518005
-				THEN 'Has state of matter'
-			WHEN typeid = 726633004
-				THEN 'Temp related to'
-					--added 20180622
-			WHEN typeid = 13085501000001109
-				THEN 'Has unit of admin'
-			WHEN typeid = 762949000
-				THEN 'Has prec ingredient'
-			WHEN typeid = 763032000
-				THEN 'Has unit of presen'
-			WHEN typeid = 733724008
-				THEN 'Has conc num val'
-			WHEN typeid = 733723002
-				THEN 'Has conc denom val'
-			WHEN typeid = 733722007
-				THEN 'Has conc denom unit'
-			WHEN typeid = 733725009
-				THEN 'Has conc num unit'
-			WHEN typeid = 738774007
-				THEN 'Modification of'
-			WHEN typeid = 766952006
-				THEN 'Has count of ing'
-					--20190204
-			WHEN typeid = 766939001
-				THEN 'Plays role'
-					--20190823
-			WHEN typeid = 13088401000001104
-				THEN 'Has route'
-			WHEN typeid = 13089101000001102
-				THEN 'Has CD category'
-			WHEN typeid = 13088501000001100
-				THEN 'Has ontological form'
-			WHEN typeid = 13088901000001108
-				THEN 'Has combi prod ind'
-			WHEN typeid = 13088701000001106
-				THEN 'Has form continuity'
-					--20200312
-			WHEN typeid = 13090301000001106
-				THEN 'Has add monitor ind'
-			WHEN typeid = 13090501000001104
-				THEN 'Has AMP restr ind'
-			WHEN typeid = 13090201000001102
-				THEN 'Paral imprt ind'
-			WHEN typeid = 13089701000001101
-				THEN 'Has free indicator'
-			WHEN typeid = 246514001
-				THEN 'Has unit'
-			WHEN typeid = 704323007
-				THEN 'Has proc duration'
-					--20201023
-			WHEN typeid = 704325000
-				THEN 'Relative to'
-			WHEN typeid = 766953001
-				THEN 'Has count of act ing'
-			WHEN typeid = 860781008
-				THEN 'Has prod character'
-			WHEN typeid = 860779006
-				THEN 'Has prod character'
-			WHEN typeid = 246196007
-				THEN 'Surf character of'
-			WHEN typeid = 836358009
-				THEN 'Has dev intend site'
-			WHEN typeid = 840562008
-				THEN 'Has prod character'
-			WHEN typeid = 840560000
-				THEN 'Has comp material'
-			WHEN typeid = 827081001
-				THEN 'Has filling'
-					--January 2022
-			WHEN typeid = 1148967007
-				THEN 'Has coating material'
-			WHEN typeid = 1148969005
-				THEN 'Has absorbability'
-			WHEN typeid = 1003703000
-				THEN 'Process extends to'
-			WHEN typeid = 1149366004
-				THEN 'Has strength'
-			WHEN typeid = 1148968002
-				THEN 'Has surface texture'
-			WHEN typeid = 1148965004
-				THEN 'Is sterile'
-			WHEN typeid = 1149367008
-				THEN 'Has targ population'
-					-- August 2023
-			WHEN typeid = 1003735000
-				THEN 'Process acts on'
-			WHEN typeid = 288556008
-				THEN 'Before'
-			WHEN typeid = 704320005
-				THEN 'Towards'
-			ELSE term --'non-existing'
-			END AS relationship_id,
-       (SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM attr_rel
-	) sn
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = sn.concept_code_1
-			AND crs.concept_code_2 = sn.concept_code_2
-			AND crs.relationship_id = sn.relationship_id);
+	destinationid AS concept_code_2,
+	'SNOMED' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	CASE 
+		WHEN typeid = 260507000
+			THEN 'Has access'
+		WHEN typeid = 363715002
+			THEN 'Has etiology'
+		WHEN typeid = 255234002
+			THEN 'Followed by'
+		WHEN typeid = 260669005
+			THEN 'Has surgical appr'
+		WHEN typeid = 246090004
+			THEN 'Has asso finding'
+		WHEN typeid = 116676008
+			THEN 'Has asso morph'
+		WHEN typeid = 363589002
+			THEN 'Has asso proc'
+		WHEN typeid = 47429007
+			THEN 'Finding asso with'
+		WHEN typeid = 246075003
+			THEN 'Has causative agent'
+		WHEN typeid = 263502005
+			THEN 'Has clinical course'
+		WHEN typeid = 246093002
+			THEN 'Has component'
+		WHEN typeid = 363699004
+			THEN 'Has dir device'
+		WHEN typeid = 363700003
+			THEN 'Has dir morph'
+		WHEN typeid = 363701004
+			THEN 'Has dir subst'
+		WHEN typeid = 42752001
+			THEN 'Has due to'
+		WHEN typeid = 246456000
+			THEN 'Has episodicity'
+		WHEN typeid = 260858005
+			THEN 'Has extent'
+		WHEN typeid = 408729009
+			THEN 'Has finding context'
+		WHEN typeid = 419066007
+			THEN 'Using finding inform'
+		WHEN typeid = 418775008
+			THEN 'Using finding method'
+		WHEN typeid = 363698007
+			THEN 'Has finding site'
+		WHEN typeid = 127489000
+			THEN 'Has active ing'
+		WHEN typeid = 363705008
+			THEN 'Has manifestation'
+		WHEN typeid IN (
+				411116001,
+				411116001
+				)
+			THEN 'Has dose form'
+		WHEN typeid = 363702006
+			THEN 'Has focus'
+		WHEN typeid = 363713009
+			THEN 'Has interpretation'
+		WHEN typeid = 116678009
+			THEN 'Has meas component'
+		WHEN typeid = 116686009
+			THEN 'Has specimen'
+		WHEN typeid = 258214002
+			THEN 'Has stage'
+		WHEN typeid = 363710007
+			THEN 'Has indir device'
+		WHEN typeid = 363709002
+			THEN 'Has indir morph'
+		WHEN typeid = 309824003
+			THEN 'Using device'
+		WHEN typeid = 363703001
+			THEN 'Has intent'
+		WHEN typeid = 363714003
+			THEN 'Has interprets'
+		WHEN typeid = 116680003
+			THEN 'Is a'
+		WHEN typeid = 272741003
+			THEN 'Has laterality'
+		WHEN typeid = 370129005
+			THEN 'Has measurement'
+		WHEN typeid = 260686004
+			THEN 'Has method'
+		WHEN typeid = 246454002
+			THEN 'Has occurrence'
+		WHEN typeid = 246100006
+			THEN 'Has clinical course'
+		WHEN typeid = 123005000
+			THEN 'Part of'
+		WHEN typeid IN (
+				308489006,
+				370135005,
+				719722006
+				)
+			THEN 'Has pathology'
+		WHEN typeid = 260870009
+			THEN 'Has priority'
+		WHEN typeid = 408730004
+			THEN 'Has proc context'
+		WHEN typeid = 405815000
+			THEN 'Has proc device'
+		WHEN typeid = 405816004
+			THEN 'Has proc morph'
+		WHEN typeid = 405813007
+			THEN 'Has dir proc site'
+		WHEN typeid = 405814001
+			THEN 'Has indir proc site'
+		WHEN typeid = 363704007
+			THEN 'Has proc site'
+		WHEN typeid = 370130000
+			THEN 'Has property'
+		WHEN typeid = 370131001
+			THEN 'Has recipient cat'
+		WHEN typeid = 246513007
+			THEN 'Has revision status'
+		WHEN typeid = 410675002
+			THEN 'Has route of admin'
+		WHEN typeid = 370132008
+			THEN 'Has scale type'
+		WHEN typeid = 246112005
+			THEN 'Has severity'
+		WHEN typeid = 118171006
+			THEN 'Has specimen proc'
+		WHEN typeid = 118170007
+			THEN 'Has specimen source'
+		WHEN typeid = 118168003
+			THEN 'Has specimen morph'
+		WHEN typeid = 118169006
+			THEN 'Has specimen topo'
+		WHEN typeid = 370133003
+			THEN 'Has specimen subst'
+		WHEN typeid = 408732007
+			THEN 'Has relat context'
+		WHEN typeid = 424876005
+			THEN 'Has surgical appr'
+		WHEN typeid = 408731000
+			THEN 'Has temporal context'
+		WHEN typeid = 363708005
+			THEN 'Occurs after'
+		WHEN typeid = 370134009
+			THEN 'Has time aspect'
+		WHEN typeid = 425391005
+			THEN 'Using acc device'
+		WHEN typeid = 424226004
+			THEN 'Using device'
+		WHEN typeid = 424244007
+			THEN 'Using energy'
+		WHEN typeid = 424361007
+			THEN 'Using subst'
+		WHEN typeid = 255234002
+			THEN 'Followed by'
+		WHEN typeid = 8940601000001102
+			THEN 'Has non-avail ind'
+		WHEN typeid = 12223201000001101
+			THEN 'Has ARP'
+		WHEN typeid = 12223101000001108
+			THEN 'Has VRP'
+		WHEN typeid = 9191701000001107
+			THEN 'Has trade family grp'
+		WHEN typeid = 8941101000001104
+			THEN 'Has flavor'
+		WHEN typeid = 8941901000001101
+			THEN 'Has disc indicator'
+		WHEN typeid = 12223501000001103
+			THEN 'VRP has prescr stat'
+		WHEN typeid = 10362801000001104
+			THEN 'Has spec active ing'
+		WHEN typeid = 8653101000001104
+			THEN 'Has excipient'
+		WHEN typeid IN (
+				732943007,
+				10363001000001101
+				)
+			THEN 'Has basis str subst'
+		WHEN typeid = 10362601000001103
+			THEN 'Has VMP'
+		WHEN typeid = 10362701000001108
+			THEN 'Has AMP'
+		WHEN typeid = 10362901000001105
+			THEN 'Has disp dose form'
+		WHEN typeid = 8940001000001105
+			THEN 'VMP has prescr stat'
+		WHEN typeid IN (
+				8941301000001102,
+				4074701000001107
+				)
+			THEN 'Has legal category'
+		WHEN typeid = 42752001
+			THEN 'Caused by'
+		WHEN typeid = 704326004
+			THEN 'Has precondition'
+		WHEN typeid = 718497002
+			THEN 'Has inherent loc'
+		WHEN typeid = 246501002
+			THEN 'Has technique'
+		WHEN typeid = 719715003
+			THEN 'Has relative part'
+		WHEN typeid = 704324001
+			THEN 'Has process output'
+		WHEN typeid = 704318007
+			THEN 'Has property type'
+		WHEN typeid = 704319004
+			THEN 'Inheres in'
+		WHEN typeid = 704327008
+			THEN 'Has direct site'
+		WHEN typeid = 704321009
+			THEN 'Characterizes'
+				--added 20171116
+		WHEN typeid = 371881003
+			THEN 'During'
+		WHEN typeid = 732947008
+			THEN 'Has denominator unit'
+		WHEN typeid = 732946004
+			THEN 'Has denomin value'
+		WHEN typeid = 732945000
+			THEN 'Has numerator unit'
+		WHEN typeid = 732944001
+			THEN 'Has numerator value'
+				--added 20180205
+		WHEN typeid = 736476002
+			THEN 'Has basic dose form'
+		WHEN typeid = 726542003
+			THEN 'Has disposition'
+		WHEN typeid = 736472000
+			THEN 'Has admin method'
+		WHEN typeid = 736474004
+			THEN 'Has intended site'
+		WHEN typeid = 736475003
+			THEN 'Has release charact'
+		WHEN typeid = 736473005
+			THEN 'Has transformation'
+		WHEN typeid = 736518005
+			THEN 'Has state of matter'
+		WHEN typeid = 726633004
+			THEN 'Temp related to'
+				--added 20180622
+		WHEN typeid = 13085501000001109
+			THEN 'Has unit of admin'
+		WHEN typeid = 762949000
+			THEN 'Has prec ingredient'
+		WHEN typeid = 763032000
+			THEN 'Has unit of presen'
+		WHEN typeid = 733724008
+			THEN 'Has conc num val'
+		WHEN typeid = 733723002
+			THEN 'Has conc denom val'
+		WHEN typeid = 733722007
+			THEN 'Has conc denom unit'
+		WHEN typeid = 733725009
+			THEN 'Has conc num unit'
+		WHEN typeid = 738774007
+			THEN 'Modification of'
+		WHEN typeid = 766952006
+			THEN 'Has count of ing'
+				--20190204
+		WHEN typeid = 766939001
+			THEN 'Plays role'
+				--20190823
+		WHEN typeid = 13088401000001104
+			THEN 'Has route'
+		WHEN typeid = 13089101000001102
+			THEN 'Has CD category'
+		WHEN typeid = 13088501000001100
+			THEN 'Has ontological form'
+		WHEN typeid = 13088901000001108
+			THEN 'Has combi prod ind'
+		WHEN typeid = 13088701000001106
+			THEN 'Has form continuity'
+				--20200312
+		WHEN typeid = 13090301000001106
+			THEN 'Has add monitor ind'
+		WHEN typeid = 13090501000001104
+			THEN 'Has AMP restr ind'
+		WHEN typeid = 13090201000001102
+			THEN 'Paral imprt ind'
+		WHEN typeid = 13089701000001101
+			THEN 'Has free indicator'
+		WHEN typeid = 246514001
+			THEN 'Has unit'
+		WHEN typeid = 704323007
+			THEN 'Has proc duration'
+				--20201023
+		WHEN typeid = 704325000
+			THEN 'Relative to'
+		WHEN typeid = 766953001
+			THEN 'Has count of act ing'
+		WHEN typeid = 860781008
+			THEN 'Has prod character'
+		WHEN typeid = 860779006
+			THEN 'Has prod character'
+		WHEN typeid = 246196007
+			THEN 'Surf character of'
+		WHEN typeid = 836358009
+			THEN 'Has dev intend site'
+		WHEN typeid = 840562008
+			THEN 'Has prod character'
+		WHEN typeid = 840560000
+			THEN 'Has comp material'
+		WHEN typeid = 827081001
+			THEN 'Has filling'
+				--January 2022
+		WHEN typeid = 1148967007
+			THEN 'Has coating material'
+		WHEN typeid = 1148969005
+			THEN 'Has absorbability'
+		WHEN typeid = 1003703000
+			THEN 'Process extends to'
+		WHEN typeid = 1149366004
+			THEN 'Has strength'
+		WHEN typeid = 1148968002
+			THEN 'Has surface texture'
+		WHEN typeid = 1148965004
+			THEN 'Is sterile'
+		WHEN typeid = 1149367008
+			THEN 'Has targ population'
+				-- August 2023
+		WHEN typeid = 1003735000
+			THEN 'Process acts on'
+		WHEN typeid = 288556008
+			THEN 'Before'
+		WHEN typeid = 704320005
+			THEN 'Towards'
+		ELSE term --'non-existing'
+		END AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM attr_rel
+ON CONFLICT DO NOTHING;
 
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
@@ -1049,14 +1017,13 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-
 SELECT DISTINCT sn.concept_code_1,
 	sn.concept_code_2,
 	'SNOMED',
 	'SNOMED',
 	sn.relationship_id,
-	TO_DATE(sn.effectivestart, 'yyyymmdd'),
-	TO_DATE('20991231', 'yyyymmdd'),
+	TO_DATE(sn.effectivestart, 'YYYYMMDD'),
+	TO_DATE('20991231', 'YYYYMMDD'),
 	NULL
 FROM (
 	SELECT sc.referencedcomponentid::TEXT AS concept_code_1,
@@ -1080,7 +1047,10 @@ FROM (
 				sc.id DESC --same as of AVOF-650
 			) rn,
 		ROW_NUMBER() OVER (
-			PARTITION BY sc.referencedcomponentid, sc.targetcomponent, sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC) AS recent_status, --recent status of the relationship. To be used with 'active' field
+			PARTITION BY sc.referencedcomponentid,
+			sc.targetcomponent,
+			sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC
+			) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
 	FROM sources.der2_crefset_assreffull_merged sc
 	WHERE sc.refsetid IN (
@@ -1090,33 +1060,27 @@ FROM (
 			900000000000527005,
 			900000000000530003
 			)
-	AND sc.moduleid NOT IN (
-					999000011000001104, --UK Drug extension
-					999000021000001108  --UK Drug extension reference set module
-					)
+		AND sc.moduleid NOT IN (
+			999000011000001104, --UK Drug extension
+			999000021000001108 --UK Drug extension reference set module
+			)
 	) sn
-LEFT JOIN concept_stage cs ON -- for valid_end_date
-	cs.concept_code = sn.concept_code_1
-	AND cs.invalid_reason IS NOT NULL
-JOIN concept_stage cs2 ON
-	cs2.concept_code = sn.concept_code_2
-WHERE (
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_stage s
+		WHERE s.concept_code = sn.concept_code_2
+		)
+	AND (
 		(
 			--Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
-			sn.refsetid = '900000000000523009'
+			sn.refsetid = 900000000000523009
 			AND sn.rn >= 1
 			)
 		OR sn.rn = 1
 		)
 	AND sn.active = 1
-	AND sn.recent_status = 1    --no row with the same target concept, but more recent relationship with active = 0
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = sn.concept_code_1
-			AND crs.concept_code_2 = sn.concept_code_2
-			AND crs.relationship_id = sn.relationship_id
-		);
+	AND sn.recent_status = 1 --no row with the same target concept, but more recent relationship with active = 0
+ON CONFLICT DO NOTHING;
 
 --9.1 Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (
@@ -1136,7 +1100,7 @@ SELECT cs.concept_code AS concept_code_1,
 	cr.relationship_id,
 	cr.valid_start_date,
 	(
-		SELECT latest_update
+		SELECT latest_update - 1
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'
 		) AS valid_end_date,
@@ -1254,12 +1218,11 @@ ANALYZE concept_relationship_stage;
 --9.2. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
 UPDATE concept_stage cs
 SET invalid_reason = 'U',
-	valid_end_date = LEAST(
-			cs.valid_end_date,
-			crs.valid_start_date,
-			(SELECT latest_update
-				FROM vocabulary v
-				WHERE v.vocabulary_id = 'SNOMED'))
+	valid_end_date = LEAST(cs.valid_end_date, crs.valid_start_date, (
+			SELECT latest_update
+			FROM vocabulary v
+			WHERE v.vocabulary_id = 'SNOMED'
+			))
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id IN (
@@ -1273,11 +1236,11 @@ WHERE crs.concept_code_1 = cs.concept_code
 --9.3. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
-    valid_end_date = LEAST(
-			crs.valid_start_date,
-			(SELECT latest_update - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id = 'SNOMED'))
+	valid_end_date = LEAST(crs.valid_start_date, (
+			SELECT latest_update - 1
+			FROM vocabulary v
+			WHERE v.vocabulary_id = 'SNOMED'
+			))
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id = 'Concept poss_eq to'
@@ -1292,7 +1255,7 @@ SET valid_end_date = (
 		WHERE vocabulary_id = 'SNOMED'
 		)
 WHERE invalid_reason = 'U'
-	AND valid_end_date = TO_DATE('20991231', 'yyyymmdd');
+	AND valid_end_date = TO_DATE('20991231', 'YYYYMMDD');
 
 --10. Inherit concept class for updated concepts from mapping target -- some of them never had hierarchy tags to extract them
 UPDATE concept_stage cs
@@ -1305,98 +1268,86 @@ WHERE r.concept_code_1 = cs.concept_code
 	AND r.concept_code_2 = x.concept_code
 	AND cs.concept_class_id = 'Undefined';
 
---11. Build domains, preassign all them with "Not assigned"
+--11. Build domains; assign domains to the concepts according to their concept_classes
 DROP TABLE IF EXISTS domain_snomed;
 CREATE UNLOGGED TABLE domain_snomed AS
 SELECT concept_code::BIGINT,
-	CAST('Not assigned' AS VARCHAR(20)) AS domain_id
-FROM concept_stage
-WHERE vocabulary_id = 'SNOMED';
+	CASE concept_class_id
+		WHEN 'Admin Concept'
+			THEN 'Type Concept'
+		WHEN 'Attribute'
+			THEN 'Observation'
+		WHEN 'Biological Function'
+			THEN 'Observation'
+		WHEN 'Body Structure'
+			THEN 'Spec Anatomic Site'
+		WHEN 'Clinical Drug'
+			THEN 'Drug'
+		WHEN 'Clinical Drug Form'
+			THEN 'Drug'
+		WHEN 'Clinical Finding'
+			THEN 'Observation'
+		WHEN 'Context-dependent'
+			THEN 'Observation'
+		WHEN 'Disorder'
+			THEN 'Condition'
+		WHEN 'Disposition'
+			THEN 'Observation'
+		WHEN 'Dose Form'
+			THEN 'Drug'
+		WHEN 'Event'
+			THEN 'Observation'
+		WHEN 'Inactive Concept'
+			THEN 'Metadata'
+		WHEN 'Linkage Assertion'
+			THEN 'Relationship'
+		WHEN 'Linkage Concept'
+			THEN 'Relationship'
+		WHEN 'Location'
+			THEN 'Observation'
+		WHEN 'Model Comp'
+			THEN 'Metadata'
+		WHEN 'Morph Abnormality'
+			THEN 'Observation'
+		WHEN 'Namespace Concept'
+			THEN 'Metadata'
+		WHEN 'Navi Concept'
+			THEN 'Metadata'
+		WHEN 'Observable Entity'
+			THEN 'Observation'
+		WHEN 'Organism'
+			THEN 'Observation'
+		WHEN 'Patient Status'
+			THEN 'Observation'
+		WHEN 'Physical Force'
+			THEN 'Observation'
+		WHEN 'Pharma/Biol Product'
+			THEN 'Drug'
+		WHEN 'Physical Force'
+			THEN 'Observation'
+		WHEN 'Physical Object'
+			THEN 'Device'
+		WHEN 'Procedure'
+			THEN 'Procedure'
+		WHEN 'Qualifier Value'
+			THEN 'Observation'
+		WHEN 'Record Artifact'
+			THEN 'Type Concept'
+		WHEN 'Social Context'
+			THEN 'Observation'
+		WHEN 'Special Concept'
+			THEN 'Metadata'
+		WHEN 'Specimen'
+			THEN 'Specimen'
+		WHEN 'Staging / Scales'
+			THEN 'Measurement' --domain changed
+		WHEN 'Substance'
+			THEN 'Observation' --domain changed
+		ELSE 'Observation'
+		END AS domain_id
+FROM concept_stage;
 
---12. Assign domains to the concepts according to their concept_classes
-UPDATE domain_snomed d
-SET domain_id = i.domain_id
-FROM (
-	SELECT CASE c.concept_class_id
-			WHEN 'Admin Concept'
-				THEN 'Type Concept'
-			WHEN 'Attribute'
-				THEN 'Observation'
-			WHEN 'Biological Function'
-				THEN 'Observation'
-			WHEN 'Body Structure'
-				THEN 'Spec Anatomic Site'
-			WHEN 'Clinical Drug'
-				THEN 'Drug'
-			WHEN 'Clinical Drug Form'
-				THEN 'Drug'
-			WHEN 'Clinical Finding'
-				THEN 'Observation'
-			WHEN 'Context-dependent'
-				THEN 'Observation'
-			 WHEN 'Disorder'
-				THEN 'Condition'
-			WHEN 'Disposition'
-				THEN 'Observation'
-			WHEN 'Dose Form'
-				THEN 'Drug'
-			WHEN 'Event'
-				THEN 'Observation'
-			WHEN 'Inactive Concept'
-				THEN 'Metadata'
-			WHEN 'Linkage Assertion'
-				THEN 'Relationship'
-			WHEN 'Linkage Concept'
-				THEN 'Relationship'
-			WHEN 'Location'
-				THEN 'Observation'
-			WHEN 'Model Comp'
-				THEN 'Metadata'
-			WHEN 'Morph Abnormality'
-				THEN 'Observation'
-			WHEN 'Namespace Concept'
-				THEN 'Metadata'
-			WHEN 'Navi Concept'
-				THEN 'Metadata'
-			WHEN 'Observable Entity'
-				THEN 'Observation'
-			WHEN 'Organism'
-				THEN 'Observation'
-			WHEN 'Patient Status'
-				THEN 'Observation'
-			WHEN 'Physical Force'
-				THEN 'Observation'
-			WHEN 'Pharma/Biol Product'
-				THEN 'Drug'
-			WHEN 'Physical Force'
-				THEN 'Observation'
-			WHEN 'Physical Object'
-				THEN 'Device'
-			WHEN 'Procedure'
-				THEN 'Procedure'
-			WHEN 'Qualifier Value'
-				THEN 'Observation'
-			WHEN 'Record Artifact'
-				THEN 'Type Concept'
-			WHEN 'Social Context'
-				THEN 'Observation'
-			WHEN 'Special Concept'
-				THEN 'Metadata'
-			WHEN 'Specimen'
-				THEN 'Specimen'
-			WHEN 'Staging / Scales'
-				THEN 'Measurement' -- domain changed
-			WHEN 'Substance'
-				THEN 'Observation' -- -- domain changed
-			ELSE 'Observation'
-			END AS domain_id,
-		c.concept_code::BIGINT
-	FROM concept_stage c
-	WHERE c.VOCABULARY_ID = 'SNOMED'
-	) i
-WHERE i.concept_code = d.concept_code;
-
---13 All concepts mapped to Rx/RxE/CVX should be drugs
+--12. All concepts mapped to Rx/RxE/CVX should be drugs
 WITH a AS (
 	SELECT concept_code_1 AS concept_code
 	FROM concept_relationship_manual crm
@@ -2021,7 +1972,7 @@ SELECT p.conceptid::VARCHAR,
 	(SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'),
-	TO_DATE('20991231', 'yyyymmdd')
+	TO_DATE('20991231', 'YYYYMMDD')
 FROM preferred_code p
 JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
 	AND c.standard_concept IS NOT NULL

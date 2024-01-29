@@ -460,8 +460,8 @@ SELECT source_code,
        target_concept_code,
        target_concept_name,
        target_concept_class_id,
-       target_standard_concept,
-       target_invalid_reason,
+       'S' as target_standard_concept,
+       null as target_invalid_reason,
        target_domain_id,
        target_vocabulary_id,
        rel_invalid_reason,
@@ -590,8 +590,13 @@ WHERE group_id in (
 UPDATE icd_cde_source SET for_review = '1'
 WHERE group_id in (
     SELECT group_id FROM icd_cde_source
-   WHERE mappings_origin = 'Concept poss_eq to')
-;
+   WHERE mappings_origin = 'Concept poss_eq to');
+
+--For community contribution
+UPDATE icd_cde_source SET for_review = '1'
+WHERE group_id in (
+    SELECT group_id FROM icd_cde_source
+   WHERE mappings_origin = 'CC');
 
 --For groups with several concepts and several mapping sources
 UPDATE icd_cde_source SET for_review = '1'
@@ -601,7 +606,7 @@ HAVING COUNT (DISTINCT (source_vocabulary_id, source_code)) >1)
 AND
 group_id in (SELECT group_id FROM icd_cde_source
 GROUP BY group_id
-HAVING COUNT (DISTINCT (mappings_origin, target_concept_id)) >1);
+HAVING COUNT (DISTINCT (mappings_origin)) >1);
 
 --8. Table for manual mapping and review creation
 --DROP TABLE icd_cde_manual;
@@ -698,13 +703,14 @@ GROUP BY s.group_id, s.group_name,
          s.target_vocabulary_id
 ORDER BY group_id desc
 ;
-SELECT * FROM icd_cde_manual
+SELECT DISTINCT * FROM icd_cde_manual
 ORDER BY group_id;
 
 CREATE TABLE icd_cde_source_backp as (SELECT * FROM icd_cde_source);
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backp);
 
+SELECT * FROM icd_cde_source;
 
 SELECT * FROM icd_cde_manual LIMIT 1000;
 select google_pack.SetSpreadSheet ('icd_cde_manual', '1a3os1cjgIuji7Q4me9DAzt1wb49hew3X4OURLRuyACs','ICD_CDE')

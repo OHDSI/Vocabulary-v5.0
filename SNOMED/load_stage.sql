@@ -1268,7 +1268,13 @@ WHERE r.concept_code_1 = cs.concept_code
 	AND r.concept_code_2 = x.concept_code
 	AND cs.concept_class_id = 'Undefined';
 
---11. Build domains; assign domains to the concepts according to their concept_classes
+--11. Append manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--12. Build domains; assign domains to the concepts according to their concept_classes
 DROP TABLE IF EXISTS domain_snomed;
 CREATE UNLOGGED TABLE domain_snomed AS
 SELECT concept_code::BIGINT,
@@ -1378,20 +1384,8 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 			AND crs.relationship_id = 'Is a'
 			AND crs.vocabulary_id_1 = 'SNOMED'
 			AND crs.vocabulary_id_2 = 'SNOMED'
-
-		UNION
-
-		SELECT cc.concept_code AS ancestor_concept_code,
-		       c.concept_code AS descendant_concept_code,
-		       1 AS levels_of_separation
-		FROM concept_relationship cr
-		JOIN concept c on c.concept_id = cr.concept_id_1
-		JOIN concept cc on cc.concept_id = cr.concept_id_2
-		WHERE cr.relationship_id = 'Is a'
-		AND cr.invalid_reason IS NULL
-		AND c.vocabulary_id = 'SNOMED'
-		AND cc.vocabulary_id = 'SNOMED')
-	SELECT DISTINCT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code,
+		)
+	SELECT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code,
 		hc.descendant_concept_code::BIGINT,
 		MIN(hc.levels_of_separation) AS min_levels_of_separation
 	FROM hierarchy_concepts hc
@@ -1955,12 +1949,6 @@ AND NOT EXISTS (
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
-
--- Append manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
 -- Working with replacement mappings

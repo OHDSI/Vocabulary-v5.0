@@ -670,7 +670,7 @@ SELECT DISTINCT sourceid AS concept_code_1,
 	destinationid AS concept_code_2,
 	'SNOMED' AS vocabulary_id_1,
 	'SNOMED' AS vocabulary_id_2,
-	CASE 
+	CASE
 		WHEN typeid = 260507000
 			THEN 'Has access'
 		WHEN typeid = 363715002
@@ -1400,114 +1400,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 ANALYZE snomed_ancestor;
 
---13.1. Append deprecated concepts that have mappings or replacement links as extensions of their mapping target
-WITH relationships AS (
-				SELECT i.concept_code_1,
-					i.concept_code_2,
-					i.vocabulary_id_1,
-					i.vocabulary_id_2,
-					--if concepts have more than one relationship_id, then we take only the one with following precedence
-					CASE
-						WHEN i.relationship_id = 'Maps to'
-							THEN 1
-						WHEN i.relationship_id = 'Concept replaced by'
-							THEN 2
-						WHEN i.relationship_id = 'Concept same_as to'
-							THEN 3
-						WHEN i.relationship_id = 'Concept alt_to to'
-							THEN 4
-						WHEN i.relationship_id = 'Concept was_a to'
-							THEN 5
-						END AS rel_id
-				FROM (SELECT concept_code_1,
-							vocabulary_id_1,
-							concept_code_2,
-							vocabulary_id_2,
-							relationship_id
-				      FROM concept_relationship_stage crs
-						WHERE crs.relationship_id IN (
-						'Concept replaced by',
-						'Concept same_as to',
-						'Concept alt_to to',
-						'Concept was_a to',
-						'Maps to'
-						)
-					AND crs.invalid_reason IS NULL
-					AND crs.vocabulary_id_1 = 'SNOMED'
-					AND crs.vocabulary_id_2 = 'SNOMED'
-
-						UNION
--- Relationships for some concepts may exist only in concept_relationship
-					SELECT c.concept_code,
-							c.vocabulary_id,
-							cc.concept_code,
-							cc.vocabulary_id,
-							relationship_id
-						FROM concept c
-							JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id
-							JOIN concept cc on cc.concept_id = cr.concept_id_2
-						WHERE c.vocabulary_id = 'SNOMED'
-							AND cc.vocabulary_id = 'SNOMED'
-							AND cr.relationship_id IN (
-							   'Concept replaced by',
-							   'Concept same_as to',
-							   'Concept alt_to to',
-							   'Concept was_a to',
-							   'Maps to')
-							AND cr.invalid_reason IS NULL
-							AND NOT EXISTS (SELECT 1
-							                FROM concept_relationship_stage crs
-							                WHERE (crs.concept_code_1, crs.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
-							                AND crs.relationship_id IN (
-														   'Concept replaced by',
-														   'Concept same_as to',
-														   'Concept alt_to to',
-														   'Concept was_a to',
-														   'Maps to'
-														   )
-							                AND crs.invalid_reason IS NULL)
-						) i),
-
-invalid_concepts AS (
-SELECT r.concept_code_1,
-       r.concept_code_2
-FROM relationships r
-ORDER BY r.concept_code_1,
-         r.vocabulary_id_1,
-         r.rel_id
-)
-
-INSERT INTO snomed_ancestor (
-	ancestor_concept_code,
-	descendant_concept_code,
-	min_levels_of_separation
-	)
-SELECT a.ancestor_concept_code,
-	s1.concept_code_1::BIGINT,
-	MIN(a.min_levels_of_separation)
-FROM (SELECT r.concept_code_1,
-             r.concept_code_2
-             from concept_stage s1
-JOIN invalid_concepts r ON s1.invalid_reason IS NOT NULL
-	AND s1.concept_code = r.concept_code_1
-			) s1
-JOIN snomed_ancestor a ON s1.concept_code_2 = a.descendant_concept_code::TEXT
-JOIN concept_stage cs ON cs.concept_code = s1.concept_code_1
-	AND cs.vocabulary_id = 'SNOMED'
-JOIN concept_stage ccs ON ccs.concept_code = s1.concept_code_2
-	AND ccs.vocabulary_id = 'SNOMED'
-WHERE NOT EXISTS (
-		SELECT
-		FROM snomed_ancestor x
-		WHERE x.descendant_concept_code::TEXT = s1.concept_code_1
-		)
-	AND ccs.concept_class_id = cs.concept_class_id
-GROUP BY ancestor_concept_code, s1.concept_code_1;
-
-ANALYZE snomed_ancestor;
-
-
---13.2. For deprecated concepts without mappings, take the latest 116680003 'Is a' relationship to active concept
+--13.1. For deprecated concepts without mappings, take the latest 116680003 'Is a' relationship to active concept
 INSERT INTO snomed_ancestor (
 	ancestor_concept_code,
 	descendant_concept_code,
@@ -1640,7 +1533,20 @@ FROM domain_snomed i
 WHERE c.vocabulary_id = 'SNOMED'
 	AND i.concept_code::TEXT = c.concept_code;
 
---15. Make manual changes according to rules
+--15. For deprecated concepts without hierarchy assign domains from base table.
+UPDATE concept_stage cs
+SET domain_id = c.domain_id
+FROM concept c
+WHERE (c.concept_code, c.vocabulary_id) = (cs.concept_code, cs.vocabulary_id)
+AND NOT EXISTS(
+       SELECT 1
+       FROM snomed_ancestor sa
+       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
+)
+AND cs.vocabulary_id = 'SNOMED'
+AND cs.invalid_reason IS NOT NULL;
+
+--16. Make manual changes according to rules
 --Manual correction
 ---Assign Measurement domain to all scores:
 UPDATE concept_stage
@@ -1716,7 +1622,7 @@ FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
---16. Set standard_concept based on validity and domain_id
+--17. Set standard_concept based on validity and domain_id
 UPDATE concept_stage cs
 SET standard_concept = CASE domain_id
 		WHEN 'Drug'
@@ -1736,39 +1642,22 @@ SET standard_concept = CASE domain_id
 		WHEN 'Unit'
 			THEN NULL -- Units are UCUM
 		ELSE 'S'
-		END
-WHERE cs.invalid_reason IS NULL
-	AND --if the concept has outside mapping from manual table, do not update it's Standard status
-	NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs_int
-		WHERE crs_int.invalid_reason IS NULL
-			AND (
-				crs_int.concept_code_1,
-				crs_int.vocabulary_id_1
-				) <> (
-				crs_int.concept_code_2,
-				crs_int.vocabulary_id_2
-				)
-			AND crs_int.concept_code_1 = cs.concept_code
-			AND crs_int.relationship_id = 'Maps to'
-			AND crs_int.vocabulary_id_1 = 'SNOMED'
-		);
+		END;
 
---16.1. De-standardize navigational concepts
+--17.1. De-standardize navigational concepts
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code = 363743006 -- Navigational Concept
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
---16.2. Make those Obsolete routes non-standard
+--17.2. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---16.3 Make domain 'Geography' non-standard, except countries:
+--17.3 Make domain 'Geography' non-standard, except countries:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE domain_id = 'Geography'
@@ -1778,7 +1667,7 @@ AND concept_code NOT IN (
 		WHERE ancestor_concept_code = 223369002 -- Country
 		);
 
---16.4 Make procedures with the context = 'Done' non-standard:
+--17.4 Make procedures with the context = 'Done' non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -1791,7 +1680,7 @@ WHERE EXISTS (
 			AND crs.invalid_reason IS NULL
 		);
 
---16.5 Make certain hierarchical branches non-standard:
+--17.5 Make certain hierarchical branches non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
@@ -1799,7 +1688,7 @@ WHERE sa.ancestor_concept_code = '373060007' -- Device status
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
 
---16.6 Make certain concept classes non-standard:
+--17.6 Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id IN (
@@ -1824,7 +1713,7 @@ WHERE concept_class_id = 'Social Context'
 				) -- Religion AND/OR philosophy
 		);
 
---16.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--17.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1932,7 +1821,7 @@ AND NOT EXISTS (
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---17. Implement manual changes:
+--18. Implement manual changes:
 
 -- Append manual concepts
 DO $_$
@@ -1969,7 +1858,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---18. All concepts mapped to RxNorm/RxE/CVX should be drugs
+--19. All concepts mapped to RxNorm/RxE/CVX should be drugs
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
 FROM concept_relationship_stage crs
@@ -1984,7 +1873,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.invalid_reason IS NULL
 	AND cs.concept_class_id = 'Substance';
 
---19. Make concepts non standard if they have a 'Maps to' relationship
+--20. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -2003,13 +1892,13 @@ WHERE EXISTS (
 			AND sa.ancestor_concept_code = 411115002 -- Exclude drug-device combinations - should be standard and mapped to drugs
 		);
 
---20. Clean up
+--21. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
---21. Need to check domains before running the generic_update
+--22. Need to check domains before running the generic_update
 /*temporary disabled for later use
 DO $_$
 DO $_$

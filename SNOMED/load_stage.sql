@@ -1524,16 +1524,15 @@ JOIN (
 			r.effectivetime
 			) AS destinationid, --pick one parent at random
 		r.effectivetime,
-		max(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime
+		MAX(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime
 	FROM sources.sct2_rela_full_merged r
 	JOIN concept_stage x ON x.concept_code = r.destinationid::TEXT
 		AND x.invalid_reason IS NULL
-	WHERE
-	    r.typeid = 116680003 -- Is a
-    AND r.moduleid NOT IN (
-            999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
-            999000011000001104  --SNOMED CT United Kingdom drug extension module
-        )
+	WHERE r.typeid = 116680003 -- Is a
+		AND r.moduleid NOT IN (
+			999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+			999000011000001104 --SNOMED CT United Kingdom drug extension module
+			)
 	) m ON m.sourceid::TEXT = s1.concept_code
 	AND m.effectivetime = m.maxeffectivetime
 JOIN snomed_ancestor a ON m.destinationid = a.descendant_concept_code
@@ -1555,29 +1554,22 @@ END $_$;
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 --The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
 --This could cause trouble if a parallel fork happens at the same height, but it is resolved by domain precedence.
+
 UPDATE peak p
-SET ranked = (
-		SELECT rnk
-		FROM (
-			SELECT ranked.pd AS peak_code,
-				COUNT(*) + 1 AS rnk -- +1 so the top most who have an ancestor are ranked 2, and the ancestor can be ranked 1 (see below)
-			FROM (
-				SELECT DISTINCT pa.peak_code AS pa,
-					pd.peak_code AS pd
-				FROM peak pa,
-					snomed_ancestor a,
-					peak pd
-				WHERE a.ancestor_concept_code = pa.peak_code
-					AND a.descendant_concept_code = pd.peak_code
-					AND pa.levels_down IS NULL
-					AND pa.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
-					AND pd.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
-				) ranked
-			GROUP BY ranked.pd
-			) r
-		WHERE r.peak_code = p.peak_code
-		)
-WHERE valid_end_date = TO_DATE('20991231', 'YYYYMMDD');--rank only active peaks
+SET ranked = r.rnk
+FROM (
+	SELECT pd.peak_code,
+		COUNT(*) + 1 AS rnk -- +1 so the top most who have an ancestor are ranked 2, and the ancestor can be ranked 1 (see below)
+	FROM peak pa
+	JOIN snomed_ancestor ca ON ca.ancestor_concept_code = pa.peak_code
+	JOIN peak pd ON pd.peak_code = ca.descendant_concept_code
+		AND pd.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
+	WHERE pa.levels_down IS NULL
+		AND pa.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
+	GROUP BY pd.peak_code
+	) r
+WHERE p.peak_code = r.peak_code
+	AND p.valid_end_date = TO_DATE('20991231', 'YYYYMMDD'); --rank only active peaks
 
 --For those that have no ancestors, the rank is 1
 UPDATE peak
@@ -1629,15 +1621,14 @@ WHERE d.concept_code = i.descendant_concept_code;
 UPDATE domain_snomed d
 SET domain_id = i.peak_domain_id
 FROM (
-	SELECT DISTINCT peak_code,
-		-- if there are several records for 1 peak, use the following ORDER: levels_down = 0 > 1 ... x > NULL
-		FIRST_VALUE(peak_domain_id) OVER (
-			PARTITION BY peak_code ORDER BY levels_down ASC NULLS LAST
-			) AS peak_domain_id
+	SELECT DISTINCT ON (peak_code) peak_code,
+		peak_domain_id
 	FROM peak
 	WHERE ranked IS NOT NULL --consider active peaks only
+	ORDER BY peak_code,
+		levels_down -- if there are several records for 1 peak, use the following ORDER: levels_down = 0 > 1 ... x > NULL
 	) i
-WHERE i.peak_code = d.concept_code;
+WHERE d.concept_code = i.peak_code;
 
 --Update top guy
 UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
@@ -1645,11 +1636,7 @@ UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 --14.4. Update concept_stage from newly created domains.
 UPDATE concept_stage c
 SET domain_id = i.domain_id
-FROM (
-	SELECT d.domain_id,
-		d.concept_code
-	FROM domain_snomed d
-	) i
+FROM domain_snomed i
 WHERE c.vocabulary_id = 'SNOMED'
 	AND i.concept_code::TEXT = c.concept_code;
 
@@ -1658,19 +1645,19 @@ WHERE c.vocabulary_id = 'SNOMED'
 ---Assign Measurement domain to all scores:
 UPDATE concept_stage
 SET domain_id = 'Measurement'
-WHERE concept_name ~* 'score'
+WHERE concept_name ILIKE '%score%'
 	AND concept_class_id = 'Observable Entity'
 	AND vocabulary_id = 'SNOMED';
 
 --Trim word 'route' from the concepts in 'Route' domain [AVOC-4087]
 UPDATE concept_stage
-SET concept_name = REGEXP_REPLACE(concept_name, '\s*route\s*', '')
-WHERE concept_name ~* '\sroute$'
-AND domain_id = 'Route';
+SET concept_name = RTRIM(concept_name, ' route')
+WHERE concept_name LIKE '% route'
+	AND domain_id = 'Route';
 
 --Fix navigational concepts
-UPDATE concept_stage
-SET domain_id = CASE concept_class_id
+UPDATE concept_stage cs
+SET domain_id = CASE cs.concept_class_id
 		WHEN 'Admin Concept'
 			THEN 'Type Concept'
 		WHEN 'Attribute'
@@ -1725,12 +1712,9 @@ SET domain_id = CASE concept_class_id
 			THEN 'Observation'
 		ELSE 'Observation'
 		END
-WHERE vocabulary_id = 'SNOMED'
-	AND concept_code IN (
-		SELECT descendant_concept_code::TEXT
-		FROM snomed_ancestor
-		WHERE ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
-		);
+FROM snomed_ancestor sa
+WHERE sa.ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
+	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
 --16. Set standard_concept based on validity and domain_id
 UPDATE concept_stage cs
@@ -1772,14 +1756,11 @@ WHERE cs.invalid_reason IS NULL
 		);
 
 --16.1. De-standardize navigational concepts
-UPDATE concept_stage
+UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE vocabulary_id = 'SNOMED'
-	AND concept_code IN (
-		SELECT descendant_concept_code::TEXT
-		FROM snomed_ancestor
-		WHERE ancestor_concept_code = 363743006 -- Navigational Concept
-		);
+FROM snomed_ancestor sa
+WHERE sa.ancestor_concept_code = 363743006 -- Navigational Concept
+	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
 --16.2. Make those Obsolete routes non-standard
 UPDATE concept_stage
@@ -1800,40 +1781,48 @@ AND concept_code NOT IN (
 --16.4 Make procedures with the context = 'Done' non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE EXISTS(
-       SELECT 1 FROM concept_relationship_stage crs
-       WHERE crs.concept_code_1 = cs.concept_code
-		AND crs.relationship_id = 'Has proc context'
-		AND crs.concept_code_2 = '385658003'
-		AND crs.vocabulary_id_2 = 'SNOMED'
-);
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = cs.concept_code
+			AND crs.relationship_id = 'Has proc context'
+			AND crs.concept_code_2 = '385658003'
+			AND crs.vocabulary_id_2 = 'SNOMED'
+			AND crs.invalid_reason IS NULL
+		);
 
 --16.5 Make certain hierarchical branches non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE EXISTS(
-       SELECT 1 FROM snomed_ancestor sa
-       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
-       AND sa.ancestor_concept_code::TEXT = '373060007' -- Device status
-);
+FROM snomed_ancestor sa
+WHERE sa.ancestor_concept_code = '373060007' -- Device status
+	AND cs.concept_code = sa.descendant_concept_code::TEXT;
+
 
 --16.6 Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
-WHERE concept_class_id IN ('Attribute', 'Physical Force', 'Physical Object')
-AND domain_id NOT IN ('Device');
+WHERE concept_class_id IN (
+		'Attribute',
+		'Physical Force',
+		'Physical Object'
+		)
+	AND domain_id <> 'Device';
 
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE concept_class_id = 'Social Context'
-AND NOT EXISTS (
-       SELECT 1 FROM snomed_ancestor sa
-       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
-       AND sa.ancestor_concept_code::TEXT IN ('14679004', -- Occupation
-                                             '125677006', -- Relative
-                                             '410597007', -- Person categorized by religious affiliation
-                                             '108334009') -- Religion AND/OR philosophy
-);
+	AND NOT EXISTS (
+		SELECT 1
+		FROM snomed_ancestor sa
+		WHERE sa.descendant_concept_code::TEXT = cs.concept_code
+			AND sa.ancestor_concept_code IN (
+				14679004, -- Occupation
+				125677006, -- Relative
+				410597007, -- Person categorized by religious affiliation
+				108334009
+				) -- Religion AND/OR philosophy
+		);
 
 --16.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
@@ -1981,26 +1970,19 @@ BEGIN
 END $_$;
 
 --18. All concepts mapped to RxNorm/RxE/CVX should be drugs
-WITH a AS (
-	SELECT c.* /*c.concept_code, c.vocabulary_id*/
-	FROM concept_relationship_stage crs
-		JOIN concept_stage c ON (c.concept_code, c.vocabulary_id) = (crs.concept_code_1, crs.vocabulary_id_1)
-		JOIN concept cc ON (cc.concept_code, cc.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
-	WHERE c.vocabulary_id = 'SNOMED'
-		AND cc.vocabulary_id IN (
-			'RxNorm',
-			'RxNorm Extension',
-			'CVX')
-		AND c.concept_class_id = 'Substance'
-		AND crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-)
-
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
-FROM a
-WHERE (cs.concept_code, cs.vocabulary_id) = (a.concept_code, a.vocabulary_id)
-;
+FROM concept_relationship_stage crs
+WHERE crs.concept_code_1 = cs.concept_code
+	AND crs.vocabulary_id_1 = cs.vocabulary_id
+	AND crs.vocabulary_id_2 IN (
+		'RxNorm',
+		'RxNorm Extension',
+		'CVX'
+		)
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_class_id = 'Substance';
 
 --19. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs
@@ -2014,11 +1996,12 @@ WHERE EXISTS (
 			AND cs.vocabulary_id = crs.vocabulary_id_1
 		)
 	AND cs.standard_concept = 'S'
-	AND NOT EXISTS(
-		SELECT 1 FROM snomed_ancestor sa
-			WHERE sa.descendant_concept_code::text = cs.concept_code
+	AND NOT EXISTS (
+		SELECT 1
+		FROM snomed_ancestor sa
+		WHERE sa.descendant_concept_code::TEXT = cs.concept_code
 			AND sa.ancestor_concept_code = 411115002 -- Exclude drug-device combinations - should be standard and mapped to drugs
-);
+		);
 
 --20. Clean up
 DROP TABLE peak;

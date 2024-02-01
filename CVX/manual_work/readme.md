@@ -43,20 +43,16 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 3. Work with [cvx_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/manual_work/cvx_refresh.sql) file:
 
-3.1. Backup concept_relationship_manual table and concept_manual table.
+3.1. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous CVX refresh. You may need to introduce new concepts first.
 
-3.2. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous CVX refresh.
+3.2. Review the previous mapping and map new concepts. If previous mapping should be changed or deprecated, use cr_invalid_reason field.
 
-3.3. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+3.3. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
 
-3.4. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
+3.4. Perform any mapping checks you have set.
 
-3.5. Perform any mapping checks you have set.
+3.5. Iteratively repeat steps 3.3-3.5 if found any issues.
 
-3.6. Iteratively repeat steps 3.3-3.5 if found any issues.
+3.6. Insert new and update existing relationships according to _mapped table.
 
-3.7. Deprecate all mappings that differ from the new version of resulting mapping file.
-
-3.8. Insert new and corrected mappings into the concept_relationship_manual table.
-
-3.9 Activate mapping, that became valid again
+3.7. Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables.

@@ -719,29 +719,30 @@ BEGIN
 	--Since they work outside the _stage tables, they will be restricted to the vocabularies worked on
 
 	--21. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S'
-	WITH to_be_upserted AS (
-		SELECT c.concept_id, v.latest_update, lat.relationship_id 
-		FROM concept c,	vocabulary v, LATERAL (SELECT CASE WHEN GENERATE_SERIES=1 then 'Maps to' ELSE 'Mapped from' END AS relationship_id FROM GENERATE_SERIES(1,2)) lat
-		WHERE v.vocabulary_id = c.vocabulary_id AND v.latest_update IS NOT NULL AND c.standard_concept = 'S' AND invalid_reason IS NULL
-	),
-	to_be_updated AS (
-		UPDATE concept_relationship cr
-		SET invalid_reason = NULL, valid_end_date = TO_DATE ('20991231', 'yyyymmdd')
-		FROM to_be_upserted up
-		WHERE cr.invalid_reason IS NOT NULL
-		AND cr.concept_id_1 = up.concept_id AND cr.concept_id_2 = up.concept_id AND cr.relationship_id = up.relationship_id
-		RETURNING cr.*
-	)
-		INSERT INTO concept_relationship
-		SELECT tpu.concept_id, tpu.concept_id, tpu.relationship_id, tpu.latest_update, TO_DATE ('20991231', 'yyyymmdd'), NULL 
-		FROM to_be_upserted tpu 
-		WHERE (tpu.concept_id, tpu.concept_id, tpu.relationship_id) 
-		NOT IN (
-			SELECT up.concept_id_1, up.concept_id_2, up.relationship_id FROM to_be_updated up
-			UNION ALL
-			SELECT cr_int.concept_id_1, cr_int.concept_id_2, cr_int.relationship_id FROM concept_relationship cr_int 
-			WHERE cr_int.concept_id_1=cr_int.concept_id_2 AND cr_int.relationship_id IN ('Maps to','Mapped from')
-		);
+	INSERT INTO concept_relationship AS cr
+	SELECT c.concept_id AS concept_id_1,
+		c.concept_id AS concept_id_2,
+		r.relationship_id,
+		v.latest_update AS valid_start_date,
+		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+		NULL AS invalid_reason
+	FROM concept c
+	JOIN vocabulary v ON v.vocabulary_id = c.vocabulary_id
+		AND v.latest_update IS NOT NULL
+	CROSS JOIN (
+		SELECT 'Maps to' AS relationship_id
+		
+		UNION ALL
+		
+		SELECT 'Mapped from'
+		) r
+	WHERE c.standard_concept = 'S'
+		AND c.invalid_reason IS NULL
+	ON CONFLICT ON CONSTRAINT xpk_concept_relationship
+	DO UPDATE
+	SET valid_end_date = excluded.valid_end_date,
+		invalid_reason = excluded.invalid_reason
+	WHERE cr.invalid_reason IS NOT NULL;
 
 	--22. 'Maps to' or 'Maps to value' relationships should not exist where
 	--a) the source concept has standard_concept = 'S', unless it is to self

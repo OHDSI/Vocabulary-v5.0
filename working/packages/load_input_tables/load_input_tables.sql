@@ -183,7 +183,7 @@ begin
       analyze sources.retchch0_etc_hicseqn_hist;
   when 'MEDDRA' then
       truncate table sources.hlgt_pref_term, sources.hlgt_hlt_comp, sources.hlt_pref_term, sources.hlt_pref_comp, sources.low_level_term, 
-      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed;
+      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed, sources.meddra_mappedfrom_icd10;
       execute 'COPY sources.hlgt_pref_term FROM '''||pVocabularyPath||'hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlgt_hlt_comp FROM '''||pVocabularyPath||'hlgt_hlt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlt_pref_term FROM '''||pVocabularyPath||'hlt.asc'' delimiter ''$'' csv quote E''\b''';
@@ -195,9 +195,10 @@ begin
       execute 'COPY sources.soc_hlgt_comp FROM '''||pVocabularyPath||'soc_hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       insert into sources.meddra_mapsto_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',0);
       insert into sources.meddra_mappedfrom_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',1);
+      insert into sources.meddra_mappedfrom_icd10 select * from sources.py_xlsparse_meddra_icd10(pVocabularyPath||'/meddra_mappings_icd10.xlsx',0);
       update sources.hlt_pref_comp set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       PERFORM sources_archive.AddVocabularyToArchive('MedDRA', ARRAY['hlgt_pref_term','hlgt_hlt_comp','hlt_pref_term','hlt_pref_comp','low_level_term',
-        'md_hierarchy','pref_term','soc_term','soc_hlgt_comp','meddra_mapsto_snomed','meddra_mappedfrom_snomed'], COALESCE(pVocabularyDate,current_date), 'archive.meddra_version', 10);
+        'md_hierarchy','pref_term','soc_term','soc_hlgt_comp','meddra_mapsto_snomed','meddra_mappedfrom_snomed','meddra_mappedfrom_icd10'], COALESCE(pVocabularyDate,current_date), 'archive.meddra_version', 10);
   when 'GPI' then
       truncate table sources.gpi_name, sources.ndw_v_product;
       execute 'COPY sources.gpi_name (gpi_code,drug_string) FROM '''||pVocabularyPath||'gpi_name.txt'' delimiter '';'' csv quote ''$''';

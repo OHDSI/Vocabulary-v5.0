@@ -727,7 +727,7 @@ BEGIN
 	WHERE cr.invalid_reason IS NOT NULL;
 
 	--22. 'Maps to' or 'Maps to value' relationships should not exist where
-	--a) the source concept has standard_concept = 'S', unless it is to self
+	--a) the source concept has standard_concept = 'S', unless it is to self <--the rule is deprecated
 	--b) the target concept has standard_concept = 'C' or NULL
 	--c) the target concept has invalid_reason='D' or 'U'
 
@@ -738,8 +738,7 @@ BEGIN
 	WHERE r.concept_id_1 = c1.concept_id
 	AND r.concept_id_2 = c2.concept_id
 	AND (
-		(c1.standard_concept = 'S' AND c1.concept_id <> c2.concept_id) -- rule a)
-		OR COALESCE (c2.standard_concept, 'X') <> 'S' -- rule b)
+		COALESCE (c2.standard_concept, 'X') <> 'S' -- rule b)
 		OR c2.invalid_reason IN ('U', 'D') -- rule c)
 	)
 	AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)
@@ -755,8 +754,7 @@ BEGIN
 	WHERE r.concept_id_1 = c1.concept_id
 	AND r.concept_id_2 = c2.concept_id
 	AND (
-		(c2.standard_concept = 'S' AND c1.concept_id <> c2.concept_id) -- rule a)
-		OR COALESCE (c1.standard_concept, 'X') <> 'S' -- rule b)
+		COALESCE (c1.standard_concept, 'X') <> 'S' -- rule b)
 		OR c1.invalid_reason IN ('U', 'D') -- rule c)
 	)
 	AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)

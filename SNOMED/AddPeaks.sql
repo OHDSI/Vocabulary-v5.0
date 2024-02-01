@@ -1686,6 +1686,7 @@ BEGIN
 		(68329003, 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fuller's earth
 		(226916002, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Beef
 		(1284919009, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bovine gelatin
+		(256363008, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Animal protein
 		(39248411000001101, 'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sodium iodide (131-I)
 		(1368003, 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine-131
 		(33271006, 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodohippurate (131-I) sodium
@@ -1700,6 +1701,8 @@ BEGIN
 		(255955006,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Local anesthetic allergen
 		(406463001,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug allergen
 		(782573007,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glycerol phenylbutyrate
+		(441900009,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical
+
 
 		--history:on
 		(364066008,			'Observation',	TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable

@@ -1,23 +1,4 @@
---1. Backup concept_relationship_manual table
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_ndc.concept_relationship_manual;
-INSERT INTO dev_ndc.concept_relationship_manual
-SELECT * FROM dev_ndc.concept_relationship_manual_backup_YYYY_MM_DD;*/
-
---2. Create NDC_manual_mapped table and pre-populate it with the resulting manual table of the previous NDC refresh
+--1. Create NDC_manual_mapped table and pre-populate it with the resulting manual table of the previous NDC refresh
 --DROP TABLE dev_ndc.NDC_manual_mapped;
 CREATE TABLE dev_ndc.NDC_manual_mapped (
     source_concept_id int,
@@ -35,14 +16,14 @@ CREATE TABLE dev_ndc.NDC_manual_mapped (
     target_vocabulary_id varchar(255)
 );
 
---3. Select concepts to map and add them to the manual file in the spreadsheet editor.
+--2. Select concepts to map and add them to the manual file in the spreadsheet editor.
 
---4. Truncate the NDC_manual_mapped table. Save the spreadsheet as the NDC_manual_mapped table and upload it into the working schema.
+--3. Truncate the NDC_manual_mapped table. Save the spreadsheet as the NDC_manual_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_ndc.NDC_manual_mapped;
 
---5. Perform mapping (NDC_manual_mapped) checks
+--4. Perform mapping (NDC_manual_mapped) checks
 
---6. Deprecate all mappings that differ from the new version of resulting mapping file.
+--5. Deprecate all mappings that differ from the new version of resulting mapping file.
 
 -- Perform UPDATE after review SELECT result
 UPDATE dev_ndc.concept_relationship_manual
@@ -74,7 +55,7 @@ WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relatio
 )
 ;
 
---7. Insert new and corrected mappings into the concept_relationship_manual table.
+--6. Insert new and corrected mappings into the concept_relationship_manual table.
 --mapping insertion
 with tab as (
     SELECT DISTINCT s.*

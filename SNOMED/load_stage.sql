@@ -1544,7 +1544,19 @@ AND NOT EXISTS(
 AND cs.vocabulary_id = 'SNOMED'
 AND cs.invalid_reason IS NOT NULL;
 
---15. Make manual changes according to rules
+--15. All ingredients of drugs should be drugs
+UPDATE concept_stage cs
+SET domain_id = 'Drug'
+WHERE EXISTS(SELECT 1
+             FROM concept_relationship_stage crs
+             JOIN concept_stage ccs ON (ccs.concept_code, ccs.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
+             WHERE (crs.concept_code_1, crs.vocabulary_id_1) = (cs.concept_code, cs.vocabulary_id)
+       			AND crs.relationship_id = 'Active ing of'
+				AND ccs.domain_id = 'Drug'
+       			AND crs.invalid_reason IS NULL)
+AND cs.vocabulary_id = 'SNOMED';
+
+--16. Make manual changes according to rules
 --Manual correction
 ---Assign Measurement domain to all scores:
 UPDATE concept_stage
@@ -1620,7 +1632,7 @@ FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
---16. Set standard_concept based on validity and domain_id
+--17. Set standard_concept based on validity and domain_id
 UPDATE concept_stage cs
 SET standard_concept = CASE domain_id
 		WHEN 'Drug'
@@ -1642,20 +1654,20 @@ SET standard_concept = CASE domain_id
 		ELSE 'S'
 		END;
 
---16.1. De-standardize navigational concepts
+--17.1. De-standardize navigational concepts
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code = 363743006 -- Navigational Concept
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
---16.2. Make those Obsolete routes non-standard
+--17.2. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---16.3 Make domain 'Geography' non-standard, except countries:
+--17.3 Make domain 'Geography' non-standard, except countries:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE domain_id = 'Geography'
@@ -1665,7 +1677,7 @@ AND concept_code NOT IN (
 		WHERE ancestor_concept_code = 223369002 -- Country
 		);
 
---16.4 Make procedures with the context = 'Done' non-standard:
+--17.4 Make procedures with the context = 'Done' non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -1678,7 +1690,7 @@ WHERE EXISTS (
 			AND crs.invalid_reason IS NULL
 		);
 
---16.5 Make certain hierarchical branches non-standard:
+--17.5 Make certain hierarchical branches non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
@@ -1699,7 +1711,7 @@ WHERE sa.ancestor_concept_code IN (373060007, -- Device status
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
 
---16.6 Make certain concept classes non-standard:
+--17.6 Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id IN (
@@ -1724,7 +1736,7 @@ WHERE concept_class_id = 'Social Context'
 				)
 		);
 
---17. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--18. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1824,13 +1836,13 @@ JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
 WHERE p.conceptid <> p.replacementid
 ;
 
---18. Append manual concepts again for final assignment of concept characteristics
+--19. Append manual concepts again for final assignment of concept characteristics
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---19. Working with relationships
+--20. Working with relationships
 
 -- Add mapping from deprecated to fresh concepts
 DO $_$
@@ -1855,13 +1867,13 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---19. Clean up
+--21. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
---21. Need to check domains before running the generic_update
+--22. Need to check domains before running the generic_update
 /*temporary disabled for later use
 DO $_$
 DO $_$

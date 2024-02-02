@@ -1691,7 +1691,8 @@ WHERE sa.ancestor_concept_code IN (373060007, -- Device status
 	   )
 	AND NOT EXISTS(SELECT 1
 	               FROM snomed_ancestor i
-	               WHERE i.ancestor_concept_code IN (394698008, -- Birth history
+	               WHERE sa.descendant_concept_code = i.descendant_concept_code
+	                     AND i.ancestor_concept_code IN (394698008, -- Birth history
 	                                    1187600006, -- Served in military service
 	                                    1187610002 -- Left military service
 	       ))

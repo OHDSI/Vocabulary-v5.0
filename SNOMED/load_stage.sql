@@ -1052,7 +1052,7 @@ FROM (
 			sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC
 			) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
-	FROM sources.der2_crefset_assreffull_merged sc
+	FROM dev_snomed.der2_crefset_assreffull_merged_custom sc
 	WHERE sc.refsetid IN (
 			900000000000526001,
 			900000000000523009,
@@ -1257,18 +1257,7 @@ SET valid_end_date = (
 WHERE invalid_reason = 'U'
 	AND valid_end_date = TO_DATE('20991231', 'YYYYMMDD');
 
---10. Inherit concept class for updated concepts from mapping target -- some of them never had hierarchy tags to extract them
-UPDATE concept_stage cs
-SET concept_class_id = x.concept_class_id
-FROM concept_relationship_stage r,
-	concept_stage x
-WHERE r.concept_code_1 = cs.concept_code
-	AND r.relationship_id = 'Maps to'
-	AND r.invalid_reason IS NULL
-	AND r.concept_code_2 = x.concept_code
-	AND cs.concept_class_id = 'Undefined';
-
---11. Append manual relationships
+--10. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
@@ -1685,17 +1674,18 @@ UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code IN ('373060007', -- Device status
-								   '445536008', -- Assessment using assessment scale
 								   '417662000', -- History of clinical finding in subject
                                    '312871001', --Administration of bacterial vaccine
                                    '1156257007', -- Administration of SARS-CoV-2 vaccine
-                                   '49083007', --Administration of viral vaccine
+                                   '49083007', 	--Administration of viral vaccine
                                    '283511000000105' --Administration of vaccine
 	   )
-	AND sa.ancestor_concept_code NOT IN ('394698008', -- Birth history
+	AND NOT EXISTS(SELECT 1
+	               FROM snomed_ancestor i
+	               WHERE i.ancestor_concept_code IN ('394698008', -- Birth history
 	                                    '1187600006', -- Served in military service
 	                                    '1187610002' -- Left military service
-	       )
+	       ))
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
 
@@ -1724,7 +1714,7 @@ WHERE concept_class_id = 'Social Context'
 				)
 		);
 
---16.7. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--17. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1824,14 +1814,13 @@ JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
 WHERE p.conceptid <> p.replacementid
 ;
 
---17. Append manual concepts
+--18. Append manual concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---18. Working with relationships
-
+--19. Working with relationships
 -- Working with replacement mappings
 DO $_$
 BEGIN
@@ -1867,7 +1856,7 @@ DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
---20. Need to check domains before running the generic_update
+--21. Need to check domains before running the generic_update
 /*temporary disabled for later use
 DO $_$
 DO $_$

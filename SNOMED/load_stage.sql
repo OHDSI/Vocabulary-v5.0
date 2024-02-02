@@ -1752,93 +1752,82 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date
 	)
 WITH concept_status AS (
-		SELECT *
-		FROM (
-			SELECT id AS conceptid,
-				active,
-				statusid,
-				moduleid,
-				effectivetime,
-				rank() OVER (
-					PARTITION BY id ORDER BY effectivetime DESC
-					) AS rn
-			FROM sources.sct2_concept_full_merged c
-			WHERE c.moduleid NOT IN (
-                    999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
-                    999000011000001104 --SNOMED CT United Kingdom drug extension module
-                    )
-			) AS s0
-		WHERE rn = 1
-
+		SELECT DISTINCT ON (id) id AS conceptid,
+			active,
+			statusid,
+			moduleid,
+			effectivetime
+		FROM sources.sct2_concept_full_merged c
+		WHERE c.moduleid NOT IN (
+				999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+				999000011000001104 --SNOMED CT United Kingdom drug extension module
+				)
+		ORDER BY c.id,
+			c.effectivetime DESC
 		),
 	concept_fsn AS (
-		SELECT *
-		FROM (
-			SELECT d.conceptid,
-				d.term AS fsn,
-				a.active,
-				a.statusid,
-				a.moduleid,
-				a.effectivetime,
-				rank() OVER (
-					PARTITION BY d.conceptid ORDER BY d.effectivetime DESC
-					) AS rn
-			FROM sources.sct2_desc_full_merged d
-			JOIN concept_status a ON a.conceptid = d.conceptid
-				AND a.active = 1
-			WHERE
-                    d.active = 1
-                AND d.typeid = 900000000000003001 -- FSN
-                AND d.moduleid NOT IN (
-                    999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
-                    999000011000001104 --SNOMED CT United Kingdom drug extension module
-                )
-			) AS s0
-		WHERE rn = 1
+		SELECT DISTINCT ON (d.conceptid) d.conceptid,
+			d.term AS fsn,
+			a.active,
+			a.statusid,
+			a.moduleid,
+			a.effectivetime,
+			RANK() OVER (
+				PARTITION BY d.conceptid ORDER BY d.effectivetime DESC
+				) AS rn
+		FROM sources.sct2_desc_full_merged d
+		JOIN concept_status a ON a.conceptid = d.conceptid
+			AND a.active = 1
+		WHERE d.active = 1
+			AND d.typeid = 900000000000003001 -- FSN
+			AND d.moduleid NOT IN (
+				999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
+				999000011000001104 --SNOMED CT United Kingdom drug extension module
+				)
+		ORDER BY d.conceptid,
+			d.effectivetime DESC
 		),
-	dupes AS (
-		SELECT fsn
-		FROM concept_fsn
-		GROUP BY fsn
-		HAVING COUNT(conceptid) > 1
-		),
-	preferred_code AS
-	--1. International concept over local
-	--2. Defined concept over primitive
-	--3. Newest concept
-	(
-		SELECT d.fsn,
-			c.conceptid,
-			first_value(c.conceptid) OVER (
-				PARTITION BY d.fsn ORDER BY CASE c.moduleid
-						WHEN 900000000000207008 -- Core (International)
-							THEN 1
-						ELSE 2
-						END,
-					CASE c.statusid
-						WHEN 900000000000073002 --fully defined
-							THEN 1
-						ELSE 2
-						END,
-					effectivetime DESC
-				) AS replacementid
-		FROM dupes d
-		JOIN concept_fsn c ON c.fsn = d.fsn
+	preferred_code AS (
+		--1. International concept over local
+		--2. Defined concept over primitive
+		--3. Newest concept
+		SELECT DISTINCT ON (c1.fsn) c1.fsn,
+			c1.conceptid::TEXT,
+			c2.conceptid::TEXT AS replacementid
+		FROM concept_fsn c1
+		JOIN concept_fsn c2 ON c2.fsn = c1.fsn
+			AND c2.conceptid <> c1.conceptid
+		ORDER BY c1.fsn,
+			CASE c2.moduleid
+				WHEN 900000000000207008 -- Core (International)
+					THEN 1
+				ELSE 2
+				END,
+			CASE c2.statusid
+				WHEN 900000000000073002 --fully defined
+					THEN 1
+				ELSE 2
+				END,
+			c2.effectivetime DESC
 		)
-SELECT p.conceptid::VARCHAR,
-	p.replacementid::VARCHAR,
-	'SNOMED',
-	'SNOMED',
-	'Maps to',
-	(SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'SNOMED'),
-	TO_DATE('20991231', 'YYYYMMDD')
+SELECT p.conceptid AS concept_code_1,
+	p.replacementid AS concept_code_2,
+	'SNOMED' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	'Maps to' AS  relationship_id,
+	(
+		SELECT v.latest_update
+		FROM vocabulary v
+		WHERE v.vocabulary_id = 'SNOMED'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date
 FROM preferred_code p
-JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
-	AND c.standard_concept IS NOT NULL
-WHERE p.conceptid <> p.replacementid
-;
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_stage c
+		WHERE c.concept_code = p.replacementid
+			AND c.standard_concept IS NOT NULL
+		);
 
 --19. Append manual concepts again for final assignment of concept characteristics
 DO $_$

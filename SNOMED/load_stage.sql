@@ -1052,7 +1052,7 @@ FROM (
 			sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC
 			) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
-	FROM dev_snomed.der2_crefset_assreffull_merged_custom sc
+	FROM sources.der2_crefset_assreffull_merged sc
 	WHERE sc.refsetid IN (
 			900000000000526001,
 			900000000000523009,
@@ -1257,7 +1257,12 @@ SET valid_end_date = (
 WHERE invalid_reason = 'U'
 	AND valid_end_date = TO_DATE('20991231', 'YYYYMMDD');
 
---10. Append manual relationships
+--10. Append manual changes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
@@ -1814,7 +1819,7 @@ JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
 WHERE p.conceptid <> p.replacementid
 ;
 
---18. Append manual concepts
+--18. Append manual concepts again for final assignment of concept characteristics
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();

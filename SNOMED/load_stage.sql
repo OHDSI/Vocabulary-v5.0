@@ -1535,26 +1535,27 @@ WHERE c.vocabulary_id = 'SNOMED'
 UPDATE concept_stage cs
 SET domain_id = c.domain_id
 FROM concept c
-WHERE (c.concept_code, c.vocabulary_id) = (cs.concept_code, cs.vocabulary_id)
-AND NOT EXISTS(
-       SELECT 1
-       FROM snomed_ancestor sa
-       WHERE sa.descendant_concept_code::TEXT = cs.concept_code
-)
-AND cs.vocabulary_id = 'SNOMED'
-AND cs.invalid_reason IS NOT NULL;
+WHERE c.concept_code = cs.concept_code
+	AND c.vocabulary_id = cs.vocabulary_id
+	AND NOT EXISTS (
+		SELECT 1
+		FROM snomed_ancestor sa
+		WHERE sa.descendant_concept_code::TEXT = cs.concept_code
+		)
+	AND cs.invalid_reason IS NOT NULL;
 
 --15. All ingredients of drugs should be drugs
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
-WHERE EXISTS(SELECT 1
-             FROM concept_relationship_stage crs
-             JOIN concept_stage ccs ON (ccs.concept_code, ccs.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2)
-             WHERE (crs.concept_code_1, crs.vocabulary_id_1) = (cs.concept_code, cs.vocabulary_id)
-       			AND crs.relationship_id = 'Active ing of'
-				AND ccs.domain_id = 'Drug'
-       			AND crs.invalid_reason IS NULL)
-AND cs.vocabulary_id = 'SNOMED';
+FROM concept_relationship_stage crs
+JOIN concept_stage ccs ON ccs.concept_code = crs.concept_code_2
+	AND ccs.vocabulary_id = crs.vocabulary_id_2
+	AND ccs.domain_id = 'Drug'
+WHERE cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
+	AND crs.relationship_id = 'Active ing of'
+	AND crs.invalid_reason IS NULL
+	AND cs.domain_id <> 'Drug';
 
 --16. Make manual changes according to rules
 --Manual correction
@@ -1694,22 +1695,25 @@ WHERE EXISTS (
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
-WHERE sa.ancestor_concept_code IN (373060007, -- Device status
-								   417662000, -- History of clinical finding in subject
-                                   312871001, --Administration of bacterial vaccine
-                                   1156257007, -- Administration of SARS-CoV-2 vaccine
-                                   49083007, 	--Administration of viral vaccine
-                                   283511000000105 --Administration of vaccine
-	   )
-	AND NOT EXISTS(SELECT 1
-	               FROM snomed_ancestor i
-	               WHERE sa.descendant_concept_code = i.descendant_concept_code
-	                     AND i.ancestor_concept_code IN (394698008, -- Birth history
-	                                    1187600006, -- Served in military service
-	                                    1187610002 -- Left military service
-	       ))
+WHERE sa.ancestor_concept_code IN (
+		373060007, -- Device status
+		417662000, -- History of clinical finding in subject
+		312871001, --Administration of bacterial vaccine
+		1156257007, -- Administration of SARS-CoV-2 vaccine
+		49083007, --Administration of viral vaccine
+		283511000000105 --Administration of vaccine
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM snomed_ancestor i
+		WHERE sa.descendant_concept_code = i.descendant_concept_code
+			AND i.ancestor_concept_code IN (
+				394698008, -- Birth history
+				1187600006, -- Served in military service
+				1187610002 -- Left military service
+				)
+		)
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
-
 
 --17.6 Make certain concept classes non-standard:
 UPDATE concept_stage

@@ -121,10 +121,8 @@ FROM (
 						THEN 1 -- International release
 					WHEN 'US'
 						THEN 2 -- SNOMED US
-							--WHEN 'GB_DE'
-							--	THEN 3 -- SNOMED UK Drug extension, updated more often
 					WHEN 'UK'
-						THEN 4 -- SNOMED UK
+						THEN 3 -- SNOMED UK
 					ELSE 99
 					END ASC,
 				l.effectivetime DESC,
@@ -1082,7 +1080,13 @@ WHERE EXISTS (
 	AND sn.recent_status = 1 --no row with the same target concept, but more recent relationship with active = 0
 ON CONFLICT DO NOTHING;
 
---9.1 Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
+--9.1 Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--9.2 Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1215,7 +1219,7 @@ WHERE EXISTS (
 
 ANALYZE concept_relationship_stage;
 
---9.2. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
+--9.3. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
 UPDATE concept_stage cs
 SET invalid_reason = 'U',
 	valid_end_date = LEAST(cs.valid_end_date, crs.valid_start_date, (
@@ -1233,7 +1237,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 		)
 	AND crs.invalid_reason IS NULL;
 
---9.3. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
+--9.4. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
 	valid_end_date = LEAST(crs.valid_start_date, (
@@ -1247,7 +1251,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.invalid_reason IS NULL
 	AND cs.invalid_reason IS NULL;
 
---9.4. Update valid_end_date to latest_update if there is a discrepancy after last point
+--9.5. Update valid_end_date to latest_update if there is a discrepancy after last point
 UPDATE concept_stage cs
 SET valid_end_date = (
 		SELECT latest_update - 1
@@ -1678,18 +1682,18 @@ WHERE EXISTS (
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
-WHERE sa.ancestor_concept_code IN ('373060007', -- Device status
-								   '417662000', -- History of clinical finding in subject
-                                   '312871001', --Administration of bacterial vaccine
-                                   '1156257007', -- Administration of SARS-CoV-2 vaccine
-                                   '49083007', 	--Administration of viral vaccine
-                                   '283511000000105' --Administration of vaccine
+WHERE sa.ancestor_concept_code IN (373060007, -- Device status
+								   417662000, -- History of clinical finding in subject
+                                   312871001, --Administration of bacterial vaccine
+                                   1156257007, -- Administration of SARS-CoV-2 vaccine
+                                   49083007, 	--Administration of viral vaccine
+                                   283511000000105 --Administration of vaccine
 	   )
 	AND NOT EXISTS(SELECT 1
 	               FROM snomed_ancestor i
-	               WHERE i.ancestor_concept_code IN ('394698008', -- Birth history
-	                                    '1187600006', -- Served in military service
-	                                    '1187610002' -- Left military service
+	               WHERE i.ancestor_concept_code IN (394698008, -- Birth history
+	                                    1187600006, -- Served in military service
+	                                    1187610002 -- Left military service
 	       ))
 	AND cs.concept_code = sa.descendant_concept_code::TEXT;
 
@@ -1826,11 +1830,6 @@ BEGIN
 END $_$;
 
 --19. Working with relationships
--- Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
 
 -- Add mapping from deprecated to fresh concepts
 DO $_$

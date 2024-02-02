@@ -1787,7 +1787,7 @@ WITH concept_status AS (
                 AND d.typeid = 900000000000003001 -- FSN
                 AND d.moduleid NOT IN (
                     999000021000001108, --SNOMED CT United Kingdom drug extension reference set module
-                    999000011000001105 --SNOMED CT United Kingdom drug extension module
+                    999000011000001104 --SNOMED CT United Kingdom drug extension module
                 )
 			) AS s0
 		WHERE rn = 1

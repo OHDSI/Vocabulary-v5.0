@@ -1,8 +1,8 @@
-CREATE TABLE concept_manual_backup_23_01_2024 as SELECT * FROM concept_manual;
+CREATE TABLE concept_manual_backup_04_02_2024 as SELECT * FROM concept_manual;
 SELECT * FROM concept_manual_backup_01_2024;
-CREATE TABLE concept_relationship_manual_backup_23_01_2024 as SELECT * FROM concept_relationship_manual;
+CREATE TABLE concept_relationship_manual_backup_04_02_2024 as SELECT * FROM concept_relationship_manual;
 SELECT * FROM concept_relationship_manual_backup_01_2024;
-CREATE TABLE concept_synonym_manual_backup_23_01_2024 as SELECT * FROM concept_synonym_manual;
+CREATE TABLE concept_synonym_manual_backup_04_02_2024 as SELECT * FROM concept_synonym_manual;
 SELECT * FROM concept_synonym_manual_backup_01_2024;
 
 
@@ -236,7 +236,6 @@ UPDATE concept_manual
 SET domain_id = 'Observation';
 
 -- 4. insert concept synonyms from manual file
-
 SELECT * FROM concept_manual;
 SELECT * FROM concept_relationship_manual;
 SELECT * FROM concept_synonym_manual;

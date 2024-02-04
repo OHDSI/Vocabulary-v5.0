@@ -704,7 +704,16 @@ GROUP BY s.group_id, s.group_name,
 ORDER BY group_id desc
 ;
 SELECT DISTINCT * FROM icd_cde_manual
-ORDER BY group_id;
+WHERE group_id in
+((SELECT group_id FROM icd_cde_manual
+GROUP BY group_id
+    HAVING count (group_id)>1)
+UNION
+SELECT group_id FROM icd_cde_manual
+WHERE mappings_origin in ('CC', 'without mapping')
+GROUP BY group_id
+    HAVING count (group_id)=1)
+ORDER BY group_name;
 
 CREATE TABLE icd_cde_source_backp as (SELECT * FROM icd_cde_source);
 TRUNCATE TABLE icd_cde_source;

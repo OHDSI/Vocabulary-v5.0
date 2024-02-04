@@ -223,6 +223,12 @@ WHERE c.vocabulary_id = 'ICD9CM'
 		) limit 10;-- only new codes we don't already have
 */
 
+--4. Add manual concepts or changes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
 --8. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 DO $_$
 BEGIN
@@ -290,6 +296,55 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
+
+--16. Add mapping from deprecated to fresh concepts for 'Maps to value'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+-- Deprecate wrong maps to value
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id = 'Maps to value'
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-valid (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.invalid_reason IN (
+						'U',
+						'D'
+						)
+				);
+
+-- Deprecate mapping to non-S concepts
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id in ('Maps to','Maps to value')
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-S (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.standard_concept is null
+				);
 
 --14. Update domain_id for ICD9CM from SNOMED
 UPDATE concept_stage cs
@@ -363,11 +418,6 @@ WHERE i.concept_code = cs.concept_code
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---16. Add mapping from deprecated to fresh concepts for 'Maps to value'
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
 
 --17. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (

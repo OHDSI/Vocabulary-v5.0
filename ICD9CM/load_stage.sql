@@ -223,12 +223,6 @@ WHERE c.vocabulary_id = 'ICD9CM'
 		) limit 10;-- only new codes we don't already have
 */
 
---4. Add manual concepts or changes
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
-
 --8. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 DO $_$
 BEGIN
@@ -417,7 +411,6 @@ WHERE i.concept_code = cs.concept_code
 --15. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
-
 
 --17. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (

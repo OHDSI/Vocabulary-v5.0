@@ -33,7 +33,6 @@ BEGIN
 		(108329005,			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Social context Condition
 		(108252007,			'Measurement',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Laboratory procedures
 		(118246004,			'Measurement',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Laboratory test finding' - child of excluded Sample observation
-		(442564008,			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Evaluation of urine specimen
 		(64108007,			'Procedure',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Blood unit processing - inside Measurements
 		(258666001,			'Unit',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20190211', 'YYYYMMDD'),	NULL), -- Top unit
 		(243796009,			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Situation with explicit context
@@ -219,6 +218,10 @@ BEGIN
 		(126154004,			'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL),
 		(61483006,			'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL),
 		(373749006,			'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL),
+		--history:on
+		(373782009,			'Observation',  TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20180208', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
+		(373782009,			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', '20230914'),	NULL), -- diagnostic substance, exception of drug
+		--history:off
 		--2018-Oct-06
 		(414916001,			'Condition',	TO_DATE('20181006', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Obesity
 
@@ -874,7 +877,10 @@ BEGIN
 		(365619003,  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of red blood cell morphology
 		(366256008,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Finding of bowel action
 		(365648009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Blood compatibility - finding
-
+		(366276002,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Flow of urine - finding
+		(47252008,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Alteration in patterns of urinary elimination
+		(302117003,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Finding of musculoskeletal device
+		(419326002,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Limited eye movement
 		--history:on
 		(710954001,			'Measurement',	 TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20220504', 'YYYYMMDD'),	NULL), -- Bacteria present
 		(710954001,			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Bacteria present
@@ -1342,6 +1348,17 @@ BEGIN
 		(5541000237100,		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Alternative (AP100) complement pathway haemolytic activity percent in serum
 		(6381000237107,		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reactive lymphocyte percent in blood
 		(6411000237109,		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Calculated serum osmolarity molar concentration in serum
+		(39025000,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Nutrient requirement
+		(442239006,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --European pressure ulcer advisory panel classification
+
+		(371475003,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Specimen size
+		(404230009,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Specimen volume
+		(371506001,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Specimen weight
+		(399441008,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Total number of tissue chips
+		(399482008,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Total number of tissue cores
+		(395531003,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Neoplasm observable
+		(364108009,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Lymph node observable
+		(441281002,			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Amount of exudate
 
 		(363884002,  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Recognition observable
 		(6769007,  			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Attention
@@ -1398,6 +1415,9 @@ BEGIN
 		(105799003,  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Household device
 		(40188005,  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Household accessory
 		(698101006,  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Smoking device
+		(995006,  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Farm tool
+		(20513005,  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Power tool
+		(33352006,  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ax
 
 		--Pharma/Biol Product
 		--history:on
@@ -1418,7 +1438,7 @@ BEGIN
 		(327838005,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Intravenous nutrition
 		(226311003,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dietary fiber supplementation
 		(411115002,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug-device combination product
-		(12222501000001106, 'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Virtual radiopharmaceutical moiety
+		(1144611009,		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodinated contrast media-containing product
 		(736542009,			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Pharmaceutical dose form
 
 		--Procedure
@@ -1551,10 +1571,18 @@ BEGIN
 		(84478008, 	 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Occupational therapy
 		(12799001, 	 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Physiotherapy class activities
 		(409073007, 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Education
+		(11429006, 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Consultation
+		(185316007, 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Indirect encounter
+		(384762007, 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transportation procedure
 		(252314007,  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood transfusion test
 		(16830007,  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity testing
 		(441813004,  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of peritoneal fluid
 		(446428008,  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of musculoskeletal system
+		(442514001,  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of stool specimen
+	--history: on
+		(442564008,			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Evaluation of urine specimen
+		(442564008,			'Measurement',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of urine specimen
+	--history:off
 		(252758009,  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electromyography of anal sphincter
 		(284393006,  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Examination of joint
 		(363119001,  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Exploration of musculoskeletal system
@@ -1614,6 +1642,8 @@ BEGIN
 		(276726000,			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Microbiology subtype
 		(272397003,			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Numerical types
 		(272402004,			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Types TH
+		(258349007,			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Grades
+
 
 		(246292004,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Level of arrest
 		(134408007,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Cycle of change stage
@@ -1638,10 +1668,7 @@ BEGIN
 		(255922001,			'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dental material
 		(118417008,			'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Filling material
 		(445214009,			'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- corneal storage medium
-		--history:on
-		(373782009,			'Observation',  TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20180208', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
-		(373782009,			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
-		--history:off
+
 		(410942007,			'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug or medicament
 		(111160004,			'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sodium iodide (131-I)
 		(385420005,			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Contrast media
@@ -1662,16 +1689,16 @@ BEGIN
 		(256673003,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mucosa, skin and subcutaneous material
 		(256899007,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cardiovascular material
 		(418588009,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dusting powder agent
+		(260992007,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Biological surgical material
+		(261571005,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tissue graft - material
+		(373498003,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sunscreen
+		(426722004,			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodinated contrast media
 
 		(255640000,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Biocide
-		(301054007,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Phytochemical
-		(106181007,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Immunologic substance
 		(418297009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pharmaceutical base or inactive agent
-		(419556005,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Medical gas
 		(57795002,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical element
 		(412232009,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Microbial agent
 		(762766007,			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Edible substance
-		(33638001, 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Isotope
 		(767266004, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine and iodine compound
 		(28268006, 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnanediol
 		(71159008, 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnanetriol
@@ -1687,6 +1714,9 @@ BEGIN
 		(226916002, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Beef
 		(1284919009, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bovine gelatin
 		(256363008, 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Animal protein
+		(88878007, 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antibody
+		(49616005, 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Monoclonal antibody
+		(35310003, 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Polyclonal antibody
 		(39248411000001101, 'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sodium iodide (131-I)
 		(1368003, 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine-131
 		(33271006, 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodohippurate (131-I) sodium
@@ -1702,7 +1732,14 @@ BEGIN
 		(406463001,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug allergen
 		(782573007,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glycerol phenylbutyrate
 		(441900009,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical
-
+		(80917008,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Toxin
+		(418831000,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Macromolecular blood substitute
+		(735252001,  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Protein and/or protein derivative
+		(372558009,			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Immunomodulator
+		(398655004,			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antiserum
+		(407073003,			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Recombinant protein
+		(767722000,			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mediator of immune response and inflammation
+		(33619005,			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plasminogen activator
 
 		--history:on
 		(364066008,			'Observation',	TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable

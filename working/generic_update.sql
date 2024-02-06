@@ -1,21 +1,8 @@
 CREATE OR REPLACE FUNCTION devv5.GenericUpdate (
-	pMode character varying DEFAULT 'VOCABULARY'
 )
 RETURNS void AS
-	/*
-	pMode parameter modifies the behavior of the function:
-	- FULL: Assumes that the stage tables contain a full set of concepts for the vocabulary. Will deprecate
-		missing concepts in the concept table.
-	- DELTA: Assumes that the stage tables contain only the concepts that have changed since the last release.
-	- VOCABULARY (default): Will make the assumption between Full and Delta based on the vocabulary_id.
-	*/
 $BODY$
 BEGIN
-	--0. Check if the pMode parameter is valid
-	IF pMode NOT IN ('FULL', 'DELTA', 'VOCABULARY') THEN
-		RAISE EXCEPTION 'Invalid pMode parameter: %', pMode;
-	END IF;
-
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
 	DO $$
@@ -35,17 +22,17 @@ BEGIN
 
 	--1.2 Start logging manual work
 	PERFORM admin_pack.LogManualChanges();
-	
+
 	--1.3 Clear concept_id's just in case
 	UPDATE concept_stage
 	SET concept_id = NULL
 	WHERE concept_id IS NOT NULL;
-	
+
 	UPDATE concept_relationship_stage
 	SET concept_id_1 = NULL,
 		concept_id_2 = NULL
 	WHERE COALESCE(concept_id_1, concept_id_2) IS NOT NULL;
-	
+
 	UPDATE concept_synonym_stage
 	SET synonym_concept_id = NULL
 	WHERE synonym_concept_id IS NOT NULL;
@@ -184,7 +171,7 @@ BEGIN
 			cs.domain_id,
 			cs.concept_class_id,
 			cs.standard_concept,
-			CASE 
+			CASE
 				WHEN cs.valid_start_date <> v.latest_update --if we have a real date in the concept_stage, use it. If it is only the release date, use the existing
 					THEN cs.valid_start_date
 				ELSE c.valid_start_date
@@ -211,11 +198,6 @@ BEGIN
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 	AND c.invalid_reason IS NULL -- not already deprecated
 	AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
-		-- Check if desired behavior is specified
-		WHEN pMode = 'FULL' THEN 1
-		WHEN pMode = 'DELTA' THEN 0
-		--WHEN pMode = 'VOCABULARY' THEN 1
-		-- Default state for vocabularies
 		WHEN c.vocabulary_id = 'SNOMED' THEN 1
 		WHEN c.vocabulary_id = 'LOINC' THEN 1
 		WHEN c.vocabulary_id = 'ICD9CM' THEN 1
@@ -311,7 +293,7 @@ BEGIN
 		SELECT concept_id + 1 INTO ex FROM (
 			SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
 			FROM (
-				SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM 
+				SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM
 				(
 					SELECT concept_id FROM concept
 					UNION ALL
@@ -474,9 +456,9 @@ BEGIN
 				vocabulary_id_2,
 				relationship_id
 			FROM concept_relationship_stage
-			
+
 			EXCEPT
-			
+
 			(
 				SELECT concept_code_1,
 					concept_code_2,
@@ -484,9 +466,9 @@ BEGIN
 					vocabulary_id_2,
 					relationship_id
 				FROM concept_relationship_manual
-				
+
 				UNION ALL
-				
+
 				--Add reverse mappings for exclude
 				SELECT concept_code_2,
 					concept_code_1,
@@ -512,9 +494,9 @@ BEGIN
 			AND s0.relationship_id NOT IN (
 				SELECT relationship_id
 				FROM relationships
-				
+
 				UNION ALL
-				
+
 				SELECT reverse_relationship_id
 				FROM relationships
 				JOIN relationship USING (relationship_id)
@@ -636,7 +618,7 @@ BEGIN
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
 		AND (
-			crs.vocabulary_id_1=c1.vocabulary_id 
+			crs.vocabulary_id_1=c1.vocabulary_id
 			OR (/*AVOF-459*/
 				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
@@ -731,9 +713,9 @@ BEGIN
 		AND v.latest_update IS NOT NULL
 	CROSS JOIN (
 		SELECT 'Maps to' AS relationship_id
-		
+
 		UNION ALL
-		
+
 		SELECT 'Mapped from'
 		) r
 	WHERE c.standard_concept = 'S'
@@ -745,7 +727,7 @@ BEGIN
 	WHERE cr.invalid_reason IS NOT NULL;
 
 	--22. 'Maps to' or 'Maps to value' relationships should not exist where
-	--a) the source concept has standard_concept = 'S', unless it is to self <--the rule is deprecated
+	--a) the source concept has standard_concept = 'S', unless it is to self
 	--b) the target concept has standard_concept = 'C' or NULL
 	--c) the target concept has invalid_reason='D' or 'U'
 
@@ -756,7 +738,8 @@ BEGIN
 	WHERE r.concept_id_1 = c1.concept_id
 	AND r.concept_id_2 = c2.concept_id
 	AND (
-		COALESCE (c2.standard_concept, 'X') <> 'S' -- rule b)
+		(c1.standard_concept = 'S' AND c1.concept_id <> c2.concept_id) -- rule a)
+		OR COALESCE (c2.standard_concept, 'X') <> 'S' -- rule b)
 		OR c2.invalid_reason IN ('U', 'D') -- rule c)
 	)
 	AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)
@@ -772,7 +755,8 @@ BEGIN
 	WHERE r.concept_id_1 = c1.concept_id
 	AND r.concept_id_2 = c2.concept_id
 	AND (
-		COALESCE (c1.standard_concept, 'X') <> 'S' -- rule b)
+		(c2.standard_concept = 'S' AND c1.concept_id <> c2.concept_id) -- rule a)
+		OR COALESCE (c1.standard_concept, 'X') <> 'S' -- rule b)
 		OR c1.invalid_reason IN ('U', 'D') -- rule c)
 	)
 	AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)

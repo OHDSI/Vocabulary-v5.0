@@ -215,15 +215,15 @@ BEGIN
 				AND cs.language_concept_id=(r.new_row->>'language_concept_id')::INT4;
 
 			ELSIF r.table_name='vocabulary' THEN
-				IF r.old_row ? 'dev_schema_name' OR r.new_row ? 'dev_schema_name' THEN
-					CONTINUE; --skip ALTER TABLE from SetLatestUpdate
-				END IF;
-				
 				UPDATE vocabulary v SET
 					(vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id)=
 					(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id)
 				FROM JSONB_POPULATE_RECORD(NULL::vocabulary, r.old_row) j
-				WHERE v.vocabulary_id=(r.new_row->>'vocabulary_id');
+				WHERE v.vocabulary_id=(r.new_row->>'vocabulary_id')
+				--skip changes from latest_update/dev_schema_name fields
+				AND ROW(v.vocabulary_id,v.vocabulary_name,v.vocabulary_reference,v.vocabulary_version,v.vocabulary_concept_id)
+				IS DISTINCT FROM
+				ROW(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id);
 
 			ELSIF r.table_name='relationship' THEN
 				UPDATE relationship rel SET

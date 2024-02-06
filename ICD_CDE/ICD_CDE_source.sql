@@ -9,32 +9,33 @@ DROP TABLE dev_icd10.icd_cde_source;
 TRUNCATE TABLE dev_icd10.icd_cde_source;
 CREATE TABLE dev_icd10.icd_cde_source
 (
-    source_code             TEXT NOT NULL,
-    source_code_description varchar,
-    source_vocabulary_id    varchar,
-    group_name              varchar,
-    group_id                int,
-    --group_code              varchar, -- group code is dynamic and is assembled after grouping just before insertion data into the google sheet
-    medium_group_id         integer,
-    --medium_group_code       varchar,
-    broad_group_id          integer,
-    --broad_group_code        varchar,
-    for_review              varchar,
-    decision                varchar,
-    decision_date           varchar,
-    relationship_id         varchar,
-    target_concept_id       integer,
-    target_concept_code     varchar,
-    target_concept_name     varchar,
-    target_concept_class_id varchar,
-    target_standard_concept varchar,
-    target_invalid_reason   varchar,
-    target_domain_id        varchar,
-    target_vocabulary_id    varchar,
-    rel_invalid_reason      varchar,
-    valid_start_date        date,
-    valid_end_date          date,
-    mappings_origin         varchar
+    source_code                TEXT NOT NULL,
+    source_code_description    varchar,
+    source_vocabulary_id       varchar,
+    group_name                 varchar,
+    group_id                   int,
+    --group_code                 varchar, -- group code is dynamic and is assembled after grouping just before insertion data into the google sheet
+    medium_group_id            integer,
+    --medium_group_code          varchar,
+    broad_group_id             integer,
+    --broad_group_code           varchar,
+    for_review                 varchar,
+    decision                   varchar,
+    decision_date              varchar,
+    relationship_id            varchar,
+    relationship_id_predicate  varchar,
+    target_concept_id          integer,
+    target_concept_code        varchar,
+    target_concept_name        varchar,
+    target_concept_class_id    varchar,
+    target_standard_concept    varchar,
+    target_invalid_reason      varchar,
+    target_domain_id           varchar,
+    target_vocabulary_id       varchar,
+    rel_invalid_reason         varchar,
+    valid_start_date           date,
+    valid_end_date             date,
+    mappings_origin            varchar
 );
 
 -- Run load_stage for every Vocabulary to be included into the CDE
@@ -978,15 +979,36 @@ WHERE target_standard_concept = 'Standard';
 UPDATE icd_cde_mapped SET target_invalid_reason = null
 WHERE target_standard_concept = 'Valid';
 
---Update rel_invalid_reason, valid_start_date, valid_end_date fields
+--Update rel_invalid_reason, valid_start_date, valid_end_date fields for declined candidates
 UPDATE icd_cde_mapped SET
-rel_invalid_reason = 'D',
-valid_end_date = current_date
-WHERE decision = '0';
+decision_date = current_date
+WHERE decision in ('0', '1');
 
---12. Update targets in the initial table from mapped table
+--12. Update targets status in the initial table from mapped table
 UPDATE dev_icd10.icd_cde_source s
-SET (decision,
+SET (relationship_id_predicate,
+     decision,
+     decision_date) = (
+         SELECT
+     relationship_id_predicate,
+     decision,
+     decision_date
+FROM icd_cde_mapped m
+WHERE s.group_name = m.group_name
+AND s.target_concept_id = m.target_concept_id
+AND s.target_concept_code = m.target_concept_code
+AND s.target_concept_name = m.target_concept_name
+AND s.target_concept_class_id = m.target_concept_class_id
+AND s.target_standard_concept = m.target_standard_concept
+AND s.target_invalid_reason = m.target_invalid_reason
+AND s.target_domain_id = m.target_domain_id
+AND s.target_vocabulary_id = m.target_vocabulary_id
+    );
+
+--Update target for concept without mappings
+UPDATE dev_icd10.icd_cde_source s
+SET (relationship_id_predicate,
+     decision,
      decision_date,
      relationship_id,
      target_concept_id,
@@ -998,6 +1020,7 @@ SET (decision,
      target_domain_id,
      target_vocabulary_id) = (
          SELECT
+     relationship_id_predicate,
      decision,
      decision_date,
      relationship_id,
@@ -1010,6 +1033,35 @@ SET (decision,
      target_domain_id,
      target_vocabulary_id
 FROM icd_cde_mapped m
-WHERE s.group_name = m.group_name
+WHERE s.group_id = m.group_id
+AND s.mappings_origin = 'without mapping'
+    );
+
+--13. Create final table with mappings
+CREATE TABLE icd_cde_proc AS
+    (SELECT * FROM icd_cde_source);
+
+-- Update mappings for every concept
+UPDATE icd_cde_proc p
+SET (relationship_id,
+     target_concept_id,
+     target_concept_code,
+     target_concept_name,
+     target_concept_class_id,
+     target_standard_concept,
+     target_invalid_reason,
+     target_domain_id,
+     target_vocabulary_id) = (
+         SELECT
+     relationship_id,
+     target_concept_id,
+     target_concept_code,
+     target_concept_name,
+     target_concept_class_id,
+     target_standard_concept,
+     target_invalid_reason,
+     target_domain_id,
+     target_vocabulary_id
+FROM icd_cde_mapped m
+WHERE p.group_name = m.group_name
 AND m.decision = '1') ;
-;

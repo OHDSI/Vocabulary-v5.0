@@ -1671,7 +1671,7 @@ WHERE concept_name LIKE 'Obsolete%'
 --17.3 Make domain 'Geography' non-standard, except countries:
 UPDATE concept_stage
 SET standard_concept = NULL
-WHERE domain_id = 'Geography'
+WHERE concept_class_id = 'Location'
 AND concept_code NOT IN (
 		SELECT descendant_concept_code::TEXT
 		FROM snomed_ancestor

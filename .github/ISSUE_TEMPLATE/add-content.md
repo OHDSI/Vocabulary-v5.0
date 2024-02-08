@@ -24,7 +24,7 @@ Choose the category of your submission and download the corresponding template:
 
 - Template 1: Add non-standard concept(s) to an existing vocabulary (with or without synonyms or mappings);
 - Template 2: Add synonym(s) to existing concept(s);
-- Template 3: Add mapping to any existing concept(s);
+- Template 3: Add mapping(s) to existing concept(s);
 - Template 4: Add new non-standard vocabulary (with or without mappings).
 
 **3. Fill out the template.**
@@ -43,4 +43,4 @@ Please add the link to your submission to the newly created GitHub issue.
 
 **6. See your contribution in the next release!**
 
-'Add content' contributions are not reviewed by the Vocabulary Team and you generally can expect to see them in the next release if the submission is made at least two months prior to the release date.
+'Add content' contributions are not reviewed by the Vocabulary Team and you generally can expect to see them in the next release if the submission is made at least 2 months prior to the release date.

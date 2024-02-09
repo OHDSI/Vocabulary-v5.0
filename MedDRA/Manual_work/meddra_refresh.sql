@@ -200,6 +200,8 @@ ORDER BY t.source_code;
 
 -- 6.2.3 Create meddra_environment table
 
+
+--CREATE TABLE meddra_environment AS
 WITH tab AS(
 SELECT mpt.hierarchy, mpt.source_code, c.concept_name AS source_code_description, mpt.concept_class_id, mpt.invalid_reason, mpt.domain_id,
        mpt.to_value, mpt.flag, cc.concept_id AS target_concept_id, cc.standard_concept AS target_standard_concept,
@@ -214,7 +216,7 @@ INNER JOIN devv5.concept AS cc
 ON mpt.target_concept_id = cc.concept_id
 ORDER BY mpt.source_code, mpt.to_value, cc.concept_id)
 
---CREATE TABLE meddra_environment AS
+
 SELECT
     source_code,
     source_code_description,
@@ -269,6 +271,7 @@ ORDER BY source_code, relationship_id, count_aggr DESC;
 
 
 -- 6.2.5.Truncate meddra_environment table.
+
 --TRUNCATE TABLE dev_meddra.meddra_environment;
 
 -- 6.2.6 Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema. Run manual checks (+ specific checks) for meddra_environment table
@@ -276,6 +279,7 @@ ORDER BY source_code, relationship_id, count_aggr DESC;
 -- Check if rows are uploaded correctly
 
 SELECT * FROM dev_meddra.meddra_environment;
+DELETE FROM dev_meddra.meddra_environment WHERE source_code='';
 
 -- Check if field 'decision' doesn't contain value '1' (ideally must be NULL rows)
 
@@ -283,6 +287,7 @@ SELECT * FROM dev_meddra.meddra_environment;
 SELECT DISTINCT source_code, source_code_description
 FROM dev_meddra.meddra_environment
 WHERE source_code NOT IN (SELECT DISTINCT source_code FROM dev_meddra.meddra_environment WHERE decision = '1');
+
 
 -- Check if field 'relationship_id_predicate' doesn't contain any value (ideally must be NULL rows)
 
@@ -295,7 +300,7 @@ WHERE source_code NOT IN (
         OR relationship_id_predicate='up'
         OR relationship_id_predicate='down');
 
--- Check if any discrepancies between relationship_id_predicate and decision fields
+-- Check if any discrepancies between relationship_id_predicate and decision fields (ideally must be NULL rows)
 SELECT DISTINCT source_code
 FROM dev_meddra.meddra_environment
 WHERE (relationship_id_predicate='' AND decision='1')
@@ -356,6 +361,9 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL;
 
+SELECT * FROM concept_relationship_manual
+WHERE concept_code_1 = '10015216';
+
 -- Creation of MedDRA-SNOMED hierarchical relationships
 
 
@@ -386,10 +394,6 @@ INSERT INTO dev_meddra.concept_relationship_manual AS mapped
     invalid_reason)
 SELECT *
 FROM tab;
-
-
-
-
 
 
 

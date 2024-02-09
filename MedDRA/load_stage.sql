@@ -361,15 +361,19 @@ SET standard_concept = NULL
 WHERE concept_class_id IN ('PT', 'LLT')
 AND NOT EXISTS (
     SELECT 1
-    FROM dev_meddra.concept_relationship_stage AS crs
+    FROM dev_meddra.concept_relationship_manual AS crm
     INNER JOIN dev_meddra.concept_stage AS c
-    ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1
+    ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = crm.vocabulary_id_1
     WHERE vocabulary_id_1 != vocabulary_id_2
     AND relationship_id LIKE 'Maps to%'
-    AND crs.invalid_reason IS NULL
+    AND crm.invalid_reason IS NULL
     AND c.concept_class_id IN ('PT', 'LLT') AND c.invalid_reason IS NULL
-    AND s.concept_code = crs.concept_code_1);
+    AND s.concept_code = crm.concept_code_1);
 
+-- SELECT *
+-- FROM concept_stage
+-- WHERE concept_class_id  in ('PT', 'LLT')
+-- ORDER BY standard_concept;
 
 -- 6. Working with concept_manual table
 DO $_$

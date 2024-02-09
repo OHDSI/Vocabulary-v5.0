@@ -293,7 +293,7 @@ AS (
 			WHEN l1.str = 'E-codes'
 				THEN 'Device' -- all of them Level 1: E0100-E9999
 					-- G codes
-			WHEN l2.str = 'Vaccine Administration' -- hard to say why it was Procedure but not a drug?
+			WHEN l2.str = 'Vaccine Administration'
 				THEN 'Drug' -- Level 2: G0008-G0010
 			WHEN concept_code = 'G0002'
 				THEN 'Device'
@@ -305,45 +305,50 @@ AS (
 			WHEN concept_code BETWEEN 'G0048'
 					AND 'G0067'
 				THEN 'Observation' -- codes added in 2022, MIPS specialty sets for particular medical specialties
-			WHEN concept_code IN (
-					'G0101',
-					'G0102',
-					'G0165',
-					'G0166'
-					)
-				THEN 'Procedure'
-			WHEN concept_code = 'G0103'
-				THEN 'Measurement' -- Prostate cancer screening; prostate specific antigen test (psa)
-			WHEN l2.str = 'Diabetes Management Training Services'
-				THEN 'Observation' -- Level 2: G0108-G0109
-			WHEN concept_code BETWEEN 'G0123'
+			WHEN concept_code BETWEEN 'G0068'
+					AND 'G0090' -- Professional services and visits
+				THEN 'Observation'
+			WHEN concept_code BETWEEN 'G0101'
+					AND 'G0107' -- Screening
+				OR concept_code BETWEEN 'G0117'
 					AND 'G0124'
-				THEN 'Measurement' -- G0123-G0124 Screening cytopathology
+			       THEN 'Measurement' -- Screening procedures
+			WHEN concept_code BETWEEN 'G0108'
+					AND 'G0116'
+				THEN 'Observation' -- Education and training
 			WHEN concept_code BETWEEN 'G0128'
 					AND 'G0129'
-				THEN 'Observation' -- Level 2: G0128-G0129 previously 'Service, Nurse AND OT'
+				THEN 'Observation' -- Services, Nurse AND OT
 			WHEN concept_code BETWEEN 'G0141'
 					AND 'G0148'
-				THEN 'Measurement' -- G0141-G0148 Screening cytopathology
+				THEN 'Measurement' -- Screening cytopathology
 			WHEN concept_code BETWEEN 'G0151'
 					AND 'G0164'
-				THEN 'Observation' -- Level 2: G0151-G0166 previously 'Services, Allied Health'
-			WHEN concept_code = 'G0175'
-				THEN 'Observation' -- Level 2: G0175-G0175 previously 'Team Conference'
+				THEN 'Observation' -- Services, Allied Health
+			WHEN concept_code BETWEEN 'G0165'
+					AND 'G0174'
+				THEN 'Procedure'
+			WHEN concept_code IN ('G0175', -- Interdisciplinary team conference
+			                      'G0177' -- Training and educational services
+			                     )
+				THEN 'Observation'
 			WHEN concept_code BETWEEN 'G0179'
 					AND 'G0182'
-				THEN 'Observation' -- Level 2: G0179-G0182 previously 'Physician Services'
+				THEN 'Observation' -- Physician Services
+			WHEN concept_code BETWEEN 'G0202'
+					AND 'G0203'
+				THEN 'Measurement' -- Screening mammography
 			WHEN concept_code BETWEEN 'G0237'
 					AND 'G0239'
-				THEN 'Procedure' -- Level 2: G0237-G0239 previously 'Therapeutic Procedures'
-			WHEN concept_code BETWEEN 'G0245'
+				THEN 'Procedure' -- Therapeutic Procedures
+			WHEN concept_code BETWEEN 'G0240'
 					AND 'G0246'
-				THEN 'Observation' -- Level 2: G0245-G0246  'Physician Services, Diabetic'
+				THEN 'Observation' -- Physician Services, Diabetic
 			WHEN concept_code BETWEEN 'G0248'
 					AND 'G0250'
-				THEN 'Observation' -- Level 2: G0248-G0250 previously 'Demonstration, INR'
+				THEN 'Observation' -- Demonstration, INR
 			WHEN concept_code = 'G3001'
-				THEN 'Drug' -- Level 2: G3001-G3001 previously 'Tositumomab'
+				THEN 'Drug' -- Tositumomab
 			WHEN concept_code BETWEEN 'G0302'
 					AND 'G0305'
 				THEN 'Observation' -- Level 2: G0302-G0305 previously 'Services, Pulmonary Surgery'
@@ -360,9 +365,6 @@ AS (
 				THEN 'Procedure' -- Level 2: G0333-G0333 previously 'Fee, Pharmacy'
 			WHEN concept_code = 'G0337'
 				THEN 'Observation' -- Level 2: G0337-G0337 previously 'Hospice'
-			WHEN concept_code BETWEEN 'G9481'
-					AND 'G9489'
-				THEN 'Visit'
 			WHEN concept_code = 'G0025'
 				THEN 'Device'
 			WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
@@ -563,8 +565,7 @@ AS (
 				THEN 'Observation'
 			WHEN concept_code IN (
 					'G0238',
-					'G0293',
-					'G0294',
+					'G0296',
 					'G0403',
 					'G0404',
 					'G0405',
@@ -1086,6 +1087,7 @@ SET concept_name = CASE
 		ELSE LEFT(concept_name, 239) || '... (Deprecated)'
 		END
 WHERE valid_end_date < TO_DATE('20991231', 'YYYYMMDD')
+	AND concept_name NOT LIKE '%(Deprecated)'
 	AND invalid_reason IS NULL;
 
 --7. Fill concept_synonym_stage
@@ -1302,38 +1304,5 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
-UPDATE concept_stage cs
-SET domain_id = 'Drug'
-FROM concept_relationship_stage crs
-WHERE crs.vocabulary_id_2 IN (
-		'RxNorm',
-		'RxNorm Extension',
-		'CVX'
-		)
-	AND crs.relationship_id = 'Maps to'
-	AND crs.invalid_reason IS NULL
-	AND cs.concept_code = crs.concept_code_1
-	AND cs.vocabulary_id = crs.vocabulary_id_1;
-
---17. All concepts having mappings should be NON-standard
-UPDATE concept_stage cs
-SET standard_concept = NULL
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r,
-			concept c2
-		WHERE r.concept_code_1 = cs.concept_code
-			AND r.vocabulary_id_1 = cs.vocabulary_id
-			AND r.concept_code_2 = c2.concept_code
-			AND r.vocabulary_id_2 = c2.vocabulary_id
-			AND r.invalid_reason IS NULL
-			AND r.relationship_id = 'Maps to'
-			AND NOT (
-				r.concept_code_1 = r.concept_code_2
-				AND r.vocabulary_id_1 = r.vocabulary_id_2
-				) --exclude mappings to self
-		)
-	AND cs.standard_concept IS NOT NULL;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

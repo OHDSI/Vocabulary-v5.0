@@ -58,7 +58,7 @@ $BODY$
 				'AddNewConcept','AddNewDomain','AddNewSynonym','AddNewConceptClass','AddNewRelationship',
 				'AddNewVocabulary','MoveToDevV5','pConceptAncestor',
 				--admin_pack functions
-				'LogManualChanges','ModifyVocabularyAccess','ModifyVirtualUser','ModifyUserPrivilege',
+				'LogManualChanges','UpdateManualConceptID','ModifyVocabularyAccess','ModifyVirtualUser','ModifyUserPrivilege',
 				'ModifyPrivilege','GrantVocabularyAccess','GrantPrivilege','CreateVirtualUser',
 				'CreatePrivilege','ChangeOwnPassword','DeleteManualRelationship'
 				]

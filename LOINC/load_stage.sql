@@ -1202,12 +1202,12 @@ CREATE UNLOGGED TABLE sn_attr AS
 				ORDER BY f.id,
 					f.effectivetime DESC -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
 				) AS s0
-			WHERE statusid = 900000000000073002
+			WHERE statusid::text  = '900000000000073002'
 			
 			UNION ALL
 			
 			SELECT '41598000' AS concept_code,
-				900000000000073002 AS statusid --This union is needed to take Estrogen component
+				900000000000073002::text AS statusid --This union is needed to take Estrogen component
 			)
 
 SELECT zz.*
@@ -2197,7 +2197,8 @@ WITH resulting_table AS (
                                '104194007',  --Bacterial culture, urine, with organism identification
                                 '395030005',  --Skin biopsy C3 level
                                 '104309001', --Cytomegalovirus IgM antibody assay
-                                '313604004' --Cytomegalovirus IgG antibody measurement
+                                '313604004', --Cytomegalovirus IgG antibody measurement
+                                '57321000237104' --Fractional TRP (tubular reabsorption of phosphate)
                                )
            AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
 

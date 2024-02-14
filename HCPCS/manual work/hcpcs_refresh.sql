@@ -1,43 +1,5 @@
---11.3.1. Backup concept_relationship_manual table and concept_manual table.
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_relationship_manual table (!!!run it only if something went wrong!!!)
-/*TRUNCATE TABLE concept_relationship_manual;
-INSERT INTO concept_relationship_manual
-SELECT * FROM concept_relationship_manual_backup_YYYY_MM_DD;*/
-
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_manual',
-                       'concept_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE concept_manual;
-INSERT INTO concept_manual
-SELECT * FROM concept_manual_backup_YYYY_MM_DD;*/
-
---11.3.2. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous hcpcs refresh.
-
-/*DROP TABLE dev_hcpcs.hcpcs_mapped;
+--9.1. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous hcpcs refresh.
+--DROP TABLE dev_hcpcs.hcpcs_mapped;
 CREATE TABLE dev_hcpcs.hcpcs_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -58,19 +20,19 @@ CREATE TABLE dev_hcpcs.hcpcs_mapped
     target_invalid_reason varchar(20),
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
-); */
+);
 
 --Adding constraints for unique records
 ALTER TABLE dev_hcpcs.hcpcs_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
 
---3.3 Truncate the 'hcpcs_mapped' table. Save the spreadsheet as the 'hcpcs_mapped table' and upload it into the working schema.
+--9.2. Truncate the 'hcpcs_mapped' table. Save the spreadsheet as the 'hcpcs_mapped table' and upload it into the working schema.
 TRUNCATE TABLE dev_hcpcs.hcpcs_mapped;
 
---Format after uploading
+--9.3.Format after uploading
 UPDATE dev_hcpcs.hcpcs_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
 UPDATE dev_hcpcs.hcpcs_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
 
---9.2.4 Change concept_relationship_manual table according to hcpcs_mapped table.
+--9.4 Change concept_relationship_manual table according to hcpcs_mapped table.
 --Insert new relationships
 --Update existing relationships
 INSERT INTO dev_hcpcs.concept_relationship_manual AS mapped
@@ -126,3 +88,65 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
+
+--9.5. Create concept_mapped table and populate it with the resulting manual table of the previous hcpcs refresh
+--DROP TABLE concept_mapped;
+CREATE TABLE concept_mapped
+(
+       id SERIAL PRIMARY KEY,
+       concept_name varchar (255),
+       domain_id varchar (50),
+       vocabulary_id varchar (50),
+       concept_class_id varchar (50),
+       standard_concept varchar (1),
+       concept_code varchar (50),
+       invalid_reason varchar(1)
+);
+
+--Adding constraints for unique records
+ALTER TABLE dev_hcpcs.concept_mapped ADD CONSTRAINT idx_pk_manual_concepts UNIQUE (concept_code, vocabulary_id);
+
+--9.6. Truncate the 'concept_mapped' table. Save the spreadsheet as the 'concept_mapped table' and upload it into the working schema.
+TRUNCATE TABLE concept_mapped;
+
+--9.7. Format after uploading
+UPDATE concept_mapped SET concept_name = NULL WHERE concept_name = '';
+UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
+UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
+UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
+UPDATE concept_mapped SET invalid_reason = NULL WHERE invalid_reason = '';
+
+--9.8.Change concept_manual table according to concept_mapped table
+INSERT INTO concept_manual AS cm
+(concept_name,
+ domain_id,
+ vocabulary_id,
+ concept_class_id,
+ standard_concept,
+ concept_code,
+ valid_start_date,
+ valid_end_date,
+ invalid_reason)
+
+SELECT concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       NULL as valid_start_date,
+       NULL AS valid_end_date,
+       invalid_reason
+FROM concept_mapped
+
+	ON CONFLICT ON CONSTRAINT unique_manual_concepts
+	DO UPDATE
+	SET concept_name = excluded.concept_name,
+	    domain_id = excluded.domain_id,
+	    standard_concept = excluded.standard_concept,
+	    valid_start_date = cm.valid_start_date,
+	    valid_end_date = cm.valid_end_date,
+	    invalid_reason = excluded.invalid_reason
+WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept, cm.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept, excluded.invalid_reason);

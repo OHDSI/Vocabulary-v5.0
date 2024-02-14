@@ -1007,46 +1007,59 @@ AND s.target_concept_id = m.target_concept_id
 --AND s.target_vocabulary_id = m.target_vocabulary_id
     );
 
-
-
-
---3.6. Insert new and update existing relationships according to _mapped table.
-INSERT INTO dev_cvx.concept_relationship_manual AS mapped
-    (concept_code_1,
-    concept_code_2,
-    vocabulary_id_1,
-    vocabulary_id_2,
-    relationship_id,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason)
-
-	SELECT source_code,
-	       target_concept_code,
-	       source_vocabulary_id,
-	       target_vocabulary_id,
-	       m.relationship_id,
-	       current_date AS valid_start_date,
-           to_date('20991231','yyyymmdd') AS valid_end_date,
-           m.cr_invalid_reason
-	FROM dev_cvx.cvx_mapped m
-	--Only related to CVX vocabulary
-	WHERE (source_vocabulary_id = 'CVX' OR target_vocabulary_id = 'CVX')
-	    AND target_concept_id != 0
+--Insert new and update existing relationships according to _mapped table.
+INSERT INTO dev_icd10.icd_cde_source as s
+    (source_code,
+     source_code_description,
+     source_vocabulary_id,
+     group_name,
+     group_id,
+     relationship_id,
+     relationship_id_predicate,
+     decision,
+     decision_date,
+     target_concept_id,
+     target_concept_code,
+     target_concept_name,
+     target_concept_class_id,
+     target_standard_concept,
+     target_invalid_reason,
+     target_domain_id,
+     target_vocabulary_id
+)
+	SELECT
+	group_code,
+	group_name,
+	group_code,
+	group_name,
+	group_id,
+	relationship_id,
+    relationship_id_predicate,
+    decision,
+    decision_date,
+    target_concept_id,
+    target_concept_code,
+    target_concept_name,
+    target_concept_class_id,
+    target_standard_concept,
+    target_invalid_reason,
+    target_domain_id,
+    target_vocabulary_id
+	FROM icd_cde_mapped m
+	WHERE (m.group_name, m.target_concept_id) not in (SELECT group_name, target_concept_id FROM icd_cde_source)
 
 	ON CONFLICT ON CONSTRAINT unique_manual_relationships
 	DO UPDATE
-	    --In case of mapping 'resuscitation' use current_date as valid_start_date; in case of mapping deprecation use previous valid_start_date
-	SET valid_start_date = CASE WHEN excluded.invalid_reason IS NULL THEN excluded.valid_start_date ELSE mapped.valid_start_date END,
-	    --In case of mapping 'resuscitation' use 2099-12-31 as valid_end_date; in case of mapping deprecation use current_date
-		valid_end_date = CASE WHEN excluded.invalid_reason IS NULL THEN excluded.valid_end_date ELSE current_date END,
-		invalid_reason = excluded.invalid_reason
-	WHERE ROW (mapped.invalid_reason)
-	IS DISTINCT FROM
-	ROW (excluded.invalid_reason);
-
-
-
+	    SET (relationship_id_predicate,
+     decision,
+     decision_date) = (
+         SELECT
+     relationship_id_predicate,
+     decision,
+     decision_date
+FROM icd_cde_mapped m
+WHERE s.group_name = m.group_name
+AND s.target_concept_id = m.target_concept_id;
 
 
 --Update target for concept without mappings

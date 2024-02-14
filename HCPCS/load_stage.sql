@@ -679,8 +679,18 @@ AS (
 			WHEN concept_code BETWEEN 'J7343'
 					AND 'J7350'
 				THEN 'Device'
-			WHEN concept_code = 'J7051'
-				THEN 'Procedure' -- Sterile saline/water
+			WHEN concept_code IN (
+					 'J7051',
+					 'J1815',
+					 'J1817',
+					 'J2050',
+					 'J3535',
+					 'J7140',
+					 'J7150',
+					 'J7599',
+					 'J8999',
+					 'J9999')
+				THEN 'Procedure'
 			WHEN l1.str = 'J Codes - Drugs'
 				THEN 'Drug' -- Level 1: J0100-J9999
 					-- K codes

@@ -112,8 +112,3 @@ SET domain_id = 'Relationship',
 	concept_code = 'OMOP5217069'
 WHERE concept_id = 46233689;
 
--- Update relationship table, make 'CPT4 - SNOMED cat' non-hierarchical:
-UPDATE relationship
-SET is_hierarchical = 0
-WHERE relationship_id = 'CPT4 - SNOMED cat';
-

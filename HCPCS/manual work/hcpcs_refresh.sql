@@ -100,6 +100,8 @@ CREATE TABLE concept_mapped
        concept_class_id varchar (50),
        standard_concept varchar (1),
        concept_code varchar (50),
+	   valid_start_date date,
+	   valid_end_date date,
        invalid_reason varchar(1)
 );
 
@@ -134,8 +136,8 @@ SELECT concept_name,
        concept_class_id,
        standard_concept,
        concept_code,
-       NULL as valid_start_date,
-       NULL AS valid_end_date,
+       valid_start_date,
+       valid_end_date,
        invalid_reason
 FROM concept_mapped
 
@@ -144,8 +146,8 @@ FROM concept_mapped
 	SET concept_name = excluded.concept_name,
 	    domain_id = excluded.domain_id,
 	    standard_concept = excluded.standard_concept,
-	    valid_start_date = cm.valid_start_date,
-	    valid_end_date = cm.valid_end_date,
+	    valid_start_date = excluded.valid_start_date,
+	    valid_end_date = excluded.valid_end_date,
 	    invalid_reason = excluded.invalid_reason
 WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept, cm.invalid_reason)
 	IS DISTINCT FROM

@@ -167,13 +167,11 @@ AS (
 			WHEN concept_code IN (
 					'A4736',
 					'A4737',
+					'A9152',
 					'A9180'
 					)
 				THEN 'Procedure'
-			WHEN concept_code IN (
-					'A9152',
-					'A9153'
-					)
+			WHEN concept_code = 'A9153'
 				THEN 'Drug' --Vitamin preparations
 			WHEN concept_code = 'A9155'
 				THEN 'Device' --Artificial saliva, 30 ml
@@ -672,7 +670,10 @@ AS (
 			WHEN l1.str = 'Behavioral Health and/or Substance Abuse Treatment Services'
 				THEN 'Procedure' -- default for all Level 1: H0001-H9999
 					-- J codes
-			WHEN concept_code IN ('J7303', 'J7341')
+			WHEN concept_code IN (
+					'J7303',
+					'J7304',
+					'J7341')
 				THEN 'Device'
 			WHEN concept_code = 'J7345'
 				THEN 'Drug' -- Aminolevulinic acid hcl for topical administration, 10% gel, 10 mg
@@ -860,6 +861,8 @@ AS (
 			WHEN concept_code BETWEEN 'Q9945'
 					AND 'Q9969'
 				THEN 'Device' -- Contrast Agents
+			WHEN concept_code = 'Q9977'
+				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q9970'
 					AND 'Q9995'
 				AND concept_code NOT IN (
@@ -935,6 +938,10 @@ AS (
 				THEN 'Procedure' -- IVF procedures
 			WHEN concept_code = 'S4989'
 				THEN 'Device' -- Contraceptive implant
+			WHEN concept_code IN (
+					'S5000',
+					'S5001')
+				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'S4980'
 					AND 'S5014'
 				AND concept_code NOT IN (

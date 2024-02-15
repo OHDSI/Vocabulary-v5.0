@@ -24,26 +24,35 @@ DECLARE
 	pSchemaName CONSTANT TEXT:='dev_xyz';
 
 	pVocab concept.vocabulary_id%TYPE;
+	pLatestUpdate vocabulary_conversion.latest_update%TYPE;
+	pVocabVersion vocabulary.vocabulary_version%TYPE;
 	pGeneratedStmt TEXT;
 	i INT;
 BEGIN
 	pGeneratedStmt:='DO $_$ BEGIN';
 
 	FOR i IN 1..ARRAY_UPPER(pVocabs,1) LOOP
-		/*here we have to use devv5 prefix to avoid "cannot ALTER TABLE "vocabulary" because it is being used by active queries in this session" error*/
-		IF NOT EXISTS (SELECT 1 FROM devv5.vocabulary v WHERE v.vocabulary_id=pVocabs[i]) THEN
+		SELECT COALESCE(vc.latest_update, CURRENT_DATE),
+			COALESCE(v.vocabulary_version, v.vocabulary_id || ' ' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD'))
+		INTO pLatestUpdate,
+			pVocabVersion
+		FROM vocabulary v
+		JOIN vocabulary_conversion vc ON vc.vocabulary_id_v5 = v.vocabulary_id
+		WHERE v.vocabulary_id = pVocabs[i];
+
+		IF NOT FOUND THEN
 			RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabs[i];
 		END IF;
 
 		pGeneratedStmt:=pGeneratedStmt||FORMAT($$
 			PERFORM VOCABULARY_PACK.SetLatestUpdate(
 			pVocabularyName=>%1$L,
-			pVocabularyDate=>(SELECT COALESCE(v.latest_update,CURRENT_DATE) FROM devv5.vocabulary_conversion v WHERE v.vocabulary_id_v5=%1$L),
-			pVocabularyVersion=>(SELECT COALESCE(v.vocabulary_version,v.vocabulary_id||' '||TO_CHAR(CURRENT_DATE,'YYYYMMDD')) FROM devv5.vocabulary v WHERE v.vocabulary_id=%1$L),
+			pVocabularyDate=>%4$L,
+			pVocabularyVersion=>%5$L,
 			pVocabularyDevSchema=>%2$L,
 			pAppendVocabulary=>%3$L
 		);
-		$$,pVocabs[i],pSchemaName,(i>1));
+		$$,pVocabs[i],pSchemaName,(i>1),pLatestUpdate,pVocabVersion);
 	END LOOP;
 
 	pGeneratedStmt:=pGeneratedStmt||'END $_$;';
@@ -96,17 +105,10 @@ WHERE cr.invalid_reason IS NULL
 		OR v2.latest_update IS NOT NULL
 		)
 	/*
-	we know for sure that it is impossible to put the relationships below into manual tables, only their "direct" versions, so we can safely exclude them
-	this will also protect us from cases where some function, for example, DeleteAmbiguousMapsTo, will update the old 'Maps to' relationship, and its reverse version will remain unaffected
+	put only 'direct' versions of relationships
+	this will protect us from cases where some function, for example, DeleteAmbiguousMapsTo, will update the old 'Maps to' relationship, and its reverse version will remain unaffected
 	*/
-	AND cr.relationship_id NOT IN (
-		'Mapped from',
-		'Value mapped from',
-		'Concept replaces',
-		'Concept same_as from',
-		'Concept alt_to from',
-		'Concept was_a from'
-		);
+	AND cr.relationship_id = devv5.GetPrimaryRelationshipID(cr.relationship_id);
 
 --5. Load full list of synonyms
 INSERT INTO concept_synonym_stage

@@ -20,36 +20,37 @@
 - soc.asc
 - soc_hlgt.asc
 4. From "SNOMED CT - MedDRA Mapping Release Package DD MONTH YYYY.zip" extract *.xlsx file and rename to meddra_mappings.xlsx
-5. Run in devv5 (with fresh vocabulary date and version):
+5. From "ICD-10 to MedDRA Release Package-MONTH YYYY.zip" extract *.xlsx file and rename to meddra_mappings_icd10.xlsx
+6. Run in devv5 (with fresh vocabulary date and version):
 ```sql
 SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA version 25.0')
 ```
 ##### Filling stage and basic tables
-6. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/MedDRA/Manual_work/readme.md) file in the 'manual_work' folder.
-7. Run load_stage.sql
-8. Run check_stage_tables function (should retrieve NULL):
+7. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/MedDRA/Manual_work/readme.md) file in the 'manual_work' folder.
+8. Run load_stage.sql
+9. Run check_stage_tables function (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.check_stage_tables ();
 ```
-9. Run generic_update:
+10. Run generic_update:
 ```sql
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 ```
-10. Run basic tables check (should retrieve NULL):
+11. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-11. Run scripts to get summary, and interpret the results:
+12. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
 SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
-12. Run scripts to collect statistics, and interpret the results:
+13. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_domain_changes();
 ```
@@ -65,4 +66,4 @@ SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 ```sql
 SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
-13. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+14. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.

@@ -10,7 +10,7 @@ BEGIN
     umask 002 && \
     cd "$1/work" && \
     #get all matches by mask "HCPC*ANWEB*.xls*", if there is more than one file, sort by size, get the largest one, then unzip it
-    f=$(unzip -qq -l "$2" | grep "HCPC.*ANWEB.*\.xls.*" | sort -nr -k1 | head -1 | awk '{print $4}') && unzip -oqj "$2" "$f" -d .
+    f=$(unzip -qq -l "$2" | egrep -i "HCPC.*ANWEB.*\.xls.*" | sort -nr -k1 | head -1 | awk '{print $4}') && unzip -oqj "$2" "$f" -d .
     
     #move result to original folder
     cd "$1"

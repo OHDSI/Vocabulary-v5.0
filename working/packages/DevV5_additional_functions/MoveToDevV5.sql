@@ -1,54 +1,79 @@
 CREATE OR REPLACE FUNCTION devv5.MoveToDevV5()
-RETURNS void AS
+RETURNS VOID AS
 $BODY$
-/*
- Moving contents of stage-tables to the devv5
- 1. Run SetLatestUpdate (...)
- 2. Run devv5.MoveToDevV5, e.g.
- DO $_$
- BEGIN
-   PERFORM devv5.MoveToDevV5();
- END $_$;
- 3. Run get_checks: select * from qa_tests.get_checks();
-*/
+	/*
+	 Moving contents of stage-tables to the devv5
+	 1. Log in under devv5
+	 2. Run SetLatestUpdate (...)
+	 3. Run devv5.MoveToDevV5, e.g.
+	 DO $_$
+	 BEGIN
+	   PERFORM devv5.MoveToDevV5();
+	 END $_$;
+	 4. Run get_checks as always: SELECT * FROM qa_tests.get_checks();
+	*/
 DECLARE
-	z int2;
-	cSchemaName VARCHAR(100);
+	z INT8;
+	iSchemaName TEXT;
 BEGIN
+	IF SESSION_USER <> 'devv5' THEN
+		RAISE EXCEPTION 'This script can only be run in devv5';
+	END IF;
 
-	SELECT COUNT(*)
-	INTO z
-	FROM information_schema.columns
-	WHERE table_schema=CURRENT_SCHEMA() AND table_name='vocabulary' AND column_name='dev_schema_name';
+	PERFORM FROM information_schema.columns c
+	WHERE c.table_schema = SESSION_USER
+		AND c.table_name = 'vocabulary'
+		AND c.column_name = 'dev_schema_name';
 
-	IF z = 0 THEN
+	IF NOT FOUND THEN
 		RAISE EXCEPTION 'No dev_schema found. Forgot to execute SetLatestUpdate?';
 	END IF;
 
-	SELECT LOWER(MAX(dev_schema_name)), COUNT(DISTINCT dev_schema_name)
-	INTO cSchemaName, z
-	FROM vocabulary WHERE latest_update IS NOT NULL;
+	SELECT LOWER(MAX(v.dev_schema_name)),
+		COUNT(DISTINCT v.dev_schema_name)
+	INTO iSchemaName,
+		z
+	FROM vocabulary v
+	WHERE v.latest_update IS NOT NULL;
 
 	IF z > 1 THEN
 		RAISE EXCEPTION 'More than one dev_schema found';
 	END IF;
 
-	--Truncate all working tables
-	TRUNCATE devv5.concept_stage, devv5.concept_relationship_stage, devv5.concept_synonym_stage, devv5.pack_content_stage, devv5.drug_strength_stage, devv5.concept_relationship_manual;
+	TRUNCATE concept_stage, concept_relationship_stage, concept_synonym_stage, pack_content_stage, drug_strength_stage, concept_relationship_manual, concept_manual, concept_synonym_manual;
 
-	--Filling
-	EXECUTE 'INSERT INTO devv5.concept_relationship_manual SELECT * FROM ' || cSchemaName || '.concept_relationship_manual';
-	EXECUTE 'INSERT INTO devv5.concept_stage SELECT * FROM ' || cSchemaName || '.concept_stage';
-	EXECUTE 'INSERT INTO devv5.concept_relationship_stage SELECT * FROM ' || cSchemaName || '.concept_relationship_stage';
-	EXECUTE 'INSERT INTO devv5.concept_synonym_stage SELECT * FROM ' || cSchemaName || '.concept_synonym_stage';
-	EXECUTE 'INSERT INTO devv5.pack_content_stage SELECT * FROM ' || cSchemaName || '.pack_content_stage';
-	EXECUTE 'INSERT INTO devv5.drug_strength_stage SELECT * FROM ' || cSchemaName || '.drug_strength_stage';
+	--Fill from dev_schema
+	EXECUTE FORMAT ($$
+		INSERT INTO concept_relationship_manual
+		SELECT crm.*
+		FROM %1$I.concept_relationship_manual crm
+		JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
+		JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
+		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL;
 
-	--Execute generic_update and clearing crm
-	PERFORM devv5.GenericUpdate();
-	TRUNCATE devv5.concept_relationship_manual;
+		INSERT INTO concept_manual
+		SELECT cm.*
+		FROM %1$I.concept_manual cm
+		JOIN vocabulary v ON v.vocabulary_id = cm.vocabulary_id
+		WHERE v.latest_update IS NOT NULL;
+
+		INSERT INTO concept_synonym_manual
+		SELECT csm.*
+		FROM %1$I.concept_synonym_manual csm
+		JOIN vocabulary v ON v.vocabulary_id = csm.synonym_vocabulary_id
+		WHERE v.latest_update IS NOT NULL;
+
+		INSERT INTO concept_stage TABLE %1$I.concept_stage;
+		INSERT INTO concept_relationship_stage TABLE %1$I.concept_relationship_stage;
+		INSERT INTO concept_synonym_stage TABLE %1$I.concept_synonym_stage;
+		INSERT INTO pack_content_stage TABLE %1$I.pack_content_stage;
+		INSERT INTO drug_strength_stage TABLE %1$I.drug_strength_stage;
+	$$, iSchemaName);
+
+	ANALYZE concept_stage, concept_relationship_stage, concept_synonym_stage, pack_content_stage, drug_strength_stage, concept_relationship_manual, concept_manual, concept_synonym_manual;
+
+	PERFORM GenericUpdate();
+	TRUNCATE concept_relationship_manual, concept_manual, concept_synonym_manual;
 END;
 $BODY$
-LANGUAGE 'plpgsql'
-SECURITY INVOKER
-SET client_min_messages = error;
+LANGUAGE 'plpgsql';

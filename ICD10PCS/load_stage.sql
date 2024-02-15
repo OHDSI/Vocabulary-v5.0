@@ -81,15 +81,17 @@ SELECT DISTINCT
 	-- take the best str
 	FIRST_VALUE(vocabulary_pack.CutConceptName(str)) OVER (
 		PARTITION BY code ORDER BY CASE tty
-				WHEN 'HT' -- Hierarchical term
+				WHEN 'PT'
 					THEN 1
-				WHEN 'HS' -- Short or alternate version of hierarchical term
+				WHEN 'HT' -- Hierarchical term
 					THEN 2
-				WHEN 'HX' -- 	Expanded version of short hierarchical term 
+				WHEN 'HS' -- Short or alternate version of hierarchical term
 					THEN 3
-				WHEN 'MTH_HX' -- MTH Hierarchical term expanded 
+				WHEN 'HX' -- 	Expanded version of short hierarchical term 
 					THEN 4
-				ELSE 5
+				WHEN 'MTH_HX' -- MTH Hierarchical term expanded 
+					THEN 5
+				ELSE 6
 				END,
 			CASE 
 				WHEN LENGTH(str) <= 255
@@ -190,7 +192,11 @@ JOIN concept c ON c.concept_id = s.concept_id
 	AND LOWER(c.concept_name) <> LOWER(s.concept_synonym_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
-	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+	AND c.concept_code NOT LIKE 'MTHU00000_'
+	AND NOT EXISTS(SELECT 1
+	               FROM concept_synonym_stage b
+	               WHERE b.synonym_concept_code = c.concept_code
+	               	AND b.synonym_name = s.concept_synonym_name);-- to exclude internal technical source codes
 
 --8. Add original names of resurrected concepts using the concept table
 INSERT INTO concept_synonym_stage (
@@ -277,6 +283,10 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
 --13. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN

@@ -1,4 +1,4 @@
--- 1. Check if there are any known drug Brand names missed in the mapping:
+-- 1. Check if there are any known drug brand names missed in the mapping:
 --- This check allows to retrieve target brand names from manual mapping and brand names that correspond to the ingredients, mentioned in the source,
 ---- and compare them. Our aim is to reveal so called 'stable' brand names, when only one RxNorm brand corresponds to one ingredient/combination.
 --- Three flags are used in the 'flag' field:
@@ -19,7 +19,7 @@ WITH mapped_brand AS
            c1.concept_name AS target_name,
            c1.vocabulary_id AS target_vocab,
            CASE WHEN c1.concept_class_id LIKE '%Brand%'
-               THEN c2.concept_name END AS mapped_Brand
+               THEN c2.concept_name END AS mapped_bran
     FROM concept_relationship cr
     JOIN concept c ON c.concept_id = cr.concept_id_1
     JOIN concept c1 ON c1.concept_id = cr.concept_id_2
@@ -33,7 +33,7 @@ WITH mapped_brand AS
     AND cr2.invalid_reason IS NULL
     ),
 
--- extract Brand names already present in source concepts:
+-- extract bran names already present in source concepts:
 definite_brand AS
     (SELECT c.concept_code AS hcpcs_code,
          c.concept_name AS hcpcs_name,
@@ -175,8 +175,8 @@ ing_agg AS
     GROUP BY hcpcs_code, hcpcs_name
     ),
 
--- extract RxN Brands AND its ingredients AND combinations:
-cr_Brand AS
+-- extract RxN brans AND its ingredients AND combinations:
+cr_bran AS
     (SELECT array_agg(cr.concept_id_1 ORDER BY concept_id_1) AS ing_id,
             array_agg(c1.concept_name ORDER BY c1.concept_name) AS ingredient,
             concept_id_2 AS brand_id,
@@ -196,14 +196,14 @@ final_tab AS
     (SELECT DISTINCT hcpcs_code,
                      hcpcs_name,
                      'possible brand' AS flag,
-                      CASE WHEN count(Brand_name) OVER (PARTITION BY hcpcs_code) > 1
+                      CASE WHEN count(bran_name) OVER (PARTITION BY hcpcs_code) > 1
                           THEN 'Multiple brands'
                       WHEN brand_name IS NULL
                           THEN 'No brand'
                       ELSE brand_name END
                           AS brand
     FROM ing_agg i
-    LEFT JOIN cr_Brand b ON i.ing_id = b.ing_id
+    LEFT JOIN cr_bran b ON i.ing_id = b.ing_id
 
     UNION ALL
 

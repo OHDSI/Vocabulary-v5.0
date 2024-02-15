@@ -357,7 +357,7 @@ on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.co
 order by a.concept_code
 ;
 
---02.7. Concepts with 1-to-many mapping -- multiple 'Maps to' present
+--02.7. Concepts with 1-to-many mapping -- multiple 'Maps to%' present
 --In this check we manually review the concepts mapped to multiple Standard targets to make sure they are expected, correct and in line with the current conventions and approaches.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case) result should be critically analyzed and may represent multiple scenarios, e.g.:
@@ -372,6 +372,7 @@ FROM (
 		s0.concept_name_source,
 		s0.concept_class_id_source,
 		s0.domain_id_source,
+		s0.relationship_id,
 		s0.concept_code_target,
 		s0.concept_name_target,
 		s0.vocabulary_id_target,
@@ -384,13 +385,14 @@ FROM (
 			a.concept_name AS concept_name_source,
 			a.concept_class_id AS concept_class_id_source,
 			a.domain_id AS domain_id_source,
+			r.relationship_id,
 			b.concept_code AS concept_code_target,
-			CASE 
+			CASE
 				WHEN a.concept_id = b.concept_id
 					THEN '<Mapped to itself>'
 				ELSE b.concept_name
 				END AS concept_name_target,
-			CASE 
+			CASE
 				WHEN a.concept_id = b.concept_id
 					THEN '<Mapped to itself>'
 				ELSE b.vocabulary_id
@@ -400,7 +402,7 @@ FROM (
 		FROM concept a
 		JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
 			AND r.invalid_reason IS NULL
-			AND r.relationship_Id = 'Maps to'
+			AND r.relationship_Id LIKE  'Maps to%'
 		JOIN concept b ON b.concept_id = r.concept_id_2
 		WHERE a.vocabulary_id IN (:your_vocabs)
 		--AND r.concept_id_1 <> r.concept_id_2 --use it to exclude mapping to itself
@@ -409,7 +411,7 @@ FROM (
 		SELECT r_int.concept_id_1 AS concept_id
 		FROM devv5.concept_relationship r_int
 		WHERE r_int.invalid_reason IS NULL
-			AND r_int.relationship_Id = 'Maps to'
+			AND r_int.relationship_Id LIKE 'Maps to%'
 			--AND r_int.concept_id_1 <> r_int.concept_id_2 --use it to exclude mapping to itself
 		GROUP BY r_int.concept_id_1
 		HAVING COUNT(*) > 1
@@ -959,4 +961,3 @@ AND crm1.vocabulary_id_1 = crm2.vocabulary_id_2
 AND crm2.vocabulary_id_1 = crm1.vocabulary_id_2
 AND crm1.vocabulary_id_1 IN (:your_vocabs)
 ORDER BY crm1.concept_code_1;
-

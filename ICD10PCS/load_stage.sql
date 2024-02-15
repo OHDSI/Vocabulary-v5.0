@@ -192,11 +192,11 @@ JOIN concept c ON c.concept_id = s.concept_id
 	AND LOWER(c.concept_name) <> LOWER(s.concept_synonym_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
-	AND c.concept_code NOT LIKE 'MTHU00000_'
+	AND c.concept_code NOT LIKE 'MTHU00000_' -- to exclude internal technical source codes
 	AND NOT EXISTS(SELECT 1
 	               FROM concept_synonym_stage b
 	               WHERE b.synonym_concept_code = c.concept_code
-	               	AND b.synonym_name = s.concept_synonym_name);-- to exclude internal technical source codes
+	               	AND b.synonym_name = s.concept_synonym_name);
 
 --8. Add original names of resurrected concepts using the concept table
 INSERT INTO concept_synonym_stage (

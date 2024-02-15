@@ -19,7 +19,7 @@ WITH mapped_brand AS
            c1.concept_name AS target_name,
            c1.vocabulary_id AS target_vocab,
            CASE WHEN c1.concept_class_id LIKE '%Brand%'
-               THEN c2.concept_name END AS mapped_bran
+               THEN c2.concept_name END AS mapped_brand
     FROM concept_relationship cr
     JOIN concept c ON c.concept_id = cr.concept_id_1
     JOIN concept c1 ON c1.concept_id = cr.concept_id_2
@@ -33,7 +33,7 @@ WITH mapped_brand AS
     AND cr2.invalid_reason IS NULL
     ),
 
--- extract bran names already present in source concepts:
+-- extract brand names already present in source concepts:
 definite_brand AS
     (SELECT c.concept_code AS hcpcs_code,
          c.concept_name AS hcpcs_name,
@@ -147,7 +147,7 @@ hcpcs_ing AS
                                          'magnesium', 'potassium', 'gluconate', 'citrate', 'pyrophosphate', 'calcium', 'edetate', 'valerate',
                                          'oleate', 'sucrose', 'iron', 'pyrophosphate', 'oxygen', 'sulfur', 'amphotericin', 'mesylate', 'tartrate',
                                          'maleate', 'lactobionate', 'propionate', 'arsenic', 'butyrate', 'fumarate', 'lutetium', 'yttrium', 'iodine',
-                                         'cholesteryl sulfate', 'indium', 'palmitate', 'bran')
+                                         'cholesteryl sulfate', 'indium', 'palmitate', 'brand')
        AND cc.invalid_reason IS NULL
        AND c.concept_code NOT IN (SELECT hcpcs_code FROM definite_brand)
        ),
@@ -175,8 +175,8 @@ ing_agg AS
     GROUP BY hcpcs_code, hcpcs_name
     ),
 
--- extract RxN brans AND its ingredients AND combinations:
-cr_bran AS
+-- extract RxN brands AND its ingredients AND combinations:
+cr_brand AS
     (SELECT array_agg(cr.concept_id_1 ORDER BY concept_id_1) AS ing_id,
             array_agg(c1.concept_name ORDER BY c1.concept_name) AS ingredient,
             concept_id_2 AS brand_id,
@@ -196,14 +196,14 @@ final_tab AS
     (SELECT DISTINCT hcpcs_code,
                      hcpcs_name,
                      'possible brand' AS flag,
-                      CASE WHEN count(bran_name) OVER (PARTITION BY hcpcs_code) > 1
+                      CASE WHEN count(brand_name) OVER (PARTITION BY hcpcs_code) > 1
                           THEN 'Multiple brands'
                       WHEN brand_name IS NULL
                           THEN 'No brand'
                       ELSE brand_name END
                           AS brand
     FROM ing_agg i
-    LEFT JOIN cr_bran b ON i.ing_id = b.ing_id
+    LEFT JOIN cr_brand b ON i.ing_id = b.ing_id
 
     UNION ALL
 

@@ -17,7 +17,6 @@ file name YYYY-ICD-10-PCS-Order-File.zip (e.g. 2019-ICD-10-PCS-Order-File.zip) l
 7. Run load_stage.sql.
 8. Run generic_update:
   ```sql
-SELECT admin_pack.VirtualLogIn('dev_mkhitrun','MKh_388646467');
    DO $_$
    BEGIN
        PERFORM devv5.GenericUpdate();

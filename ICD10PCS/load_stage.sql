@@ -81,13 +81,13 @@ SELECT DISTINCT
 	-- take the best str
 	FIRST_VALUE(vocabulary_pack.CutConceptName(str)) OVER (
 		PARTITION BY code ORDER BY CASE tty
-				WHEN 'PT'
+				WHEN 'PT' -- Preferred term (designated preferred name)
 					THEN 1
 				WHEN 'HT' -- Hierarchical term
 					THEN 2
 				WHEN 'HS' -- Short or alternate version of hierarchical term
 					THEN 3
-				WHEN 'HX' -- 	Expanded version of short hierarchical term 
+				WHEN 'HX' -- Expanded version of short hierarchical term
 					THEN 4
 				WHEN 'MTH_HX' -- MTH Hierarchical term expanded 
 					THEN 5

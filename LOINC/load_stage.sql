@@ -2004,7 +2004,15 @@ WITH resulting_table AS (
                     JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
                     AND t.component_code = t1.component_code
                     AND t.specimen_code = t1.specimen_code
-                    AND t.scale_code = t1.scale_code),
+                    AND t.scale_code = t1.scale_code
+               --prevent wrong matching based on Property
+         AND (t.property_code IS NULL OR t1.property_code IS NULL
+             OR t.property_code = t1.property_code
+             )
+
+               where snomed_code NOT IN ('444264005')  --Quantitative measurement of gastrin in fasting serum or plasma specimen
+
+               ),
 
           --Component + Specimen + Property + Time
            ax3 AS (SELECT t.loinc_id AS concept_id,
@@ -2127,6 +2135,8 @@ WITH resulting_table AS (
                     OR (t1.method_code IS NULL AND snomed_name !~* 'automated|immunoassay|immunoflourescence|immunosorbent')
                )
 
+           and snomed_code NOT IN ('444264005')  --Quantitative measurement of gastrin in fasting serum or plasma specimen
+
                GROUP BY t.loinc_id, t.loinc_code, t.concept_name, snomed_code, snomed_name, t.component_code, t.component_name, t.specimen_code, t.specimen_name, t.method_code, t.method_name, t.property_code, t.property_name, t.scale_code, t.scale_name, t.time_code, t.time_name, t1.component_code, t1.component_name, t1.specimen_code, t1.specimen_name, t1.method_code, t1.method_name, t1.property_code, t1.property_name, t1.scale_code, t1.scale_name, t1.time_code, t1.time_name
          ),
 
@@ -2198,7 +2208,8 @@ WITH resulting_table AS (
                                 '395030005',  --Skin biopsy C3 level
                                 '104309001', --Cytomegalovirus IgM antibody assay
                                 '313604004', --Cytomegalovirus IgG antibody measurement
-                                '57321000237104' --Fractional TRP (tubular reabsorption of phosphate)
+                                '57321000237104', --Fractional TRP (tubular reabsorption of phosphate)
+                                 '444264005' --Quantitative measurement of gastrin in fasting serum or plasma specimen
                                )
            AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
 
@@ -2260,6 +2271,9 @@ WITH resulting_table AS (
                 OR (t.specimen_code ~* 'Serum|Plasma' AND t1.specimen_code ~* 'spot')
                 OR (t.specimen_code ~* 'dial|fluid' AND t1.specimen_code ~* 'Dialysate')
              )
+
+               AND snomed_code NOT IN ('50271000237107', --HCV (hepatitis C virus) antibody in oral fluid qualitative result
+                                       '444264005') --Quantitative measurement of gastrin in fasting serum or plasma specimen
          )/*,
 
          --Component

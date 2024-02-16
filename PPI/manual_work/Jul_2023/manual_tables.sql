@@ -197,10 +197,12 @@ FROM ehh_qa
 WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
 
 -- add mappings
+--DROP TABLE ppi_mapped;
 --TRUNCATE TABLE ppi_mapped;
 CREATE TABLE ppi_mapped
 (concept_code varchar,
 concept_name varchar,
+relationship_id varchar,
 target_concept_id int,
 target_concept_code varchar,
 target_concept_name varchar,
@@ -218,7 +220,7 @@ concept_code as concept_code_1,
 target_concept_code as concept_code_2,
 'PPI' AS vocabulary_id_1,
 target_vocabulary_id AS vocabulary_id_2,
-'Maps to' AS relationship_id,
+relationship_id AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason

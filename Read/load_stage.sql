@@ -415,19 +415,25 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--12. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---12. Delete ambiguous 'Maps to' mappings
+--13. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---13. fix domain_ids for mappings to RxNorm and CVX
+--14. fix domain_ids for mappings to RxNorm and CVX
 UPDATE concept_stage cs
 SET domain_id = rd.domain_id
 FROM (
@@ -453,7 +459,7 @@ WHERE rd.concept_code_1 = cs.concept_code
 	AND rd.vocabulary_id_1 = cs.vocabulary_id
 	AND cs.vocabulary_id = 'Read';
 
---14. Clean up
+--15. Clean up
 DROP TABLE read_domain;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -193,10 +193,7 @@ JOIN concept c ON c.concept_id = s.concept_id
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_' -- to exclude internal technical source codes
-	AND NOT EXISTS(SELECT 1
-	               FROM concept_synonym_stage b
-	               WHERE b.synonym_concept_code = c.concept_code
-	               	AND b.synonym_name = s.concept_synonym_name);
+ON CONFLICT DO NOTHING;
 
 --8. Add original names of resurrected concepts using the concept table
 INSERT INTO concept_synonym_stage (
@@ -244,8 +241,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT s0.concept_code_1 AS concept_code_1,
-	s0.concept_code_2 AS concept_code_2,
+SELECT DISTINCT ON (c2.concept_code) c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
 	'ICD10PCS' AS vocabulary_id_1,
 	'ICD10PCS' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
@@ -256,18 +253,13 @@ SELECT s0.concept_code_1 AS concept_code_1,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM (
-	SELECT c1.concept_code AS concept_code_1,
-		c2.concept_code AS concept_code_2,
-		ROW_NUMBER() OVER (
-			PARTITION BY c2.concept_code ORDER BY LENGTH(c1.concept_code) DESC,
-				c1.concept_code
-			) AS rn -- pick the most granular available ancestor
-	FROM concept_stage c1
-	JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
-		AND c1.concept_code <> c2.concept_code
-	) AS s0
-WHERE rn = 1;
+FROM concept_stage c1
+JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+	AND c1.concept_code <> c2.concept_code
+--pick the most granular available ancestor
+ORDER BY c2.concept_code,
+	LENGTH(c1.concept_code) DESC,
+	c1.concept_code;
 
 DROP INDEX trgm_idx;
 
@@ -287,6 +279,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
+
 --13. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN

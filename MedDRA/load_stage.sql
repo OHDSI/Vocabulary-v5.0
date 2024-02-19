@@ -1,4 +1,3 @@
-
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -15,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Mikita Salavei, Dmitry Dymshyts, Denys Kaduk, Timur Vakhitov, Christian Reich
-* Date: 2022
+* Date: 2024
 **************************************************************************/
 
 -- 1. Update latest_update field to new date
@@ -355,63 +354,64 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
--- 6. Make non-standard all LLT and PT concepts without valid 'maps to / maps to value' links (and hierarchy)
-UPDATE dev_meddra.concept_stage AS s
-SET standard_concept = NULL
-WHERE concept_class_id IN ('PT', 'LLT')
-AND NOT EXISTS (
-    SELECT 1
-    FROM dev_meddra.concept_relationship_manual AS crm
-    INNER JOIN dev_meddra.concept_stage AS c
-    ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = crm.vocabulary_id_1
-    WHERE vocabulary_id_1 != vocabulary_id_2
-    AND relationship_id LIKE 'Maps to%'
-    AND crm.invalid_reason IS NULL
-    AND c.concept_class_id IN ('PT', 'LLT') AND c.invalid_reason IS NULL
-    AND s.concept_code = crm.concept_code_1);
 
--- Check desired changes
-SELECT standard_concept, COUNT(*)
-FROM concept_stage
-WHERE concept_class_id  in ('PT', 'LLT')
-GROUP BY standard_concept
-ORDER BY standard_concept;
 
--- 7. Working with concept_manual table
+-- 6. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
--- 8. Append result to concept_relationship_stage table
+-- 7. Append result to concept_relationship_stage table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 9. Working with replacement mappings
+-- 8. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---10. Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---12. Delete ambiguous 'Maps to' mappings
+--11. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
+
+
+-- Make all LLT and PT concepts without valid 'Maps to' links non-standard
+UPDATE dev_meddra.concept_stage AS s
+SET standard_concept = NULL
+WHERE concept_class_id IN ('PT', 'LLT')
+AND NOT EXISTS (
+    SELECT 1
+    FROM dev_meddra.concept_relationship_stage AS crs
+    INNER JOIN dev_meddra.concept_stage AS c
+    ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1
+    WHERE vocabulary_id_1 != vocabulary_id_2
+    AND relationship_id LIKE 'Maps to%'
+    AND crs.invalid_reason IS NULL
+    AND c.concept_class_id IN ('PT', 'LLT') AND c.invalid_reason IS NULL
+    AND s.concept_code = crs.concept_code_1);
 
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

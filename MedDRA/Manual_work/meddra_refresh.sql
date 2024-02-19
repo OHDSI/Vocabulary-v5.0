@@ -1,4 +1,4 @@
---6.2.1. Backup concept_relationship_manual table and concept_manual table.
+--7.1. Backup concept_relationship_manual table and concept_manual table.
 DO
 $body$
     DECLARE
@@ -14,9 +14,9 @@ $body$;
 
 
 --restore concept_relationship_manual table (run it only if something went wrong)
--- TRUNCATE TABLE dev_meddra.concept_relationship_manual;
--- INSERT INTO dev_meddra.concept_relationship_manual
--- SELECT * FROM dev_meddra.concept_relationship_manual_backup_2024_01_09;
+/*TRUNCATE TABLE dev_meddra.concept_relationship_manual;
+INSERT INTO dev_meddra.concept_relationship_manual
+SELECT * FROM dev_meddra.concept_relationship_manual_backup_2024_01_09;*/
 
 DO
 $body$
@@ -32,12 +32,14 @@ $body$
 $body$;
 
 --restore concept_manual table (run it only if something went wrong)
+
 /*TRUNCATE TABLE dev_meddra.concept_manual;
 INSERT INTO dev_meddra.concept_manual
 SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 
 
---6.2.2 Create combined tables with mapping candidates from different sources: meddra_mapped,meddra_snomed / snomed_meddra, meddra_umls, meddra_snomed_eq, meddra_ICD10
+--7.2 Create combined tables with mapping candidates from different sources: meddra_mapped,meddra_snomed / snomed_meddra, meddra_umls, meddra_snomed_eq, meddra_ICD10
+--! It's necessary one time to create meddra_environment
 
 CREATE TABLE dev_meddra.meddra_pt_only_081123 AS
 
@@ -51,7 +53,7 @@ SELECT m.source_code, m.source_code_description, m.to_value, m.target_concept_co
 FROM dev_meddra.meddra_mapped AS m
 INNER JOIN dev_meddra.concept AS c
 ON m.source_code = c.concept_code
-WHERE c.vocabulary_id='MedDRA' AND c.concept_class_id='PT'
+WHERE c.vocabulary_id='MedDRA' AND c.concept_class_id='PT' -- add LLT if necessary
 
 UNION ALL
 
@@ -67,7 +69,7 @@ FROM SOURCES.MEDDRA_MAPSTO_SNOMED AS mts
 INNER JOIN dev_meddra.concept AS c
     ON mts.snomed_code = c.concept_code AND c.vocabulary_id='SNOMED' AND c.standard_concept='S'
 INNER JOIN devv5.concept AS cc
-    ON mts.meddra_code=cc.concept_code AND cc.vocabulary_id='MedDRA' AND cc.concept_class_id='PT'
+    ON mts.meddra_code=cc.concept_code AND cc.vocabulary_id='MedDRA' AND cc.concept_class_id='PT' -- add LLT if necessary
 
 UNION
 
@@ -80,7 +82,7 @@ FROM SOURCES.MEDDRA_MAPSTO_SNOMED AS mts
 INNER JOIN dev_meddra.concept AS c
     ON mts.snomed_code = c.concept_code AND c.vocabulary_id='SNOMED' AND c.standard_concept='S'
 INNER JOIN devv5.concept AS cc
-    ON mts.meddra_code=cc.concept_code AND cc.vocabulary_id='MedDRA' AND cc.concept_class_id='PT'
+    ON mts.meddra_code=cc.concept_code AND cc.vocabulary_id='MedDRA' AND cc.concept_class_id='PT' -- add LLT if necessary
 )
 
 UNION ALL
@@ -100,7 +102,7 @@ INNER JOIN devv5.concept AS cc
 ON cr.concept_id_2 = cc.concept_id
 LEFT JOIN devv5.concept_relationship AS cr2
 ON cr.concept_id_1 = cr2.concept_id_1 AND cr2.relationship_id='Maps to'
-WHERE c.vocabulary_id='MedDRA' AND cc.vocabulary_id='SNOMED' and cr.relationship_id = 'MedDRA - SNOMED eq' AND cr2.relationship_id IS NULL AND c.concept_class_id='PT'
+WHERE c.vocabulary_id='MedDRA' AND cc.vocabulary_id='SNOMED' and cr.relationship_id = 'MedDRA - SNOMED eq' AND cr2.relationship_id IS NULL AND c.concept_class_id='PT' -- add LLT if necessary
 AND cc.standard_concept='S'
 ORDER BY c.concept_id)
 
@@ -198,8 +200,8 @@ ON t.source_code=c.concept_code AND c.vocabulary_id='MedDRA'
 INNER JOIN tab2 ON tab2.concept_code=t.source_code
 ORDER BY t.source_code;
 
--- 6.2.3 Create meddra_environment table
-
+-- 7.3 Create meddra_environment table
+--! It's necessary one time to create meddra_environment
 
 --CREATE TABLE meddra_environment AS
 WITH tab AS(
@@ -261,33 +263,30 @@ GROUP BY
     target_vocabulary_id
 ORDER BY source_code, to_value, count_aggr DESC;
 
---- 6.2.4 Create google sheets table meddra_mapped for review/manual mapping
+--- 7.4 Create google sheets table meddra_mapped for review/manual mapping
 
 SELECT *
 FROM
 meddra_environment
 ORDER BY source_code, relationship_id, count_aggr DESC;
 
-
-
--- 6.2.5.Truncate meddra_environment table.
+-- 7.5 Truncate meddra_environment table.
 
 --TRUNCATE TABLE dev_meddra.meddra_environment;
 
--- 6.2.6 Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema. Run manual checks (+ specific checks) for meddra_environment table
+-- 7.6 Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema. Run manual checks (+ specific checks) for meddra_environment table
+
+-- 7.7 Additional checks
 
 -- Check if rows are uploaded correctly
 
 SELECT * FROM dev_meddra.meddra_environment;
-DELETE FROM dev_meddra.meddra_environment WHERE source_code='';
 
 -- Check if field 'decision' doesn't contain value '1' (ideally must be NULL rows)
-
 
 SELECT DISTINCT source_code, source_code_description
 FROM dev_meddra.meddra_environment
 WHERE source_code NOT IN (SELECT DISTINCT source_code FROM dev_meddra.meddra_environment WHERE decision = '1');
-
 
 -- Check if field 'relationship_id_predicate' doesn't contain any value (ideally must be NULL rows)
 
@@ -306,11 +305,9 @@ FROM dev_meddra.meddra_environment
 WHERE (relationship_id_predicate='' AND decision='1')
    OR (relationship_id_predicate!='' AND decision='');
 
+-- 7.8 Change concept_relationship_manual table according to meddra_environment table.
 
-
--- 6.2.7 Change concept_relationship_manual table according to meddra_environment table.
-
---Insert new and update existing relationships
+--7.8.1 Insert new and update existing relationships
 
 INSERT INTO dev_meddra.concept_relationship_manual AS mapped
     (concept_code_1,
@@ -344,28 +341,51 @@ INSERT INTO dev_meddra.concept_relationship_manual AS mapped
 	IS DISTINCT FROM
 	ROW (excluded.invalid_reason);
 
---Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables
-UPDATE concept_relationship_manual crm
-SET valid_start_date = cr.valid_start_date,
-    valid_end_date = current_date
-FROM meddra_environment m
-JOIN concept c
-ON c.concept_code = m.source_code AND m.source_vocabulary_id = c.vocabulary_id
-JOIN concept_relationship cr
-ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
-JOIN concept c1
-ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.target_concept_code AND c1.vocabulary_id = m.target_vocabulary_id
-WHERE m.decision = '1'
-AND crm.concept_code_1 = m.source_code AND crm.vocabulary_id_1 = m.source_vocabulary_id
-AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.target_vocabulary_id
-AND crm.relationship_id = m.relationship_id
-AND crm.invalid_reason IS NOT NULL;
+--7.8.2 Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables
 
-SELECT * FROM concept_relationship_manual
-WHERE concept_code_1 = '10015216';
+UPDATE concept_relationship_manual AS crm
+SET invalid_reason = 'D',
+    valid_end_date = CURRENT_DATE
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM meddra_environment AS m
+    JOIN concept AS c
+        ON c.concept_code = m.source_code
+        AND m.source_vocabulary_id = c.vocabulary_id
+    JOIN concept_relationship AS cr
+        ON cr.concept_id_1 = c.concept_id
+        AND cr.relationship_id = m.relationship_id
+    JOIN concept AS c1
+        ON c1.concept_id = cr.concept_id_2
+        AND c1.concept_code = m.target_concept_code
+        AND c1.vocabulary_id = m.target_vocabulary_id
+    WHERE crm.concept_code_1 = m.source_code
+        AND crm.vocabulary_id_1 = m.source_vocabulary_id
+        AND crm.concept_code_2 = m.target_concept_code
+        AND crm.vocabulary_id_2 = m.target_vocabulary_id
+        AND crm.relationship_id = m.relationship_id
+        AND m.decision = '1'
+) AND crm.vocabulary_id_1 = 'MedDRA';
 
--- Creation of MedDRA-SNOMED hierarchical relationships
 
+--- -- 7.8.3 Activate mapping, that became valid again
+UPDATE dev_meddra.concept_relationship_manual crm
+SET invalid_reason = null,
+    valid_end_date = to_date('20991231','yyyymmdd'),
+    valid_start_date =current_date
+
+-- SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason = 'D' -- activate only deprecated mappings
+AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
+                 FROM dev_meddra.meddra_environment crm_new
+                 WHERE crm_new.source_code = crm.concept_code_1 --the same source_code is mapped
+                     AND crm_new.target_concept_code = crm.concept_code_2 --to the same concept_code
+                     AND crm_new.target_vocabulary_id = crm.vocabulary_id_2 --of the same vocabulary
+                     AND crm_new.relationship_id = crm.relationship_id --with the same relationship
+     )
+;
+
+-- 7.9 Create MedDRA-SNOMED hierarchical relationships
 
 WITH tab AS(
 SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code

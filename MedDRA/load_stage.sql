@@ -355,7 +355,7 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
--- Make non-standard all LLT and PT concepts without valid 'maps to / maps to value' links (and hierarchy)
+-- 6. Make non-standard all LLT and PT concepts without valid 'maps to / maps to value' links (and hierarchy)
 UPDATE dev_meddra.concept_stage AS s
 SET standard_concept = NULL
 WHERE concept_class_id IN ('PT', 'LLT')
@@ -370,42 +370,44 @@ AND NOT EXISTS (
     AND c.concept_class_id IN ('PT', 'LLT') AND c.invalid_reason IS NULL
     AND s.concept_code = crm.concept_code_1);
 
--- SELECT *
--- FROM concept_stage
--- WHERE concept_class_id  in ('PT', 'LLT')
--- ORDER BY standard_concept;
+-- Check desired changes
+SELECT standard_concept, COUNT(*)
+FROM concept_stage
+WHERE concept_class_id  in ('PT', 'LLT')
+GROUP BY standard_concept
+ORDER BY standard_concept;
 
--- 6. Working with concept_manual table
+-- 7. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
--- 7. Append result to concept_relationship_stage table
+-- 8. Append result to concept_relationship_stage table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 8. Working with replacement mappings
+-- 9. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts
+--10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
+--12. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();

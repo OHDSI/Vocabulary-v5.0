@@ -1,19 +1,3 @@
-CREATE TABLE concept_manual_backup_14_02_2024 as SELECT * FROM concept_manual;
-SELECT * FROM concept_manual_backup_01_2024;
-CREATE TABLE concept_relationship_manual_backup_14_02_2024 as SELECT * FROM concept_relationship_manual;
-SELECT * FROM concept_relationship_manual_backup_01_2024;
-CREATE TABLE concept_synonym_manual_backup_14_02_2024 as SELECT * FROM concept_synonym_manual;
-SELECT * FROM concept_synonym_manual_backup_01_2024;
-
-
---TRUNCATE concept_manual;
---TRUNCATE concept_relationship_manual;
---TRUNCATE concept_synonym_manual;
-
-SELECT * FROM concept_manual;
-SELECT * FROM concept_relationship_manual;
-SELECT * FROM concept_synonym_manual;
-
 -- 1. insert previous Mental Health and Well-Being Module concepts and their relationships to deprecate and add branching logic from manual files
 
 -- 2. insert new concepts into concept_manual
@@ -24,12 +8,11 @@ SELECT DISTINCT
 'Observation' AS domain_id,
 'PPI' AS vocabulary_id,
 'Module' AS concept_class_id,
-'S' as source_standard_concept,
-'bhp' as concept_code,
+'S' AS source_standard_concept,
+'bhp' AS concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-NULL AS invalid_reason
-;
+NULL AS invalid_reason;
 
 -- insert questions bhp
 INSERT INTO concept_manual
@@ -38,12 +21,12 @@ concept_name,
 'Observation' AS domain_id,
 'PPI' AS vocabulary_id,
 'Question' AS concept_class_id,
-'S' as source_standard_concept,
+'S' AS source_standard_concept,
 concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
-from bhp_pr
+FROM bhp_pr
 WHERE flag = 'q';
 
 --insert answers bhp
@@ -58,9 +41,9 @@ concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
-from bhp_pr
+FROM bhp_pr
 WHERE flag = 'a'
-and concept_code not in ('pmi_prefernottoanswer', 'pmi_dontknow', 'pmi_none', 'pmi_doesnotapplytome'); --concepts will be reused;
+AND concept_code NOT IN ('pmi_prefernottoanswer', 'pmi_dontknow', 'pmi_none', 'pmi_doesnotapplytome'); --concepts will be reused
 
 --insert module ehh
 INSERT INTO concept_manual
@@ -69,12 +52,11 @@ SELECT DISTINCT
 'Observation' AS domain_id,
 'PPI' AS vocabulary_id,
 'Module' AS concept_class_id,
-'S' as source_standard_concept,
-'ehhwb' as concept_code,
+'S' AS source_standard_concept,
+'ehhwb' AS concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-NULL AS invalid_reason
-;
+NULL AS invalid_reason;
 
 -- insert questions ehh
 INSERT INTO concept_manual
@@ -83,7 +65,7 @@ concept_name,
 'Observation' AS domain_id,
 'PPI' AS vocabulary_id,
 'Question' AS concept_class_id,
-'S' as source_standard_concept,
+'S' AS source_standard_concept,
 concept_code,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
@@ -105,7 +87,7 @@ TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
 FROM ehh_pr
 WHERE flag = 'a'
-and concept_code not in ('pmi_prefernottoanswer', 'pmi_dontknow', 'pmi_none', 'pmi_doesnotapplytome'); --concepts will be reused
+AND concept_code NOT IN ('pmi_prefernottoanswer', 'pmi_dontknow', 'pmi_none', 'pmi_doesnotapplytome'); --concepts will be reused
 
 -- 3. insert new relationships
 --to add hierarchy 'Has PPI parent code' from Questions to Module
@@ -118,11 +100,10 @@ concept_code AS concept_code_1,
 'Has PPI parent code' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM bhp_pr
 WHERE flag = 'q'
-AND concept_code != 'bhp'
-;
+AND concept_code != 'bhp';
 
 --to add hierarchy 'Has PPI parent code' from Questions to Module
 INSERT INTO concept_relationship_manual
@@ -134,11 +115,10 @@ concept_code AS concept_code_1,
 'Has PPI parent code' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM ehh_pr
 WHERE flag = 'q'
-AND concept_code != 'ehh'
-;
+AND concept_code != 'ehh';
 
 --to add hierarchy 'Has PPI parent code' from Answers to Questions
 INSERT INTO concept_relationship_manual
@@ -150,9 +130,9 @@ question_code as concept_code_2,
 'Has PPI parent code' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM bhp_qa
-WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
+WHERE answer_code NOT IN ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
 
 --to add hierarchy 'Has answer (PPI)' from Answers to Questions
 INSERT INTO concept_relationship_manual
@@ -164,9 +144,9 @@ answer_code as concept_code_2,
 'Has answer (PPI)' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM bhp_qa
-WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
+WHERE answer_code NOT IN ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
 
 --to add hierarchy 'Has PPI parent code' from Answers to Questions
 INSERT INTO concept_relationship_manual
@@ -178,9 +158,9 @@ question_code as concept_code_2,
 'Has PPI parent code' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM ehh_qa
-WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
+WHERE answer_code NOT IN ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
 
 --to add hierarchy 'Has answer (PPI)' from Answers to Questions
 INSERT INTO concept_relationship_manual
@@ -192,9 +172,9 @@ answer_code as concept_code_2,
 'Has answer (PPI)' AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM ehh_qa
-WHERE answer_code not in ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
+WHERE answer_code NOT IN ('PMI_PreferNotToAnswer', 'PMI_DontKnow', 'PMI_None', 'PMI_DoesNotApplyToMe');
 
 -- add mappings
 --DROP TABLE ppi_mapped;
@@ -212,26 +192,25 @@ target_invalid_reason varchar,
 target_domain_id varchar,
 target_vocabulary_id varchar);
 
-SELECT * FROM ppi_mapped;
 
 INSERT INTO concept_relationship_manual
 SELECT DISTINCT
-concept_code as concept_code_1,
-target_concept_code as concept_code_2,
+concept_code AS concept_code_1,
+target_concept_code AS concept_code_2,
 'PPI' AS vocabulary_id_1,
 target_vocabulary_id AS vocabulary_id_2,
 relationship_id AS relationship_id,
 CURRENT_DATE AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
+NULL AS invalid_reason
 FROM ppi_mapped
-WHERE target_concept_id is not null
-and concept_code not in ('pmi_none', 'pmi_doesnotapplytome');
+WHERE target_concept_id IS NOT NULL
+and concept_code NOT IN ('pmi_none', 'pmi_doesnotapplytome');
 
 --Destandartization of concepts, which have maps to S
 UPDATE concept_manual
 SET standard_concept = NULL
-WHERE concept_code in (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id = 'Maps to');
+WHERE concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id = 'Maps to');
 
 --Update domain for all the concepts
 UPDATE concept_manual
@@ -241,4 +220,3 @@ SET domain_id = 'Observation';
 SELECT * FROM concept_manual;
 SELECT * FROM concept_relationship_manual;
 SELECT * FROM concept_synonym_manual;
-

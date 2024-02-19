@@ -21,17 +21,15 @@ Matrix_Ranking	varchar,
 Field_Annotation	varchar);
 
 SELECT * FROM bhp; -- 69
-CREATE TABLE bhp_pr_back as SELECT * FROM bhp_pr;
+CREATE TABLE bhp_pr_back AS SELECT * FROM bhp_pr;
 
 --Process answers
 DROP TABLE answers;
-CREATE TABLE answers as
+CREATE TABLE answers AS
     SELECT DISTINCT
            SPLIT_PART (TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')), ', ', 1)  AS answer_code,
            SPLIT_PART (TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')), ', ', 2)  AS answer_name
     FROM bhp;
-
-SELECT * FROM answers;
 
 --Processed BHP source table
 DROP TABLE bhp_pr;
@@ -51,13 +49,13 @@ SELECT DISTINCT variable_field_name,
                 CASE WHEN variable_field_name in ('asrs_1', 'asrs_2', 'asrs_3', 'asrs_4', 'asrs_5', 'asrs_6')
                 THEN concat ('During the past 6 months' ||' '|| field_label)
                 ELSE field_label
-                END as concept_name,
+                END AS concept_name,
                 field_type,
-                'q' as flag
+                'q' AS flag
 FROM bhp
-WHERE variable_field_name not in ('bhp', 'bhp_intro', 'mood_energy', 'panic_anxiety', 'recurring_thoughts', 'social_anxiety', 'personality', 'attention_focus', 'unusual_experiences');
+WHERE variable_field_name NOT IN ('bhp', 'bhp_intro', 'mood_energy', 'panic_anxiety', 'recurring_thoughts', 'social_anxiety', 'personality', 'attention_focus', 'unusual_experiences');
 
-SELECT DISTINCT concept_code, concept_name FROM dev_ppi.bhp_pr where length (concept_name) > 255;
+SELECT DISTINCT concept_code, concept_name FROM dev_ppi.bhp_pr WHERE length (concept_name) > 255;
 -- Cut concept names longer than 255
 UPDATE bhp_pr SET concept_name = 'Some people have a lot of fear about things like going out of the house alone, being in a crowd, going over bridges, or traveling by bus. Were you ever in your life frightened by any of these situations?'
 WHERE concept_code = 'cidi5_30';
@@ -73,35 +71,32 @@ INSERT INTO bhp_pr (concept_code,
                     flag)
 SELECT DISTINCT answer_code,
                 answer_name,
-                NULL as field_type,
-                'a' as flag
+                NULL AS field_type,
+                'a' AS flag
 FROM answers;
 
-DELETE FROM bhp_pr WHERE concept_code = 'bhp_44' and concept_name = 'Enter number'; -- to preserve only one variant for bhp_44
+DELETE FROM bhp_pr WHERE concept_code = 'bhp_44' AND concept_name = 'Enter number'; -- to preserve only one variant for bhp_44
 SELECT * FROM bhp_pr; --100
 
 -- q-a pairs
 DROP TABLE bhp_qa;
-CREATE TABLE bhp_qa as (
+CREATE TABLE bhp_qa AS (
 WITH a
 AS
 (SELECT *,
   TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')) AS answer
  FROM bhp)
      SELECT
-     variable_field_name as question_code,
-     field_label as question_name,
+     variable_field_name AS question_code,
+     field_label AS question_name,
      SPLIT_PART(answer, ',', 1) AS answer_code,
      trim(SPLIT_PART(answer, ',', 2)) AS answer_name
      FROM a);
 
-SELECT * FROM bhp_qa;
 UPDATE bhp_qa SET answer_code = 'PMI_DontKnow' WHERE answer_code = 'pmi_dontknow';
 UPDATE bhp_qa SET answer_code = 'PMI_PreferNotToAnswer' WHERE answer_code = 'pmi_prefernottoanswer';
 UPDATE bhp_qa SET answer_code = 'PMI_None' WHERE answer_code = 'pmi_none';
 UPDATE ehh_qa SET answer_code = 'PMI_DoesNotApplyToMe' WHERE answer_code = 'pmi_doesnotapplytome';
-
-SELECT * FROM bhp_qa;
 
 
 -- EHH (Emotional Health history and Wellbeing) source table
@@ -131,13 +126,12 @@ CREATE TABLE ehh_pr_back as SELECT * FROM ehh_pr;
 
 --Process answers
 DROP TABLE ehh_answers;
-CREATE TABLE ehh_answers as
+CREATE TABLE ehh_answers AS
     SELECT DISTINCT
            SPLIT_PART (TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')), ', ', 1)  AS answer_code,
            SPLIT_PART (TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')), ', ', 2)  AS answer_name
     FROM ehh;
 
-SELECT * FROM ehh_answers;
 DELETE FROM ehh_answers WHERE answer_code = 'ehhwb_10' and answer_name = 'More than half of the days'; -- to preserve only one variant
 DELETE FROM ehh_answers WHERE answer_code = 'pmi_dontknow' and answer_name = 'Don''t know/Not sure';-- to preserve only one variant
 
@@ -156,19 +150,19 @@ INSERT INTO ehh_pr (concept_code,
                     field_type,
                     flag)
 SELECT DISTINCT variable_field_name,
-                CASE WHEN variable_field_name in ('gad7_1', 'gad7_2', 'gad7_3', 'gad7_4', 'gad7_5', 'gad7_6', 'gad7_7',
+                CASE WHEN variable_field_name IN ('gad7_1', 'gad7_2', 'gad7_3', 'gad7_4', 'gad7_5', 'gad7_6', 'gad7_7',
                                                  'phq9_1', 'phq9_2', 'phq9_3', 'phq9_4', 'phq9_5', 'phq9_6', 'phq9_7', 'phq9_8', 'phq9_9')
                 THEN concat ('Over the last 2 weeks, how often have you been bothered by' ||' '|| lower (field_label))
-                WHEN variable_field_name in ('mhqukb_29', 'mhqukb_30', 'mhqukb_31')
+                WHEN variable_field_name IN ('mhqukb_29', 'mhqukb_30', 'mhqukb_31')
                 THEN concat ('During feelings of depression or loss of interest' ||' '|| field_label)
-                WHEN variable_field_name in ('cidi5_6', 'cidi5_7', 'cidi5_8', 'cidi5_9', 'cidi5_10', 'cidi5_11', 'cidi5_12', 'cidi5_13', 'cidi5_14', 'cidi5_15')
+                WHEN variable_field_name IN ('cidi5_6', 'cidi5_7', 'cidi5_8', 'cidi5_9', 'cidi5_10', 'cidi5_11', 'cidi5_12', 'cidi5_13', 'cidi5_14', 'cidi5_15')
                 THEN concat ('During those 6 months, how often did you' ||' '|| lower (field_label))
                 ELSE field_label
-                END as concept_name,
+                END AS concept_name,
                 field_type,
-                'q' as flag
+                'q' AS flag
 FROM ehh
-WHERE variable_field_name not in ('ehhwb', 'ehhwb_intro', 'anxiety_worry', 'mood_sadness', 'depression_popup1', 'lifetime_symptoms',
+WHERE variable_field_name NOT IN ('ehhwb', 'ehhwb_intro', 'anxiety_worry', 'mood_sadness', 'depression_popup1', 'lifetime_symptoms',
                                   'twoweekperiod_depression', 'depression_popup2', 'depression_help', 'self_harm', 'suicide_popup', 'trauma',
                                   'trauma_popup1', 'trauma_popup2', 'ptsd', 'well_being', 'depression', 'worryanxiety_yes', 'worryanxiety_yes_2');
 
@@ -180,13 +174,13 @@ INSERT INTO ehh_pr (concept_code,
                     flag)
 SELECT DISTINCT answer_code,
                 answer_name,
-                NULL as field_type,
-                'a' as flag
+                NULL AS field_type,
+                'a' AS flag
 FROM ehh_answers;
 
 SELECT * FROM ehh_pr; --185
 
-SELECT DISTINCT concept_code, concept_name FROM dev_ppi.ehh_pr where length (concept_name) > 255;
+SELECT DISTINCT concept_code, concept_name FROM dev_ppi.ehh_pr WHERE length (concept_name) > 255;
 
 --q-a pairs
 DROP TABLE ehh_qa;
@@ -208,5 +202,3 @@ UPDATE ehh_qa SET answer_code = 'PMI_DontKnow' WHERE answer_code = 'pmi_dontknow
 UPDATE ehh_qa SET answer_code = 'PMI_PreferNotToAnswer' WHERE answer_code = 'pmi_prefernottoanswer';
 UPDATE ehh_qa SET answer_code = 'PMI_None' WHERE answer_code = 'pmi_none';
 UPDATE ehh_qa SET answer_code = 'PMI_DoesNotApplyToMe' WHERE answer_code = 'pmi_doesnotapplytome';
-
-

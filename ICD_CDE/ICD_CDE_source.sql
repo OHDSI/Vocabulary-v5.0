@@ -1,4 +1,4 @@
-CREATE TABLE icd_cde_source_backup_2_13_2024 as SELECT * FROM icd_cde_source;
+CREATE TABLE icd_cde_source_backup_2_16_2024 as SELECT * FROM icd_cde_source;
 CREATE TABLE icd_cde_source_backup_local_ver as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_local_ver);
@@ -971,7 +971,7 @@ SELECT * FROM icd_cde_mapped;
 --11. Update mapped table
 --Update decision flag --miss null!
 UPDATE icd_cde_mapped SET decision = '0'
-WHERE decision != '1';
+WHERE decision is null;
 
 --Update target_standard_concept field
 UPDATE icd_cde_mapped SET target_standard_concept = 'S'
@@ -1006,6 +1006,8 @@ AND s.target_concept_id = m.target_concept_id
 --AND s.target_domain_id = m.target_domain_id
 --AND s.target_vocabulary_id = m.target_vocabulary_id
     );
+
+SELECT * FROM dev_icd10.icd_cde_source;
 
 --Insert new and update existing relationships according to _mapped table.
 INSERT INTO dev_icd10.icd_cde_source as s
@@ -1059,7 +1061,7 @@ INSERT INTO dev_icd10.icd_cde_source as s
      decision_date
 FROM icd_cde_mapped m
 WHERE s.group_name = m.group_name
-AND s.target_concept_id = m.target_concept_id;
+AND s.target_concept_id = m.target_concept_id);
 
 
 --Update target for concept without mappings

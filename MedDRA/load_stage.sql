@@ -398,7 +398,7 @@ BEGIN
 END $_$;
 
 
--- Make all LLT and PT concepts without valid 'Maps to' links non-standard
+--12. Make all LLT and PT concepts without valid 'Maps to' links non-standard
 UPDATE dev_meddra.concept_stage AS s
 SET standard_concept = NULL
 WHERE concept_class_id IN ('PT', 'LLT')

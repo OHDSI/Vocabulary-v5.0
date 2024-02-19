@@ -293,7 +293,7 @@ AND crm.invalid_reason IS NOT NULL;
 
 
 
---7.2.7. Create MedDRA-SNOMED hierarchical relationships.
+--7.2.7. Create hierarchical relationships with SNOMED and OMOP Extension.
 WITH tab AS(
 SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code
 			WHEN relationship_id_predicate='up' THEN source_code END AS concept_code_1,
@@ -309,6 +309,8 @@ SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = '
         NULL AS invalid_reason
 FROM dev_meddra.meddra_environment
 WHERE decision='1'
+AND relationship_id = 'Maps to'
+AND target_vocabulary_id IN ('SNOMED', 'OMOP Extension')
 )
 
 INSERT INTO dev_meddra.concept_relationship_manual AS mapped

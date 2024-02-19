@@ -1202,12 +1202,12 @@ CREATE UNLOGGED TABLE sn_attr AS
 				ORDER BY f.id,
 					f.effectivetime DESC -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
 				) AS s0
-			WHERE statusid::text  = '900000000000073002'
+			WHERE statusid = '900000000000073002'
 			
 			UNION ALL
 			
 			SELECT '41598000' AS concept_code,
-				900000000000073002::text AS statusid --This union is needed to take Estrogen component
+				'900000000000073002' AS statusid --This union is needed to take Estrogen component
 			)
 
 SELECT zz.*
@@ -1521,51 +1521,53 @@ WITH ax_1 AS (
 				FROM ax_1 ax_1_int
 				) -- exclude duplicates
 		),
-     -- AXIS 2.1: get 2-attribute Measurements (Component+Specimen) ONLY for DIALYSAT specimen
-     ax_21 AS (
-         SELECT DISTINCT z3.lc_code,
-			z3.lc_name,
-			x2.sn_code,
-			x2.sn_name
-		FROM sn_attr x1 -- X1 - SNOMED attribute pool
-		JOIN lc_attr z1 -- Z1 - LOINC attribute pool
-			ON z1.attr_code = x1.attr_code -- common Component
-			AND z1.relationship_id = 'Has component'
-		JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
-		JOIN lc_attr z2 ON z2.attr_code = '418377002' and x2.attr_code = '258454002' -- common Site -- DIALYSIS only
-			AND z2.relationship_id IN (
-				'Has dir proc site',
-				'Inheres in'
-				) -- given by the source relationships indicating SNOMED Specimens
-		JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
-			AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
-		WHERE x1.relationship_id = 'Has component'
-			AND x2.relationship_id = 'Has specimen'
-			AND x1.sn_code IN (
+	-- AXIS 2.1: get 2-attribute Measurements (Component+Specimen) ONLY for DIALYSAT specimen
+	ax_21 AS (
+			SELECT DISTINCT z3.lc_code,
+				z3.lc_name,
+				x2.sn_code,
+				x2.sn_name
+			FROM sn_attr x1 -- X1 - SNOMED attribute pool
+			JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+				ON z1.attr_code = x1.attr_code -- common Component
+				AND z1.relationship_id = 'Has component'
+			JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+			JOIN lc_attr z2 ON z2.attr_code = '418377002'
+				AND x2.attr_code = '258454002' -- common Site -- DIALYSIS only
+				AND z2.relationship_id IN (
+					'Has dir proc site',
+					'Inheres in'
+					) -- given by the source relationships indicating SNOMED Specimens
+			JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
+				AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
+			WHERE x1.relationship_id = 'Has component'
+				AND x2.relationship_id = 'Has specimen'
+				AND x1.sn_code IN (
 					SELECT sn_attr_int.sn_code
 					FROM sn_attr sn_attr_int
-					where sn_attr_int.sn_code IN (select sn_code
-					                                from sn_attr
-					                                 where attr_code IN ('258454002', --Dialysate specimen
-					                                                     '119360007' --Dialysis fluid specimen
-					                                                    )
-					    )
+					WHERE sn_attr_int.sn_code IN (
+							SELECT sn_code
+							FROM sn_attr
+							WHERE attr_code IN (
+									'258454002', --Dialysate specimen
+									'119360007' --Dialysis fluid specimen
+									)
+							)
 					GROUP BY sn_attr_int.sn_code
 					HAVING COUNT(*) > 1
 					) /*to restrict SNOMED attribute pool*/
-
-			AND x1.sn_code NOT IN (
-				'401020005' --Urinary cortisol analysis
-				)
-         AND z3.lc_code NOT IN (
-				SELECT ax_1_int.lc_code
-				FROM ax_1 ax_1_int
-				)
-         AND z3.lc_code NOT IN (
-				SELECT ax_2_int.lc_code
-				FROM ax_2 ax_2_int
-				) -- exclude duplicates
-         ),
+				AND x1.sn_code NOT IN (
+					'401020005' --Urinary cortisol analysis
+					)
+				AND z3.lc_code NOT IN (
+					SELECT ax_1_int.lc_code
+					FROM ax_1 ax_1_int
+					)
+				AND z3.lc_code NOT IN (
+					SELECT ax_2_int.lc_code
+					FROM ax_2 ax_2_int
+					) -- exclude duplicates
+			),
 	-- AXIS 3: get 2-attribute Measurements (Component+Specimen) ONLY for Acellular blood (serum or plasma) specimen
 	ax_3 AS (
 		SELECT DISTINCT z2.lc_code,
@@ -1590,21 +1592,22 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 2
 				) /*to restrict SNOMED attribute pool*/
-	    AND x1.sn_code NOT IN ('401093002', --Haemophilus influenzae B IgG measurement
-	                            '9954002' --Serologic test for rubella
-	                          ) --to exclude additional codes
+			AND x1.sn_code NOT IN (
+				'401093002', --Haemophilus influenzae B IgG measurement
+				'9954002' --Serologic test for rubella
+				) --to exclude additional codes
 			AND z2.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
-			)
+				)
 			AND z2.lc_code NOT IN (
 				SELECT ax_2_int.lc_code
 				FROM ax_2 ax_2_int
-			)
-	        AND z2.lc_code NOT IN (
+				)
+			AND z2.lc_code NOT IN (
 				SELECT ax_21_int.lc_code
 				FROM ax_21 ax_21_int
-			) -- exclude duplicates
+				) -- exclude duplicates
 		),
 	-- AXIS 4: get 2-attribute Measurements (Component+Scale)
 	ax_4 AS (
@@ -1658,15 +1661,15 @@ WITH ax_1 AS (
 				'281105001', --Fecal lipase measurement
 				'166776003', --Serum/plasma protein test
 				'166809004', --Electrophoresis: paraprotein
-			    '54381000237109', --Sodium molar concentration in blood
-			    '791921000000101', --Partial pressure of oxygen in umbilical cord venous blood
-			    '791911000000107', --pH of umbilical cord venous blood
-			    '791971000000102', --pH of umbilical cord arterial blood
-			    '736730002', --Partial pressure of carbon dioxide in umbilical cord arterial blood
-			    '736785003', --Partial pressure of carbon dioxide in umbilical cord venous blood
-			    '55701000237103', --Potassium molar concentration in blood
-			    '54661000237106', --Magnesium molar concentration in blood
-			    '143431000237107' --Clinical chemistry electrolyte observable
+				'54381000237109', --Sodium molar concentration in blood
+				'791921000000101', --Partial pressure of oxygen in umbilical cord venous blood
+				'791911000000107', --pH of umbilical cord venous blood
+				'791971000000102', --pH of umbilical cord arterial blood
+				'736730002', --Partial pressure of carbon dioxide in umbilical cord arterial blood
+				'736785003', --Partial pressure of carbon dioxide in umbilical cord venous blood
+				'55701000237103', --Potassium molar concentration in blood
+				'54661000237106', --Magnesium molar concentration in blood
+				'143431000237107' --Clinical chemistry electrolyte observable
 				) -- to exclude codes with additional axises
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
@@ -1676,7 +1679,7 @@ WITH ax_1 AS (
 				SELECT ax_2_int.lc_code
 				FROM ax_2 ax_2_int
 				)
-		    AND z1.lc_code NOT IN (
+			AND z1.lc_code NOT IN (
 				SELECT ax_21_int.lc_code
 				FROM ax_21 ax_21_int
 			)
@@ -1785,7 +1788,6 @@ WHERE NOT (
 			)
 		AND sn_name NOT ILIKE '%quantitative%'
 		);
-
 
 --21. Build hierarchical links 'Is a' from LOINC Lab Tests to SNOMED Measurements with the use of the LOINC Ontology source (2024.02)
 INSERT INTO concept_relationship_stage (
@@ -2047,8 +2049,8 @@ WITH resulting_table AS (
            ax4 AS (SELECT t.loinc_id AS concept_id,
                     t.loinc_code AS concept_code,
                     t.concept_name AS concept_name,
-                    snomed_code AS target_concept_code,
-                    snomed_name AS target_concept_name,
+                    t.snomed_code AS target_concept_code,
+                    t.snomed_name AS target_concept_name,
                     t.component_code AS target_component_code,
                     t.component_name AS target_component_name,
                     t.specimen_code AS target_specimen_code,
@@ -2081,8 +2083,8 @@ WITH resulting_table AS (
            ax5 AS (SELECT t.loinc_id AS concept_id,
                     t.loinc_code AS concept_code,
                     t.concept_name AS concept_name,
-                    snomed_code AS target_concept_code,
-                    snomed_name AS target_concept_name,
+                    t.snomed_code AS target_concept_code,
+                    t.snomed_name AS target_concept_name,
                     t.component_code AS target_component_code,
                     t.component_name AS target_component_name,
                     t.specimen_code AS target_specimen_code,
@@ -2108,7 +2110,7 @@ WITH resulting_table AS (
                     t1.time_code,
                     t1.time_name,
                           --to choose concept with the more Subsumes than others
-                    ROW_NUMBER() OVER (PARTITION BY t.loinc_code ORDER BY count(*) DESC) AS row_num
+                    ROW_NUMBER() OVER (PARTITION BY t.loinc_code ORDER BY COUNT(*) DESC) AS row_num
                     FROM snomed_attr t
                     JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
                     AND t.component_code = t1.component_code

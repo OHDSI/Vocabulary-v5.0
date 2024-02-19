@@ -184,15 +184,15 @@ SELECT DISTINCT concept_code, concept_name FROM dev_ppi.ehh_pr WHERE length (con
 
 --q-a pairs
 DROP TABLE ehh_qa;
-CREATE TABLE ehh_qa as (
+CREATE TABLE ehh_qa AS (
 WITH a
 AS
 (SELECT *,
   TRIM(REGEXP_SPLIT_TO_TABLE(choices_calculations_or_slider_labels, '\|')) AS answer
  FROM ehh)
      SELECT
-     variable_field_name as question_code,
-     field_label as question_name,
+     variable_field_name AS question_code,
+     field_label AS question_name,
      SPLIT_PART(answer, ',', 1) AS answer_code,
      trim(SPLIT_PART(answer, ',', 2)) AS answer_name
      FROM a) ;

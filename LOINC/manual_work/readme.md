@@ -43,22 +43,18 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 19.3. Work with [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file:
 
-19.3.1. Backup concept_relationship_manual table and concept_manual table.
+19.3.1. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
 
-19.3.2. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
+19.3.2. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
 
-19.3.3. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
+19.3.3. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
 
-19.3.4. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
+19.3.4. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
 
-19.3.5. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+19.3.5 Perform any mapping checks you have set.
 
-19.3.6. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
+19.3.5. Change concept_relationship_manual table according to loinc_mapped table.
 
-19.3.7. Perform any mapping checks you have set.
+19.3.6 Iteratively repeat steps 19.3.2-19.3.5 if found any issues.
 
-19.3.8. Iteratively repeat steps 22.3.5-22.3.7 if found any issues.
-
-19.3.9. Deprecate all mappings that differ from the new version of resulting mapping file.
-
-19.3.10. Insert new and corrected mappings into the concept_relationship_manual table.
+19.3.7. Change concept_relationship_manual table according to loinc_mapped table.

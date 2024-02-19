@@ -1,5 +1,3 @@
---TODO: More tests required
-
 --19.3.1. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
 --DROP TABLE dev_loinc.loinc_mapped;
 CREATE TABLE dev_loinc.loinc_mapped
@@ -186,11 +184,11 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 --19.3.4. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_loinc.loinc_mapped;
 
---Format after uploading
-UPDATE dev_loinc.loinc_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
-UPDATE dev_loinc.loinc_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
+--19.3.5 Perform any mapping checks you have set.
 
---19.3.5. Change concept_relationship_manual table according to loinc_mapped table.
+--19.3.6 Iteratively repeat steps 19.3.2-19.3.5 if found any issues.
+
+--19.3.7. Change concept_relationship_manual table according to loinc_mapped table.
 --Insert new relationships
 --Update existing relationships
 INSERT INTO dev_loinc.concept_relationship_manual AS mapped 

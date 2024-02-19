@@ -1802,8 +1802,10 @@ INSERT INTO concept_relationship_stage (
 	)
 WITH resulting_table AS (
     --table with snomed measurements with attributes
+WITH resulting_table AS (
+    --table with snomed measurements with attributes
     WITH snomed_attr AS (SELECT DISTINCT c.concept_id AS loinc_id, --id of the real concept
-                    si.alternateIdentifier AS loinc_code, --loinc_code of the real concept
+                    si.alternateidentifier AS loinc_code, --loinc_code of the real concept
                     c.concept_name, --loinc name of the real concept
                     c2.concept_id AS snomed_id,
                     --potential target
@@ -1822,50 +1824,50 @@ WITH resulting_table AS (
                     c6.concept_name AS scale_name,
                     c7.concept_code AS time_code,
                     c7.concept_name AS time_name
-             FROM snomed_relationship_full sr
-                      JOIN snomed_identifier_full si ON sr.sourceId = si.referencedComponentId
-                      LEFT JOIN concept_stage c ON c.concept_code = si.alternateIdentifier
+             FROM dev_loinc.snomed_relationship_full sr
+                      JOIN dev_loinc.snomed_identifier_full si ON si.referencedcomponentid = sr.sourceid
+                      LEFT JOIN concept_stage c ON c.concept_code = si.alternateidentifier
                                                        AND c.vocabulary_id = 'LOINC'
-                      LEFT JOIN concept c1 ON c1.concept_code = sr.destinationId
+                      LEFT JOIN concept c1 ON c1.concept_code = sr.destinationid
                                                   AND c1.vocabulary_id = 'SNOMED'
-                      JOIN concept_relationship cr ON c1.concept_id = cr.concept_id_1
+                      JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id 
                                                                AND cr.relationship_id = 'Component of'
                                                                AND cr.invalid_reason IS NULL
-                      JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
+                      JOIN concept c2 ON c2.concept_id = cr.concept_id_2
                                              AND c2.vocabulary_id = 'SNOMED'
                                              AND c2.invalid_reason IS NULL
 
-                      LEFT JOIN concept_relationship cr1 ON c2.concept_id = cr1.concept_id_1
+                      LEFT JOIN concept_relationship cr1 ON cr1.concept_id_1 = c2.concept_id
                                                                AND cr1.relationship_id IN ('Has specimen', 'Has direct site')
                                                                AND cr1.invalid_reason IS NULL
-                      LEFT JOIN concept c3 ON cr1.concept_id_2 = c3.concept_id
+                      LEFT JOIN concept c3 ON c3.concept_id= cr1.concept_id_2
                                                   AND c3.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN concept_relationship cr2 ON c2.concept_id = cr2.concept_id_1
+                      LEFT JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id
                                                                AND cr2.relationship_id = 'Has method'
                                                                AND cr2.invalid_reason IS NULL
-                      LEFT JOIN concept c4 ON cr2.concept_id_2 = c4.concept_id
+                      LEFT JOIN concept c4 ON c4.concept_id = cr2.concept_id_2
                                                   AND c4.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN concept_relationship cr3 ON c2.concept_id = cr3.concept_id_1
+                      LEFT JOIN concept_relationship cr3 ON cr3.concept_id_1 = c2.concept_id
                                                                AND cr3.relationship_id = 'Has property'
                                                                AND cr3.invalid_reason IS NULL
-                      LEFT JOIN concept c5 ON cr3.concept_id_2 = c5.concept_id
+                      LEFT JOIN concept c5 ON  c5.concept_id = cr3.concept_id_2
                                                   AND c5.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN concept_relationship cr4 ON c2.concept_id = cr4.concept_id_1
+                      LEFT JOIN concept_relationship cr4 ON cr4.concept_id_1 = c2.concept_id
                                                                AND cr4.relationship_id = 'Has scale type'
                                                                AND cr4.invalid_reason IS NULL
-                      LEFT JOIN concept c6 ON cr4.concept_id_2 = c6.concept_id
+                      LEFT JOIN concept c6 ON c6.concept_id = cr4.concept_id_2
                                                   AND c6.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN concept_relationship cr5 ON c2.concept_id = cr5.concept_id_1
+                      LEFT JOIN concept_relationship cr5 ON cr5.concept_id_1 = c2.concept_id
                                                                AND cr5.relationship_id = 'Has time aspect'
                                                                AND cr5.invalid_reason IS NULL
-                      LEFT JOIN concept c7 ON cr5.concept_id_2 = c7.concept_id
+                      LEFT JOIN concept c7 ON c7.concept_id=cr5.concept_id_2 
                                                   AND c7.vocabulary_id = 'SNOMED'
 
-             WHERE sr.typeId != '116680003' --Is a
+             WHERE sr.typeid <>'116680003' --Is a
 
              AND c.concept_code NOT IN (SELECT concept_code_1
                                         FROM concept_relationship_stage
@@ -1876,7 +1878,7 @@ WITH resulting_table AS (
          --table with loinc measurements with attributes
            loinc_attr AS (
          SELECT DISTINCT c.concept_id AS loinc_id, --id of the real concept
-                    si.alternateIdentifier AS loinc_code, --loinc_code of the real concept
+                    si.alternateidentifier AS loinc_code, --loinc_code of the real concept
                     c.concept_name, --loinc name of the real concept
                          --loinc attributes
                     c1.concept_code AS component_code,
@@ -1891,38 +1893,38 @@ WITH resulting_table AS (
                     c5.concept_name AS scale_name,
                     c6.concept_code AS time_code,
                     c6.concept_name AS time_name
-             FROM snomed_relationship_full sr
-                      JOIN snomed_identifier_full si ON sr.sourceId = si.referencedComponentId
-                                                            AND sr.typeId = '246093002'  --Component
-                      LEFT JOIN concept_stage c ON c.concept_code = si.alternateIdentifier
+             FROM dev_loinc.snomed_relationship_full sr
+                      JOIN dev_loinc.snomed_identifier_full si ON si.referencedcomponentid = sr.sourceid
+                                                            AND sr.typeid = '246093002'  --Component
+                      LEFT JOIN concept_stage c ON c.concept_code = si.alternateidentifier
                                                        AND c.vocabulary_id = 'LOINC'
-                      LEFT JOIN concept c1 ON c1.concept_code = sr.destinationId AND c1.vocabulary_id = 'SNOMED'
+                      LEFT JOIN concept c1 ON c1.concept_code = sr.destinationid AND c1.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN snomed_relationship_full sr1 ON sr.sourceId = sr1.sourceId
-                                                                    AND sr1.typeId IN ('370133003', '704319004', '704327008') --Specimen
-                      LEFT JOIN concept c2 ON c2.concept_code = sr1.destinationId
+                      LEFT JOIN snomed_relationship_full sr1 ON sr1.sourceid = sr.sourceid
+                                                                    AND sr1.typeid IN ('370133003', '704319004', '704327008') --Specimen
+                      LEFT JOIN concept c2 ON c2.concept_code = sr1.destinationid
                                                   AND c2.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN snomed_relationship_full sr2 ON sr.sourceId = sr2.sourceId
-                                                                    AND sr2.typeId = '246501002' --Method
-                      LEFT JOIN concept c3 ON c3.concept_code = sr2.destinationId
+                      LEFT JOIN snomed_relationship_full sr2 ON sr2.sourceid = sr.sourceid
+                                                                    AND sr2.typeid = '246501002' --Method
+                      LEFT JOIN concept c3 ON c3.concept_code = sr2.destinationid
                                                   AND c3.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN snomed_relationship_full sr3 ON sr.sourceId = sr3.sourceId
-                                                             AND sr3.typeId = '370130000' --Property
-                      LEFT JOIN concept c4 ON c4.concept_code = sr3.destinationId
+                      LEFT JOIN snomed_relationship_full sr3 ON sr3.sourceid = sr.sourceid
+                                                             AND sr3.typeid = '370130000' --Property
+                      LEFT JOIN concept c4 ON c4.concept_code = sr3.destinationid
                                                   AND c4.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN snomed_relationship_full sr4 ON sr.sourceId = sr4.sourceId
-                                                                        AND sr4.typeId = '370132008' --Scale
-                      LEFT JOIN concept c5 ON c5.concept_code = sr4.destinationId AND c5.vocabulary_id = 'SNOMED'
+                      LEFT JOIN snomed_relationship_full sr4 ON sr4.sourceid = sr.sourceid
+                                                                        AND sr4.typeid = '370132008' --Scale
+                      LEFT JOIN concept c5 ON c5.concept_code = sr4.destinationid AND c5.vocabulary_id = 'SNOMED'
 
-                      LEFT JOIN snomed_relationship_full sr5 ON sr.sourceId = sr5.sourceId
-                                                             AND sr5.typeId = '370134009'
-                      LEFT JOIN concept c6 ON c6.concept_code = sr5.destinationId
+                      LEFT JOIN snomed_relationship_full sr5 ON sr5.sourceid = sr.sourceid
+                                                             AND sr5.typeid = '370134009'
+                      LEFT JOIN concept c6 ON c6.concept_code = sr5.destinationid
                                                   AND c6.vocabulary_id = 'SNOMED'
 
-         WHERE sr.typeId != '116680003' --Is a
+         WHERE sr.typeid <> '116680003' --Is a
 
            --take Lab Test that don't have 'Is a' link to SNOMED
              AND c.concept_code NOT IN (SELECT concept_code_1
@@ -1937,8 +1939,8 @@ WITH resulting_table AS (
            ax1 AS (SELECT t.loinc_id AS concept_id,
                     t.loinc_code AS concept_code,
                     t.concept_name AS concept_name,
-                    snomed_code AS target_concept_code,
-                    snomed_name AS target_concept_name,
+                    t.snomed_code AS target_concept_code,
+                    t.snomed_name AS target_concept_name,
                     t.component_code AS target_component_code,
                     t.component_name AS target_component_name,
                     t.specimen_code AS target_specimen_code,
@@ -1964,20 +1966,14 @@ WITH resulting_table AS (
                     t1.time_code,
                     t1.time_name
              FROM snomed_attr t
-                    JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
-                    AND t.component_code = t1.component_code
-                    AND t.specimen_code = t1.specimen_code
-                    AND t.method_code = t1.method_code
-                    AND t.property_code = t1.property_code
-                    AND t.scale_code = t1.scale_code
-                    AND t.time_code = t1.time_code),
+                    JOIN loinc_attr t1 USING (loinc_code, component_code, specimen_code, method_code, property_code, scale_code, time_code)),
 
          --Component + Specimen + Scale
            ax2 AS (SELECT t.loinc_id AS concept_id,
                     t.loinc_code AS concept_code,
                     t.concept_name AS concept_name,
-                    snomed_code AS target_concept_code,
-                    snomed_name AS target_concept_name,
+                    t.snomed_code AS target_concept_code,
+                    t.snomed_name AS target_concept_name,
                     t.component_code AS target_component_code,
                     t.component_name AS target_component_name,
                     t.specimen_code AS target_specimen_code,
@@ -2003,16 +1999,13 @@ WITH resulting_table AS (
                     t1.time_code,
                     t1.time_name
                     FROM snomed_attr t
-                    JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
-                    AND t.component_code = t1.component_code
-                    AND t.specimen_code = t1.specimen_code
-                    AND t.scale_code = t1.scale_code
+                    JOIN loinc_attr t1 USING (loinc_code, component_code, specimen_code, scale_code)
                --prevent wrong matching based on Property
          AND (t.property_code IS NULL OR t1.property_code IS NULL
              OR t.property_code = t1.property_code
              )
 
-               where snomed_code NOT IN ('444264005')  --Quantitative measurement of gastrin in fasting serum or plasma specimen
+               where t.snomed_code <> '444264005'  --Quantitative measurement of gastrin in fasting serum or plasma specimen
 
                ),
 
@@ -2020,8 +2013,8 @@ WITH resulting_table AS (
            ax3 AS (SELECT t.loinc_id AS concept_id,
                     t.loinc_code AS concept_code,
                     t.concept_name AS concept_name,
-                    snomed_code AS target_concept_code,
-                    snomed_name AS target_concept_name,
+                    t.snomed_code AS target_concept_code,
+                    t.snomed_name AS target_concept_name,
                     t.component_code AS target_component_code,
                     t.component_name AS target_component_name,
                     t.specimen_code AS target_specimen_code,
@@ -2047,11 +2040,7 @@ WITH resulting_table AS (
                     t1.time_code,
                     t1.time_name
                     FROM snomed_attr t
-                    JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
-                    AND t.component_code = t1.component_code
-                    AND t.specimen_code = t1.specimen_code
-                    AND t.property_code = t1.property_code
-                    AND t.time_code = t1.time_code),
+                    JOIN loinc_attr t1 USING (loinc_code,component_code,specimen_code,property_code,time_code)),
 
          --loinc_code + Method
            ax4 AS (SELECT t.loinc_id AS concept_id,
@@ -2084,8 +2073,7 @@ WITH resulting_table AS (
                     t1.time_code,
                     t1.time_name
                     FROM snomed_attr t
-                    JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
-                    AND t.method_code = t1.method_code),
+                    JOIN loinc_attr t1 USING (loinc_code,method_code)),
 
          --Property + Component + Specimen
            ax5 AS (SELECT t.loinc_id AS concept_id,

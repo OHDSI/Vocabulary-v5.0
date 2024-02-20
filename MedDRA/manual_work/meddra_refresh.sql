@@ -240,8 +240,43 @@ ORDER BY source_code, relationship_id, count_aggr DESC;
 --7.2.5. Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema.
 
 --7.2.6. Change concept_relationship_manual table according to meddra_environment table.
---Insert new and update existing relationships
 
+--Deprecate all mappings that differ from the new version of resulting mapping file
+--! Must be done in Meddra due to transfer to Common Data Environment process
+UPDATE concept_relationship_manual
+SET invalid_reason = 'D',
+    valid_end_date = current_date
+WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
+      (SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2
+       FROM concept_relationship_manual crm_old
+       WHERE NOT exists(SELECT source_code,
+                               target_concept_code,
+                               'MedDRA',
+                               target_vocabulary_id,
+                               CASE
+                                   WHEN relationship_id ~* 'value' THEN 'Maps to value'
+                                   WHEN relationship_id ~* 'Is a' THEN 'Is a'
+                                   WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
+                                   ELSE 'Maps to' END
+                        FROM meddra_environment crm_new
+                        WHERE source_code = crm_old.concept_code_1
+                          AND target_concept_code = crm_old.concept_code_2
+                          AND target_vocabulary_id = crm_old.vocabulary_id_2
+                          AND CASE
+                                  WHEN relationship_id ~* 'value' THEN 'Maps to value'
+                    WHEN relationship_id ~* 'Is a' THEN 'Is a'
+                    WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
+                   ELSE 'Maps to' END = crm_old.relationship_id
+    )
+    AND invalid_reason IS NULL
+    )
+AND vocabulary_id_1 = 'MedDRA'
+;
+
+
+
+--Insert new and update existing relationships
+--TODO: Set proper deprecation for relationships (invalid reason)
 INSERT INTO dev_meddra.concept_relationship_manual AS mapped
     (concept_code_1,
     concept_code_2,

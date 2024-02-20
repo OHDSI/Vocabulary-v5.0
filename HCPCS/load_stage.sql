@@ -162,7 +162,7 @@ AS (
 			WHEN concept_code IN (
 					'A9160',
 					'A9170'
-				   )
+					)
 				THEN 'Observation'
 			WHEN concept_code IN (
 					'A4736',
@@ -202,8 +202,8 @@ AS (
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'C7500' AND 'C7560'
 				THEN 'Procedure'
-		    WHEN concept_code BETWEEN 'C7900' AND 'C7903'
-		        THEN 'Observation'
+			WHEN concept_code BETWEEN 'C7900' AND 'C7903'
+				THEN 'Observation'
 			WHEN concept_code IN (
 					'C9702',
 					'C9708',
@@ -290,8 +290,10 @@ AS (
 			WHEN concept_code BETWEEN 'D1351'
 					AND 'D2970'
 				THEN 'Device'
-			WHEN concept_code IN ('D1352',
-				   'D1555')
+			WHEN concept_code IN (
+					'D1352',
+					'D1555'
+					)
 				THEN 'Procedure'
 			WHEN concept_code IN (
 					'D5860',
@@ -351,7 +353,7 @@ AS (
 				THEN 'Observation' -- Level 2: G0128-G0129 previously 'Service, Nurse AND OT'
 			WHEN concept_code BETWEEN 'G0141'
 					AND 'G0148'
-					AND concept_code != 'G0146'
+					AND concept_code <> 'G0146'
 				THEN 'Measurement' -- G0141-G0148 Screening cytopathology
 			WHEN concept_code IN ('G0146', 'G0140')
 				THEN 'Observation' --Principal illness navigation
@@ -673,7 +675,8 @@ AS (
 			WHEN concept_code IN (
 					'J7303',
 					'J7304',
-					'J7341')
+					'J7341'
+					)
 				THEN 'Device'
 			WHEN concept_code = 'J7345'
 				THEN 'Drug' -- Aminolevulinic acid hcl for topical administration, 10% gel, 10 mg
@@ -681,16 +684,17 @@ AS (
 					AND 'J7350'
 				THEN 'Device'
 			WHEN concept_code IN (
-					 'J7051',
-					 'J1815',
-					 'J1817',
-					 'J2050',
-					 'J3535',
-					 'J7140',
-					 'J7150',
-					 'J7599',
-					 'J8999',
-					 'J9999')
+					'J7051',
+					'J1815',
+					'J1817',
+					'J2050',
+					'J3535',
+					'J7140',
+					'J7150',
+					'J7599',
+					'J8999',
+					'J9999'
+					)
 				THEN 'Procedure'
 			WHEN l1.str = 'J Codes - Drugs'
 				THEN 'Drug' -- Level 1: J0100-J9999
@@ -782,8 +786,10 @@ AS (
 				OR concept_code BETWEEN 'Q0081'
 					AND 'Q0085'
 				THEN 'Procedure' -- Level 2: Q0081-Q0085
-			WHEN concept_code IN ('Q0061',
-			                      'Q0065')
+			WHEN concept_code IN (
+					'Q0061',
+					'Q0065'
+					)
 				THEN 'Measurement'
 			WHEN concept_code = 'Q0090'
 				THEN 'Drug' -- Levonorgestrel-releasing intrauterine contraceptive system, (skyla), 13.5 mg
@@ -843,7 +849,7 @@ AS (
 				THEN 'Device' -- Level 2: Q4001-Q4051
 			WHEN concept_code BETWEEN 'Q4052'
 					AND 'Q4099'
-				AND concept_code != 'Q4078'
+				AND concept_code <> 'Q4078'
 				THEN 'Drug'
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
@@ -891,7 +897,7 @@ AS (
 					AND 'S0198' --'Non-Medicare Drugs'
 				THEN 'Drug'
 			WHEN concept_code BETWEEN 'S0201'
-			       AND 'S0342' -- 'Provider Services'
+					AND 'S0342' -- 'Provider Services'
 				THEN 'Observation' -- includes the previous
 			WHEN concept_code BETWEEN 'S0345'
 					AND 'S0347'
@@ -940,7 +946,8 @@ AS (
 				THEN 'Device' -- Contraceptive implant
 			WHEN concept_code IN (
 					'S5000',
-					'S5001')
+					'S5001'
+					)
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'S4980'
 					AND 'S5014'
@@ -1084,7 +1091,7 @@ AS (
 				THEN 'Observation'
 			WHEN concept_code BETWEEN 'V5300'
 					AND 'V5364'
-					AND concept_code != 'V5336'
+					AND concept_code <> 'V5336'
 				THEN 'Measurement' -- various screening
 			WHEN concept_code = 'V5336'
 				THEN 'Procedure'
@@ -1324,23 +1331,24 @@ END $_$;
 
 --10. Update names of zombie concepts
 UPDATE concept_stage cs
-SET concept_name = CASE
+SET concept_name = CASE 
 		WHEN LENGTH(concept_name) <= 242
 			THEN concept_name || ' (Deprecated)'
 		ELSE LEFT(concept_name, 239) || '... (Deprecated)'
 		END,
-		invalid_reason = CASE WHEN cs.invalid_reason = 'U'
+	invalid_reason = CASE 
+		WHEN cs.invalid_reason = 'U'
 			THEN cs.invalid_reason
 		ELSE NULL
 		END,
-		standard_concept = CASE WHEN cs.invalid_reason = 'U'
+	standard_concept = CASE 
+		WHEN cs.invalid_reason = 'U'
 			THEN NULL
 		ELSE 'S'
 		END
 WHERE valid_end_date < TO_DATE('20991231', 'YYYYMMDD')
 	AND concept_name NOT LIKE '%(Deprecated)'
-	AND concept_class_id != 'HCPCS Class'
-;
+	AND concept_class_id <> 'HCPCS Class';
 
 --11. Drugs should be non-standard:
 UPDATE concept_stage
@@ -1363,10 +1371,6 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
-DO $_$
-BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 

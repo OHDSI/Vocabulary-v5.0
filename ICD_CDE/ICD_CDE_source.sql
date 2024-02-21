@@ -1177,6 +1177,3 @@ target_vocabulary_id,
 rel_invalid_reason
     FROM icd_cde_source where group_name not in (SELECT group_name FROM icd_cde_mapped)
 and rel_invalid_reason is null;
-
-SELECT * FROM icd_cde_proc where source_code = 'C43.112';
-

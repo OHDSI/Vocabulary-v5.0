@@ -399,13 +399,13 @@ END $_$;
 
 
 --12. Make all LLT and PT concepts without valid 'Maps to' links non-standard
-UPDATE dev_meddra.concept_stage AS s
+UPDATE concept_stage AS s
 SET standard_concept = NULL
 WHERE concept_class_id IN ('PT', 'LLT')
 AND NOT EXISTS (
     SELECT 1
-    FROM dev_meddra.concept_relationship_stage AS crs
-    INNER JOIN dev_meddra.concept_stage AS c
+    FROM concept_relationship_stage AS crs
+    INNER JOIN concept_stage AS c
     ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1
     WHERE vocabulary_id_1 != vocabulary_id_2
     AND relationship_id LIKE 'Maps to%'

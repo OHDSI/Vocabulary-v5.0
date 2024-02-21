@@ -142,6 +142,12 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 DROP INDEX trgm_idx;
 ANALYZE concept_relationship_stage;
 
+--4. Add manual concepts or changes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
 --7. Append manual relationships
 DO $_$
 BEGIN
@@ -196,24 +202,24 @@ UPDATE concept_relationship_stage crs
 				);
 
 -- Deprecate mapping to non-S concepts
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id in ('Maps to','Maps to value')
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-S (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.standard_concept is null
-				);
+--UPDATE concept_relationship_stage crs
+--	SET valid_end_date = GREATEST(crs.valid_start_date, (
+--				SELECT MAX(v.latest_update) - 1
+--				FROM vocabulary v
+--				WHERE v.vocabulary_id IN (
+--						crs.vocabulary_id_1,
+--						crs.vocabulary_id_2
+--						)
+--				)),
+--		invalid_reason = 'D'
+--	WHERE crs.relationship_id in ('Maps to','Maps to value')
+--		AND crs.invalid_reason IS NULL
+--		AND EXISTS (
+--				--check if target concept is non-S (first in concept_stage, then concept)
+--				SELECT 1
+--				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+--				WHERE a.standard_concept is null
+--				);
 
 --11. Update domain_id for ICD10GM from target vocabularies
 UPDATE concept_stage cs

@@ -17,7 +17,7 @@
 * Date: 2024
 **************************************************************************/
 
--- 1. Update latest_update field to new date
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -28,7 +28,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -297,78 +297,88 @@ SET domain_id = 'Condition'
 WHERE domain_id IS NULL;
 
 --5. Create internal hierarchical relationships
-INSERT INTO  concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT soc_code AS concept_code_1,
-          hlgt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.soc_hlgt_comp
-   UNION ALL
-   SELECT hlgt_code AS concept_code_1,
-          hlt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.hlgt_hlt_comp
-   UNION ALL
-   SELECT hlt_code AS concept_code_1,
-          pt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.hlt_pref_comp
-   UNION ALL
-   SELECT pt_code AS concept_code_1,
-          llt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.low_level_term
-    WHERE llt_currency = 'Y' AND llt_code <> pt_code;
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT soc_code AS concept_code_1,
+	hlgt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.soc_hlgt_comp
 
+UNION ALL
 
+SELECT hlgt_code AS concept_code_1,
+	hlt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.hlgt_hlt_comp
 
--- 6. Working with concept_manual table
+UNION ALL
+
+SELECT hlt_code AS concept_code_1,
+	pt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.hlt_pref_comp
+
+UNION ALL
+
+SELECT pt_code AS concept_code_1,
+	llt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.low_level_term
+WHERE llt_currency = 'Y'
+	AND llt_code <> pt_code;
+
+--6. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
--- 7. Append result to concept_relationship_stage table
+--7. Append result to concept_relationship_stage table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 8. Working with replacement mappings
+--8. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
@@ -403,9 +413,6 @@ WHERE NOT EXISTS (
 			AND crs_int.vocabulary_id_1 = cs.vocabulary_id
 			AND crs_int.relationship_id LIKE 'Maps to%'
 			AND crs_int.invalid_reason IS NULL
-			--except mapping to self
-			AND crs_int.concept_code_1 <> crs_int.concept_code_2
-			AND crs_int.vocabulary_id_1 <> crs_int.vocabulary_id_2
 		)
 	AND cs.concept_class_id IN (
 		'PT',

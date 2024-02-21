@@ -393,6 +393,10 @@ UPDATE read_domain
 SET domain_id = 'Visit'
 WHERE domain_id = 'Provider/Visit';
 
+UPDATE read_domain
+SET domain_id = 'Specimen'
+WHERE domain_id = 'Procedure/Specimen';
+
 -- Check that all domain_id are exists in domain table
 ALTER TABLE read_domain ADD CONSTRAINT fk_read_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
 

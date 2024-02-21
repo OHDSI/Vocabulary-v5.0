@@ -60,7 +60,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     
     --first part, getting raw download link from page
-    select substring(http_content,'<table class="current">.+?<a href="(.+?)">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'<table class="usa-table current">.+?<a href="(.+?)">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --get the proper ticket and concatenate it with the pDownloadURL

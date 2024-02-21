@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich
-* Date: 2020
+* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Maria Khitrun
+* Date: 2023
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -145,7 +145,7 @@ WHERE sab IN (
 		)
 	AND tty = 'MP';--Preferred names of modifiers
 
---6. Add Hierarchical CPT terms, which are considered to be Classificaton (do not appear in patient data, only for hierarchical search)
+--6. Add Hierarchical CPT terms, which are considered to be Classification (do not appear in patient data, only for hierarchical search)
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -208,7 +208,11 @@ SELECT CASE
 		ELSE c.concept_name -- for alive concepts
 		END AS concept_name,
 	c.vocabulary_id,
-	c.concept_class_id,
+	CASE 
+		WHEN LENGTH(c.concept_code) = 2
+			THEN 'CPT4 Modifier'
+		ELSE c.concept_class_id
+		END AS concept_class_id,
 	CASE 
 		WHEN COALESCE(c.invalid_reason, 'D') = 'D'
 			AND COALESCE(c.standard_concept, 'S') <> 'C'
@@ -221,7 +225,15 @@ SELECT CASE
 		END AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
-	c.valid_end_date,
+	CASE 
+		WHEN c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+			THEN (
+					SELECT latest_update
+					FROM vocabulary
+					WHERE vocabulary_id = 'CPT4'
+					)
+		ELSE c.valid_end_date
+		END AS valid_end_date,
 	NULLIF(c.invalid_reason, 'D') AS invalid_reason
 FROM concept c
 WHERE c.vocabulary_id = 'CPT4'
@@ -334,47 +346,7 @@ FROM (
 GROUP BY s0.synonym_concept_code,
 	s0.concept_name;
 
---11. Create hierarchical relationships between HT and normal CPT codes
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	relationship_id,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c1.code AS concept_code_1,
-	c2.code AS concept_code_2,
-	'Is a' AS relationship_id,
-	'CPT4' AS vocabulary_id_1,
-	'CPT4' AS vocabulary_id_2,
-	TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
-	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-	NULL AS invalid_reason
-FROM (
-	SELECT aui AS aui1,
-		REGEXP_REPLACE(ptr, '(.+\.)(A\d+)$', '\2', 'g') AS aui2
-	FROM sources.mrhier
-	WHERE sab = 'CPT'
-		AND rela = 'isa'
-	) h
-JOIN sources.mrconso c1 ON c1.aui = h.aui1
-	AND c1.sab = 'CPT'
-JOIN sources.mrconso c2 ON c2.aui = h.aui2
-	AND c2.sab = 'CPT'
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = c1.code
-			AND crs.concept_code_2 = c2.code
-			AND crs.relationship_id = 'Is a'
-			AND crs.vocabulary_id_1 = 'CPT4'
-			AND crs.vocabulary_id_2 = 'CPT4'
-		);
-
---12. Extract "hidden" CPT4 codes inside concept_names of another CPT4 codes.
+--11. Extract "hidden" CPT4 codes inside concept_names of another CPT4 codes.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -408,7 +380,7 @@ WHERE NOT EXISTS (
 			AND crs.vocabulary_id_2 = 'CPT4'
 		);
 
---13. Update dates from mrsat.atv (only for new concepts)
+--12. Update dates from mrsat.atv (only for new concepts)
 UPDATE concept_stage cs
 SET valid_start_date = i.dt
 FROM (
@@ -436,7 +408,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---14. Update domain_id in concept_stage
+--13. Update domain_id in concept_stage
 UPDATE concept_stage cs
 SET domain_id = t1.domain_id
 FROM (
@@ -447,29 +419,46 @@ FROM (
 					'T033',
 					'T034'
 					)
+				AND cs.concept_code NOT IN (
+					'0244U', -- Oncology (solid organ), DNA, comprehensive genomic profiling
+					'0250U', -- Oncology (solid organ neoplasm), targeted genomic sequence DNA analysis of 505 genes,...
+					'0258U', -- Autoimmune (psoriasis), mRNA, next-generation sequencing, gene expression profiling of 50-100 genes,...
+					'0260U', -- Rare diseases (constitutional/heritable disorders), identification of copy number variations...
+					'0264U', -- Rare diseases (constitutional/heritable disorders), identification of copy number variations...
+					'0267U', -- Rare constitutional and other heritable disorders, identification of copy number variations...
+					'0335U', -- Neurology (prion disease), cerebrospinal fluid, detection of prion protein ...
+					'0336U' -- Oncology (oropharyngeal), evaluation of 17 DNA biomarkers using droplet digital PCR (ddPCR),...
+					)
 				THEN 'Procedure'
 			WHEN m2.tui = 'T023'
 				THEN 'Spec Anatomic Site'
-			WHEN (
-					m2.tui = 'T074'
-					OR (
-						m2.tui = 'T073'
-						AND tty <> 'POS'
-						)
-					)
-				AND cs.concept_code NOT IN (
-					'1022193',
-					'1022194'
-					)
+			WHEN m2.sty = 'Medical Device'
+				AND cs.concept_code <> '44015'
 				THEN 'Device'
+			WHEN cs.concept_code IN (
+					'99143',
+					'99144',
+					'99148',
+					'99149', -- 99143-99149 Moderate sedation services
+					'44015' -- Tube or needle catheter jejunostomy
+					)
+				THEN 'Procedure'
 			WHEN m2.tui IN (
 					'T121',
 					'T109',
 					'T200'
 					)
-				AND cs.concept_code <> '86789'
+				AND cs.concept_code NOT IN (
+					'86789', -- Antibody; West Nile virus
+					'1036228'
+					) -- Estradiol (measurement)
 				THEN 'Drug'
 			WHEN tty = 'POS'
+				AND cs.concept_code NOT IN (
+					'1022193', -- Introduction
+					'1022194', -- Section Numbers and Their Sequences
+					'44015' -- Tube or needle catheter jejunostomy
+					)
 				THEN 'Visit'
 			WHEN m2.tui IN (
 					'T081',
@@ -488,33 +477,41 @@ FROM (
 			WHEN m2.tui = 'T059'
 				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling')
 				AND cs.concept_code NOT IN (
-					'86960',
-					'86965',
-					'86985',
-					'86890',
-					'86891',
-					'1011136',
-					'1011189',
-					'1012112',
-					'1012123',
-					'1012127',
-					'1012348',
-					'1012534',
-					'1012537',
-					'1012546',
-					'1012559',
-					'1012564',
-					'1014644',
-					'1018504',
-					'1019105'
-					)
+						'86960',
+						'86965',
+						'86985',
+						'86890',
+						'86891',
+						'1011136',
+						'1011189',
+						'1012112',
+						'1012123',
+						'1012127',
+						'1012348',
+						'1012534',
+						'1012537',
+						'1012546',
+						'1012559',
+						'1012564',
+						'1014644',
+						'1018504',
+						'1019105',
+						'1037591'
+						)
+					OR cs.concept_code = '1036228'
 				THEN 'Measurement'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
-						cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
-						OR LENGTH(cs.concept_code) <= 2
-						)
+							cs.concept_name ~* 'documented|^patient|established|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
+							OR (
+								LENGTH(cs.concept_code) <= 2
+								AND cs.concept_code NOT IN (
+									'TP',
+									'KR'
+									)
+								)
+							)
 					)
 				OR (
 					m2.tui = 'T093'
@@ -542,10 +539,26 @@ FROM (
 						'QB',
 						'QR',
 						'QA',
-						'78801'
+			  			'78801'
 						)
 					)
+				OR cs.concept_code IN (
+						'80500',
+						'80502',
+						'4060F',
+						'77370',
+						'99429',
+						'1037418',
+						'1037424',
+						'1037420'
+						)
 				THEN 'Observation'
+			WHEN c.concept_code IN (
+					'0777T',
+					'TP',
+					'KR'
+					)
+				THEN 'Device'
 			WHEN c.concept_id IS NOT NULL
 				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
 			ELSE 'Procedure'
@@ -562,7 +575,90 @@ FROM (
 	) t1
 WHERE t1.concept_code = cs.concept_code;
 
---15. Add everything from the Manual tables
+--14. Create hierarchical relationships between HT and normal CPT codes
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	relationship_id,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c1.code AS concept_code_1,
+	c2.code AS concept_code_2,
+	'Is a' AS relationship_id,
+	'CPT4' AS vocabulary_id_1,
+	'CPT4' AS vocabulary_id_2,
+	TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM (
+	SELECT aui AS aui1,
+		REGEXP_REPLACE(ptr, '(.+\.)(A\d+)$', '\2', 'g') AS aui2
+	FROM sources.mrhier
+	WHERE sab = 'CPT'
+		AND rela = 'isa'
+	) h
+JOIN sources.mrconso c1 ON c1.aui = h.aui1
+	AND c1.sab = 'CPT'
+JOIN sources.mrconso c2 ON c2.aui = h.aui2
+	AND c2.sab = 'CPT';
+
+--15. Add relationships of equivalence between CPT4 and SNOMED
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	relationship_id,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT m2.code AS concept_code_1,
+	m3.code AS concept_code_2,
+	CASE
+		WHEN rel = 'PAR'
+			THEN 'CPT4 - SNOMED cat'
+		WHEN rel = 'SY'
+			THEN 'CPT4 - SNOMED eq'
+		END AS relationship_id,
+	'CPT4' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	(SELECT latest_update
+	 FROM vocabulary
+	 WHERE vocabulary_id = 'CPT4') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM (
+	SELECT DISTINCT cui1,
+		cui2,
+		rel
+	FROM sources.mrrel m
+	WHERE m.rel IN (
+			'PAR', --has parent relationship in a Metathesaurus source vocabulary
+			'SY'
+			) --source asserted synonymy
+		AND m.sab = 'CPT'
+	) m1
+JOIN sources.mrconso m2 ON m2.cui = m1.cui1
+	AND m2.sab = 'CPT'
+JOIN concept a ON a.concept_code = m2.code
+	AND a.vocabulary_id = 'CPT4'
+	AND a.concept_class_id = 'CPT4'
+JOIN sources.mrconso m3 ON m3.cui = m1.cui2
+	AND m3.sab = 'SNOMEDCT_US'
+WHERE EXISTS (
+		SELECT 1
+		FROM concept c
+		WHERE c.concept_code = m3.code
+			AND c.vocabulary_id = 'SNOMED'
+			AND c.invalid_reason IS NULL
+		);
+
+--16. Add everything from the Manual tables
 --Working with manual concepts
 DO $_$
 BEGIN
@@ -605,110 +701,34 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Update domain_id value for CPT4 according to mappings
+--17. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
 UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Drug'
-						THEN 1
-					WHEN 'Measurement'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Device'
-						THEN 4
-					WHEN 'Visit'
-						THEN 5
-					WHEN 'Provider'
-						THEN 6
-					WHEN 'Observation'
-						THEN 7
-					ELSE 8
-					END
-			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'CPT4'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.standard_concept = 'S'
-		AND c2.vocabulary_id <> 'CPT4'
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-	
-	UNION ALL
-	
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Drug'
-						THEN 1
-					WHEN 'Measurement'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Device'
-						THEN 4
-					WHEN 'Visit'
-						THEN 5
-					WHEN 'Provider'
-						THEN 6
-					WHEN 'Observation'
-						THEN 7
-					ELSE 8
-					END
-			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'CPT4'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.standard_concept = 'S'
-		AND c2.vocabulary_id <> 'CPT4'
-	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
-		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
-		AND cs1.concept_code NOT IN (
-			'99502',
-			'99504',
-			'99505',
-			'99506',
-			'99508',
-			'99511',
-			'99512'
-			)
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_1 = cs1.concept_code
-				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
+SET domain_id = 'Drug'
+FROM concept_relationship_stage crs
+WHERE crs.vocabulary_id_2 IN (
+		'RxNorm',
+		'RxNorm Extension',
+		'CVX'
+		)
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_class_id <> 'CPT4 Hierarchy'
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1;
 
---17. All concepts having mappings should be NON-standard
+--18. All concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r,
-			concept c2
-		WHERE r.concept_code_1 = cs.concept_code
-			AND r.vocabulary_id_1 = cs.vocabulary_id
-			AND r.concept_code_2 = c2.concept_code
-			AND r.vocabulary_id_2 = c2.vocabulary_id
-			AND r.invalid_reason IS NULL
-			AND r.relationship_id = 'Maps to'
+FROM concept_relationship_stage crs
+WHERE crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_class_id <> 'CPT4 Hierarchy'
+	AND cs.standard_concept IS NOT NULL
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
 			AND NOT (
-				r.concept_code_1 = r.concept_code_2
-				AND r.vocabulary_id_1 = r.vocabulary_id_2
-				) --exclude mappings to self
-		)
-	AND cs.standard_concept IS NOT NULL;
+				crs.concept_code_1 = crs.concept_code_2
+				AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+				); --exclude mappings to self
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

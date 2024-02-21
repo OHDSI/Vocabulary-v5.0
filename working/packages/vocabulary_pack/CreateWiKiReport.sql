@@ -1,25 +1,16 @@
 CREATE OR REPLACE FUNCTION vocabulary_pack.CreateWiKiReport ()
-RETURNS void AS
+RETURNS TEXT AS
 $BODY$
 /*
-	This procedure creates report on the WiKi
+	This procedure creates report for the WiKi
 */
 DECLARE
 	crlf CONSTANT TEXT := '<br>';
 	crlf_comma CONSTANT TEXT := ', <br>';
 	crlf_semicolon CONSTANT TEXT := '; <br>';
-	email CONSTANT VARCHAR(1000) := (SELECT var_value FROM devv5.config$ WHERE var_name='service_email');
-	cGitLogin CONSTANT TEXT:= (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_login';
-	cGitPassword CONSTANT TEXT:= (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_password';
-	cGitWiKiURL CONSTANT TEXT := (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_wiki_url';
-	cWiKiCommitText CONSTANT TEXT:= (SELECT 'v'||TO_CHAR(CURRENT_DATE,'yyyymmdd')||'_'||EXTRACT(epoch FROM NOW()::TIMESTAMP(0))::VARCHAR);
 	cRet TEXT = '';
-	cFullRet TEXT;
-	cTitle TEXT;
 	cResult RECORD;
-	cRet_wiki TEXT;
 BEGIN
-	cTitle:='<h1>Vocabulary Statistics '||LEFT(cWiKiCommitText,9)||'</h1>'||crlf;
 
 	FOR cResult IN 
 	(
@@ -31,10 +22,10 @@ BEGIN
 			relationships.cnt_relationships
 		FROM (
 			SELECT v.vocabulary_id
-			FROM vocabulary v
+			FROM prodv5.vocabulary v
 			WHERE EXISTS (
 					SELECT 1
-					FROM concept c
+					FROM prodv5.concept c
 					WHERE c.vocabulary_id = v.vocabulary_id
 					)
 			) vocabs
@@ -54,10 +45,10 @@ BEGIN
 							cr.relationship_id,
 							c2.vocabulary_id || ' (' || TO_CHAR(COUNT(*), 'FM9,999,999,999') || ')' AS vocab_cnt,
 							COUNT(*) AS cnt
-						FROM concept c1
-						JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+						FROM prodv5.concept c1
+						JOIN prodv5.concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 							AND cr.invalid_reason IS NULL
-						JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+						JOIN prodv5.concept c2 ON c2.concept_id = cr.concept_id_2
 						WHERE c1.invalid_reason IS NULL
 						GROUP BY c1.vocabulary_id,
 							cr.relationship_id,
@@ -74,7 +65,7 @@ BEGIN
 				SELECT c.vocabulary_id,
 					c.domain_id,
 					c.domain_id || ' (' || TO_CHAR(COUNT(*), 'FM9,999,999,999') || ')' AS cnt
-				FROM concept c
+				FROM prodv5.concept c
 				WHERE c.invalid_reason IS NULL
 				GROUP BY c.vocabulary_id,
 					c.domain_id
@@ -83,7 +74,7 @@ BEGIN
 				SELECT c.vocabulary_id,
 					c.concept_class_id,
 					c.concept_class_id || ' (' || TO_CHAR(COUNT(*), 'FM9,999,999,999') || ')' AS cnt
-				FROM concept c
+				FROM prodv5.concept c
 				WHERE c.invalid_reason IS NULL
 				GROUP BY c.vocabulary_id,
 					c.concept_class_id
@@ -98,7 +89,7 @@ BEGIN
 							THEN 'Classification'
 						ELSE 'non-Standard'
 						END || ' (' || TO_CHAR(COUNT(*), 'FM9,999,999,999') || ')' cnt
-				FROM concept c
+				FROM prodv5.concept c
 				WHERE c.invalid_reason IS NULL
 				GROUP BY c.vocabulary_id,
 					c.standard_concept
@@ -119,26 +110,10 @@ BEGIN
 		cRet:=cRet||'</tr>';
 		cRet:=cRet||'</table>';
 	END LOOP;
-	cRet:=cRet||crlf;
 
-	cFullRet:=cTitle||cRet;
-
-	SELECT vocabulary_pack.py_git_wiki(cGitWiKiURL,cWiKiCommitText,cFullRet,cGitLogin,cGitPassword) INTO cRet_wiki;
-	IF cRet_wiki <> 'OK' THEN
-		--try to restart the report, in some cases it can help when there was a long downtime and the cookie "corrupted"
-		SELECT vocabulary_pack.py_git_wiki(cGitWiKiURL,cWiKiCommitText,cFullRet,cGitLogin,cGitPassword) INTO cRet_wiki;
-	END IF;
-	IF cRet_wiki <> 'OK' THEN
-		cRet := SUBSTR ('WiKi report completed with errors:'||crlf||'<b>'||cRet_wiki||'</b>', 1, 5000);
-		perform devv5.SendMailHTML (email, 'WiKi report status [Wiki POST ERROR]', cRet);
-	END IF;
-
-	EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS cRet = PG_EXCEPTION_CONTEXT;
-		cRet:='ERROR: '||SQLERRM||crlf||'CONTEXT: '||cRet;
-		cRet := SUBSTR ('WiKi report completed with errors:'||crlf||'<b>'||cRet||'</b>', 1, 5000);
-		perform devv5.SendMailHTML (email, 'WiKi report status [CreateWiKiReport ERROR]', cRet);
+	RETURN cRet||crlf;
 END;
 $BODY$
-LANGUAGE 'plpgsql';
+LANGUAGE 'plpgsql' STABLE;
 
-REVOKE EXECUTE ON FUNCTION vocabulary_pack.CreateWiKiReport FROM PUBLIC, role_read_only;
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.CreateWiKiReport FROM PUBLIC;

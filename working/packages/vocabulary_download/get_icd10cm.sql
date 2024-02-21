@@ -59,7 +59,8 @@ BEGIN
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
 
-    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'.+<A HREF="(/pub/Health_Statistics/NCHS/Publications/ICD10CM/\d{4}/.+?Descriptions.+?\.zip)">.+?Descriptions.+?</A>') from py_http_get(url=>pVocabulary_url||to_char(pVocabularyNewDate,'YYYY')||'/');
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'.+<A HREF="(/pub/Health_Statistics/NCHS/Publications/ICD10CM/\d{4}/.+?Descriptions.+?\.zip)">.+?Descriptions.+?</A>')
+    from py_http_get(url=>pVocabulary_url||to_char(pVocabularyNewDate+INTERVAL '1 year','YYYY')||'/');
 
     --start downloading
     pVocabularyOperation:='GET_ICD10CM downloading';

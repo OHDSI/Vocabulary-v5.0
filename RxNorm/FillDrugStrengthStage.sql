@@ -105,7 +105,9 @@ BEGIN
 		('unt', '0', 'unit', 8510, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL),
 		('ir', '0', 'index of reactivity', 9693, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL),
 		('vector-genomes', 0, 'vector-genomes', 32018, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL),
-		('sq-hdm', 0, 'standardized quality house dust mite', 32407, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL);
+		('sq-hdm', 0, 'standardized quality house dust mite', 32407, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL),
+		('viral-particles', 0, 'viral-particles', 33097, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL),
+		('ein', 0, 'equivalent islet number', 33098, '11', TO_DATE('19700101','yyyymmdd'), TO_DATE('20991231','yyyymmdd'), NULL);
 
 
 	/* 2. Make sure that invalid concepts are standard_concept = NULL */

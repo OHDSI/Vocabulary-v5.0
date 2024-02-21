@@ -159,6 +159,18 @@ CREATE TABLE SOURCES.MEDDRA_MAPPEDFROM_SNOMED
    meddra_llt     TEXT
 );
 
+DROP TABLE IF EXISTS SOURCES.MEDDRA_MAPPEDFROM_ICD10;
+CREATE TABLE SOURCES.MEDDRA_MAPPEDFROM_ICD10
+(
+   icd10_chapter_number TEXT,
+   icd10_chapter TEXT,
+   icd10_code    TEXT,
+   icd10_term    TEXT,
+   meddra_llt    TEXT,
+   meddra_code   TEXT,
+   map_attribute TEXT
+);
+
 CREATE OR REPLACE FUNCTION sources.py_xlsparse_meddra_snomed(xls_path varchar, sheet_id int)
 RETURNS
 TABLE (
@@ -179,6 +191,36 @@ for row in sheet.iter_rows(min_row=2):
   target_code=row[2].value if row[2].value else None
   target_desc=row[3].value if row[3].value else None
   res.append((src_code,src_desc,target_code,target_desc))
+return res
+$BODY$
+LANGUAGE 'plpython3u' STRICT;
+
+CREATE OR REPLACE FUNCTION sources.py_xlsparse_meddra_icd10(xls_path varchar, sheet_id int)
+RETURNS
+TABLE (
+    icd10_chapter_number text,
+    icd10_chapter text,
+    src_code text,
+    src_desc text,
+    target_desc text,
+    target_code text,
+    map_attribute text
+)
+AS
+$BODY$
+from openpyxl import load_workbook
+res = []
+wb = load_workbook(xls_path)
+sheet = wb.worksheets[sheet_id]
+for row in sheet.iter_rows(min_row=3):
+  icd10_chapter_number=row[0].value if row[0].value else None
+  icd10_chapter=row[1].value if row[1].value else None
+  src_code=row[2].value if row[2].value else None
+  src_desc=row[3].value if row[3].value else None
+  target_desc=row[4].value if row[4].value else None
+  target_code=row[5].value if row[5].value else None
+  map_attribute=row[6].value if row[6].value else None
+  res.append((icd10_chapter_number,icd10_chapter,src_code,src_desc,target_desc,target_code,map_attribute))
 return res
 $BODY$
 LANGUAGE 'plpython3u' STRICT;

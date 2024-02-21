@@ -68,7 +68,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     
     --getting fully working download link from page [all_files_marketed]
-    select substring(http_content,'.+<th rowspan="4".*?>ALL FILES</th>.+<a href="(.+?)" title="all files marketed') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'.+<th rowspan="4".*?>ALL FILES</th>.+<a href="(.+?)" title="all files marketed') into pDownloadURL from py_http2_get(url=>pVocabulary_url);
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
     if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_marketed) is not valid'; end if;
     
@@ -87,7 +87,7 @@ BEGIN
     );
     
     --getting fully working download link from page [all_files_cancelled]
-    select substring(http_content,'.+<th rowspan="4".*?>ALL FILES</th>.+<a href="(.+?_ia\.zip)" title="all files cancelled.+') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'.+<th rowspan="4".*?>ALL FILES</th>.+<a href="(.+?_ia\.zip)" title="all files cancelled.+') into pDownloadURL from py_http2_get(url=>pVocabulary_url);
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
     if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)_ia\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_cancelled) is not valid'; end if;
     
@@ -107,7 +107,7 @@ BEGIN
     );
     
     --getting fully working download link from page [all_files_approved]
-    select substring(http_content,'.+<th rowspan="4".*?>ALL FILES</th>.+<a href="(.+?_ap\.zip)" title="all files approved') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'.+<th rowspan="4".*?>ALL FILES</th>.+<a href="(.+?_ap\.zip)" title="all files approved') into pDownloadURL from py_http2_get(url=>pVocabulary_url);
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
     if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)_ap\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_approved) is not valid'; end if;
     

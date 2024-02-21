@@ -378,10 +378,6 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
-DO $_$
-BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
@@ -397,21 +393,24 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
-
 --12. Make all LLT and PT concepts without valid 'Maps to' links non-standard
-UPDATE concept_stage AS s
+UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE concept_class_id IN ('PT', 'LLT')
-AND NOT EXISTS (
-    SELECT 1
-    FROM concept_relationship_stage AS crs
-    INNER JOIN concept_stage AS c
-    ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1
-    WHERE vocabulary_id_1 != vocabulary_id_2
-    AND relationship_id LIKE 'Maps to%'
-    AND crs.invalid_reason IS NULL
-    AND c.concept_class_id IN ('PT', 'LLT') AND c.invalid_reason IS NULL
-    AND s.concept_code = crs.concept_code_1);
-
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = cs.concept_code
+			AND crs_int.vocabulary_id_1 = cs.vocabulary_id
+			AND crs_int.relationship_id LIKE 'Maps to%'
+			AND crs_int.invalid_reason IS NULL
+			--except mapping to self
+			AND crs_int.concept_code_1 <> crs_int.concept_code_2
+			AND crs_int.vocabulary_id_1 <> crs_int.vocabulary_id_2
+		)
+	AND cs.concept_class_id IN (
+		'PT',
+		'LLT'
+		)
+	AND cs.standard_concept IS NOT NULL;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

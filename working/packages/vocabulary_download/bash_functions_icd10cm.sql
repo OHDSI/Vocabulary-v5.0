@@ -9,7 +9,7 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqjC "$2" "*/icd10cm-order-20*.txt" -d .
+    unzip -oqjC "$2" "icd10cm-order-20*.txt" -d .
     
     #move result to original folder
     cd "$1"

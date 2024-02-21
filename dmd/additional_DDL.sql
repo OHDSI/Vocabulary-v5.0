@@ -14,8 +14,8 @@
 * limitations under the License.
 *
 **************************************************************************/
+
 -- input tables creation
-/* drug_concept_stage will be created later @ create_input.sql
 DROP TABLE IF EXISTS DRUG_CONCEPT_STAGE;
 CREATE TABLE DRUG_CONCEPT_STAGE
 (
@@ -31,9 +31,8 @@ CREATE TABLE DRUG_CONCEPT_STAGE
    VALID_END_DATE            DATE,
    INVALID_REASON            VARCHAR(1)
 );
-*/
 
-DROP TABLE IF EXISTS DS_STAGE;
+DROP TABLE IF EXISTS DS_STAGE CASCADE;
 CREATE TABLE DS_STAGE
 (
    DRUG_CONCEPT_CODE        VARCHAR(255),

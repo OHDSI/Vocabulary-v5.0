@@ -81,15 +81,17 @@ SELECT DISTINCT
 	-- take the best str
 	FIRST_VALUE(vocabulary_pack.CutConceptName(str)) OVER (
 		PARTITION BY code ORDER BY CASE tty
-				WHEN 'HT' -- Hierarchical term
+				WHEN 'PT' -- Preferred term (designated preferred name)
 					THEN 1
-				WHEN 'HS' -- Short or alternate version of hierarchical term
+				WHEN 'HT' -- Hierarchical term
 					THEN 2
-				WHEN 'HX' -- 	Expanded version of short hierarchical term 
+				WHEN 'HS' -- Short or alternate version of hierarchical term
 					THEN 3
-				WHEN 'MTH_HX' -- MTH Hierarchical term expanded 
+				WHEN 'HX' -- Expanded version of short hierarchical term
 					THEN 4
-				ELSE 5
+				WHEN 'MTH_HX' -- MTH Hierarchical term expanded 
+					THEN 5
+				ELSE 6
 				END,
 			CASE 
 				WHEN LENGTH(str) <= 255
@@ -190,7 +192,8 @@ JOIN concept c ON c.concept_id = s.concept_id
 	AND LOWER(c.concept_name) <> LOWER(s.concept_synonym_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
-	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+	AND c.concept_code NOT LIKE 'MTHU00000_' -- to exclude internal technical source codes
+ON CONFLICT DO NOTHING;
 
 --8. Add original names of resurrected concepts using the concept table
 INSERT INTO concept_synonym_stage (
@@ -238,8 +241,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT s0.concept_code_1 AS concept_code_1,
-	s0.concept_code_2 AS concept_code_2,
+SELECT DISTINCT ON (c2.concept_code) c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
 	'ICD10PCS' AS vocabulary_id_1,
 	'ICD10PCS' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
@@ -250,18 +253,13 @@ SELECT s0.concept_code_1 AS concept_code_1,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM (
-	SELECT c1.concept_code AS concept_code_1,
-		c2.concept_code AS concept_code_2,
-		ROW_NUMBER() OVER (
-			PARTITION BY c2.concept_code ORDER BY LENGTH(c1.concept_code) DESC,
-				c1.concept_code
-			) AS rn -- pick the most granular available ancestor
-	FROM concept_stage c1
-	JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
-		AND c1.concept_code <> c2.concept_code
-	) AS s0
-WHERE rn = 1;
+FROM concept_stage c1
+JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+	AND c1.concept_code <> c2.concept_code
+--pick the most granular available ancestor
+ORDER BY c2.concept_code,
+	LENGTH(c1.concept_code) DESC,
+	c1.concept_code;
 
 DROP INDEX trgm_idx;
 
@@ -275,6 +273,11 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
 --13. Deprecate 'Maps to' mappings to deprecated and upgraded concepts

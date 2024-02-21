@@ -18,7 +18,7 @@ DECLARE
 	cRet_git TEXT;
 	cFooter CONSTANT VARCHAR(1000) := E'\r\n\***\r\nIf you have any questions, please try to find the answers on http://forums.ohdsi.org. If you can\'t find it, please ask here: http://forums.ohdsi.org/t/vocabulary-release-questions/6650';
 	cEmptyResultText CONSTANT VARCHAR(1000) :=E'\r\nthere were no changes here\r\n';
-	cHeader CONSTANT VARCHAR(1000) := E'\r\nThis [guide](https://github.com/OHDSI/Vocabulary-v5.0/wiki/Release-notes-guide) can provide you more background on how to read the release notes.\r\n';
+	cHeader CONSTANT VARCHAR(1000) := E'\r\nThis [guide](https://github.com/OHDSI/Vocabulary-v5.0/wiki/Releases) can provide you more background on how to read the release notes.\r\n';
 BEGIN
 	cTitle:=E'\r\n# Domain changes\r\n';
 	cRet:=E'<table>\r\n';

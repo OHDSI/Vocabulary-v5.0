@@ -1,4 +1,4 @@
-CREATE TABLE icd_cde_source_backup_2_16_2024 as SELECT * FROM icd_cde_source;
+CREATE TABLE icd_cde_source_backup_2_20_2024 as SELECT * FROM icd_cde_source;
 CREATE TABLE icd_cde_source_backup_local_ver as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_local_ver);
@@ -830,6 +830,7 @@ SELECT group_id FROM icd_cde_manual
 WHERE mappings_origin in ('CC', 'without mapping')
 GROUP BY group_id
     HAVING count (group_id)=1)
+--AND group_name not in (select group_name from icd_cde_mapped) -- only to add some group names
 ORDER BY group_name;
 
 --USE only if updates in the google sheet table are needed
@@ -978,8 +979,8 @@ UPDATE icd_cde_mapped SET target_standard_concept = 'S'
 WHERE target_standard_concept = 'Standard';
 
 --Update target_invalid_reason field
-UPDATE icd_cde_mapped SET target_invalid_reason = null
-WHERE target_standard_concept = 'Valid';
+UPDATE icd_cde_mapped SET target_invalid_reason = NULL
+WHERE target_invalid_reason = 'Valid';
 
 --Update rel_invalid_reason, valid_start_date, valid_end_date fields for declined candidates
 UPDATE icd_cde_mapped SET
@@ -991,14 +992,14 @@ UPDATE dev_icd10.icd_cde_source s
 SET (relationship_id_predicate,
      decision,
      decision_date) = (
-         SELECT
+         SELECT DISTINCT
      relationship_id_predicate,
      decision,
      decision_date
 FROM icd_cde_mapped m
 WHERE s.group_name = m.group_name
 AND s.target_concept_id = m.target_concept_id
---AND s.target_concept_code = m.target_concept_code
+AND s.target_concept_code = m.target_concept_code
 --AND s.target_concept_name = m.target_concept_name
 --AND s.target_concept_class_id = m.target_concept_class_id
 --AND s.target_standard_concept = m.target_standard_concept
@@ -1006,8 +1007,6 @@ AND s.target_concept_id = m.target_concept_id
 --AND s.target_domain_id = m.target_domain_id
 --AND s.target_vocabulary_id = m.target_vocabulary_id
     );
-
-SELECT * FROM dev_icd10.icd_cde_source;
 
 --Insert new and update existing relationships according to _mapped table.
 INSERT INTO dev_icd10.icd_cde_source as s
@@ -1097,31 +1096,87 @@ AND s.mappings_origin = 'without mapping'
     );
 
 --13. Create final table with mappings
-CREATE TABLE icd_cde_proc AS
-    (SELECT * FROM icd_cde_source);
+TRUNCATE TABLE icd_cde_proc;
+INSERT INTO icd_cde_proc (source_code,
+                          source_code_description,
+                          source_vocabulary_id,
+                          group_name,
+                          mappings_origin,
+                          decision,
+                          decision_date,
+                          relationship_id,
+                          relationship_id_predicate,
+                          target_concept_id,
+                          target_concept_code,
+                          target_concept_name,
+                          target_concept_class_id,
+                          target_standard_concept,
+                          target_invalid_reason,
+                          target_domain_id,
+                          target_vocabulary_id,
+                          rel_invalid_reason)
+SELECT DISTINCT
+s.source_code as source_code,
+s.source_code_description as source_code_description,
+s.source_vocabulary_id as source_vocabulary_id,
+s.group_name as group_name,
+s.mappings_origin,
+m.decision as decision,
+m.decision_date as decision_date,
+m.relationship_id as relatioonship_id,
+m.relationship_id_predicate as relationship_id_predicate,
+m.target_concept_id,
+m.target_concept_code,
+m.target_concept_name,
+m.target_concept_class_id,
+m.target_standard_concept,
+m.target_invalid_reason,
+m.target_domain_id,
+m.target_vocabulary_id,
+m.rel_invalid_reason
+FROM icd_cde_source s JOIN icd_cde_mapped m
+ON s.group_name = m.group_name
+and m.decision = '1'
+;
 
--- Update mappings for every concept
-UPDATE icd_cde_proc p
-SET (relationship_id,
-     target_concept_id,
-     target_concept_code,
-     target_concept_name,
-     target_concept_class_id,
-     target_standard_concept,
-     target_invalid_reason,
-     target_domain_id,
-     target_vocabulary_id) = (
-         SELECT
-     relationship_id,
-     target_concept_id,
-     target_concept_code,
-     target_concept_name,
-     target_concept_class_id,
-     target_standard_concept,
-     target_invalid_reason,
-     target_domain_id,
-     target_vocabulary_id
-FROM icd_cde_mapped m
-WHERE p.group_name = m.group_name
-AND m.decision = '1') ;
+INSERT INTO icd_cde_proc (source_code,
+                          source_code_description,
+                          source_vocabulary_id,
+                          group_name,
+                          mappings_origin,
+                          decision,
+                          decision_date,
+                          relationship_id,
+                          relationship_id_predicate,
+                          target_concept_id,
+                          target_concept_code,
+                          target_concept_name,
+                          target_concept_class_id,
+                          target_standard_concept,
+                          target_invalid_reason,
+                          target_domain_id,
+                          target_vocabulary_id,
+                          rel_invalid_reason)
+SELECT source_code,
+source_code_description,
+source_vocabulary_id,
+group_name,
+mappings_origin,
+decision,
+decision_date,
+relationship_id,
+relationship_id_predicate,
+target_concept_id,
+target_concept_code,
+target_concept_name,
+target_concept_class_id,
+target_standard_concept,
+target_invalid_reason,
+target_domain_id,
+target_vocabulary_id,
+rel_invalid_reason
+    FROM icd_cde_source where group_name not in (SELECT group_name FROM icd_cde_mapped)
+and rel_invalid_reason is null;
+
+SELECT * FROM icd_cde_proc where source_code = 'C43.112';
 

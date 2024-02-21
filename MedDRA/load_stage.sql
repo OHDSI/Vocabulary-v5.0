@@ -144,7 +144,7 @@ AS (
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -181,7 +181,7 @@ AS (
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -213,7 +213,7 @@ AS (
 			--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'

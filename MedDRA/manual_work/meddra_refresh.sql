@@ -259,7 +259,8 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
                                    WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
                                    ELSE 'Maps to' END
                         FROM meddra_environment crm_new
-                        WHERE source_code = crm_old.concept_code_1
+                        WHERE decision='1'
+                          AND source_code = crm_old.concept_code_1
                           AND target_concept_code = crm_old.concept_code_2
                           AND target_vocabulary_id = crm_old.vocabulary_id_2
                           AND CASE

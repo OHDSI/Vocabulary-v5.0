@@ -51,7 +51,7 @@ BEGIN
 			)
 	WHERE r.invalid_reason IS NULL;
 
-	CREATE INDEX idx_temp_ca_base$ ON temporary_ca_base$ (ancestor_concept_id,descendant_concept_id) INCLUDE (levels_of_separation) WITH (FILLFACTOR=100);
+	CREATE INDEX idx_temp_ca_base$ ON temporary_ca_base$ (ancestor_concept_id) INCLUDE (descendant_concept_id, levels_of_separation) WITH (FILLFACTOR=100);
 	ANALYZE temporary_ca_base$;
 
 	--create a 'groups' table. we want to split a whole bunch of data into N separate chunks, this will give a good perfomance boost due to less temporary tablespace usage
@@ -97,13 +97,13 @@ BEGIN
 				
 				SELECT c.ancestor_concept_id,
 					c.descendant_concept_id,
-					root_ancestor_concept_id,
+					hc.root_ancestor_concept_id,
 					hc.levels_of_separation + c.levels_of_separation AS levels_of_separation,
 					hc.full_path || c.descendant_concept_id AS full_path
 				FROM temporary_ca_base$ c
 				JOIN hierarchy_concepts hc ON hc.descendant_concept_id = c.ancestor_concept_id
 				WHERE c.descendant_concept_id <> ALL (full_path)
-				)
+				) --CYCLE descendant_concept_id SET is_cycle USING full_path
 		SELECT hc.root_ancestor_concept_id AS ancestor_concept_id,
 			hc.descendant_concept_id,
 			MIN(hc.levels_of_separation) AS min_levels_of_separation,

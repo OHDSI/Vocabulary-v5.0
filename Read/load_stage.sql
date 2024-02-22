@@ -35,8 +35,8 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. fill CONCEPT_STAGE and concept_relationship_stage from Read
-INSERT INTO CONCEPT_STAGE (
+--3. Fill concept_stage and concept_relationship_stage from Read
+INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
 	vocabulary_id,
@@ -47,7 +47,7 @@ INSERT INTO CONCEPT_STAGE (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT coalesce(kv2.description_long, kv2.description, kv2.description_short) AS concept_name,
+SELECT DISTINCT COALESCE(kv2.description_long, kv2.description, kv2.description_short) AS concept_name,
 	NULL AS domain_id,
 	'Read' AS vocabulary_id,
 	'Read' AS concept_class_id,
@@ -60,7 +60,7 @@ SELECT DISTINCT coalesce(kv2.description_long, kv2.description, kv2.description_
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM SOURCES.keyv2 kv2;
+FROM sources.keyv2 kv2;
 
 --Add 'Maps to' from Read to SNOMED
 INSERT INTO concept_relationship_stage (
@@ -73,12 +73,12 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT RSCCT.ReadCode || RSCCT.TermCode AS concept_code_1,
+SELECT DISTINCT rscct.ReadCode || rscct.TermCode AS concept_code_1,
 	-- pick the best map: mapstatus=1, then is_assured=1, then target concept is fresh, then newest date
-	FIRST_VALUE(RSCCT.conceptid) OVER (
-		PARTITION BY RSCCT.readcode || RSCCT.termcode ORDER BY RSCCT.mapstatus DESC,
-			RSCCT.is_assured DESC,
-			RSCCT.effectivedate DESC
+	FIRST_VALUE(rscct.conceptid) OVER (
+		PARTITION BY rscct.readcode || rscct.termcode ORDER BY rscct.mapstatus DESC,
+			rscct.is_assured DESC,
+			rscct.effectivedate DESC
 		) AS concept_code_2,
 	'Maps to' AS relationship_id,
 	'Read' AS vocabulary_id_1,
@@ -90,9 +90,9 @@ SELECT DISTINCT RSCCT.ReadCode || RSCCT.TermCode AS concept_code_1,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM SOURCES.RCSCTMAP2_UK RSCCT;
+FROM sources.rcsctmap2_uk rscct;
 
---Delete non-existing concepts from concept_relationship_stage
+--4. Delete non-existing concepts from concept_relationship_stage
 DELETE
 FROM concept_relationship_stage crs
 WHERE (
@@ -124,19 +124,19 @@ WHERE (
 				)
 		);
 
---Add manual sources
+--5. Add manual concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---Add manual 'Maps to' from Read to RxNorm, CVX and SNOMED
+--6. Add manual 'Maps to' from Read to RxNorm, CVX and SNOMED
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---4. Create mapping to self for fresh concepts
+--7. Create mapping to self for fresh concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -153,24 +153,14 @@ SELECT concept_code AS concept_code_1,
 	c.vocabulary_id AS vocabulary_id_2,
 	'Maps to' AS relationship_id,
 	v.latest_update AS valid_start_date,
-	TO_DATE('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM concept_stage c,
-	vocabulary v
-WHERE c.vocabulary_id = v.vocabulary_id
-	AND c.standard_concept = 'S'
-	AND NOT EXISTS -- only new mapping we don't already have
-	(
-		SELECT 1
-		FROM concept_relationship_stage i
-		WHERE c.concept_code = i.concept_code_1
-			AND c.concept_code = i.concept_code_2
-			AND c.vocabulary_id = i.vocabulary_id_1
-			AND c.vocabulary_id = i.vocabulary_id_2
-			AND i.relationship_id = 'Maps to'
-		);
+FROM concept_stage c
+JOIN vocabulary v ON v.vocabulary_id = c.vocabulary_id
+WHERE c.standard_concept = 'S'
+ON CONFLICT DO NOTHING;
 
---5. Add "subsumes" relationship between concepts where the concept_code is like of another
+--8. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 
@@ -196,21 +186,14 @@ SELECT c1.concept_code AS concept_code_1,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM concept_stage c1,
-	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '%'
-	AND c1.concept_code <> c2.concept_code
-	AND NOT EXISTS -- only new mapping we don't already have
-	(
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-		);
+FROM concept_stage c1
+JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+	AND c2.concept_code <> c1.concept_code
+ON CONFLICT DO NOTHING;
+
 DROP INDEX trgm_idx;
 
---6. update domain_id for Read from target concepts
+--9. Update domain_id for Read from target concepts
 --create temporary table read_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 DROP TABLE IF EXISTS read_domain;
@@ -272,8 +255,7 @@ FROM (
 			c1.concept_class_id,
 			(
 				SELECT DISTINCT LAST_VALUE(fd.domain_id) OVER (
-						ORDER BY fd.concept_code ROWS BETWEEN UNBOUNDED PRECEDING
-								AND UNBOUNDED FOLLOWING
+						ORDER BY fd.concept_code
 						)
 				FROM filled_domain fd
 				WHERE fd.concept_code < c1.concept_code
@@ -281,8 +263,7 @@ FROM (
 				) prev_domain,
 			(
 				SELECT DISTINCT FIRST_VALUE(fd.domain_id) OVER (
-						ORDER BY fd.concept_code ROWS BETWEEN UNBOUNDED PRECEDING
-								AND UNBOUNDED FOLLOWING
+						ORDER BY fd.concept_code
 						)
 				FROM filled_domain fd
 				WHERE fd.concept_code > c1.concept_code
@@ -321,24 +302,25 @@ FROM (
 		concept_class_id
 	) AS s1;
 
--- INDEX was set as UNIQUE to prevent concept_code duplication    
+--INDEX was set as UNIQUE to prevent concept_code duplication    
 CREATE UNIQUE INDEX idx_read_domain ON read_domain (concept_code);
+ANALYZE read_domain;
 
---7. Simplify the list by removing Observations, Metadata and Type Concept
+--10. Simplify the list by removing Observations, Metadata and Type Concept
 UPDATE read_domain
-SET domain_id = trim('/' FROM replace('/' || domain_id || '/', '/Observation/', '/'))
+SET domain_id = TRIM('/' FROM REPLACE('/' || domain_id || '/', '/Observation/', '/'))
 WHERE '/' || domain_id || '/' LIKE '%/Observation/%'
-	AND devv5.instr(domain_id, '/') <> 0;
+	AND STRPOS(domain_id, '/') <> 0;
 
 UPDATE read_domain
-SET domain_id = trim('/' FROM replace('/' || domain_id || '/', '/Metadata/', '/'))
+SET domain_id = TRIM('/' FROM REPLACE('/' || domain_id || '/', '/Metadata/', '/'))
 WHERE '/' || domain_id || '/' LIKE '%/Metadata/%'
-	AND devv5.instr(domain_id, '/') <> 0;
+	AND STRPOS(domain_id, '/') <> 0;
 
 UPDATE read_domain
-SET domain_id = trim('/' FROM replace('/' || domain_id || '/', '/Type Concept/', '/'))
+SET domain_id = TRIM('/' FROM REPLACE('/' || domain_id || '/', '/Type Concept/', '/'))
 WHERE '/' || domain_id || '/' LIKE '%/Type Concept/%'
-	AND devv5.instr(domain_id, '/') <> 0;
+	AND STRPOS(domain_id, '/') <> 0;
 
 --reducing some domain_id if his length>20
 UPDATE read_domain
@@ -351,7 +333,10 @@ WHERE domain_id = 'Condition/Measurement';
 
 UPDATE read_domain
 SET domain_id = 'Specimen'
-WHERE domain_id = 'Measurement/Specimen';
+WHERE domain_id IN (
+		'Measurement/Specimen',
+		'Procedure/Specimen'
+		);
 
 UPDATE read_domain
 SET domain_id = 'Measurement'
@@ -393,48 +378,47 @@ UPDATE read_domain
 SET domain_id = 'Visit'
 WHERE domain_id = 'Provider/Visit';
 
--- Check that all domain_id are exists in domain table
+--Check that all domain_id are exists in the domain table
 ALTER TABLE read_domain ADD CONSTRAINT fk_read_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
+ALTER TABLE read_domain DROP CONSTRAINT fk_read_domain;
 
---8. update each domain_id with the domains field from read_domain.
+--11. update each domain_id with the domains field from read_domain.
 UPDATE concept_stage c
 SET domain_id = rd.domain_id
 FROM read_domain rd
 WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'Read';
 
---9. Working with replacement mappings
+--12. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---10. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---12. Delete ambiguous 'Maps to' mappings
+--15. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---13. fix domain_ids for mappings to RxNorm and CVX
+--16. Fix domain_ids for mappings to RxNorm and CVX
 UPDATE concept_stage cs
 SET domain_id = rd.domain_id
 FROM (
-	SELECT DISTINCT first_value(c.domain_id) OVER (
-			PARTITION BY crs.concept_code_1 ORDER BY crs.vocabulary_id_2,
-				crs.concept_code_2
-			) AS domain_id,
+	SELECT DISTINCT ON (crs.concept_code_1) c.domain_id,
 		crs.concept_code_1,
 		crs.vocabulary_id_1
 	FROM concept c,
@@ -448,12 +432,14 @@ FROM (
 			'CVX'
 			)
 		AND crs.vocabulary_id_1 = 'Read'
+	ORDER BY crs.concept_code_1,
+		crs.vocabulary_id_2,
+		crs.concept_code_2
 	) rd
-WHERE rd.concept_code_1 = cs.concept_code
-	AND rd.vocabulary_id_1 = cs.vocabulary_id
-	AND cs.vocabulary_id = 'Read';
+WHERE cs.concept_code = rd.concept_code_1
+	AND cs.vocabulary_id = rd.vocabulary_id_1;
 
---14. Clean up
+--17. Clean up
 DROP TABLE read_domain;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

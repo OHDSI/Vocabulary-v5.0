@@ -1,55 +1,52 @@
------------
--- Create source tables
--- This scripts performs the following:
--- 1. Truncate all working tables
--- 2. Set latest_update field to new date
--- 3. Fill_stage tables and do some modifications
--- 4. Renumber concept codes
-
--- APL 2.0
--- Authors: CReich, LLA 
--- (c) OHDSI
-------------
-
----------------------------------
--- 1. Truncate all working tables
----------------------------------
-truncate table concept_stage;
-truncate table concept_relationship_stage;
-truncate table concept_synonym_stage;
--- drug tables not affected
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* Authors: Christian Reich, LLA
+* Date: 2024
+**************************************************************************/
+--1. Truncate all working tables
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
  
------------------------
--- 2. Set latest_update
------------------------
-do $_$
-begin
-	perform vocabulary_pack.setlatestupdate(
+--2. Set latest_update
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.setlatestupdate(
 	pvocabularyname			=> 'OMOP Genomic',
 	pvocabularydate			=> to_date('20240216', 'yyyymmdd'),
 	pvocabularyversion		=> 'OMOP Genomic ' || '20240216', 
 	pvocabularydevschema	=> 'dev_omopgenomic'
 );
-end $_$;
+END $_$;
 
 
-------------------------------------------------
 -- 3. Fill_stage tables and do some modifications
-------------------------------------------------
-truncate concept_stage;
-truncate concept_relationship_stage;
-truncate concept_synonym_stage;
-
 create index idx_concept_code_2 on concept_relationship_stage using btree (concept_code_2);
 create index idx_cs_concept_id on concept_stage using btree (concept_id);
 
 
 -- Fill in stage tables
-insert into concept_stage select * from concept_small;
-insert into concept_stage select * from concept_large;
-insert into concept_relationship_stage select * from relationship_small;
-insert into concept_relationship_stage select * from relationship_large;
-insert into concept_synonym_stage select * from synonym_small;
+INSERT INTO concept_stage SELECT * FROM concept_small;
+INSERT INTO concept_stage SELECT * FROM concept_large;
+INSERT INTO concept_relationship_stage SELECT * FROM relationship_small;
+INSERT INTO concept_relationship_stage SELECT * FROM relationship_large;
+INSERT INTO concept_synonym_stage SELECT * FROM synonym_small;
 
 -- Remove synonyms for refreshed small concepts, new synonyms are in synonym_stage
 delete from concept_synonym where concept_id in (select c.concept_id from concept c join concept_stage cs using(vocabulary_id, concept_code) where cs.invalid_reason is null);
@@ -208,9 +205,7 @@ alter table concept_synonym_stage alter column synonym_name set not null;
 alter table concept_synonym_stage alter column synonym_vocabulary_id set not null;
 alter table concept_synonym_stage add constraint idx_pk_css primary key (synonym_vocabulary_id, synonym_name, synonym_concept_code, language_concept_id);
 
----------------------------
--- 4. Renumber concept codes
----------------------------
+--4. Renumber concept codes
 drop table if exists recount;
 create table recount as
 select concept_code as old_code, 
@@ -228,10 +223,4 @@ update concept_relationship_stage set concept_code_1=new_code from recount where
 update concept_relationship_stage set concept_code_2=new_code from recount where concept_code_2=old_code;
 update concept_synonym_stage set synonym_concept_code=new_code from recount where synonym_concept_code=old_code;
 
-drop table concept_small;
-drop table relationship_small;
-drop table synonym_small;
-drop table concept_large;
-drop table relationship_large;
-
-a---- Done
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

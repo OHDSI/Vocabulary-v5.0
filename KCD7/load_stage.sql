@@ -295,6 +295,14 @@ UPDATE concept_stage c
 SET domain_id = 'Condition'
 WHERE domain_id = 'Condition/Observatio';
 
+UPDATE concept_stage c
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Measuremen';
+
+UPDATE concept_stage c
+SET domain_id = 'Observation'
+WHERE domain_id = 'Measurement/Observat';
+
 --12. Manual name fix
 UPDATE concept_stage
 SET concept_name = 'Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2'

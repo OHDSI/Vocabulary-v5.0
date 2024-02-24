@@ -620,6 +620,11 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
+--Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
+
 --14. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

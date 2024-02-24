@@ -90,8 +90,8 @@ LEFT JOIN dev_icd10.concept_relationship_stage crs
 LEFT JOIN concept c
     on crs.concept_code_2 = c.concept_code
     and crs.vocabulary_id_2 = c.vocabulary_id
-where cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy')
-and crs.concept_code_2 IS NOT NULL;
+where cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter')
+--and crs.concept_code_2 IS NOT NULL;
 
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source s SET
@@ -587,7 +587,7 @@ FROM dev_icd10.concept_stage
 WHERE (concept_code, concept_name) not in
 (SELECT source_code, source_code_description FROM icd_cde_source
 WHERE source_vocabulary_id = 'ICD10')
-AND concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy');
+AND concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter');
 
 --4. check all the ICD10CM concepts are in the CDE
 SELECT *
@@ -1177,3 +1177,5 @@ target_vocabulary_id,
 rel_invalid_reason
     FROM icd_cde_source where group_name not in (SELECT group_name FROM icd_cde_mapped)
 and rel_invalid_reason is null;
+
+UPDATE icd_cde_proc SET relationship_id = 'Maps to' where relationship_id = 'Maps to '

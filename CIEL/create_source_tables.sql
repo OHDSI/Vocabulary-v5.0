@@ -14,8 +14,10 @@
 * limitations under the License.
 * 
 * Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz
-* Date: 2021
+* Date: 2019-2023
 **************************************************************************/
+
+/* 2023/01 - changes in export format of the CIEL database  */
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT;
 CREATE TABLE SOURCES.CIEL_CONCEPT
@@ -51,11 +53,7 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_CLASS
    RETIRED_BY         INT4,
    DATE_RETIRED       DATE,
    RETIRE_REASON      VARCHAR (255),
-   UUID               VARCHAR (38),
-   DATE_CHANGED       DATE,
-   CHANGED_BY         INT4,
-   VOCABULARY_DATE    DATE,
-   VOCABULARY_VERSION VARCHAR (200)
+   UUID               VARCHAR (38)
 );
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_NAME;
@@ -73,9 +71,7 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_NAME
    VOID_REASON         VARCHAR (255),
    UUID                VARCHAR (38),
    CONCEPT_NAME_TYPE   VARCHAR (50),
-   LOCALE_PREFERRED    INT4,
-   DATE_CHANGED        DATE,
-   CHANGED_BY          INT4
+   LOCALE_PREFERRED    INT4
 );
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_MAP;
@@ -126,7 +122,5 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_SOURCE
    DATE_RETIRED        DATE,
    RETIRE_REASON       VARCHAR (255),
    UUID                VARCHAR (38),
-   UNIQUE_ID           VARCHAR (250),
-   DATE_CHANGED        DATE,
-   CHANGED_BY          INT4
+   UNIQUE_ID           VARCHAR (250)
 );

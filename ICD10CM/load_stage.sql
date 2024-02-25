@@ -78,12 +78,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---5. Working with manual synonyms
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
-END $_$;
-
 --6. Add ICD10CM to SNOMED manual mappings
 DO $_$
 BEGIN
@@ -282,6 +276,12 @@ FROM (
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	) AS s0;
+
+--5. Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
 
 --16. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (

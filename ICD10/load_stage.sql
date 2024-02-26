@@ -625,6 +625,11 @@ UPDATE concept_stage
 SET domain_id = 'Condition'
 WHERE concept_code ~* 'C';
 
+--Minor manual fix for some codes domains
+UPDATE concept_stage
+SET domain_id = 'Procedure'
+WHERE concept_code in ('R93.5', 'R93.6', 'R93.7', 'R93.8', 'R94.3', 'R90', 'R90.8', 'R91', 'R92', 'R93', 'R93.0', 'R93.1', 'R93.2', 'R93.3', 'R93.4');
+
 --14. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

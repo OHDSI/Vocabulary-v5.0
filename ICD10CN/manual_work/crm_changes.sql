@@ -16,17 +16,95 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
-TRUNCATE TABLE concept_relationship_manual;
+TRUNCATE TABLE dev_ICD10CN.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
-source_code as concept_code_1,
-target_concept_code as concept_code_2,
-'ICD10CN' as vocabulary_id_1,
-target_vocabulary_id as vocabulary_id_2,
-relationship_id as relationship_id,
-current_date as valid_start_date,
-to_date('20991231','yyyymmdd') as valid_end_date,
-null as invalid_reason
-FROM dev_icd10.icd_cde_proc
-WHERE source_vocabulary_id = 'ICD10CN'
-AND target_concept_id is not null;
+concept_code_1,
+concept_code_2,
+vocabulary_id_1,
+vocabulary_id_2,
+relationship_id,
+valid_start_date,
+valid_end_date,
+invalid_reason
+FROM devv5.base_concept_relationship_manual
+where vocabulary_id_1 = 'ICD10CN';
+
+-- deprecate previous inaccurate mapping
+UPDATE concept_relationship_manual crm
+SET invalid_reason = 'D',
+    valid_end_date = current_date
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order to preserve the original deprecation date
+
+    AND concept_code_1 IN (SELECT source_code FROM dev_icd10.icd_cde_proc WHERE source_vocabulary_id = 'ICD10CN') --work only with the codes presented in the manual file of the current vocabulary refresh
+    AND vocabulary_id_1 = 'ICD10CN'
+    AND NOT EXISTS (SELECT 1 --don't deprecate mapping if the same exists in the current manual file
+                    FROM dev_icd10.icd_cde_proc rl
+                    WHERE rl.source_code = crm.concept_code_1 --the same source_code is mapped
+                        AND rl.target_concept_code = crm.concept_code_2 --to the same concept_code
+                        AND rl.target_vocabulary_id = crm.vocabulary_id_2 --of the same vocabulary
+                        AND rl.relationship_id = crm.relationship_id --with the same relationship
+                        AND rl.source_vocabulary_id = 'ICD10CN'     )
+;
+
+-- activate mapping, that became valid again
+UPDATE concept_relationship_manual crm
+SET invalid_reason = null,
+    valid_end_date = to_date('20991231','yyyymmdd'),
+    valid_start_date = current_date
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason = 'D' -- activate only deprecated mappings
+
+    AND EXISTS (SELECT 1 -- activate mapping if the same exists in the current manual file
+                    FROM dev_icd10.icd_cde_proc rl
+                    WHERE rl.source_code = crm.concept_code_1 --the same source_code is mapped
+                        AND rl.target_concept_code = crm.concept_code_2 --to the same concept_code
+                        AND rl.target_vocabulary_id = crm.vocabulary_id_2 --of the same vocabulary
+                        AND rl.relationship_id = crm.relationship_id --with the same relationship
+                        AND rl.source_vocabulary_id = 'ICD10CN'
+        )
+;
+
+-- insert new mapping
+with mapping AS -- select all new codes with their mappings from manual file
+    (
+        SELECT DISTINCT source_code AS concept_code_1,
+               target_concept_code AS concept_code_2,
+               'ICD10CN' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
+               target_vocabulary_id AS vocabulary_id_2,
+               relationship_id AS relationship_id,
+               current_date AS valid_start_date, -- set the date of the refresh as valid_start_date
+               to_date('20991231','yyyymmdd') AS valid_end_date,
+               NULL AS invalid_reason -- make all new mappings valid
+        FROM dev_icd10.icd_cde_proc
+        WHERE target_concept_id is not null -- select only codes with mapping to standard concepts
+        AND source_vocabulary_id = 'ICD10CN'
+    )
+-- insert new mappings into concept_relationship_manual table
+INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+(
+        SELECT concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
+            relationship_id,
+            valid_start_date,
+            valid_end_date,
+            invalid_reason
+     FROM mapping m
+        -- don't insert codes with mapping if the same exists in the current manual file
+        WHERE (concept_code_1, --the same source_code is mapped
+               concept_code_2, --to the same concept_code
+               vocabulary_id_1,
+               vocabulary_id_2, --of the same vocabulary
+               relationship_id) --with the same relationship
+        NOT IN (SELECT concept_code_1,
+                       concept_code_2,
+                       vocabulary_id_1,
+                       vocabulary_id_2,
+                       relationship_id FROM concept_relationship_manual)
+    )
+;

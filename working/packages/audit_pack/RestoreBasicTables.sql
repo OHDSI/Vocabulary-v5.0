@@ -292,6 +292,50 @@ BEGIN
 		END LOOP;
 		RAISE NOTICE 'Deleting obsolete log records...';
 		DELETE FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables);
+
+		--update concept_id_1/2 in the base_concept_relationship_manual, if the concepts no longer exist in the base tables
+		RAISE NOTICE 'Fixing base_concept_relationship_manual...';
+		UPDATE base_concept_relationship_manual base_crm
+		SET concept_id_1 = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_crm.concept_code_1
+					AND c_int.vocabulary_id = base_crm.vocabulary_id_1
+				)
+			AND base_crm.concept_id_1 <> 0;
+
+		UPDATE base_concept_relationship_manual base_crm
+		SET concept_id_2 = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_crm.concept_code_2
+					AND c_int.vocabulary_id = base_crm.vocabulary_id_2
+				)
+			AND base_crm.concept_id_2 <> 0;
+
+		--same for base_concept_manual
+		UPDATE base_concept_manual base_cm
+		SET concept_id = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_cm.concept_code
+					AND c_int.vocabulary_id = base_cm.vocabulary_id
+				)
+			AND base_cm.concept_id <> 0;
+
+		--same for base_concept_synonym_manual
+		UPDATE base_concept_synonym_manual base_csm
+		SET concept_id = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_csm.synonym_concept_code
+					AND c_int.vocabulary_id = base_csm.synonym_vocabulary_id
+				)
+			AND base_csm.concept_id <> 0;
 	END IF;
 
 	RAISE NOTICE 'Restoring complete';

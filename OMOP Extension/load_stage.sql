@@ -83,7 +83,7 @@ DO $$
 DECLARE
 	--v2, AVOF-3703
 	DOMAINS_ARRAY VARCHAR[]:=ARRAY['Condition','Observation','Procedure','Measurement','Device','Meas Value']; --order does matter (the first position has the highest priority, then in descending order)
-	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Clinical Finding','Event','Observable Entity','Context-dependent','Procedure','Lab Test','Staging / Scales','Substance','Qualifier Value','Social Context','Attribute']; --order does matter (the first position has the highest priority, then in descending order)
+	CONCEPT_CLASS_ARRAY VARCHAR[]:=ARRAY['Disorder','Clinical Finding','Event','Observable Entity','Context-dependent','Procedure','Lab Test','Staging / Scales','Substance','Qualifier Value','Social Context','Attribute']; --order does matter (the first position has the highest priority, then in descending order)
 BEGIN
 	--build the ancestor
 	DROP TABLE IF EXISTS omop_ext_ancestor CASCADE;

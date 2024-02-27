@@ -322,18 +322,16 @@ UPDATE concept_stage
 SET domain_id = 'Condition'
 WHERE concept_class_id = 'ICD10 Histology';
 
+--9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
 --13 Find parents among ICD10 and ICDO3 to inherit mapping relationships from
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --For LIKE patterns
 ANALYZE concept_stage;
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date
-	)
+with fromicd10 as (
 SELECT i.concept_code AS concept_code_1,
 	c.concept_code AS concept_code_2,
 	'ICD10CN' AS vocabulary_id_1,
@@ -366,7 +364,7 @@ FROM (
 		AND c2.concept_code = c1.concept_code || '-NULL'
 	--Commented since we allow fuzzy match uphill for this iteration
 	--where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
-	
+
 	UNION ALL
 	
 	SELECT DISTINCT cs.concept_code,
@@ -397,13 +395,18 @@ WHERE NOT EXISTS (
 		WHERE crs.concept_code_1 = i.concept_code
 			AND crs.invalid_reason IS NULL
 			AND crs.relationship_id = 'Maps to'
-		);
-
---9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+		))
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+(SELECT * FROM fromicd10 where concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual))
+;
 
 --14. Add mapping from deprecated to fresh concepts
 DO $_$
@@ -445,26 +448,6 @@ UPDATE concept_relationship_stage crs
 						'D'
 						)
 				);
-
--- Deprecate mapping to non-S concepts
---UPDATE concept_relationship_stage crs
---	SET valid_end_date = GREATEST(crs.valid_start_date, (
---				SELECT MAX(v.latest_update) - 1
---				FROM vocabulary v
---				WHERE v.vocabulary_id IN (
---						crs.vocabulary_id_1,
---						crs.vocabulary_id_2
---						)
---				)),
---		invalid_reason = 'D'
---	WHERE crs.relationship_id in ('Maps to','Maps to value')
---		AND crs.invalid_reason IS NULL
---		AND EXISTS (
---				--check if target concept is non-S (first in concept_stage, then concept)
---				SELECT 1
---				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
---				WHERE a.standard_concept is null
---				);
 
 --Update domain from mapping target
 UPDATE concept_stage cs
@@ -533,6 +516,84 @@ WHERE i.concept_code = cs.concept_code
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
+
+UPDATE concept_stage
+SET domain_id = 'Procedure'
+WHERE concept_code in ('R93.5', 'R93.6', 'R93.7', 'R93.8', 'R94.3', 'R90', 'R90.8', 'R91', 'R92', 'R93', 'R93.0', 'R93.1', 'R93.2', 'R93.3', 'R93.4');
+
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
+
+--Reuse domains from icd10
+UPDATE concept_stage cs
+SET domain_id = (SELECT domain_id FROM dev_icd10.concept_stage css
+WHERE cs.concept_code = css.concept_code) where
+      concept_code in ('U07.2',
+'C77',
+'C77.0',
+'C77.1',
+'C77.2',
+'C77.3',
+'C77.4',
+'C77.5',
+'C77.8',
+'C77.9',
+'C78.0',
+'C78.1',
+'C78.2',
+'C78.3',
+'C78.4',
+'C78.5',
+'C78.6',
+'C78.7',
+'C78.8',
+'C79.0',
+'C79.1',
+'C79.2',
+'C79.3',
+'C79.4',
+'C79.5',
+'C79.6',
+'C79.7',
+'R70.1',
+'Z40-Z54',
+'V90-V94',
+'Y60-Y69',
+'V80-V89',
+'V98-V99',
+'X50-X57',
+'W85-W99',
+'W50-W64',
+'X58-X59',
+'V10-V19',
+'V01-V09',
+'X00-X09',
+'Y40-Y59',
+'V95-V97',
+'Z30-Z39',
+'Z55-Z65',
+'V50-V59',
+'V70-V79',
+'Y35-Y36',
+'V60-V69',
+'Z70-Z76',
+'W65-W74',
+'X10-X19',
+'V40-V49',
+'V30-V39',
+'W00-W19',
+'X20-X29',
+'M15-M19',
+'X85-Y09',
+'M05-M14',
+'M50-M54',
+'M86-M90',
+'M20-M25',
+'M70-M79',
+'M91-M94',
+'M45-M49',
+'M65-M68');
 
 --16. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now

@@ -243,6 +243,11 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10CM';
 
+--Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
+
 --TODO: check why the actual U* code limitation is not used.
 --Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
 UPDATE concept_stage

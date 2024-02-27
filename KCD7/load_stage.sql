@@ -94,17 +94,14 @@ UNION ALL
 VALUES ('U18','신종질환의 국내 임시적 지정이나 응급사용','KCD7',4175771),
 	('U18.1','신종 코로나바이러스 감염','KCD7',4175771);
 
+--7. Add KCD7 to SNOMED manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
 --5. Add mapping through ICD10 
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
+with fromicd10 as (
 SELECT cs.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	cs.vocabulary_id AS vocabulary_id_1,
@@ -122,7 +119,19 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2;
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2)
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+	SELECT * FROM fromicd10 WHERE concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual);
+;
 
 --6. Add "Subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -152,12 +161,6 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 	AND c1.concept_code <> c2.concept_code;
 
 DROP INDEX trgm_idx;
-
---7. Add KCD7 to SNOMED manual mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
 
 --8. Add mapping from deprecated to fresh concepts
 DO $_$
@@ -199,26 +202,6 @@ UPDATE concept_relationship_stage crs
 						'D'
 						)
 				);
-
--- Deprecate mapping to non-S concepts
---UPDATE concept_relationship_stage crs
---	SET valid_end_date = GREATEST(crs.valid_start_date, (
---				SELECT MAX(v.latest_update) - 1
---				FROM vocabulary v
---				WHERE v.vocabulary_id IN (
---						crs.vocabulary_id_1,
---						crs.vocabulary_id_2
---						)
---				)),
---		invalid_reason = 'D'
---	WHERE crs.relationship_id in ('Maps to','Maps to value')
---		AND crs.invalid_reason IS NULL
---		AND EXISTS (
---				--check if target concept is non-S (first in concept_stage, then concept)
---				SELECT 1
---				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
---				WHERE a.standard_concept is null
---				);
 
 --10. Update domain_id for KCD7 from SNOMED
 UPDATE concept_stage cs
@@ -302,6 +285,11 @@ WHERE domain_id = 'Condition/Measuremen';
 UPDATE concept_stage c
 SET domain_id = 'Observation'
 WHERE domain_id = 'Measurement/Observat';
+
+--Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
 
 --12. Manual name fix
 UPDATE concept_stage

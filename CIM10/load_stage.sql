@@ -66,16 +66,14 @@ SELECT vocabulary_pack.CutConceptName(lib_complet) AS concept_name,
 	NULL AS invalid_reason
 FROM sources.cim10;
 
+--5. Append manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
 --4. Inherit external relations from international ICD10 whenever possible
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date
-	)
+with fromicd10 as (
 SELECT c.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	'CIM10' AS vocabulary_id_1,
@@ -96,13 +94,18 @@ JOIN concept_relationship r ON r.concept_id_1 = c.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c2 ON c2.concept_id = r.concept_id_2;
-
---5. Append manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+JOIN concept c2 ON c2.concept_id = r.concept_id_2)
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT * FROM fromicd10 WHERE concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual)
+;
 
 --6. Working with replacement mappings
 DO $_$
@@ -156,26 +159,6 @@ UPDATE concept_relationship_stage crs
 						'D'
 						)
 				);
-
--- Deprecate mapping to non-S concepts
---UPDATE concept_relationship_stage crs
---	SET valid_end_date = GREATEST(crs.valid_start_date, (
---				SELECT MAX(v.latest_update) - 1
---				FROM vocabulary v
---				WHERE v.vocabulary_id IN (
---						crs.vocabulary_id_1,
---						crs.vocabulary_id_2
---						)
---				)),
---		invalid_reason = 'D'
---	WHERE crs.relationship_id in ('Maps to','Maps to value')
---		AND crs.invalid_reason IS NULL
---		AND EXISTS (
---				--check if target concept is non-S (first in concept_stage, then concept)
---				SELECT 1
---				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
---				WHERE a.standard_concept is null
---				);
 
 --11. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -280,6 +263,11 @@ WHERE i.concept_code = cs.concept_code;
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
+
+--Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
 
 --14. Fill synonyms
 INSERT INTO concept_synonym_stage (

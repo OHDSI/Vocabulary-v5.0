@@ -76,25 +76,6 @@ BEGIN
 		) TO '%1$s/v5_vocabulary_conversion.csv' CSV HEADER;
 	$$, iVocabularyExportPath);
 
-	--v4 will be deleted soon
-	--v4
-	execute 'COPY (select concept_id, concept_name, concept_level, concept_class, vocabulary_id, concept_code, 
-	to_char(valid_start_date,''DD-MON-YYYY'') valid_start_date, to_char(valid_end_date,''DD-MON-YYYY'') valid_end_date, 
-	invalid_reason from devv4.concept) TO '''||iVocabularyExportPath||'v4_concept.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY devv4.vocabulary TO '''||iVocabularyExportPath||'v4_vocabulary.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY (select concept_id_1, concept_id_2, relationship_id, 
-	to_char(valid_start_date,''DD-MON-YYYY'') valid_start_date, to_char(valid_end_date,''DD-MON-YYYY'') valid_end_date, 
-	invalid_reason from devv4.concept_relationship where invalid_reason is null) TO '''||iVocabularyExportPath||'v4_concept_relationship.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY devv4.relationship TO '''||iVocabularyExportPath||'v4_relationship.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY devv4.concept_synonym TO '''||iVocabularyExportPath||'v4_concept_synonym.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY devv4.concept_ancestor TO '''||iVocabularyExportPath||'v4_concept_ancestor.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY (select source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, mapping_type, primary_map, 
-	to_char(valid_start_date,''DD-MON-YYYY'') valid_start_date, to_char(valid_end_date,''DD-MON-YYYY'') valid_end_date, 
-	invalid_reason from devv4.source_to_concept_map) TO '''||iVocabularyExportPath||'v4_source_to_concept_map.csv'' DELIMITER '','' CSV HEADER';
-	execute 'COPY (select  drug_concept_id, ingredient_concept_id, amount_value, amount_unit, concentration_value, concentration_enum_unit, concentration_denom_unit, box_size, 
-	to_char(valid_start_date,''DD-MON-YYYY'') valid_start_date, to_char(valid_end_date,''DD-MON-YYYY'') valid_end_date, 
-	invalid_reason from devv4.drug_strength) TO '''||iVocabularyExportPath||'v4_drug_strength.csv'' DELIMITER '','' CSV HEADER';
-
 	PERFORM devv5.SendMailHTML (iEmail, 'Release status: started uploading to Athena', 'dummy e-mail');
 	--start zipping and uploading
 	PERFORM vocabulary_pack.run_upload(iVocabularyExportPath);

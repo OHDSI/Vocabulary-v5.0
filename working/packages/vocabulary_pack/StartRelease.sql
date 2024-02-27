@@ -17,7 +17,6 @@ DECLARE
   z INT4;
 BEGIN
   perform vocabulary_pack.pConceptAncestor();
-  perform DEVV4.v5_to_v4();
   UPDATE vocabulary SET vocabulary_version = 'v5.0 '||TO_CHAR(CURRENT_DATE,'DD-MON-YY') WHERE vocabulary_id = 'None';
   
   --check for extended columns, drop if any

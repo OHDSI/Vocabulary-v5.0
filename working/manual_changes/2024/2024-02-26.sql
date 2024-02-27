@@ -1,49 +1,6 @@
 --Update of content to compliment OMOP Genomic February 2024 release
 
---1. Modify concept classes
---Change names of existing concept classes in OMOP Genomic
---Gene RNA Variant
-UPDATE concept 
-SET concept_name = 'Gene RNA Variant' 
-WHERE concept_id = 32923; -- used to be 'RNA Variant'
-
-UPDATE concept_class
-SET concept_class_id = 'Gene RNA Variant',
-  concept_class_name = 'Variant at the transcript (RNA) level for a gene'
-WHERE concept_class_concept_id = 32923;
-
---Gene DNA Variant
-UPDATE concept 
-SET concept_name = 'Gene DNA Variant' 
-WHERE concept_id = 32924; -- used to be 'DNA Variant'
-
-UPDATE concept_class 
-SET concept_class_id = 'Gene DNA Variant',
-  concept_class_name = 'Variant at the DNA level attributable to a gene'
-WHERE concept_class_concept_id = 32924;
-
---Gene Variant
-UPDATE concept 
-SET concept_name = 'Gene Variant' 
-WHERE concept_id = 32925; -- used to be 'Genetic Variation'
-
-UPDATE concept_class
-SET concept_class_id = 'Gene Variant',
-  concept_class_name = 'Variant of unspecified modality at the gene level'
-WHERE concept_class_concept_id = 32925;
-
---Gene Protein Variant
-UPDATE concept 
-SET concept_name = 'Gene Protein Variant'
-WHERE concept_id = 32927; -- used to be 'Protein Variant'
-
-UPDATE concept_class 
-SET concept_class_id = 'Gene Protein Variant',
-  concept_class_name = 'Variant at the protein level for a gene'
-WHERE concept_class_concept_id = 32927;
-
-
---2. Add new concept class
+--1. Add new concept classes
 DO $_$
 BEGIN
   PERFORM vocabulary_pack.AddNewConceptClass(
@@ -51,6 +8,69 @@ BEGIN
     pConcept_class_name     =>'Variant at the DNA level not attributable to a single gene, including a karyotype'
 );
 END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Structural Variant',
+    pConcept_class_name     =>'Variant at the DNA level not attributable to a single gene, including a karyotype'
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Gene Protein Variant',
+    pConcept_class_name     =>'Variant at the protein level for a gene'
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Gene Variant',
+    pConcept_class_name     =>'Variant of unspecified modality at the gene level'
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Gene DNA Variant',
+    pConcept_class_name     =>'Variant at the DNA level attributable to a gene'
+);
+END $_$;
+
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Gene RNA Variant',
+    pConcept_class_name     =>'Variant at the transcript (RNA) level for a gene'
+);
+END $_$;
+
+
+--2. Modify concept classes for existing concepts (to be used in ULS run)
+--Change names of existing concept classes in OMOP Genomic
+--Gene RNA Variant
+UPDATE concept_stage
+SET concept_class_id = 'Gene RNA Variant' 
+WHERE concept_class_id = 'RNA Variant'; -- used to be 'RNA Variant'
+
+--Gene DNA Variant
+UPDATE concept_stage 
+SET concept_class_id = 'Gene DNA Variant' 
+WHERE concept_class_id = 'DNA Variant'; -- used to be 'DNA Variant'
+
+--Gene Variant
+UPDATE concept_stage 
+SET concept_class_id = 'Gene Variant' 
+WHERE concept_class_id = 'Genetic Variation'; -- used to be 'Genetic Variation'
+
+--Gene Protein Variant
+UPDATE concept_stage 
+SET concept_class_id = 'Gene Protein Variant' 
+WHERE concept_class_id = 'Protein Variant'; -- used to be 'Protein Variant'
 
 
 --3. Modify vocabulary

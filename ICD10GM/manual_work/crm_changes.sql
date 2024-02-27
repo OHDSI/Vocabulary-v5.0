@@ -108,3 +108,25 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
+
+
+truncate concept_manual;
+insert into concept_manual
+select concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+from devv5.base_concept_manual
+where vocabulary_id = 'ICD10GM';
+
+select * from concept_manual;
+
+
+O83.8
+O83.9
+S62.70

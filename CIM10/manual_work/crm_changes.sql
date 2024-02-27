@@ -120,3 +120,9 @@ INSERT INTO concept_relationship_manual VALUES
 
 INSERT INTO concept_relationship_manual VALUES
 ('Z52.88', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
+
+INSERT INTO concept_relationship_manual VALUES
+('Z95.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
+
+INSERT INTO concept_relationship_manual VALUES
+('Z95.80', '429381005', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);

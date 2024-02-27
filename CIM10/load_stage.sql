@@ -290,35 +290,36 @@ WHERE c.concept_code = cs.concept_code
 	AND c.vocabulary_id = 'ICD10';
 
 --16. Translate the rest of names
---DROP TABLE cim10_translated_source;
---TRUNCATE TABLE cim10_translated_source;
---CREATE TABLE cim10_translated_source
---(concept_code text,
---concept_name  text,
---concept_name_translated text);
---
---INSERT INTO  cim10_translated_source
---    SELECT concept_code,
---           concept_name,
---           null as concept_name_translated
---    FROM concept_stage
---where concept_code not in (SELECT concept_code FROM concept c where c.vocabulary_id = 'ICD10')
---;
---
+DROP TABLE cim10_translated_source;
+TRUNCATE TABLE cim10_translated_source;
+CREATE TABLE cim10_translated_source
+(concept_code text,
+concept_name  text,
+concept_name_translated text);
+
+INSERT INTO cim10_translated_source
+    SELECT concept_code,
+          concept_name,
+          null as concept_name_translated
+    FROM concept_stage
+where concept_code not in (SELECT concept_code FROM concept c where c.vocabulary_id = 'ICD10')
+;
+
 ----Translation
---DO $_$
---BEGIN
---	PERFORM google_pack.GTranslate(
---		pInputTable    =>'cim10_translated_source',
---		pInputField    =>'concept_name',
---		pOutputField   =>'concept_name_translated',
---		pDestLang      =>'en',
---	    pSrcLang       =>'fr'
---	);
---END $_$;
+DO $_$
+BEGIN
+	PERFORM google_pack.GTranslate(
+		pInputTable    =>'cim10_translated_source',
+		pInputField    =>'concept_name',
+		pOutputField   =>'concept_name_translated',
+		pDestLang      =>'en',
+	    pSrcLang       =>'fr'
+	);
+END $_$;
 
 UPDATE cim10_translated_source
-SET concept_name_translated = cim10_translated_source.concept_name_translated ||' (machine translation)';
+SET concept_name_translated = cim10_translated_source.concept_name_translated ||' (machine translation)'
+where concept_name_translated !~* '(machine translation)';
 
 WITH cut as (
 SELECT
@@ -334,10 +335,10 @@ FROM cut
 WHERE cs.concept_name = cut.concept_name;
 
 --concept_synonym_stage update
-UPDATE concept_synonym_stage
+/*UPDATE concept_synonym_stage
 SET synonym_name = css.synonym_name ||', ' || ts.concept_name_translated
 FROM concept_synonym_stage css LEFT JOIN cim10_translated_source ts on css.synonym_concept_code = ts.concept_code
-WHERE LENGTH(TRIM(ts.concept_name_translated)) > 255;
+WHERE LENGTH(TRIM(ts.concept_name_translated)) > 255;*/
 
 --16. Working with concept_manual table
 DO $_$

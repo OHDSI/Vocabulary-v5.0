@@ -162,25 +162,25 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 
 DROP INDEX trgm_idx;
 
---8. Add mapping from deprecated to fresh concepts
+--7. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---8. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--9. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
--- Deprecate wrong maps to value
+--10. Deprecate wrong maps to value
 UPDATE concept_relationship_stage crs
 	SET valid_end_date = GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -203,7 +203,7 @@ UPDATE concept_relationship_stage crs
 						)
 				);
 
---10. Update domain_id for KCD7 from SNOMED
+--11. Update domain_id for KCD7 from SNOMED
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -236,7 +236,7 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'KCD7';
 
---11. If domain_id is empty we use previous and next domain_id
+--12. If domain_id is empty we use previous and next domain_id
 UPDATE concept_stage c
 SET domain_id = rd.domain_id
 FROM (
@@ -273,7 +273,7 @@ WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7'
 	AND c.domain_id IS NULL;
 
---11.1 Detect and Update misclassified domains to Condition
+--Detect and Update misclassified domains to Condition
 UPDATE concept_stage c
 SET domain_id = 'Condition'
 WHERE domain_id = 'Condition/Observatio';
@@ -291,7 +291,7 @@ UPDATE concept_stage
 SET domain_id = 'Condition'
 WHERE concept_code ~* 'C';
 
---12. Manual name fix
+--13. Manual name fix
 UPDATE concept_stage
 SET concept_name = 'Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2'
 WHERE concept_code = 'U07.1';

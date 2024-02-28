@@ -68,13 +68,13 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---7. Append manual relationships
+--5. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---5. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
+--6. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 
@@ -121,8 +121,7 @@ INSERT INTO concept_relationship_stage (
 FROM tab
 WHERE concept_code_1 NOT IN (SELECT concept_code_1 from concept_relationship_manual);
 
-
---6. Add "subsumes" relationship between concepts where the concept_code is like of another
+--7. Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -163,19 +162,19 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---Same for 'Maps to value'
+--10. Same for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
--- Deprecate wrong maps to value
+--12. Deprecate wrong maps to value
 UPDATE concept_relationship_stage crs
 	SET valid_end_date = GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -199,7 +198,7 @@ UPDATE concept_relationship_stage crs
 				);
 
 
---11. Update domain_id for ICD10GM from target vocabularies
+--13. Update domain_id for ICD10GM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -229,7 +228,7 @@ FROM (
 	) i
 WHERE i.concept_code_1 = cs.concept_code;
 
---12. Concepts are mapped through parent codes, a few left should become observation
+--14. Concepts are mapped through parent codes, a few left should become observation
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
@@ -238,7 +237,7 @@ UPDATE concept_stage
 SET domain_id = 'Condition'
 WHERE concept_code ~* 'C';
 
---13. Fill concept_synonym_stage
+--15. Fill concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -258,7 +257,7 @@ WHERE concept_code NOT IN (
 		'U99.0'
 		);
 
---14. Manually adding synonyms (COVID19, E-cig)
+--16. Manually adding synonyms (COVID19, E-cig)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();

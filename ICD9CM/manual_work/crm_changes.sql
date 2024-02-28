@@ -16,7 +16,7 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
---TRUNCATE TABLE dev_ICD9CM.concept_relationship_manual;
+TRUNCATE TABLE dev_ICD9CM.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
 concept_code_1,

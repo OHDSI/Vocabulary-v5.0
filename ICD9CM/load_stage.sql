@@ -291,13 +291,13 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--14. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
--- Deprecate wrong maps to value
+--15. Deprecate wrong maps to value
 UPDATE concept_relationship_stage crs
 	SET valid_end_date = GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -320,7 +320,7 @@ UPDATE concept_relationship_stage crs
 						)
 				);
 
---14. Update domain_id for ICD9CM from SNOMED
+--16. Update domain_id for ICD9CM from SNOMED
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -388,11 +388,11 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD9CM';
 
---15. Check for NULL in domain_id
+--17. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---17. Build reverse relationship. This is necessary for next point
+--18. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -424,7 +424,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---18. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--19. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

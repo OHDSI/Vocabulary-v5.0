@@ -16,6 +16,7 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
+--1. Update the concept_relationship_manual table
 TRUNCATE TABLE dev_ICD10CM.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -109,17 +110,19 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
-INSERT INTO concept_relationship_manual VALUES
-('T81.32', '419635000', 'ICD10CM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 
-INSERT INTO concept_relationship_manual VALUES
-('T81.32XA', '419635000', 'ICD10CM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('T81.32XD', '419635000', 'ICD10CM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z52.0', 'OMOP5165859', 'ICD10CM', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z52.0', '25179006', 'ICD10CM', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
+--2. Minor manual changes
+--INSERT INTO concept_relationship_manual VALUES
+--('T81.32', '419635000', 'ICD10CM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('T81.32XA', '419635000', 'ICD10CM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('T81.32XD', '419635000', 'ICD10CM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z52.0', 'OMOP5165859', 'ICD10CM', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z52.0', '25179006', 'ICD10CM', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);

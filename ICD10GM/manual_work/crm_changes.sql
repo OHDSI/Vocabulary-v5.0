@@ -16,6 +16,7 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
+--1. Update the concept_relationship_manual table
 TRUNCATE TABLE dev_ICD10GM.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -108,11 +109,16 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
+ -- Minor manual updates
+INSERT INTO concept_relationship_manual VALUES ('O83.8', '236973005', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('O83.9', '236973005', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('S62.70', '1255340003', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('P01', '1269102002', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 
-
-truncate concept_manual;
-insert into concept_manual
-select concept_name,
+--2. Update the concept_manual table
+TRUNCATE concept_manual;
+INSERT INTO concept_manual
+SELECT concept_name,
        domain_id,
        vocabulary_id,
        concept_class_id,
@@ -121,12 +127,5 @@ select concept_name,
        valid_start_date,
        valid_end_date,
        invalid_reason
-from devv5.base_concept_manual
-where vocabulary_id = 'ICD10GM';
-
-select * from concept_manual;
-
-
-O83.8
-O83.9
-S62.70
+FROM devv5.base_concept_manual
+WHERE vocabulary_id = 'ICD10GM';

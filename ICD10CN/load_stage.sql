@@ -316,7 +316,7 @@ JOIN sources.icd10cn_concept ic2 ON ic2.concept_id = r.concept_id_2
 WHERE r.relationship_id = 'Is a'
 	AND ic1.concept_code_clean <> ic2.concept_code_clean;
 
---12. Update Domains
+--8. Update Domains
 --ICD10 Histologies are always Condition
 UPDATE concept_stage
 SET domain_id = 'Condition'
@@ -408,25 +408,25 @@ INSERT INTO concept_relationship_stage (
 (SELECT * FROM fromicd10 where concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual))
 ;
 
---14. Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---15. 'Maps to' mappings to deprecated and upgraded concepts
+--10. 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---Add mapping from deprecated to fresh concepts (value level)
+--11. Add mapping from deprecated to fresh concepts (value level)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
--- Deprecate wrong maps to value
+--12. Deprecate wrong maps to value
 UPDATE concept_relationship_stage crs
 	SET valid_end_date = GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -449,7 +449,7 @@ UPDATE concept_relationship_stage crs
 						)
 				);
 
---Update domain from mapping target
+--13. Update domain from mapping target
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -512,7 +512,7 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.domain_id = 'Undefined';
 
---Only highest level of hierarchy has Domain still not defined at this point
+-- 14. Only highest level of hierarchy has Domain still not defined at this point
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
@@ -595,7 +595,7 @@ WHERE cs.concept_code = css.concept_code) where
 'M45-M49',
 'M65-M68');
 
---16. Add "subsumes" relationship between concepts where the concept_code is like of another
+--15. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -712,7 +712,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---17. Cleanup
+--16. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE icd10cn_chapters, name_source, intervals;
 

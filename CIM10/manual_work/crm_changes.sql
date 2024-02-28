@@ -16,6 +16,7 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
+-- 1. Update the concept_relationship_stage table
 TRUNCATE TABLE dev_CIM10.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -109,20 +110,21 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
-INSERT INTO concept_relationship_manual VALUES
-('Z52.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z52.80', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z52.88', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z52.88', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z95.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('Z95.80', '429381005', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
+-- Some manual fixes
+--INSERT INTO concept_relationship_manual VALUES
+--('Z52.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z52.80', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z52.88', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z52.88', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z95.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
+--
+--INSERT INTO concept_relationship_manual VALUES
+--('Z95.80', '429381005', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);

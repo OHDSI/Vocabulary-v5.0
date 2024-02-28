@@ -16,6 +16,7 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
+--1. Update the concept_relationship_manual table
 TRUNCATE TABLE dev_ICD10CN.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -109,5 +110,6 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
+--2. Minor manual changes
 INSERT INTO concept_relationship_manual VALUES ('M89000/0', '302847003', 'ICD10CN', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 

@@ -140,6 +140,30 @@ and c2.standard_concept ='S'
 and c2.domain_id not in ('Drug', 'Regimen')
 --and c2.vocabulary_id ='SNOMED' -- you can analyze one particular vocabulary
 ;
+--modification of it, that looks at source procedure vocabularies, returns 271 concepts, so can be easily reviewed
+--it assess the mapping of concepts, but technically it's the same in this case
+--! \\d is a redshift dialect, use \d in PG
+select c.* from concept c 
+join concept c2 on  position (lower (c2.concept_name) in lower (c.concept_name)) >0
+and (c2.standard_concept ='S' and c2.concept_class_id ='Ingredient' and c2.vocabulary_id ='RxNorm' and length (c2.concept_name)>4
+or c2.invalid_reason is null and c2.concept_class_id ='Brand Name' and c2.vocabulary_id ='RxNorm' and length (c2.concept_name)>4)
+where c.concept_id not in (
+select c.concept_id  from concept c 
+join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id = 'Maps to' 
+ join concept c2 on c2.concept_id = cr.concept_id_2 and c2.domain_id ='Drug'
+where c.vocabulary_id in ('ICD10PCS', 'ICD9Proc', 'HCPCS', 'CPT4')
+and c.concept_class_id not in ('HCPCS class', 'CPT4 Hierarchy', 'HCPCS Class', 'ICD10PCS Hierarchy' )
+and  c.concept_name ~*'Administration|administered through|\\d (mg|units|ml|meg|mcg|millicurie|gram|grams|million|cc)|Introduction of |per millicurie|vaccine|Injection|for intravenous use|releasing intrauterine system|patches, '
+) 
+and c.vocabulary_id in ('ICD10PCS', 'ICD9Proc', 'HCPCS', 'CPT4')
+and c.concept_class_id not in ('HCPCS class', 'CPT4 Hierarchy', 'HCPCS Class', 'ICD10PCS Hierarchy' )
+and  c.concept_name ~*'^Administration|administered through|^Introduction of |per millicurie|vaccine|for intravenous use|releasing intrauterine system|patches|\\d (mg|units|ml|meg|mcg|millicurie|gram|grams|million)'
+--or c.concept_name ~* '\\d mg|units|ml|meg|mcg|millicurie|gram|grams|million|cc'
+order by c.vocabulary_id , c.concept_code 
+;
+
+
+
 
 --concept is present in drug_strength but has not Drug domain
 SELECT * FROM concept c

@@ -4,7 +4,7 @@
 DO $_$
 BEGIN
   PERFORM vocabulary_pack.AddNewConceptClass(
-    pConcept_class_id       =>'Structural DNA Variant',
+    pConcept_class_id       =>'Structural Variant',
     pConcept_class_name     =>'Variant at the DNA level not attributable to a single gene, including a karyotype'
 );
 END $_$;

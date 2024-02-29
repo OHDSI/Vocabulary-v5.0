@@ -51,6 +51,10 @@ END $_$;
 
 
 --2. Modify vocabulary
-UPDATE vocabulary 
+UPDATE vocabulary
 SET vocabulary_name = 'OMOP Genomic vocabulary of known variants involved in disease'
-WHERE vocabulary_id='OMOP Genomic';
+WHERE vocabulary_id = 'OMOP Genomic';
+
+UPDATE concept
+SET concept_name = 'OMOP Genomic vocabulary of known variants involved in disease'
+WHERE concept_id = 33002;

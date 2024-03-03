@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Polina Talapova, Daryna Ivakhnenko
-* Date: 2021
+* Authors: Irina Zherko, Dmitry Dymshyts, Polina Talapova, Daryna Ivakhnenko
+* Date: 2024
 **************************************************************************/
 --2. Create table icd10gm_refresh
 DROP TABLE icd10gm_refresh;

@@ -110,6 +110,4 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
---2. Minor manual changes
-INSERT INTO concept_relationship_manual VALUES ('M89000/0', '302847003', 'ICD10CN', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 

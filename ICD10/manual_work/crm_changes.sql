@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
-* Date: 2021
+* Date: 2024
 **************************************************************************/
 --1. Update the concept_relationship_manual table
 TRUNCATE TABLE dev_icd10.concept_relationship_manual;

@@ -115,7 +115,7 @@ INSERT INTO concept_relationship_manual VALUES ('O83.9', '236973005', 'ICD10GM',
 INSERT INTO concept_relationship_manual VALUES ('S62.70', '1255340003', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('P01', '1269102002', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 
---2. Update the concept_manual table
+--2. Update the concept_manual table to add translations for newly added concepts
 TRUNCATE concept_manual;
 INSERT INTO concept_manual
 SELECT concept_name,

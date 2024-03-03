@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
-* Date: 2021
+* Date: 2024
 **************************************************************************/
  --1. Update the concept_relationship_manual table
 TRUNCATE TABLE dev_KCD7.concept_relationship_manual;
@@ -109,7 +109,3 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
-
---Minor manual fixes
---INSERT INTO concept_relationship_manual VALUES ('K71.10', '197354009', 'KCD7', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
---INSERT INTO concept_relationship_manual VALUES ('K71.10', '87248009', 'KCD7', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);

@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION vocabulary_pack.CreateSchemaDump (pSchemaName TEXT)
 RETURNS VOID AS
 $BODY$
 	/*
-	Creates text dump for concept, concept_relationship, relationship, concept_synonym, concept_ancestor, domain, drug_strength, concept_class, vocabulary_conversion in specified schema
+	Creates text dump for concept, concept_relationship, relationship, concept_synonym, concept_ancestor, domain, drug_strength, concept_class, vocabulary, vocabulary_conversion in specified schema
 	Usage:
 	1. Connect as devv5
 	2. Run SELECT vocabulary_pack.CreateSchemaDump ('dev_test');

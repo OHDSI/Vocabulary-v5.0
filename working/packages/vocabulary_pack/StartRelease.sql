@@ -1,88 +1,49 @@
-CREATE OR REPLACE FUNCTION vocabulary_pack.startrelease (
-)
-RETURNS void AS
-$body$
-/* Start the release: 
- 1. filling concept_ancestor 
- 2. v5 to v4 conversion
- 3. export base tables
- 4. creating copy of PRODV5
-*/
+CREATE OR REPLACE FUNCTION vocabulary_pack.startrelease ()
+RETURNS VOID AS
+$BODY$
+	/*
+	Start the release: 
+	1. Filling concept_ancestor 
+	2. Export base tables
+	3. Creating PRODV5
+	*/
 DECLARE
-  crlf VARCHAR(4) := '<br>';
-  email CONSTANT VARCHAR(1000) := (SELECT var_value FROM devv5.config$ WHERE var_name='vocabulary_release_email');
-  cRet TEXT;
-  cVocabs VARCHAR(4000);
-  cVocabsDelim CONSTANT VARCHAR(1000) :=', ';
-  z INT4;
+	iCRLF VARCHAR(4) := '<br>';
+	iEmail CONSTANT VARCHAR(1000) := (SELECT var_value FROM devv5.config$ WHERE var_name='vocabulary_release_iEmail');
+	iRet TEXT;
+	iVocabsArr TEXT[];
 BEGIN
-  perform vocabulary_pack.pConceptAncestor();
-  UPDATE vocabulary SET vocabulary_version = 'v5.0 '||TO_CHAR(CURRENT_DATE,'DD-MON-YY') WHERE vocabulary_id = 'None';
-  
-  --check for extended columns, drop if any
-  SELECT COUNT(*) 
-  INTO z
-  FROM information_schema.columns tc
-  WHERE tc.table_schema = CURRENT_SCHEMA
-    AND tc.table_name = 'vocabulary'
-    AND tc.column_name IN (
-    'latest_update',
-    'dev_schema_name'
-    );
-  IF z>0
-    THEN
-    ALTER TABLE vocabulary DROP COLUMN latest_update, DROP COLUMN dev_schema_name;
-  END IF;
-  
-  perform vocabulary_pack.pCreateBaseDump();
-  
-  SELECT string_agg(DISTINCT vocabulary_id, cVocabsDelim ORDER BY vocabulary_id)
-  INTO cVocabs
-  FROM (
-        SELECT *
-        FROM devv5.concept
-        --WHERE invalid_reason IS NULL
-        EXCEPT
-        SELECT *
-        FROM prodv5.concept
-        --WHERE invalid_reason IS NULL
-      ) AS s0;
+	PERFORM vocabulary_pack.pConceptAncestor();
+	UPDATE vocabulary SET vocabulary_version = 'v5.0 '||TO_CHAR(CURRENT_DATE,'DD-MON-YY') WHERE vocabulary_id = 'None';
+	PERFORM vocabulary_pack.pCreateBaseDump();
 
-  perform vocabulary_pack.CreateReleaseReport();
-  --perform vocabulary_pack.CreateWiKiReport();
-  perform vocabulary_pack.CreateLocalPROD();
-  
-  cRet := 'Release completed';
+	SELECT ARRAY_AGG(DISTINCT c_devv5.vocabulary_id)
+	INTO iVocabsArr
+	FROM devv5.concept c_devv5
+	LEFT JOIN prodv5.concept c_prod USING (concept_id)
+	WHERE ROW(c_prod.*) IS DISTINCT FROM ROW(c_devv5.*);
 
-  IF cVocabs IS NOT NULL
-    THEN
-    cRet := cRet || crlf || 'Affected vocabularies: ' || cVocabs;
-    --store result in vocabulary_release_stat (20190207)
-    update devv5.vocabulary_release_stat vrs set latest_release_date=clock_timestamp()::date where vrs.vocabulary_id = any (string_to_array(cVocabs,cVocabsDelim));
-    insert into devv5.vocabulary_release_stat
-    (
-      select vocabulary_id, clock_timestamp()::date from (
-      select unnest(string_to_array(cVocabs,cVocabsDelim)) as vocabulary_id
-      except
-      select vocabulary_id from devv5.vocabulary_release_stat
-      ) as s0
-    );
-  END IF;
+	PERFORM vocabulary_pack.CreateReleaseReport();
+	PERFORM vocabulary_pack.CreateLocalPROD();
 
-  perform devv5.SendMailHTML (email, 'Release status [OK]', cRet);
-  
-  EXCEPTION
-  WHEN OTHERS
-  THEN
-    GET STACKED DIAGNOSTICS cRet = PG_EXCEPTION_CONTEXT;
-    cRet:='ERROR: '||SQLERRM||crlf||'CONTEXT: '||regexp_replace(cRet, '\r|\n|\r\n', crlf, 'g');
-    cRet := SUBSTR ('Release completed with errors:'||crlf||'<b>'||cRet||'</b>', 1, 5000);
-    perform devv5.SendMailHTML (email, 'Release status [ERROR]', cRet);
+	iRet:= 'Release completed';
+
+	IF iVocabsArr IS NOT NULL THEN
+		iRet:= iRet || iCRLF || 'Affected vocabularies: ' ||  ARRAY_TO_STRING(iVocabsArr,', ');
+		--store latest_release_date
+		UPDATE vocabulary
+		SET vocabulary_params = COALESCE(vocabulary_params, JSONB_BUILD_OBJECT()) || JSONB_BUILD_OBJECT('latest_release_date', TO_CHAR(CURRENT_DATE,'YYYYMMDD'))
+		WHERE vocabulary_id = ANY (iVocabsArr);
+	END IF;
+
+	PERFORM devv5.SendMailHTML (iEmail, 'Release status [OK]', iRet);
+
+	EXCEPTION WHEN OTHERS THEN
+		GET STACKED DIAGNOSTICS iRet = PG_EXCEPTION_CONTEXT;
+		iRet:='ERROR: '||SQLERRM||iCRLF||'CONTEXT: '||REGEXP_REPLACE(iRet, '[\r\n]+', iCRLF, 'g');
+		iRet:= LEFT ('Release completed with errors:'||iCRLF||'<b>'||iRet||'</b>', 5000);
+		PERFORM devv5.SendMailHTML (iEmail, 'Release status [ERROR]', iRet);
 END;
-$body$
+$BODY$
 LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER
-COST 100
 SET client_min_messages = error;

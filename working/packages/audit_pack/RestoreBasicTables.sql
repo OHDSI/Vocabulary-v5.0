@@ -216,14 +216,14 @@ BEGIN
 
 			ELSIF r.table_name='vocabulary' THEN
 				UPDATE vocabulary v SET
-					(vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id)=
-					(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id)
+					(vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id, vocabulary_params)=
+					(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id, vocabulary_params)
 				FROM JSONB_POPULATE_RECORD(NULL::vocabulary, r.old_row) j
 				WHERE v.vocabulary_id=(r.new_row->>'vocabulary_id')
 				--skip changes from latest_update/dev_schema_name fields
-				AND ROW(v.vocabulary_id,v.vocabulary_name,v.vocabulary_reference,v.vocabulary_version,v.vocabulary_concept_id)
+				AND ROW(v.vocabulary_id,v.vocabulary_name,v.vocabulary_reference,v.vocabulary_version,v.vocabulary_concept_id, vocabulary_params)
 				IS DISTINCT FROM
-				ROW(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id);
+				ROW(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id, vocabulary_params);
 
 			ELSIF r.table_name='relationship' THEN
 				UPDATE relationship rel SET
@@ -281,6 +281,16 @@ BEGIN
 			END IF;
 		END IF;
 	END LOOP;
+
+	--special fix for the vocabulary_params field, because this field did not exist before log_id=44436537, then we always restore the current value from devv5
+	IF iLogID < 44436537 THEN
+		UPDATE vocabulary v
+		SET v.vocabulary_params = v5.vocabulary_params
+		FROM devv5.vocabulary v5
+		WHERE v.vocabulary_id = v5.vocabulary_id
+			AND v5.vocabulary_params IS NOT NULL;
+	END IF;
+
 	RAISE NOTICE '100%% of rows were processed';
 
 	RAISE NOTICE 'Enabling constraints...';

@@ -27,7 +27,15 @@ BEGIN
 			FROM devv5.concept
 		) TO '%1$s/v5_concept.csv' CSV HEADER;
 
-		COPY devv5.vocabulary TO '%1$s/v5_vocabulary.csv' CSV HEADER;
+		--exclude the last three service columns
+		COPY (
+			SELECT vocabulary_id,
+				vocabulary_name,
+				vocabulary_reference,
+				vocabulary_version,
+				vocabulary_concept_id
+			FROM devv5.vocabulary
+		) TO '%1$s/v5_vocabulary.csv' CSV HEADER;
 
 		COPY (
 			SELECT concept_id_1,

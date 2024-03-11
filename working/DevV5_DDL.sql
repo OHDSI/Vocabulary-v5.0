@@ -74,7 +74,10 @@ CREATE TABLE vocabulary (
 	vocabulary_name VARCHAR (255) NOT NULL,
 	vocabulary_reference VARCHAR (255) NOT NULL,
 	vocabulary_version VARCHAR (255),
-	vocabulary_concept_id int4 NOT NULL
+	vocabulary_concept_id int4 NOT NULL,
+	latest_update DATE, --service field (new update date for using in load_stage/functions/generic_update)
+	dev_schema_name TEXT, --service field (the name of the schema where manual changes come from if the script is run in the devv5)
+	vocabulary_params JSONB --service field (for storing additional params)
 );
 
 DROP TABLE IF EXISTS vocabulary_conversion CASCADE;

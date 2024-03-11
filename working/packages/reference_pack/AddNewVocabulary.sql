@@ -38,7 +38,7 @@ begin
   DROP SEQUENCE v5_concept;
     
   INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url, click_disabled)
-    SELECT (SELECT MAX (vocabulary_id_v4) FROM vocabulary_conversion) + 1, pVocabulary_id, pOMOP_req, pClick_default, pAvailable, pURL, pClick_disabled;
+    SELECT -1, pVocabulary_id, pOMOP_req, pClick_default, pAvailable, pURL, pClick_disabled;
 END;
 $body$
 LANGUAGE 'plpgsql'

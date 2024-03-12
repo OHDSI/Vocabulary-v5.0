@@ -131,7 +131,7 @@ BEGIN
 		t.tablename,
 		dev.column_name,
 		'has data_type ''' || dev.data_type || ''' but should be ''' || c_main.data_type || '''',
-		'ALTER TABLE ' || d_s.schema_name || '.' || t.tablename || ' ALTER COLUMN ' || dev.column_name || ' TYPE ' || c_main.data_type || ' USING ' || dev.column_name || '::integer;'
+		'ALTER TABLE ' || d_s.schema_name || '.' || t.tablename || ' ALTER COLUMN ' || dev.column_name || ' TYPE ' || c_main.data_type || ' USING ' || dev.column_name || '::' || c_main.data_type || ';'
 	FROM tables t
 	JOIN information_schema.columns c_main ON c_main.table_schema = t.schemaname
 		AND c_main.table_name = t.tablename

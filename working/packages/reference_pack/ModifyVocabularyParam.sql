@@ -1,7 +1,7 @@
 CREATE OR REPLACE FUNCTION vocabulary_pack.ModifyVocabularyParam (
 	pVocabulary_id TEXT,
-	pParamName TEXT;
-	pParamValue TEXT;
+	pParamName TEXT,
+	pParamValue TEXT
 )
 RETURNS VOID AS
 $BODY$
@@ -24,7 +24,8 @@ $BODY$
 		PERFORM vocabulary_pack.ModifyVocabularyParam(
 		pVocabulary_id	=> 'SNOMED',
 		pParamName		=> 'is_full',
-		pParamValue		=> '0';
+		pParamValue		=> '0'
+		);
 	END $_$;
 
 	The following example shows how you can make a vocabulary 'special', that is, the generic_update will change the valid_end_date for concepts, but not invalid_reason
@@ -33,7 +34,8 @@ $BODY$
 		PERFORM vocabulary_pack.ModifyVocabularyParam(
 		pVocabulary_id	=> 'ICD10PCS',
 		pParamName		=> 'special_deprecation',
-		pParamValue		=> '1';
+		pParamValue		=> '1'
+		);
 	END $_$;
 	*/
 BEGIN

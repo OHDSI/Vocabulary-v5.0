@@ -40,7 +40,7 @@ $BODY$
 	*/
 BEGIN
 	pVocabulary_id:=NULLIF(pVocabulary_id,'');
-	pParamName:=NULLIF(pParamName,'');
+	pParamName:=LOWER(NULLIF(pParamName,''));
 	pParamValue:=NULLIF(pParamValue,'');
 
 	IF pParamName IS NULL THEN

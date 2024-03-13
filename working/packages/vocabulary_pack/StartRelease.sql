@@ -1,11 +1,14 @@
-CREATE OR REPLACE FUNCTION vocabulary_pack.startrelease ()
+CREATE OR REPLACE FUNCTION vocabulary_pack.StartRelease ()
 RETURNS VOID AS
 $BODY$
 	/*
-	Start the release: 
-	1. Filling concept_ancestor 
-	2. Export base tables
-	3. Creating PRODV5
+	The function starts the vocabulary release procedure:
+	1. Building a new, fresh ancestor (concept_ancestor table)
+	2. Dump of base tables in csv/zip for uploading to Athena
+	3. Creating a release report, automatically publishing it in OHDSI/Vocabulary-v5.0/releases
+	4. Creating a local copy of the base tables in the prodv5 schema (for internal usage e.g. for qa_tests.get_summary function)
+	5. Updating the latest_release_date field for vocabularies that were released
+	6. Sending administrative emails about release status
 	*/
 DECLARE
 	iCRLF VARCHAR(4) := '<br>';

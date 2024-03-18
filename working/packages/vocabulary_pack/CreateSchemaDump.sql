@@ -28,7 +28,14 @@ BEGIN
 			FROM concept
 		) TO PROGRAM 'gzip -2 > %1$s/concept.csv.gz' CSV HEADER;
 
-		COPY vocabulary TO PROGRAM 'gzip -2 > %1$s/vocabulary.csv.gz' CSV HEADER;
+		COPY (
+			SELECT vocabulary_id,
+				vocabulary_name,
+				vocabulary_reference,
+				vocabulary_version,
+				vocabulary_concept_id
+			FROM vocabulary
+		) TO PROGRAM 'gzip -2 > %1$s/vocabulary.csv.gz' CSV HEADER;
 
 		COPY (
 			SELECT concept_id_1,

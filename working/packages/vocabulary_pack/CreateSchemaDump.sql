@@ -15,7 +15,7 @@ BEGIN
 	PERFORM SET_CONFIG('search_path', pSchemaName, TRUE);
 	
 	SELECT RIGHT(vocabulary_version,-5) INTO iVocabVersion FROM vocabulary WHERE vocabulary_id = 'None';
-	iExportPath:=iExportPath || iVocabVersion;
+	iExportPath:=iExportPath || TO_CHAR(TO_DATE(iVocabVersion,'DD-MON-YY'),'DD-MON-YY');
 
 	EXECUTE FORMAT ($$
 		COPY (

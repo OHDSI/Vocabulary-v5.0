@@ -68,20 +68,17 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---5. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
+--5. Append manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--6. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date
-	)
-SELECT i.concept_code AS concept_code_1,
+with tab as (SELECT i.concept_code AS concept_code_1,
 	c.concept_code AS concept_code_2,
 	'ICD10GM' AS vocabulary_id_1,
 	c.vocabulary_id AS vocabulary_id_2,
@@ -110,10 +107,21 @@ JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c ON c.concept_id = r.concept_id_2;
+JOIN concept c ON c.concept_id = r.concept_id_2)
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+	SELECT *
+FROM tab
+WHERE concept_code_1 NOT IN (SELECT concept_code_1 from concept_relationship_manual);
 
-
---6. Add "subsumes" relationship between concepts where the concept_code is like of another
+--7. Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -142,12 +150,6 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 DROP INDEX trgm_idx;
 ANALYZE concept_relationship_stage;
 
---7. Append manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
 --8. Working with replacement mappings
 DO $_$
 BEGIN
@@ -160,19 +162,43 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---Same for 'Maps to value'
+--10. Same for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Update domain_id for ICD10GM from target vocabularies
+--12. Deprecate wrong maps to value
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id = 'Maps to value'
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-valid (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.invalid_reason IN (
+						'U',
+						'D'
+						)
+				);
+
+
+--13. Update domain_id for ICD10GM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -202,12 +228,16 @@ FROM (
 	) i
 WHERE i.concept_code_1 = cs.concept_code;
 
---12. Concepts are mapped through parent codes, a few left should become observation
+--14. Concepts are mapped through parent codes, a few left should become observation
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---13. Fill concept_synonym_stage
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
+
+--15. Fill concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -227,9 +257,10 @@ WHERE concept_code NOT IN (
 		'U99.0'
 		);
 
---14. Manually adding synonyms (COVID19, E-cig)
+--16. Manually adding synonyms (COVID19, E-cig)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+

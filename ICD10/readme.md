@@ -17,11 +17,10 @@ SELECT sources.load_input_tables('ICD10',TO_DATE('20161201','YYYYMMDD'),'2016 Re
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 ```
-5. As described in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables, which exist by default in the dev schema after  the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
-6. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the first time to define problems in mapping
-7. Perform manual work described in manual_work folder
-8. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the second time to refresh ICD10
-9. Run generic_update: 
+5. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the first time to define problems in mapping
+6. Perform manual work described in manual_work folder
+7. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the second time to refresh ICD10
+8. Run generic_update: 
 ```sql
 SELECT devv5.GenericUpdate();
 ```

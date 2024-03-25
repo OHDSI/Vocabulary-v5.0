@@ -90,25 +90,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---7. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---9. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---10. Add "subsumes" relationship between concepts where the concept_code is like of another
+--7. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -146,7 +128,54 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---11. Update domain_id for ICD10CM from target vocabularies
+--8. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--10. Add mapping from deprecated to fresh concepts for 'Maps to value'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--11. Deprecate wrong maps to value
+UPDATE concept_relationship_stage crs
+	SET valid_end_date = GREATEST(crs.valid_start_date, (
+				SELECT MAX(v.latest_update) - 1
+				FROM vocabulary v
+				WHERE v.vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
+		invalid_reason = 'D'
+	WHERE crs.relationship_id = 'Maps to value'
+		AND crs.invalid_reason IS NULL
+		AND EXISTS (
+				--check if target concept is non-valid (first in concept_stage, then concept)
+				SELECT 1
+				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
+				WHERE a.invalid_reason IN (
+						'U',
+						'D'
+						)
+				);
+
+--12. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--13. Update domain_id for ICD10CM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -214,52 +243,52 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10CM';
 
+--Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ~* 'C';
+
 --TODO: check why the actual U* code limitation is not used.
 --Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---12. Check for NULL in domain_id
+--14. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---13. Load into concept_synonym_stage name from ICD10CM
+--15. Load into concept_synonym_stage name from ICD10CM
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT code AS synonym_concept_code,
+SELECT DISTINCT
+    code AS synonym_concept_code,
 	synonym_name,
 	'ICD10CM' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 FROM (
-	SELECT long_name AS synonym_name,
+	SELECT DISTINCT long_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	
 	UNION
 	
-	SELECT short_name AS synonym_name,
+	SELECT DISTINCT short_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	) AS s0;
 
---14. Working with manual synonyms
+--`16. Working with manual synonyms
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
---15. Add mapping from deprecated to fresh concepts for 'Maps to value'
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
-
---16. Build reverse relationship. This is necessary for next point
+--17. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -291,7 +320,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--18. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

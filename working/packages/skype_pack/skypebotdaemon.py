@@ -41,6 +41,7 @@ def db_check_allowed_users (s_userid):
 
 
 def clear_string(s):
+    s=mentioned_match.sub('', s)
     return clear_match.sub('', s)
 
 class SkypeListener(SkypeEventLoop):
@@ -54,10 +55,10 @@ class SkypeListener(SkypeEventLoop):
                 if db_check_allowed_users(request.user.id):
                     request.accept()
 
-            content=clear_string(event.msg.content)
-            mentioned=mentioned_match.search(content)
+            mentioned=mentioned_match.search(event.msg.content)
             is_botmentioned=True if (mentioned and mentioned.group(1)==self.userId) else False
             is_singlechat=event.msg.chatId.startswith('8:')
+            content=clear_string(event.msg.content)
 
             if not (event.msg.userId == self.userId) and content and ((is_botmentioned and not is_singlechat) or (is_singlechat and not (mentioned and not is_botmentioned))) and db_check_allowed_users(event.msg.userId):
                 try:

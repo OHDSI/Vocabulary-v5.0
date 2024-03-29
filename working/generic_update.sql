@@ -371,110 +371,123 @@ BEGIN
 	--The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with the other vocab
 
 	--Do the deprecation
-	WITH relationships
-	AS (
-		SELECT *
-		FROM UNNEST(ARRAY [
-			'Concept replaced by',
-			'Concept same_as to',
-			'Concept alt_to to',
-			'Concept was_a to',
-			'Maps to',
-			'CPT4 - SNOMED cat', -- AVOC-4022
-			'CPT4 - SNOMED eq' -- AVOC-4022
-			]) AS relationship_id
-		),
-	vocab_combinations
-	AS (
-		--Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except 'Maps' to and replacement relationships
-		--Also excludes manual mappings from concept_relationship_manual
-		SELECT DISTINCT s0.vocabulary_id_1,
-			s0.vocabulary_id_2,
-			s0.relationship_id,
-			-- One of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use GREATEST to get one non-null date
-			GREATEST(v1.latest_update, v2.latest_update) AS max_latest_update
-		FROM (
+	--Prepare temp table vocab_combinations$
+	CREATE UNLOGGED TABLE vocab_combinations$ AS
+		WITH relationships AS (
+				SELECT *
+				FROM UNNEST(ARRAY [
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to',
+				'Maps to',
+				'CPT4 - SNOMED cat', -- AVOC-4022
+				'CPT4 - SNOMED eq' -- AVOC-4022
+				]) AS relationship_id
+				)
+	--Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except 'Maps' to and replacement relationships
+	--Also excludes manual mappings from concept_relationship_manual
+	SELECT DISTINCT s0.vocabulary_id_1,
+		s0.vocabulary_id_2,
+		s0.relationship_id,
+		-- One of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use GREATEST to get one non-null date
+		GREATEST(v1.latest_update, v2.latest_update) AS max_latest_update
+	FROM (
+		SELECT concept_code_1,
+			concept_code_2,
+			vocabulary_id_1,
+			vocabulary_id_2,
+			relationship_id
+		FROM concept_relationship_stage
+		
+		EXCEPT
+		
+		(
 			SELECT concept_code_1,
 				concept_code_2,
 				vocabulary_id_1,
 				vocabulary_id_2,
 				relationship_id
-			FROM concept_relationship_stage
+			FROM concept_relationship_manual
 			
-			EXCEPT
+			UNION ALL
 			
-			(
-				SELECT concept_code_1,
-					concept_code_2,
-					vocabulary_id_1,
-					vocabulary_id_2,
-					relationship_id
-				FROM concept_relationship_manual
-				
-				UNION ALL
-				
-				--Add reverse mappings for exclude
-				SELECT concept_code_2,
-					concept_code_1,
-					vocabulary_id_2,
-					vocabulary_id_1,
-					reverse_relationship_id
-				FROM concept_relationship_manual
-				JOIN relationship USING (relationship_id)
-				)
-			) AS s0
-		JOIN vocabulary v1 ON v1.vocabulary_id = s0.vocabulary_id_1
-		JOIN vocabulary v2 ON v2.vocabulary_id = s0.vocabulary_id_2
-		WHERE s0.vocabulary_id_1 NOT IN (
-				'SPL',
-				'RxNorm Extension',
-				'CDM'
-				)
-			AND s0.vocabulary_id_2 NOT IN (
-				'SPL',
-				'RxNorm Extension',
-				'CDM'
-				)
-			AND s0.relationship_id NOT IN (
-				SELECT relationship_id
-				FROM relationships
-				
-				UNION ALL
-				
-				SELECT reverse_relationship_id
-				FROM relationships
-				JOIN relationship USING (relationship_id)
-				)
-			AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
-		)
-	UPDATE concept_relationship d
-	SET valid_end_date = vc.max_latest_update - 1,
-		invalid_reason = 'D'
-	--Whether the combination of vocab1, vocab2 and relationship exists (in subquery)
+			--Add reverse mappings
+			SELECT concept_code_2,
+				concept_code_1,
+				vocabulary_id_2,
+				vocabulary_id_1,
+				reverse_relationship_id
+			FROM concept_relationship_manual
+			JOIN relationship USING (relationship_id)
+			)
+		) AS s0
+	JOIN vocabulary v1 ON v1.vocabulary_id = s0.vocabulary_id_1
+	JOIN vocabulary v2 ON v2.vocabulary_id = s0.vocabulary_id_2
+	WHERE s0.vocabulary_id_1 NOT IN (
+			'SPL',
+			'RxNorm Extension',
+			'CDM'
+			)
+		AND s0.vocabulary_id_2 NOT IN (
+			'SPL',
+			'RxNorm Extension',
+			'CDM'
+			)
+		AND s0.relationship_id NOT IN (
+			SELECT relationship_id
+			FROM relationships
+			
+			UNION ALL
+			
+			SELECT reverse_relationship_id
+			FROM relationships
+			JOIN relationship USING (relationship_id)
+			)
+		AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL;
+
+	ANALYZE vocab_combinations$;
+
+	--prepare temp table concept_relationship_upd$
+	--this table will be used to update the "main" table concept_relationship and the only reason it is created is to take advantage of PG concurrency (parallel workers)
+	CREATE UNLOGGED TABLE concept_relationship_upd$ AS
+	--Whether the combination of vocab1, vocab2 and relationship exists (in vocab_combinations$)
 	--(intended to be covered by this particular vocab udpate)
 	--And both concepts exist (don't deprecate relationships of deprecated concepts)
-	FROM concept c1,
-		concept c2,
-		vocab_combinations vc
-	WHERE c1.concept_id = d.concept_id_1
-		AND c2.concept_id = d.concept_id_2
+	SELECT cr.concept_id_1,
+		cr.concept_id_2,
+		cr.relationship_id,
+		vc.max_latest_update
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 		AND c2.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-		AND c1.vocabulary_id = vc.vocabulary_id_1
-		AND c2.vocabulary_id = vc.vocabulary_id_2
-		AND d.relationship_id = vc.relationship_id
-		--And the record is currently fresh and not already deprecated
-		AND d.invalid_reason IS NULL
+	JOIN vocab_combinations$ vc ON vc.vocabulary_id_1 = c1.vocabulary_id
+		AND vc.vocabulary_id_2 = c2.vocabulary_id
+		AND vc.relationship_id = cr.relationship_id
+	LEFT JOIN concept_relationship_stage crs ON crs.concept_id_1 = cr.concept_id_1
+		AND crs.concept_id_2 = cr.concept_id_2
+		AND crs.relationship_id = cr.relationship_id
+	WHERE cr.invalid_reason IS NULL --And the record is currently fresh and not already deprecated
 		--And it was started before or equal the release date
-		AND d.valid_start_date <= vc.max_latest_update
+		AND cr.valid_start_date <= vc.max_latest_update
 		--And it is missing from the new concept_relationship_stage
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs
-			WHERE crs.concept_id_1 = d.concept_id_1
-				AND crs.concept_id_2 = d.concept_id_2
-				AND crs.relationship_id = d.relationship_id
-			);
+		AND crs.concept_id_1 IS NULL;
+
+	ANALYZE concept_relationship_upd$;
+
+	--update 'main' table from a temporary table
+	UPDATE concept_relationship cr
+	SET valid_end_date = crt.max_latest_update - 1,
+		invalid_reason = 'D'
+	FROM concept_relationship_upd$ crt
+	WHERE cr.concept_id_1 = crt.concept_id_1
+		AND cr.concept_id_2 = crt.concept_id_2
+		AND cr.relationship_id = crt.relationship_id;
+
+	--clean up
+	DROP TABLE vocab_combinations$, concept_relationship_upd$;
 
 	--17. Deprecate old 'Maps to', 'Maps to value' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 	--part 1 (direct mappings)

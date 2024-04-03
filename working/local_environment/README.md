@@ -11,11 +11,11 @@ PostgreSQL 14 or higher.
 # Creating Schemas
 Create schemas:
 >-- replace <dev_schema_name> with an actual schema name:
->CREATE SCHEMA <dev_schema_name>;
->CREATE SCHEMA devv5;
->CREATE SCHEMA sources;
->CREATE SCHEMA qa_tests;
->CREATE SCHEMA vocabulary_pack;
+>CREATE SCHEMA <dev_schema_name>;  
+>CREATE SCHEMA devv5;  
+>CREATE SCHEMA sources;  
+>CREATE SCHEMA qa_tests;  
+>CREATE SCHEMA vocabulary_pack;  
 >CREATE SCHEMA admin_pack;
 
 # Creating Functions

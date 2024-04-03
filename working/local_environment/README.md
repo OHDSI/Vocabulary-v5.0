@@ -136,19 +136,26 @@ Before importing dictionaries from CSV files, the client encoding should be set 
 The “COPY” command to import data from CSV files (psql):
 
 >COPY DRUG_STRENGTH FROM '&lt;path_to_csv_file&gt;\\DRUG_STRENGTH.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY CONCEPT FROM '&lt;path_to_csv_file&gt;\\CONCEPT.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY CONCEPT_RELATIONSHIP FROM '&lt;path_to_csv_file&gt;\\CONCEPT_RELATIONSHIP.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY CONCEPT_ANCESTOR FROM '&lt;path_to_csv_file&gt;\\CONCEPT_ANCESTOR.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY CONCEPT_SYNONYM FROM '&lt;path_to_csv_file&gt;\\CONCEPT_SYNONYM.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY VOCABULARY FROM '&lt;path_to_csv_file&gt;\\VOCABULARY.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY RELATIONSHIP FROM '&lt;path_to_csv_file&gt;\\RELATIONSHIP.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY CONCEPT_CLASS FROM '&lt;path_to_csv_file&gt;\\CONCEPT_CLASS.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
+>
 >COPY DOMAIN FROM '&lt;path_to_csv_file&gt;\\DOMAIN.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
 
 After all the data has been imported, it is necessary to create constraints and indexes from the DevV5_DDL.sql, mentioned above, or use this script:
-
-**DevV5_constraints_DDL.sql  
-**<https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_constraints_DDL.sql>
+**DevV5_constraints_DDL.sql**
+<https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_constraints_DDL.sql>
 
 # Import Source Data
 

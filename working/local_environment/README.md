@@ -9,7 +9,9 @@ This document describes the local database preparation that needs to be done for
 PostgreSQL 14 or higher.
 
 # Creating Schemas
-Create schemas:
+
+As an initial step, it needs to create schemas in the database. 
+It is also necessary to give an appropriate name to a schema for the vocabulary development process (e.g. **dev_hemonc** for the HemOnc vocabulary).
 >-- replace <dev_schema_name> with an actual schema name:
 >CREATE SCHEMA <dev_schema_name>;  
 >CREATE SCHEMA devv5;  
@@ -20,9 +22,12 @@ Create schemas:
 
 # Creating Functions
 
+This section describes the features and procedures that should be installed in the database in the appropriate schemas.
+
 ## devv5
 
-- GenericUpdate_LE.sql
+- GenericUpdate_LE.sql (a version of the GenericUpdate function for a local environment)
+    [Vocabulary-v5.0/working/local_environment/GenericUpdate_LE.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/local_environment/GenericUpdate_LE.sql)
 - FastRecreateSchema()  
     [Vocabulary-v5.0/working/fast_recreate_schema.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/fast_recreate_schema.sql)
 - GetPrimaryRelationshipID() [Vocabulary-v5.0/working/packages/admin_pack/GetPrimaryRelationshipID.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/GetPrimaryRelationshipID.sql)
@@ -57,6 +62,7 @@ Create schemas:
 
 ## admin_pack
 
+Pgcrypto and Tablefunc extensions should be installed for some functions to work correctly. 
 Create extensions:
 >CREATE EXTENSION pgcrypto;  
 >CREATE EXTENSION tablefunc;
@@ -98,21 +104,21 @@ In case the table structure already exists in the database, this part can be ski
 
 When tables are created for the first time, everything should be executed from the script except creating constraints and indexes so that they do not interfere with the import of vocabularies from Athena.
 
-- DevV5_DDL.sql  
+- DevV5_DDL.sql without created, created_by, modified, modified_by fields
     [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
-    Or just run this script \[DevV5_tables_DDL.sql\] (<https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_tables_DDL.sql>)
+    Or just run this script [Vocabulary-v5.0/working/local_environment/DevV5_tables_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)] (https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_tables_DDL.sql)
 - Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)
 
-## dev_schema_name
+## development schema
 
-- DevV5_DDL.sql  
+- DevV5_DDL.sql without created, created_by, modified, modified_by fields
     [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)
+    Or just run this script [Vocabulary-v5.0/working/local_environment/DevV5_tables_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)] (https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_tables_DDL.sql)
 - Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)  
 
 ## Update Vocabulary table structure
 
 If the table structure was created before 03/04/2024, the following script should be run:
-
 - 2024-03-04.sql (working/manual_changes/2024/2024-03-04.sql)
 
 ## sources
@@ -123,8 +129,11 @@ Creating source tables according to instructions for your vocabulary.
 
 To initially fill out the vocabulary tables, it needs to download the necessary vocabularies from [Athena (ohdsi.org)](https://athena.ohdsi.org/vocabulary/list) and import them using the “copy” command in psql.
 
-Also there is the video instruction how to do it using DBeaver:
+The following vocabularies have to be installed:
+- SNOMED
+- (TBD)
 
+Also there is the video instruction how to do it using DBeaver:
 [Demo: Getting Vocabularies Into My OMOP CDM (Michael Kallfelz • Nov. 9 OHDSI Community Call) (youtube.com)](https://www.youtube.com/watch?v=FCHxAQOBptE)
 
 The data should be imported to the tables in **devv5** schema.
@@ -132,9 +141,7 @@ The data should be imported to the tables in **devv5** schema.
 Before importing dictionaries from CSV files, the client encoding should be set to “UTF8” (psql):
 >SET client_encoding = ‘UTF8’;
 
-
 The “COPY” command to import data from CSV files (psql):
-
 >COPY DRUG_STRENGTH FROM '&lt;path_to_csv_file&gt;\\DRUG_STRENGTH.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
 >
 >COPY CONCEPT FROM '&lt;path_to_csv_file&gt;\\CONCEPT.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';

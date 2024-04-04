@@ -106,14 +106,14 @@ When tables are created for the first time, everything should be executed from t
 
 - DevV5_DDL.sql without created, created_by, modified, modified_by fields
     [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
-    Or just run this script [Vocabulary-v5.0/working/local_environment/DevV5_tables_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)] (https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_tables_DDL.sql)
+    Or just run this script DevV5_tables_DDL.sql from this folder
 - Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)
 
 ## development schema
 
 - DevV5_DDL.sql without created, created_by, modified, modified_by fields
-    [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)
-    Or just run this script [Vocabulary-v5.0/working/local_environment/DevV5_tables_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)] (https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_tables_DDL.sql)
+    [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
+    Or just run this script DevV5_tables_DDL.sql from this folder
 - Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)  
 
 ## Update Vocabulary table structure
@@ -166,7 +166,7 @@ After all the data has been imported, it is necessary to create constraints and 
 
 # Import Source Data
 
-Filling out source tables according to instructions for a vocabulary.
+Filling out source tables according to instructions for vocabulary you are going to work.
 
 # Start the Vocabulary Development Process
 

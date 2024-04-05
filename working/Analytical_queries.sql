@@ -221,3 +221,5 @@ and ccr.concept_id_1 IN (select concept_id_1
                      and invalid_reason IS NULL)
 and ccc.standard_concept IS NULL and ccr.relationship_id = 'Maps to value'
 order by c.concept_id, cc.concept_id, ccr.relationship_id;
+
+--Test commit 1

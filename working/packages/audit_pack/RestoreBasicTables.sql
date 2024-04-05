@@ -11,7 +11,8 @@ DECLARE
 	pTables TEXT[]:=ARRAY['concept','concept_relationship','concept_synonym','drug_strength','pack_content','relationship','vocabulary','vocabulary_conversion','concept_class','domain'];
 	pExcludeTables TEXT[]:=ARRAY['base_concept_manual', 'base_concept_relationship_manual', 'base_concept_synonym_manual'];
 	t TEXT;
-	pCreateDDL TEXT;
+	pCreateDDLFK TEXT;
+	pCreateDDLIdx TEXT;
 BEGIN
 	IF iLogID IS NULL THEN
 		RAISE EXCEPTION 'Please specify the LogID';
@@ -25,6 +26,10 @@ BEGIN
 
 	IF pTruncate_id IS NOT NULL THEN
 		RAISE EXCEPTION 'There was a TRUNCATE operation (log_id=%) after the specified LogID (%), can not restore. Please choose another LogID',pTruncate_id,iLogID;
+	END IF;
+
+	IF iLogID=pCurrent_max_log_id THEN
+		RAISE EXCEPTION 'There is no data to restore, because the log_id you selected is the maximum for the log table';
 	END IF;
 
 	IF pDevv5 THEN
@@ -162,7 +167,10 @@ BEGIN
 	END IF;
 
 	RAISE NOTICE 'Disabling constraints...';
-	SELECT * INTO pCreateDDL FROM vocabulary_pack.DropFKConstraints(pTables);
+	SELECT * INTO pCreateDDLFK FROM vocabulary_pack.DropFKConstraints(pTables);
+
+	RAISE NOTICE 'Dropping indexes...';
+	SELECT * INTO pCreateDDLIdx FROM vocabulary_pack.DropIndexes (pTables, ARRAY['idx_concept_synonym_id','u_pack_content']/*not PK, but used as PK*/);
 
 	RAISE NOTICE 'Restoring tables...';
 	FOR r IN (SELECT * FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables) ORDER BY log_id DESC) LOOP
@@ -294,7 +302,17 @@ BEGIN
 	RAISE NOTICE '100%% of rows were processed';
 
 	RAISE NOTICE 'Enabling constraints...';
-	EXECUTE pCreateDDL;
+	EXECUTE pCreateDDLFK;
+
+	RAISE NOTICE 'Enabling indexes...';
+	EXECUTE pCreateDDLIdx;
+
+
+	RAISE NOTICE 'Collecting statistics...';
+	FOREACH t IN ARRAY pTables LOOP
+		EXECUTE FORMAT('ANALYZE %I',t);
+	END LOOP;
+
 
 	IF pDevv5 THEN
 		FOREACH t IN ARRAY pTables LOOP

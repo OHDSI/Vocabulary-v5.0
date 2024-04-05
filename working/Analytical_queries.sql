@@ -227,3 +227,4 @@ order by c.concept_id, cc.concept_id, ccr.relationship_id;
 --Test commit 3
 --Test commit 4
 --Test commit 5
+--Test commit 6

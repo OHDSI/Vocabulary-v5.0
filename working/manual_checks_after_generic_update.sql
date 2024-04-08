@@ -632,14 +632,14 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 
 --- 02.13.01 This check is highly sensitive and adjusted for the Procedure vocabularies only.
 
-WITH home_visit AS (SELECT ('(?!(morp))home(?!(tr|opath|less|ria|ostasis))|domiciliary') as home_visit),
+WITH home_visit AS (SELECT ('(?<!(morp))home(?!(tr|opath|less|ria|ostasis))|domiciliary') as home_visit),
     outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance|ation|ism))|office(?!(r))') as outpatient_visit),
     ambulance_visit AS (SELECT ('ambulance(\W)|transport(?!(er))') AS ambulance_visit),
     emergency_room_visit AS (SELECT ('emerg(?!(ence|omyces))|(\W)ER(\W)') AS emergency_room_visit),
     pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
-    telehealth AS (SELECT ('(?!(pla))tele(?!(t|scop|ctasis))|remote|video') AS telehealth),
-    other_visit AS (SELECT ('clinic(?!(al))|esrd|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)') AS other_visit),
+    telehealth AS (SELECT ('(?<!(pla))tele(?!(t|scop|ctasis))|remote|video') AS telehealth),
+    other_visit AS (SELECT ('clinic(?!(al))|esrd|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)|(\W)nicu(\W)') AS other_visit),
     ER_exclusion AS (SELECT ('estrogen') AS ER_exclusion),
     ambulance_exclusion AS (SELECT ('accident|collision|metabol') AS ambulance_exclusion),
 
@@ -658,7 +658,7 @@ flag AS (SELECT DISTINCT c.concept_code,
                                        b.concept_id != '9202' THEN 'outpatient visit'
                                   WHEN c.concept_name ~* (SELECT ambulance_visit FROM ambulance_visit)
                                            AND c.concept_name !~* (SELECT ambulance_exclusion FROM ambulance_exclusion)
-                                           AND b.concept_id != '581478' THEN 'ambulance visit'
+                                           AND b.concept_id NOT IN ('581478', '38004353') THEN 'ambulance visit'
                                   WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit)
                                            AND c.concept_name !~* (SELECT ER_exclusion FROM ER_exclusion)
                                            AND b.concept_id != '9203' THEN 'emergency room visit'
@@ -711,7 +711,7 @@ FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
+AND b.concept_id IN (581476, 9202, 581478, 38004353, 9203, 581458, 9201, 5083)
 )
 
 SELECT vocabulary_id,
@@ -738,7 +738,8 @@ SELECT vocabulary_id,
        target_concept_name,
        target_vocabulary_id
 FROM review_mapping_to_visit
-        WHERE flag_visit_should_be IS NOT NULL
+WHERE flag_visit_should_be IS NOT NULL
+              AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- do not include concepts, already mentioned in correct_mapping and mistakenly defined as 'other visit' by regex
 
 UNION ALL
 
@@ -767,7 +768,7 @@ WITH home_visit AS (SELECT ('home visit|home care|home service|home assessment|h
     pharmacy_visit AS (SELECT ('(\s)pharmacy') AS pharmacy_visit),
     inpatient_visit AS (SELECT ('inpatient|(\W)hospit') AS inpatient_visit),
     telehealth AS (SELECT ('telehealth|telepractice|telephone|telemedicine|video') AS telehealth),
-    other_visit AS (SELECT ('clinic(\s)|esrd|(\W)center(\W)|(\W)facility|(\s)visit(?!(or))|hospice|nursing(\W)unit(\W)') AS other_visit),
+    other_visit AS (SELECT ('clinic(\s)|esrd|(\W)center(\W)|(\W)facility|(\s)visit(?!(or))|hospice|nursing(\W)unit(\W)|(\W)nicu(\W)') AS other_visit),
 
     ER_exclusion AS (SELECT ('estrogen|signposting|refer') AS ER_exclusion),
     ambulance_exclusion AS (SELECT ('accident|collision|refer|signposting') AS ambulance_exclusion),
@@ -795,7 +796,7 @@ flag AS (SELECT DISTINCT c.concept_code,
                                             AND b.concept_id != '9202' THEN 'outpatient visit'
                                   WHEN c.concept_name ~* (SELECT ambulance_visit FROM ambulance_visit)
                                            AND c.concept_name !~* (SELECT ambulance_exclusion FROM ambulance_exclusion)
-                                           AND b.concept_id != '581478' THEN 'ambulance visit'
+                                           AND b.concept_id NOT IN ('581478', '38004353') THEN 'ambulance visit'
                                   WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit)
                                            AND c.concept_name !~* (SELECT ER_exclusion FROM ER_exclusion)
                                            AND b.concept_id != '9203' THEN 'emergency room visit'
@@ -852,7 +853,7 @@ FROM concept c
 LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
 LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-AND b.concept_id IN (581476, 9202, 581478, 9203, 581458, 9201, 5083)
+AND b.concept_id IN (581476, 9202, 581478, 38004353, 9203, 581458, 9201, 5083)
 )
 
 SELECT vocabulary_id,
@@ -879,7 +880,9 @@ SELECT vocabulary_id,
        target_concept_name,
        target_vocabulary_id
 FROM review_mapping_to_visit
-        WHERE flag_visit_should_be IS NOT NULL
+WHERE flag_visit_should_be IS NOT NULL
+              AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- do not include concepts, already mentioned in correct_mapping and mistakenly defined as 'other visit' by regex
+
 
 UNION ALL
 

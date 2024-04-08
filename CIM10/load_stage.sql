@@ -66,14 +66,23 @@ SELECT vocabulary_pack.CutConceptName(lib_complet) AS concept_name,
 	NULL AS invalid_reason
 FROM sources.cim10;
 
---4. Append manual relationships
+--4. Append manual concepts and relationships
 DO $_$
 BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
 --5. Inherit external relations from international ICD10 whenever possible
-with fromicd10 as (
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
 SELECT c.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	'CIM10' AS vocabulary_id_1,
@@ -94,18 +103,10 @@ JOIN concept_relationship r ON r.concept_id_1 = c.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c2 ON c2.concept_id = r.concept_id_2)
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date
-	)
-SELECT * FROM fromicd10 WHERE concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual)
-;
+JOIN concept c2 ON c2.concept_id = r.concept_id_2
+LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = c.concept_code
+	AND crs.vocabulary_id_1 = 'CIM10'
+WHERE crs.concept_code_1 IS NULL;
 
 --6. Working with replacement mappings
 DO $_$
@@ -244,7 +245,7 @@ WHERE domain_id IS NULL;
 --14. Update domain for tumor concepts
 UPDATE concept_stage
 SET domain_id = 'Condition'
-WHERE concept_code ~* 'C';
+WHERE concept_code ILIKE '%C%';
 
 --15. Fill synonyms
 INSERT INTO concept_synonym_stage (
@@ -298,18 +299,11 @@ WHERE c.concept_code = cs.concept_code
 --SET concept_name_translated = cim10_translated_source.concept_name_translated ||' (machine translation)'
 --where concept_name_translated !~* '(machine translation)';
 --
-WITH cut as (
-SELECT
-       ts.concept_name,
-       CASE WHEN LENGTH(TRIM(concept_name_translated)) > 255
-			THEN TRIM(SUBSTR(TRIM(concept_name_translated), 1, 252)) || '...'
-		ELSE TRIM(concept_name_translated) END as cut_name
-FROM cim10_translated_source ts)
 
 UPDATE concept_stage cs
-SET concept_name = cut.cut_name
-FROM cut
-WHERE cs.concept_name = cut.concept_name;
+SET concept_name = vocabulary_pack.CutConceptName(ts.concept_name_translated)
+FROM dev_cim10.cim10_translated_source ts
+WHERE cs.concept_name = ts.concept_name;
 
 --18. Working with concept_manual table
 DO $_$

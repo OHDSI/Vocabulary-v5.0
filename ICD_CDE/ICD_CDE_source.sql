@@ -1179,3 +1179,7 @@ rel_invalid_reason
 and rel_invalid_reason is null;
 
 UPDATE icd_cde_proc SET relationship_id = 'Maps to' where relationship_id = 'Maps to '
+
+SELECT * FROM icd_cde_proc where group_name = 'Osteitis deformans in neoplastic disease, multiple sites';
+
+SELECT * FROM icd_cde_source where group_name = 'Osteitis deformans in neoplastic disease, multiple sites';

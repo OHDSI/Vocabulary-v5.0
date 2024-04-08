@@ -523,30 +523,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---13. Deprecate wrong maps to value
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id = 'Maps to value'
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-valid (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.invalid_reason IN (
-						'U',
-						'D'
-						)
-				);
-
---14. Update domain_id for ICD10 from target vocabularies
+--13. Update domain_id for ICD10 from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -615,7 +592,7 @@ WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10';
 
 --TODO: check why the actual U* code limitation is not used.
---15. Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
+--14. Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
@@ -630,7 +607,7 @@ WHERE concept_code ~* 'C';
 --SET domain_id = 'Procedure'
 --WHERE concept_code in ('R93.5', 'R93.6', 'R93.7', 'R93.8', 'R94.3', 'R90', 'R90.8', 'R91', 'R92', 'R93', 'R93.0', 'R93.1', 'R93.2', 'R93.3', 'R93.4');
 
---16. Build reverse relationship. This is necessary for next point
+--15. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -662,7 +639,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--16. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -707,7 +684,7 @@ WHERE 'ICD10' IN (
 		'ICD10 Chapter'
 		);
 
---18. Clean up
+--17. Clean up
 DROP TABLE modifier_classes;
 DROP TABLE classes;
 

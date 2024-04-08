@@ -426,30 +426,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---12. Deprecate wrong maps to value
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id = 'Maps to value'
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-valid (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.invalid_reason IN (
-						'U',
-						'D'
-						)
-				);
-
---13. Update domain from mapping target
+--12. Update domain from mapping target
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -512,7 +489,7 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.domain_id = 'Undefined';
 
--- 14. Only highest level of hierarchy has Domain still not defined at this point
+-- 13. Only highest level of hierarchy has Domain still not defined at this point
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
@@ -595,7 +572,7 @@ WHERE cs.concept_code = css.concept_code) where
 'M45-M49',
 'M65-M68');
 
---15. Add "subsumes" relationship between concepts where the concept_code is like of another
+--14. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -712,7 +689,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---16. Cleanup
+--15. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE icd10cn_chapters, name_source, intervals;
 

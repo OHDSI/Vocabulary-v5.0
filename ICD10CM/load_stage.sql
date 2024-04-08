@@ -146,36 +146,13 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---11. Deprecate wrong maps to value
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id = 'Maps to value'
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-valid (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.invalid_reason IN (
-						'U',
-						'D'
-						)
-				);
-
---12. Delete ambiguous 'Maps to' mappings
+--11. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---13. Update domain_id for ICD10CM from target vocabularies
+--12. Update domain_id for ICD10CM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -254,11 +231,11 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---14. Check for NULL in domain_id
+--13. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---15. Load into concept_synonym_stage name from ICD10CM
+--14. Load into concept_synonym_stage name from ICD10CM
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -282,13 +259,13 @@ FROM (
 	FROM sources.icd10cm
 	) AS s0;
 
---`16. Working with manual synonyms
+--`15. Working with manual synonyms
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
---17. Build reverse relationship. This is necessary for next point
+--16. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -320,7 +297,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---18. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

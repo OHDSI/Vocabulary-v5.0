@@ -35,7 +35,7 @@ Just add the function call where you need it, e.g.
 DO $_$
 BEGIN
 	PERFORM devv5.FastRecreateSchema();
-	PERFORM skype_pack.SendMessage('skype.account', 'The fast in' || CURRENT_SCHEMA || ' is complete');
+	PERFORM skype_pack.SendMessage('skype.account', 'The fast in ' || CURRENT_SCHEMA || ' is complete');
 END $_$;
 ```
 

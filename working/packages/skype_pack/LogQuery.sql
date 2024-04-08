@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION skype_pack.LogQuery (pSkypeUserID TEXT, pSkypeUserNam
 RETURNS VOID AS
 $BODY$
 	/*
-	Query logs...
+	Query listener, called by skypebotdaemon
 	*/
 DECLARE
 	iLogID INT4;

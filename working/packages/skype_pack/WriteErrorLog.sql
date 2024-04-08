@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION skype_pack.WriteErrorLog (pErrorText TEXT, pModuleID 
 RETURNS VOID AS
 $BODY$
 	/*
-	Error Logs...
+	Logs writer with storing id from the query table, useful for debugging issues
 	*/
 DECLARE
 	iLogID INT4;

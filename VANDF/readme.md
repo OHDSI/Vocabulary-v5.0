@@ -1,4 +1,4 @@
-Update of VANDF
+Update of VANDF and VA Class vocabularies
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed

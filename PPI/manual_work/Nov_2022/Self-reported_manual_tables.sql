@@ -45,7 +45,7 @@ INSERT INTO concept_manual
 VALUES ('Life Functioning Survey', 'Observation', 'PPI', 'Module', 'S', 'lfs', '2022-11-12', '2099-12-31', null);
 
 INSERT INTO concept_relationship_manual
-VALUES ('lfs', 'TheBasics_Disability', 'PPI', 'PPI', 'Subsumes', '2022-11-12', '2099-12-31', null);
+VALUES ('TheBasics_Disability','lfs', 'PPI', 'PPI', 'Is a', '2022-11-12', '2099-12-31', null);
 
 
 

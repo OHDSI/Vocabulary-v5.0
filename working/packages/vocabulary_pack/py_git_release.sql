@@ -28,3 +28,5 @@ $BODY$
   return release_id
 $BODY$
 LANGUAGE 'plpython3u' STRICT;
+
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.py_git_release FROM PUBLIC, role_read_only;

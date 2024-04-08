@@ -1727,7 +1727,7 @@ WITH ndc AS (
 			productndc
 		FROM sources.product
 		)
-SELECT p.pack_code AS synonym_concept_code,
+SELECT DISTINCT p.pack_code AS synonym_concept_code,
 	m.vocabulary_id,
 	vocabulary_pack.CutConceptSynonymName(m.long_concept_name),
 	4180186 AS language_concept_id -- English
@@ -1990,8 +1990,14 @@ FROM concept_stage cs
 JOIN ndc_codes USING (concept_code)
 WHERE cs.concept_code = css.synonym_concept_code
 	AND cs.concept_name NOT ILIKE '%water%'; --exclude water
+	
+--36. Prioritization of manual changes over load_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
---36. Clean up
+--37. Clean up
 DROP FUNCTION GetAggrDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR);
 DROP FUNCTION GetDistinctDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR, p IN INT);
 DROP FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE);

@@ -23,6 +23,7 @@ CREATE TABLE SOURCES.CVX
    cvx_code            VARCHAR (100),
    short_description   VARCHAR (4000),
    full_vaccine_name   VARCHAR (4000),
+   vaccinestatus       TEXT,
    last_updated_date   DATE,
    vocabulary_date     DATE,
    vocabulary_version  VARCHAR (200)
@@ -63,6 +64,7 @@ TABLE (
     CVX_CODE varchar,
     SHORT_DESCRIPTION varchar,
     FULL_VACCINE_NAME varchar,
+    VACCINESTATUS text,
     LAST_UPDATED_DATE date
 )
 AS
@@ -75,7 +77,9 @@ for row in sheet.iter_rows(min_row=2):
   CVX_CODE=row[0].value if row[0].value else None
   SHORT_DESCRIPTION=row[1].value if row[1].value else None
   FULL_VACCINE_NAME=row[2].value if row[2].value else None
+  VACCINESTATUS=row[4].value if row[4].value else None
   LAST_UPDATED_DATE=row[7].value if row[7].value else None
+  res.append((CVX_CODE,SHORT_DESCRIPTION,FULL_VACCINE_NAME,VACCINESTATUS,LAST_UPDATED_DATE))
 return res
 $BODY$
 LANGUAGE 'plpython3u' STRICT;

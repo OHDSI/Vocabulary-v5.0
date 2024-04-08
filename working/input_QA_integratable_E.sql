@@ -17,7 +17,7 @@
 * Date: 2020
 
 
---relationship_to_concept: 8
+--relationship_to_concept: 9
 --internal_relationship_stage: 5
 --ds_stage: 17
 --drug_concept_stage: 12
@@ -134,8 +134,14 @@ FROM (
 		) AS s1
 	
 	UNION ALL
+
+	-- missing precedence
+	SELECT concept_code_1, 'precedence cannot be empty', 'relationship_to_concept'
+	FROM relationship_to_concept
+	WHERE precedence IS NULL
 	
-	--relationship_to_concept
+	UNION ALL
+
 	--concept_code_1, precedence duplicates
 	SELECT concept_code_1, 'concept_code_2 duplicates', 'relationship_to_concept'
 	FROM (
@@ -148,6 +154,24 @@ FROM (
 	UNION ALL
 	
 	--for internal_relationship_stage
+
+    --drugs without ingredients won't be proceeded
+	SELECT concept_code, 'missing relationship to ingredient: drug won''t be processed', 'internal_relationship_stage'
+	FROM drug_concept_stage
+	WHERE concept_code NOT IN (
+			SELECT concept_code_1
+			FROM internal_relationship_stage irs_int
+			JOIN drug_concept_stage dcs_int ON dcs_int.concept_code = irs_int.concept_code_2
+				AND dcs_int.concept_class_id = 'Ingredient'
+			)
+		AND concept_code NOT IN (
+			SELECT pack_concept_code
+			FROM pc_stage
+			)
+		AND concept_class_id = 'Drug Product'
+	
+	UNION ALL
+
 	SELECT concept_code_1, 'internal_relationship_stage full dublicates', 'internal_relationship_stage'
 	FROM (
 		SELECT concept_code_1, concept_code_2

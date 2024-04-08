@@ -1,29 +1,16 @@
---1. Backup concept_relationship_manual table
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
-        INTO update;
-        EXECUTE FORMAT('create table %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update);
-
-    END
-$body$;
-
---restore concept_relationship_manual table (run it only if something went wrong)
-/*TRUNCATE TABLE dev_ndc.concept_relationship_manual;
-INSERT INTO dev_ndc.concept_relationship_manual
-SELECT * FROM dev_ndc.concept_relationship_manual_backup_YYYY_MM_DD;*/
-
---2. Create NDC_manual_mapped table and pre-populate it with the resulting manual table of the previous NDC refresh
+--1. Create NDC_manual_mapped table and pre-populate it with the resulting manual table of the previous NDC refresh
 --DROP TABLE dev_ndc.NDC_manual_mapped;
 CREATE TABLE dev_ndc.NDC_manual_mapped (
+    id SERIAL PRIMARY KEY,
     source_concept_id int,
     source_code varchar(255),
     source_code_description varchar(1000),
-    comments varchar,
+    source_concept_class_id varchar(50),
+    source_invalid_reason varchar(20),
+    source_domain_id varchar(50),
+    source_vocabulary_id varchar(50),
+    relationship_id varchar(50),
+    cr_invalid_reason varchar(1),
     --flag varchar,
     target_concept_id int,
     target_concept_code varchar(255),
@@ -35,102 +22,72 @@ CREATE TABLE dev_ndc.NDC_manual_mapped (
     target_vocabulary_id varchar(255)
 );
 
---3. Select concepts to map and add them to the manual file in the spreadsheet editor.
+--Format after uploading
+UPDATE dev_ndc.NDC_manual_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
+UPDATE dev_ndc.NDC_manual_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
 
---4. Truncate the NDC_manual_mapped table. Save the spreadsheet as the NDC_manual_mapped table and upload it into the working schema.
+--Adding constraints for unique records
+ALTER TABLE dev_ndc.NDC_manual_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
+
+--2.1. Review the previous mappings and manually add new to the NDC_manual_mapped table.
+
+--2.2. Truncate the NDC_manual_mapped table. Save the spreadsheet as the NDC_manual_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_ndc.NDC_manual_mapped;
 
---5. Perform mapping (NDC_manual_mapped) checks
+--2.3. Perform any mapping checks you have set.
 
---6. Deprecate all mappings that differ from the new version of resulting mapping file.
+--2.4. Iteratively repeat steps 2.2-2.4 if found any issues.
 
--- Perform UPDATE after review SELECT result
-UPDATE dev_ndc.concept_relationship_manual
-SET invalid_reason = 'D',
+--2.5. Insert new and update existing relationships according to _mapped table.
+INSERT INTO dev_ndc.concept_relationship_manual AS mapped
+    (concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+
+	SELECT source_code,
+	       target_concept_code,
+	       source_vocabulary_id,
+	       target_vocabulary_id,
+	       m.relationship_id,
+	       current_date AS valid_start_date,
+           to_date('20991231','yyyymmdd') AS valid_end_date,
+           m.cr_invalid_reason
+	FROM dev_ndc.NDC_manual_mapped m
+	--Only related to NDC vocabulary
+	WHERE (source_vocabulary_id = 'NDC' OR target_vocabulary_id = 'NDC')
+	    AND target_concept_id NOT IN (0, 17)
+
+	ON CONFLICT ON CONSTRAINT unique_manual_relationships
+	DO UPDATE
+	    --In case of mapping 'resuscitation' use current_date as valid_start_date; in case of mapping deprecation use previous valid_start_date
+	SET valid_start_date = CASE WHEN excluded.invalid_reason IS NULL THEN excluded.valid_start_date ELSE mapped.valid_start_date END,
+	    --In case of mapping 'resuscitation' use 2099-12-31 as valid_end_date; in case of mapping deprecation use current_date
+		valid_end_date = CASE WHEN excluded.invalid_reason IS NULL THEN excluded.valid_end_date ELSE current_date END,
+		invalid_reason = excluded.invalid_reason
+	WHERE ROW (mapped.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.invalid_reason);
+
+
+--2.6. Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables.
+UPDATE concept_relationship_manual crm
+SET valid_start_date = cr.valid_start_date,
     valid_end_date = current_date
-WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, coalesce(invalid_reason, '1')) in
-
---SELECT (try-out for the following UPDATE)
-      (SELECT concept_code_1,
-              concept_code_2,
-              vocabulary_id_1,
-              vocabulary_id_2,
-              relationship_id,
-              valid_start_date,
-              valid_end_date,
-              coalesce(crm.invalid_reason, '1')
-       FROM dev_ndc.concept_relationship_manual crm
-       WHERE crm.vocabulary_id_1 = 'NDC'
-           AND crm.invalid_reason IS NULL
-           AND crm.concept_code_1 IN (SELECT source_code FROM dev_ndc.NDC_manual_mapped WHERE source_code IS NOT NULL)
-           AND NOT EXISTS (SELECT 1
-                           FROM dev_ndc.NDC_manual_mapped m
-                           JOIN dev_ndc.concept c
-                               ON  m.target_concept_id = c.concept_id
-                               WHERE crm.concept_code_1 = m.source_code
-                               AND crm.concept_code_2 = c.concept_code
-                               AND crm.vocabulary_id_2 = c.vocabulary_id
-                            )
-)
-;
-
---7. Insert new and corrected mappings into the concept_relationship_manual table.
---mapping insertion
-with tab as (
-    SELECT DISTINCT s.*
-    FROM dev_ndc.NDC_manual_mapped s
-)
-INSERT INTO dev_ndc.concept_relationship_manual
-      (concept_code_1,
-      concept_code_2,
-       vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id,
-       valid_start_date,
-       valid_end_date,
-      invalid_reason)
-
-SELECT DISTINCT m.source_code as concept_code_1,
-                c.concept_code as concept_code_2,
-                cc.vocabulary_id as vocabulary_id_1,
-                c.vocabulary_id as vocabulary_id_2,
-                'Maps to' as relationship_id,
-                current_date as valid_start_date,
-                TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-                NULL as invalid_reason
-FROM tab m
-
-LEFT JOIN devv5.concept c
-    ON m.target_concept_id = c.concept_id
-
-LEFT JOIN devv5.concept cc
-    ON m.source_code = cc.concept_code AND cc.vocabulary_id = 'NDC'
-
-WHERE m.target_concept_id NOT IN (0, 17) AND m.target_concept_id IS NOT NULL AND c.concept_id IS NOT NULL AND cc.concept_code IS NOT NULL
-
-AND (
-
-    (NOT EXISTS (SELECT 1
-                FROM devv5.concept_relationship cr
-                WHERE cr.concept_id_1 = m.source_concept_id
-                    AND cr.relationship_id = 'Maps to'
-                    AND cr.invalid_reason IS NULL)
-        )
-
-    OR
-          (m.source_code, cc.vocabulary_id) IN (SELECT concept_code_1, vocabulary_id_1 FROM dev_ndc.concept_relationship_manual)
-        )
-
-AND     (NOT EXISTS (SELECT 1
-                FROM dev_ndc.concept_relationship_manual crm
-                WHERE m.source_code = crm.concept_code_1
-                    AND cc.vocabulary_id = crm.vocabulary_id_1
-                    AND c.concept_code = crm.concept_code_2
-                    AND c.vocabulary_id = crm.vocabulary_id_2
-                    AND crm.relationship_id = 'Maps to'
-                    AND crm.invalid_reason IS NULL
-                    )
-    )
-
-ORDER BY 1,2,3,4,5,6,7,8
+FROM NDC_manual_mapped m
+JOIN concept c
+ON c.concept_code = m.source_code AND m.source_vocabulary_id = c.vocabulary_id
+JOIN concept_relationship cr
+ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
+JOIN concept c1
+ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.target_concept_code AND c1.vocabulary_id = m.target_vocabulary_id
+WHERE m.cr_invalid_reason IS NOT NULL
+AND crm.concept_code_1 = m.source_code AND crm.vocabulary_id_1 = m.source_vocabulary_id
+AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.target_vocabulary_id
+AND crm.relationship_id = m.relationship_id
+AND crm.invalid_reason IS NOT NULL
 ;

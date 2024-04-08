@@ -143,7 +143,12 @@ BEGIN
           31. OMOP Invest Drug
           32. CiViC
         */
-        SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
+        IF pVocabularyName='DPD' THEN
+            --DPD only uses HTTP/2
+            SELECT http_content into cVocabHTML FROM vocabulary_download.py_http2_get(url=>cURL);
+        ELSE
+            SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
+        END IF;
         
         CASE
             WHEN cVocabularyName = 'RXNORM'
@@ -164,7 +169,8 @@ BEGIN
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
-              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<h1.*?class="page-title">.*?hcpcs quarterly update.*?<li><a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs file">'),'month yyyy');
+              --cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs files*">'),'month yyyy');
+              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a href="/media/\d+".*?>(.+?) alpha-numeric hcpcs files'),'month yyyy');
               cVocabVer := to_char(cVocabDate,'YYYYMMDD')||' Alpha Numeric HCPCS File';
             WHEN cVocabularyName IN ('ICD9CM', 'ICD9PROC')
             THEN
@@ -184,7 +190,7 @@ BEGIN
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
-                cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/[^/]+/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '1001', 'yyyymmdd') - interval '1 year';
+                cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/coding-billing/icd-10-codes/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '1001', 'yyyymmdd') - interval '1 year';
                 cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN
@@ -243,7 +249,7 @@ BEGIN
               WHERE t.title LIKE '%Version % of the ISBT 128 Product Description Code Database%';
             WHEN cVocabularyName = 'DPD'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+<th rowspan="4">ALL FILES</th>.+?<td.+?>([-\d]{10})</td>.*'),'yyyy-mm-dd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+<th rowspan="4".*?>ALL FILES</th>.+?<td.+?>([\d-]{10})</td>.*'),'yyyy-mm-dd');
                 cVocabVer := 'DPD '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'CVX'
             THEN
@@ -289,7 +295,7 @@ BEGIN
                 from (
                   select s0.vocabulary_version, s0.release_date from (
                     with t as (select json_array_elements(cVocabHTML::json) as json_content)
-                    select trim(replace(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0'),'CDM v5.4','CDM v5.4.0')) as vocabulary_version, 
+                    select trim(regexp_replace(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0'),'^CDM v5.4$','CDM v5.4.0')) as vocabulary_version, 
                     (t.json_content->>'published_at')::timestamp as release_date
                     from t
                     where (t.json_content->>'prerelease')::boolean = false

@@ -20,7 +20,7 @@ The function returns a summary (delta) for basic tables in the current schema: c
 For the concept table, the number of concepts in the context of standard_concept (can be disabled, default enabled), concept_class_id and invalid_reason (can be disabled, default enabled) is taken and compared with the table from the target schema (default - prodv5)
 For the concept_relationship table, the number of concepts in the context of vocabulary_id_1, vocabulary_id_2, relationship_id and invalid_reason is taken and compared with the table from the target schema
 For the concept_ancestor table, the number of concepts in the context of vocabulary_id (ancestor_concept_id) is taken and compared with the table from the target schema
-The last field shows the percentage change in the context
+The last field shows the percentage change in the context (if the target schema does not contain rows in this context, then the last column will be null)
 
 Examples:
 select * from qa_tests.get_summary ('concept','devv5');
@@ -49,11 +49,13 @@ BEGIN
 			NULL::VARCHAR AS relationship_id,
 			COALESCE(NULLIF(s0.invalid_reason, 'X'), NULLIF(s1.invalid_reason, 'X'))::VARCHAR AS invalid_reason,
 			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
-			CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
 				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
 			ELSE
 				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
-			END AS concept_delta_percentage
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
 		FROM (
 			SELECT vocabulary_id,
 				CASE WHEN %2$L THEN
@@ -114,11 +116,13 @@ BEGIN
 			COALESCE(s0.relationship_id, s1.relationship_id) AS relationship_id,
 			COALESCE(NULLIF(s0.invalid_reason, 'X'), NULLIF(s1.invalid_reason, 'X'))::VARCHAR AS invalid_reason,
 			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
-			CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
 				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
 			ELSE
 				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
-			END AS concept_delta_percentage
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
 		FROM (
 			SELECT c1.vocabulary_id AS vocabulary_id_1,
 				c2.vocabulary_id AS vocabulary_id_2,
@@ -165,11 +169,13 @@ BEGIN
 			NULL::VARCHAR AS relationship_id,
 			NULL::VARCHAR AS invalid_reason,
 			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
-			CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
 				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
 			ELSE
 				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
-			END AS concept_delta_percentage
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
 		FROM (
 			SELECT c.vocabulary_id,
 				COUNT(*) AS cnt
@@ -199,7 +205,8 @@ BEGIN
 		RETURN QUERY EXECUTE pGeneratedStmt_ca;
 	END IF;
 END;
-$BODY$ LANGUAGE 'plpgsql';
+$BODY$
+LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION qa_tests.get_checks (checkid IN INT DEFAULT NULL)
 RETURNS TABLE
@@ -376,7 +383,7 @@ AS $BODY$
 			OR (
 				c.valid_end_date <> TO_DATE('20991231', 'YYYYMMDD')
 				AND c.invalid_reason IS NULL
-				AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v)
+				AND c.vocabulary_id NOT IN (SELECT vocabulary_id FROM vocabulary v WHERE v.vocabulary_params ->> 'special_deprecation' = '1')
 				)
 			OR c.valid_start_date > COALESCE(vc.latest_update, CURRENT_DATE) + INTERVAL '15 year' --some concepts might be from near future (e.g. GGR, HCPCS) [AVOF-1015]/increased 20180928 for some NDC concepts
 			OR c.valid_start_date < TO_DATE('19000101', 'yyyymmdd') -- some concepts have a real date < 1970
@@ -677,7 +684,7 @@ BEGIN
 				WHEN COALESCE(cs.invalid_reason, 'D') NOT IN ('D','U') THEN 'wrong value for concept_stage.invalid_reason: '||CASE WHEN cs.invalid_reason='' THEN '''''' ELSE cs.invalid_reason END
 				WHEN date_trunc('day', (cs.valid_start_date)) <> cs.valid_start_date THEN 'wrong format for concept_stage.valid_start_date (not truncated): '||TO_CHAR(cs.valid_start_date,'YYYYMMDD HH24:MI:SS')
 				WHEN date_trunc('day', (cs.valid_end_date)) <> cs.valid_end_date THEN 'wrong format for concept_stage.valid_end_date (not truncated to YYYYMMDD): '||TO_CHAR(cs.valid_end_date,'YYYYMMDD HH24:MI:SS')
-				WHEN (((cs.invalid_reason IS NULL AND cs.valid_end_date <> TO_DATE('20991231', 'yyyymmdd')) AND cs.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v))
+				WHEN (((cs.invalid_reason IS NULL AND cs.valid_end_date <> TO_DATE('20991231', 'yyyymmdd')) AND NOT (COALESCE(v.vocabulary_params->>'special_deprecation','0')='1'))
 					OR (cs.invalid_reason IS NOT NULL AND cs.valid_end_date = TO_DATE('20991231', 'yyyymmdd'))) THEN 'wrong concept_stage.invalid_reason: '||COALESCE(cs.invalid_reason,'NULL')||' for '||TO_CHAR(cs.valid_end_date,'YYYYMMDD')
 				WHEN d.domain_id IS NULL AND cs.domain_id IS NOT NULL THEN 'domain_id not found in the domain: '||CASE WHEN cs.domain_id='' THEN '''''' ELSE cs.domain_id END
 				WHEN cc.concept_class_id IS NULL AND cs.concept_class_id IS NOT NULL THEN 'concept_class_id not found in the concept_class: '||CASE WHEN cs.concept_class_id='' THEN '''''' ELSE cs.concept_class_id END
@@ -729,11 +736,11 @@ BEGIN
 		--drug_strength_stage
 		SELECT
 			'duplicates in drug_strength_stage were found: '||dcs.drug_concept_code||'+'||dcs.vocabulary_id_1||
-				dcs.ingredient_concept_code||'+'||dcs.vocabulary_id_2||'+'||TO_CHAR(dcs.amount_value, 'FM9999999999999999999990.999999999999999999999') AS reason
+				dcs.ingredient_concept_code||'+'||dcs.vocabulary_id_2||'+'||devv5.NUMERIC_TO_TEXT(dcs.amount_value) AS reason
 			FROM drug_strength_stage dcs
 			GROUP BY dcs.drug_concept_code, dcs.vocabulary_id_1, dcs.ingredient_concept_code, dcs.vocabulary_id_2, dcs.amount_value HAVING COUNT (*) > 1
 	) AS s0
 	WHERE reason IS NOT NULL
 	GROUP BY reason;
 END;
-$BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
+$BODY$ LANGUAGE 'plpgsql' STABLE;

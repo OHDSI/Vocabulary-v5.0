@@ -9,6 +9,33 @@ CREATE OR REPLACE FUNCTION ai_pack.ChatGPTMapping (
 )
 RETURNS VOID AS
 $BODY$
+	/*
+	The function allows to build automatic mappings (e.g. semantic matches) using ChatGPT
+
+	All input parameters are described in ai_pack.ChatGPT functions, except pSrcTableName
+	pSrcTableName - is the input table with following structure:
+	CREATE TABLE test_table (
+		question TEXT,
+		source_code_description TEXT,
+		potential_target_concept_id INT4,
+		chatgptreply TEXT,
+		target_concept_id INT4,
+		log_id INT4
+		);
+
+	Each question must contain two placeholders "{source_code}" and "{proposed_options}".
+	The first placeholder is automatically replaced with source_code_description, and proposed_options is replaced with the concept names specified in potential_target_concept_id. 
+	Moreover, a special identifier is automatically built into each concept name, which allows to unambiguously parse the chat response and fill in the target_concept_id field based on this.
+	This approach with placeholders allows us to flexibly customize the question to obtain more accurate results
+
+	Example:
+	DO $_$
+	BEGIN
+		PERFORM ai_pack.ChatGPTmapping(pSrcTableName=>'test_table', pMaxTokens=>40);
+	END $_$;
+
+	Note: if you want to reformulate the question and/or possible answers, then either create a new table or additionally clear the log_id field
+	*/
 DECLARE
 	iRet INT8;
 	iQuery TEXT;
@@ -73,13 +100,28 @@ BEGIN
 			HAVING COUNT(DISTINCT question) > 1;', pSrcTableName;
 	END IF;
 
+	--the question must contain placeholders
+	EXECUTE FORMAT ($$
+		SELECT 1
+		FROM %1$I
+		WHERE question NOT LIKE '%%{source\_code}%%'
+			OR question NOT LIKE '%%{proposed\_options}%%'
+		LIMIT 1
+	$$, pSrcTableName);
+
+	GET DIAGNOSTICS iRet = ROW_COUNT;
+
+	IF iRet>0 THEN
+		RAISE EXCEPTION 'The question must contain placeholders {source_code} and {proposed_options}';
+	END IF;
+
 	--iterate through questions
 	FOR iAIQuestions IN EXECUTE FORMAT ($$
 		SELECT t.source_code_description,
-			ARRAY_AGG(potential_target_concept_id) ptcid,
-			t.question || '"' || t.source_code_description || '": ' || STRING_AGG('"' || c.concept_name || ' {cid=' || t.potential_target_concept_id::TEXT || '}"', ',' ORDER BY c.concept_name) query,
+			ARRAY_AGG(t.potential_target_concept_id ORDER BY t.potential_target_concept_id) ptcid,
+			REPLACE(REPLACE(t.question, '{source_code}', t.source_code_description), '{proposed_options}', STRING_AGG('"' || c.concept_name || ' {cid=' || t.fake_id::TEXT || '}"', ', ' ORDER BY t.fake_id)) query,
 			COUNT (*) OVER () query_cnt
-		FROM %1$I t
+		FROM (SELECT *, ROW_NUMBER() OVER(PARTITION BY source_code_description ORDER BY potential_target_concept_id) fake_id FROM %1$I) t
 		JOIN concept c ON c.concept_id = t.potential_target_concept_id
 		WHERE t.source_code_description IN (
 				--if another potential_target_concept_id is added to an already existing concept that chatgpt passed through, then we rerun the entire set
@@ -104,7 +146,7 @@ BEGIN
 				SELECT ptc.potential_target_concept_id,
 					l.matched_target_concept_id
 				FROM UNNEST(%4$L::INT4[]) AS ptc(potential_target_concept_id)
-				LEFT JOIN LATERAL (SELECT UNNEST(REGEXP_MATCHES(%2$L, '{cid=(\d+)}','g'))::INT4 matched_target_concept_id) l ON l.matched_target_concept_id=ptc.potential_target_concept_id
+				LEFT JOIN (SELECT (%4$L::INT4[])[UNNEST(REGEXP_MATCHES(%2$L, 'cid=(\d+)','g'))::INT4] AS matched_target_concept_id) l ON l.matched_target_concept_id=ptc.potential_target_concept_id
 			) ai
 			WHERE t.source_code_description = %5$L
 				AND t.potential_target_concept_id = ai.potential_target_concept_id

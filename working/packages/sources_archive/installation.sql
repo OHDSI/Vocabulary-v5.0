@@ -80,7 +80,10 @@ BEGIN
 	--check vocabulary spelling
 	PERFORM FROM devv5.vocabulary v
 	WHERE v.vocabulary_id = pVocabulary_id
-		OR pVocabulary_id = 'UMLS'
+		OR pVocabulary_id IN (
+			'UMLS',
+			'META'
+			)
 	LIMIT 1;
 
 	IF NOT FOUND THEN

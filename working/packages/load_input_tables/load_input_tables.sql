@@ -867,6 +867,52 @@ begin
       --execute 'COPY sources.civic_variantsummaries (variant_id,variant_civic_url,gene,entrez_id,variant,summary,variant_groups,chromosome,start,stop,reference_bases,variant_bases,representative_transcript,ensembl_version,reference_build,chromosome2,start2,stop2,representative_transcript2,variant_types,hgvs_expressions,last_review_date,civic_variant_evidence_score,allele_registry_id,clinvar_ids,variant_aliases,assertion_ids,assertion_civic_urls,is_flagged) FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\t'' csv quote E''\b'' HEADER';
       --update sources.civic_variantsummaries set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       PERFORM sources_archive.AddVocabularyToArchive('CIViC', ARRAY['civic_variantsummaries'], COALESCE(pVocabularyDate,current_date), 'archive.civic_version', 10);
+  when 'META' THEN
+      truncate table sources.meta_mrconso, sources.meta_mrhier, sources.meta_mrmap, sources.meta_mrsmap, sources.meta_mrsat, sources.meta_mrrel, sources.meta_mrsty, sources.meta_mrdef, sources.meta_mrsab, sources.meta_ncimeme;
+      drop index sources.idx_meta_mrsat_cui;
+      drop index sources.idx_meta_mrconso_code;
+      drop index sources.idx_meta_mrconso_cui;
+      drop index sources.idx_meta_mrconso_aui;
+      drop index sources.idx_meta_mrconso_sab_tty;
+      drop index sources.idx_meta_mrconso_scui;
+      drop index sources.idx_meta_mrsty_cui;
+      drop index sources.idx_meta_mrdef_sab_cui;
+      drop index sources.idx_meta_ncimeme_conceptcode;
+
+      execute 'COPY sources.meta_mrconso FROM '''||pVocabularyPath||'MRCONSO.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrhier FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-10 --delimiter="|" "'||pVocabularyPath||'MRHIER.RRF" '' delimiter '','' csv';
+      execute 'COPY sources.meta_mrmap FROM '''||pVocabularyPath||'MRMAP.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsmap FROM '''||pVocabularyPath||'MRSMAP.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsat FROM '''||pVocabularyPath||'MRSAT.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrrel FROM '''||pVocabularyPath||'MRREL.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsty FROM '''||pVocabularyPath||'MRSTY.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrdef FROM '''||pVocabularyPath||'MRDEF.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsab (vcui, rcui, vsab, rsab, son, sf, sver, vstart, vend, imeta, rmeta, slc, scc, srl, tfr, cfr, cxty, ttyl, atnl, lat, cenc, curver, sabin, ssn, scit, vocabulary_date) FROM '''||pVocabularyPath||'MRSAB.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_ncimeme FROM '''||pVocabularyPath||'NCIMEME.txt'' delimiter ''|'' csv quote E''\b''';
+      update sources.meta_mrsab set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+            
+      create index idx_meta_mrsat_cui on sources.meta_mrsat (cui);
+      create index idx_meta_mrconso_code on sources.meta_mrconso (code);
+      create index idx_meta_mrconso_cui on sources.meta_mrconso (cui);
+      create index idx_meta_mrconso_aui on sources.meta_mrconso (aui);
+      create index idx_meta_mrconso_sab_tty on sources.meta_mrconso (sab,tty);
+      create index idx_meta_mrconso_scui on sources.meta_mrconso (scui);
+      create index idx_meta_mrsty_cui on sources.meta_mrsty (cui);
+      create index idx_meta_mrdef_sab_cui on sources.meta_mrdef (sab,cui);
+      create index idx_meta_ncimeme_conceptcode on sources.meta_ncimeme (conceptcode);
+      
+      analyze sources.meta_mrconso;
+      analyze sources.meta_mrhier;
+      analyze sources.meta_mrmap;
+      analyze sources.meta_mrsmap;
+      analyze sources.meta_mrsat;
+      analyze sources.meta_mrrel;
+      analyze sources.meta_mrsty;
+      analyze sources.meta_mrdef;
+      analyze sources.meta_mrsab;
+      analyze sources.meta_ncimeme;
+      
+      PERFORM sources_archive.AddVocabularyToArchive('META', ARRAY['meta_mrconso','meta_mrhier','meta_mrmap','meta_mrsmap','meta_mrsat','meta_mrrel','meta_mrsty','meta_mrdef','meta_mrsab','meta_ncimeme'], COALESCE(pVocabularyDate,current_date), 'archive.meta_version', 5);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

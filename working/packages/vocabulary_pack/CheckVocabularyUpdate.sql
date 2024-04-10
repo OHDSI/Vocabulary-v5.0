@@ -92,6 +92,8 @@ BEGIN
           join devv5.vocabulary v on v.vocabulary_id=vc.vocabulary_id_v5
           union all
           (select vocabulary_date, vocabulary_version, 'UMLS' FROM sources.mrsmap LIMIT 1)
+          union all
+          (select vocabulary_date, vocabulary_version, 'META' FROM sources.meta_mrsab LIMIT 1)
         ) as s
         WHERE UPPER(vocabulary_id)=case cVocabularyName when 'NDC_SPL' then 'NDC' when 'DMD' then 'DM+D' else cVocabularyName end;
 
@@ -142,6 +144,7 @@ BEGIN
           30. CIM10
           31. OMOP Invest Drug
           32. CiViC
+          33. META
         */
         IF pVocabularyName='DPD' THEN
             --DPD only uses HTTP/2
@@ -373,6 +376,10 @@ BEGIN
                 WHERE s0.main_array#>>'{name}'<>'nightly'
                 ORDER BY 1 DESC LIMIT 1;
                 cVocabVer := 'CIViC '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'META'
+            THEN
+                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'This distribution contains the NCI Metathesaurus version <strong>(\d+)</strong>'),'yyyymm');
+                cVocabVer := 'META '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;
@@ -392,7 +399,7 @@ BEGIN
               --sources_updated:=case when cVocabVer=cVocabSrcVer then 1 else 0 end;
           END IF;
         ELSE
-          IF cVocabDate > cVocabOldDate
+          IF cVocabDate > COALESCE(cVocabOldDate, TO_DATE ('19700101', 'yyyymmdd'))
           THEN
               old_date:=cVocabOldDate;
               new_date:=cVocabDate;

@@ -417,6 +417,7 @@ AS $BODY$
 						AND r.valid_start_date IS DISTINCT FROM GREATEST(vc1.latest_update, vc2.latest_update)
 						)
 					OR r.valid_start_date < TO_DATE('19700101', 'yyyymmdd')
+					OR r.valid_end_date < r.valid_start_date
 					THEN 1
 				ELSE 0
 				END check_flag

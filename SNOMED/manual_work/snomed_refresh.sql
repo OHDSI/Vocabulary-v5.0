@@ -126,3 +126,37 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
+
+--9.5. Create concept_mapped table and populate it with the resulting manual table of the previous hcpcs refresh
+INSERT INTO concept_manual AS cm
+(concept_name,
+ domain_id,
+ vocabulary_id,
+ concept_class_id,
+ standard_concept,
+ concept_code,
+ valid_start_date,
+ valid_end_date,
+ invalid_reason)
+SELECT concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM dev_snomed.cm_update
+
+	ON CONFLICT ON CONSTRAINT unique_manual_concepts
+	DO UPDATE
+	SET concept_name = excluded.concept_name,
+	    domain_id = excluded.domain_id,
+	    standard_concept = excluded.standard_concept,
+	     valid_start_date = excluded.valid_start_date,
+	    valid_end_date = excluded.valid_end_date,
+	    invalid_reason = excluded.invalid_reason
+WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept, cm.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept, excluded.invalid_reason);

@@ -316,22 +316,30 @@ JOIN sources.icd10cn_concept ic2 ON ic2.concept_id = r.concept_id_2
 WHERE r.relationship_id = 'Is a'
 	AND ic1.concept_code_clean <> ic2.concept_code_clean;
 
---8. Update Domains
+--9. Update Domains
 --ICD10 Histologies are always Condition
 UPDATE concept_stage
 SET domain_id = 'Condition'
 WHERE concept_class_id = 'ICD10 Histology';
 
---9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--10. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---13 Find parents among ICD10 and ICDO3 to inherit mapping relationships from
+--11. Find parents among ICD10 and ICDO3 to inherit mapping relationships from
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --For LIKE patterns
 ANALYZE concept_stage;
-with fromicd10 as (
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
 SELECT i.concept_code AS concept_code_1,
 	c.concept_code AS concept_code_2,
 	'ICD10CN' AS vocabulary_id_1,
@@ -364,7 +372,7 @@ FROM (
 		AND c2.concept_code = c1.concept_code || '-NULL'
 	--Commented since we allow fuzzy match uphill for this iteration
 	--where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
-
+	
 	UNION ALL
 	
 	SELECT DISTINCT cs.concept_code,
@@ -395,57 +403,38 @@ WHERE NOT EXISTS (
 		WHERE crs.concept_code_1 = i.concept_code
 			AND crs.invalid_reason IS NULL
 			AND crs.relationship_id = 'Maps to'
-		))
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date
-	)
-(SELECT * FROM fromicd10 where concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual))
-;
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_manual crm
+		WHERE crm.concept_code_1 = i.concept_code
+			AND crm.vocabulary_id_1 = 'ICD10CN'
+		);
 
---9. Add mapping from deprecated to fresh concepts
+--12. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. 'Maps to' mappings to deprecated and upgraded concepts
+--13. 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Add mapping from deprecated to fresh concepts (value level)
+--14. Add mapping from deprecated to fresh concepts (value level)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---12. Update domain from mapping target
+--15. Update domain from mapping target
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
+	SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+		c2.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 		AND cs1.vocabulary_id = crs.vocabulary_id_1
@@ -453,6 +442,19 @@ FROM (
 		AND c2.vocabulary_id = crs.vocabulary_id_2
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
+	ORDER BY cs1.concept_code,
+		CASE c2.domain_id
+			WHEN 'Condition'
+				THEN 1
+			WHEN 'Observation'
+				THEN 2
+			WHEN 'Procedure'
+				THEN 3
+			WHEN 'Measurement'
+				THEN 4
+			WHEN 'Device'
+				THEN 5
+			END
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.domain_id = 'Undefined';
@@ -461,22 +463,8 @@ WHERE i.concept_code = cs.concept_code
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(cs2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE cs2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
+	SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+		cs2.domain_id
 	FROM concept_stage cs1
 	JOIN concept_relationship_stage crs ON crs.relationship_id = 'Is a'
 		AND crs.concept_code_2 = cs1.concept_code
@@ -485,94 +473,127 @@ FROM (
 	JOIN concept_stage cs2 ON cs2.concept_code = crs.concept_code_1
 		AND cs2.vocabulary_id = crs.vocabulary_id_1
 	WHERE cs1.domain_id = 'Undefined'
+	ORDER BY cs1.concept_code,
+		CASE cs2.domain_id
+			WHEN 'Condition'
+				THEN 1
+			WHEN 'Observation'
+				THEN 2
+			WHEN 'Procedure'
+				THEN 3
+			WHEN 'Measurement'
+				THEN 4
+			WHEN 'Device'
+				THEN 5
+			END
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.domain_id = 'Undefined';
 
--- 13. Only highest level of hierarchy has Domain still not defined at this point
+--16. Only highest level of hierarchy has Domain still not defined at this point
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
 
 UPDATE concept_stage
 SET domain_id = 'Procedure'
-WHERE concept_code in ('R93.5', 'R93.6', 'R93.7', 'R93.8', 'R94.3', 'R90', 'R90.8', 'R91', 'R92', 'R93', 'R93.0', 'R93.1', 'R93.2', 'R93.3', 'R93.4');
+WHERE concept_code IN (
+		'R93.5',
+		'R93.6',
+		'R93.7',
+		'R93.8',
+		'R94.3',
+		'R90',
+		'R90.8',
+		'R91',
+		'R92',
+		'R93',
+		'R93.0',
+		'R93.1',
+		'R93.2',
+		'R93.3',
+		'R93.4'
+		);
 
 UPDATE concept_stage
 SET domain_id = 'Condition'
-WHERE concept_code ~* 'C';
+WHERE concept_code ILIKE '%C%';
 
 --Reuse domains from icd10
 UPDATE concept_stage cs
-SET domain_id = (SELECT domain_id FROM dev_icd10.concept_stage css
-WHERE cs.concept_code = css.concept_code) where
-      concept_code in ('U07.2',
-'C77',
-'C77.0',
-'C77.1',
-'C77.2',
-'C77.3',
-'C77.4',
-'C77.5',
-'C77.8',
-'C77.9',
-'C78.0',
-'C78.1',
-'C78.2',
-'C78.3',
-'C78.4',
-'C78.5',
-'C78.6',
-'C78.7',
-'C78.8',
-'C79.0',
-'C79.1',
-'C79.2',
-'C79.3',
-'C79.4',
-'C79.5',
-'C79.6',
-'C79.7',
-'R70.1',
-'Z40-Z54',
-'V90-V94',
-'Y60-Y69',
-'V80-V89',
-'V98-V99',
-'X50-X57',
-'W85-W99',
-'W50-W64',
-'X58-X59',
-'V10-V19',
-'V01-V09',
-'X00-X09',
-'Y40-Y59',
-'V95-V97',
-'Z30-Z39',
-'Z55-Z65',
-'V50-V59',
-'V70-V79',
-'Y35-Y36',
-'V60-V69',
-'Z70-Z76',
-'W65-W74',
-'X10-X19',
-'V40-V49',
-'V30-V39',
-'W00-W19',
-'X20-X29',
-'M15-M19',
-'X85-Y09',
-'M05-M14',
-'M50-M54',
-'M86-M90',
-'M20-M25',
-'M70-M79',
-'M91-M94',
-'M45-M49',
-'M65-M68');
+SET domain_id = c.domain_id
+FROM concept c
+WHERE c.vocabulary_id = 'ICD10'
+	AND c.concept_code = cs.concept_code
+	AND c.concept_code IN (
+		'U07.2',
+		'C77',
+		'C77.0',
+		'C77.1',
+		'C77.2',
+		'C77.3',
+		'C77.4',
+		'C77.5',
+		'C77.8',
+		'C77.9',
+		'C78.0',
+		'C78.1',
+		'C78.2',
+		'C78.3',
+		'C78.4',
+		'C78.5',
+		'C78.6',
+		'C78.7',
+		'C78.8',
+		'C79.0',
+		'C79.1',
+		'C79.2',
+		'C79.3',
+		'C79.4',
+		'C79.5',
+		'C79.6',
+		'C79.7',
+		'R70.1',
+		'Z40-Z54',
+		'V90-V94',
+		'Y60-Y69',
+		'V80-V89',
+		'V98-V99',
+		'X50-X57',
+		'W85-W99',
+		'W50-W64',
+		'X58-X59',
+		'V10-V19',
+		'V01-V09',
+		'X00-X09',
+		'Y40-Y59',
+		'V95-V97',
+		'Z30-Z39',
+		'Z55-Z65',
+		'V50-V59',
+		'V70-V79',
+		'Y35-Y36',
+		'V60-V69',
+		'Z70-Z76',
+		'W65-W74',
+		'X10-X19',
+		'V40-V49',
+		'V30-V39',
+		'W00-W19',
+		'X20-X29',
+		'M15-M19',
+		'X85-Y09',
+		'M05-M14',
+		'M50-M54',
+		'M86-M90',
+		'M20-M25',
+		'M70-M79',
+		'M91-M94',
+		'M45-M49',
+		'M65-M68'
+		);
 
---14. Add "subsumes" relationship between concepts where the concept_code is like of another
+--17. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -689,7 +710,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---15. Cleanup
+--18. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE icd10cn_chapters, name_source, intervals;
 

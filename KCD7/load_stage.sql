@@ -101,15 +101,22 @@ BEGIN
 END $_$;
 
 --5. Add mapping through ICD10 
-with fromicd10 as (
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
 SELECT cs.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	cs.vocabulary_id AS vocabulary_id_1,
 	c2.vocabulary_id AS vocabulary_id_2,
 	cr.relationship_id AS relationship_id,
 	CURRENT_DATE AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM concept_stage cs
 JOIN concept c ON c.concept_code = cs.concept_code
 	AND c.vocabulary_id = 'ICD10'
@@ -119,19 +126,11 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2)
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-	SELECT * FROM fromicd10 WHERE concept_code_1 not in (SELECT concept_code_1 FROM concept_relationship_manual);
-;
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
+	AND crs.vocabulary_id_1 = cs.vocabulary_id
+WHERE crs.concept_code_1 IS NULL;
+
 
 --6. Add "Subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -168,70 +167,52 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---9. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--8. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---10. Deprecate wrong maps to value
-UPDATE concept_relationship_stage crs
-	SET valid_end_date = GREATEST(crs.valid_start_date, (
-				SELECT MAX(v.latest_update) - 1
-				FROM vocabulary v
-				WHERE v.vocabulary_id IN (
-						crs.vocabulary_id_1,
-						crs.vocabulary_id_2
-						)
-				)),
-		invalid_reason = 'D'
-	WHERE crs.relationship_id = 'Maps to value'
-		AND crs.invalid_reason IS NULL
-		AND EXISTS (
-				--check if target concept is non-valid (first in concept_stage, then concept)
-				SELECT 1
-				FROM vocabulary_pack.GetActualConceptInfo(crs.concept_code_2, crs.vocabulary_id_2) a
-				WHERE a.invalid_reason IN (
-						'U',
-						'D'
-						)
-				);
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
 
---11. Update domain_id for KCD7 from SNOMED
+--10. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--11. Update domain_id for KCD7
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
+	SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+		c2.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 		AND cs1.vocabulary_id = crs.vocabulary_id_1
 		AND cs1.vocabulary_id = 'KCD7'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		--AND c2.vocabulary_id = 'SNOMED'
+	--AND c2.vocabulary_id = 'SNOMED'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
+	ORDER BY cs1.concept_code,
+		CASE c2.domain_id
+			WHEN 'Condition'
+				THEN 1
+			WHEN 'Observation'
+				THEN 2
+			WHEN 'Procedure'
+				THEN 3
+			WHEN 'Measurement'
+				THEN 4
+			WHEN 'Device'
+				THEN 5
+			END
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'KCD7';
@@ -289,7 +270,7 @@ WHERE domain_id = 'Measurement/Observat';
 --Update domain for tumor concepts
 UPDATE concept_stage
 SET domain_id = 'Condition'
-WHERE concept_code ~* 'C';
+WHERE concept_code ILIKE '%C%';
 
 --13. Manual name fix
 UPDATE concept_stage

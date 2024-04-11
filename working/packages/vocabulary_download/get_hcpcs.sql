@@ -58,8 +58,9 @@ BEGIN
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<h1.*?class="page-title">.*?HCPCS Quarterly Update.*?<li><a data-entity-substitution="canonical" data-entity-type="media".*?href="(.+?\.zip)".+?>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
-    if not coalesce(pDownloadURL,'-') ~* '^(https?://www.cms.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
+    --pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<span class=.*?HCPCS Quarterly Update.*?<li>.*?<a data-entity-substitution="canonical" data-entity-type="media".*?href="(.+?\.zip)".+?>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<span class=.*HCPCS Quarterly Update.*?<li>.*?<a href="(.+?)".+?>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+    --if not coalesce(pDownloadURL,'-') ~* '^(https?://www.cms.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
 
     perform write_log (
       iVocabularyID=>pVocabularyID,

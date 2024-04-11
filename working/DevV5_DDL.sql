@@ -74,7 +74,10 @@ CREATE TABLE vocabulary (
 	vocabulary_name VARCHAR (255) NOT NULL,
 	vocabulary_reference VARCHAR (255) NOT NULL,
 	vocabulary_version VARCHAR (255),
-	vocabulary_concept_id int4 NOT NULL
+	vocabulary_concept_id int4 NOT NULL,
+	latest_update DATE, --service field (new update date for using in load_stage/functions/generic_update)
+	dev_schema_name TEXT, --service field (the name of the schema where manual changes come from if the script is run in the devv5)
+	vocabulary_params JSONB --service field (for storing additional params)
 );
 
 DROP TABLE IF EXISTS vocabulary_conversion CASCADE;
@@ -237,6 +240,64 @@ CREATE TABLE concept_synonym_manual (
 	language_concept_id int4 NOT NULL
 );
 
+/*
+	the next four columns are for our internal use, you don't need to include them in your work environment:
+	created
+	created_by
+	modified
+	modified_by
+*/
+--Create a base table for manual relationships, it stores all manual relationships from all vocabularies
+DROP TABLE IF EXISTS base_concept_relationship_manual;
+CREATE TABLE base_concept_relationship_manual (
+	LIKE concept_relationship_manual,
+	concept_id_1 INT4 NOT NULL,
+	concept_id_2 INT4 NOT NULL,
+	created TIMESTAMPTZ NOT NULL,
+	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
+	modified TIMESTAMPTZ,
+	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
+	CONSTRAINT idx_pk_base_crm PRIMARY KEY (
+		concept_code_1,
+		concept_code_2,
+		vocabulary_id_1,
+		vocabulary_id_2,
+		relationship_id
+		)
+	);
+
+--Create a base table for manual concepts, it stores all manual concepts from all vocabularies
+DROP TABLE IF EXISTS base_concept_manual CASCADE;
+CREATE TABLE base_concept_manual (
+	LIKE concept_manual,
+	concept_id INT4 NOT NULL,
+	created TIMESTAMPTZ NOT NULL,
+	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
+	modified TIMESTAMPTZ,
+	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
+	CONSTRAINT idx_pk_base_cm PRIMARY KEY (
+		concept_code,
+		vocabulary_id
+		)
+	);
+
+--Create a base table for manual synonyms, it stores all manual synonyms from all vocabularies
+DROP TABLE IF EXISTS base_concept_synonym_manual CASCADE;
+CREATE TABLE base_concept_synonym_manual (
+	LIKE concept_synonym_manual,
+	concept_id INT4 NOT NULL,
+	created TIMESTAMPTZ NOT NULL,
+	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
+	modified TIMESTAMPTZ,
+	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
+	CONSTRAINT idx_pk_base_csm PRIMARY KEY (
+		synonym_vocabulary_id,
+		synonym_name,
+		synonym_concept_code,
+		language_concept_id
+		)
+	);
+
 --Create PKs
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
 ALTER TABLE vocabulary ADD CONSTRAINT xpk_vocabulary PRIMARY KEY (vocabulary_id);
@@ -287,13 +348,18 @@ CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id);
 CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id);
 CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id);
 CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, COALESCE(amount,-1));
-CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
+ALTER TABLE concept_stage ADD CONSTRAINT idx_pk_cs PRIMARY KEY (concept_code,vocabulary_id);
 CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
-CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
+ALTER TABLE concept_relationship_stage ADD CONSTRAINT idx_pk_crs PRIMARY KEY (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
 CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
+ALTER TABLE concept_synonym_stage ADD CONSTRAINT idx_pk_css PRIMARY KEY (synonym_vocabulary_id,synonym_name,synonym_concept_code,language_concept_id);
 CREATE INDEX idx_dss_concept_code ON drug_strength_stage (drug_concept_code);
 CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id);
 CREATE UNIQUE INDEX xpk_vocab_conversion ON vocabulary_conversion (vocabulary_id_v5);
+CREATE INDEX idx_base_crm_cid1 ON base_concept_relationship_manual (concept_id_1) WHERE concept_id_1=0;
+CREATE INDEX idx_base_crm_cid2 ON base_concept_relationship_manual (concept_id_2) WHERE concept_id_2=0;
+CREATE INDEX idx_base_cm_cid ON base_concept_manual (concept_id) WHERE concept_id=0;
+CREATE INDEX idx_base_csm_cid ON base_concept_synonym_manual (concept_id) WHERE concept_id=0;
 
 --Create checks
 ALTER TABLE concept ADD CONSTRAINT chk_c_concept_name CHECK (concept_name <> '');

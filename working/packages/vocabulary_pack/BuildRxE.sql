@@ -255,7 +255,7 @@ BEGIN
 			numerator_value,
 			numerator_unit,
 			denominator_unit --just for sequence repeatability
-		) q_ds;
+		) AS q_ds;
 
 	-- Create table with all drug concept codes linked to the above unique components 
 	DROP TABLE IF EXISTS q_ds;
@@ -1884,61 +1884,72 @@ BEGIN
 			);
 
 	-- Prep dose form groups (with some additions for RxNorm Extension) as a way to stratify drug_strength translation within such group
+	-- Fix AVOC-3852 artificial enumerator is created, partitioning by df_id sorted by dfg_id
 	DROP TABLE IF EXISTS dfg;
 	CREATE UNLOGGED TABLE dfg AS
-	SELECT DISTINCT c.concept_id AS df_id, COALESCE(m.concept_id_2, c.concept_id) AS dfg_id -- not all of them have a DFG, they stand for themselves
-	FROM concept c
-	LEFT JOIN (
-		SELECT cr.concept_id_1, cr.concept_id_2, NULL
-		FROM concept_relationship cr
-		JOIN concept c_int ON c_int.concept_id = cr.concept_id_2
-			AND cr.invalid_reason is NULL
-			AND c_int.vocabulary_id IN (
+	SELECT s0.df_id,
+		s0.dfg_id,
+		ROW_NUMBER() OVER (
+			PARTITION BY s0.df_id ORDER BY s0.dfg_id
+			) AS idx_rn
+	FROM (
+		SELECT DISTINCT c.concept_id AS df_id,
+			COALESCE(m.concept_id_2, c.concept_id) AS dfg_id -- not all of them have a DFG, they stand for themselves
+		FROM concept c
+		LEFT JOIN (
+			SELECT cr.concept_id_1,
+				cr.concept_id_2,
+				NULL
+			FROM concept_relationship cr
+			JOIN concept c_int ON c_int.concept_id = cr.concept_id_2
+				AND cr.invalid_reason IS NULL
+				AND c_int.vocabulary_id IN (
+					'RxNorm',
+					'RxNorm Extension'
+					)
+				AND c_int.concept_class_id = 'Dose Form Group'
+			
+			UNION ALL
+			
+			VALUES (43126086, 36217219, 'Drug Implant Product'), -- Intrauterine System
+				(21014175, 36217219, 'Drug Implant Product'), -- Intrauterine device
+				(43563502, 36217218, 'Ophthalmic Product'), -- Intravitreal Applicator
+				(43126087, 36217206, 'Topical Product'), -- Medicated Nail Polish
+				(21014177, 36217206, 'Topical Product'), -- Medicated nail lacquer
+				(43563498, 36217213, 'Nasal Product'), -- Nasal Pin
+				(19129401, 36217206, 'Topical Product'), -- Ointment
+				(21014169, 36217206, 'Topical Product'), -- Paint
+				(21014176, 36217206, 'Topical Product'), -- Poultice
+				(43563504, 36217215, 'Dental Product'), --Dental Pin
+				(21014171, 36217215, 'Dental Product'), -- Dental insert
+				(19082079, -1, 'Made-up extended release oral produt'), -- Extended Release Oral Tablet
+				(19082077, -1, 'Made-up extended release oral produt'), -- Extended Release Oral Capsule
+				(19001949, -1, 'Made-up extended release oral produt'), -- Delayed Release Oral Tablet
+				(19082255, -1, 'Made-up extended release oral produt'), -- Delayed Release Oral Capsule
+				(19082072, 36244042, 'Transdermal System'), -- 72 Hour Transdermal Patch
+				(19082073, 36244042, 'Transdermal System'), -- Biweekly Transdermal Patch
+				(19082252, 36244042, 'Transdermal System'), -- Weekly Transdermal Patch
+				(19082229, 36244042, 'Transdermal System'), -- Transdermal System
+				(19082049, 36244042, 'Transdermal System'), -- 16 Hour Transdermal Patch
+				(19082071, 36244042, 'Transdermal System'), -- 24 Hour Transdermal Patch
+				(42629089, 36244042, 'Transdermal System'), -- Medicated Patch
+				(19130307, 36244042, 'Transdermal System'), -- Medicated Pad
+				(19130329, 36244042, 'Transdermal System'), -- Medicated Tape
+				(19082701, 36244042, 'Transdermal System'), -- Patch
+				(46275062, -2, 'Made-up device injector'), -- Jet Injector
+				(46234468, -2, 'Made-up device injector'), -- Cartridge
+				(46234467, -2, 'Made-up device injector'), -- Pen Injector
+				(46234466, -2, 'Made-up device injector'), -- Auto-Injector 
+				(19000942, -3, 'Suppository Product'), -- Suppository
+				(19082200, -3, 'Suppository Product') -- Rectal Suppository
+			) m ON m.concept_id_1 = c.concept_id
+		WHERE c.vocabulary_id IN (
 				'RxNorm',
 				'RxNorm Extension'
 				)
-			AND c_int.concept_class_id = 'Dose Form Group'
-		
-		UNION ALL
-		
-		VALUES (43126086, 36217219, 'Drug Implant Product'), -- Intrauterine System
-			(21014175, 36217219, 'Drug Implant Product'), -- Intrauterine device
-			(43563502, 36217218, 'Ophthalmic Product'), -- Intravitreal Applicator
-			(43126087, 36217206, 'Topical Product'), -- Medicated Nail Polish
-			(21014177, 36217206, 'Topical Product'), -- Medicated nail lacquer
-			(43563498, 36217213, 'Nasal Product'), -- Nasal Pin
-			(19129401, 36217206, 'Topical Product'), -- Ointment
-			(21014169, 36217206, 'Topical Product'), -- Paint
-			(21014176, 36217206, 'Topical Product'), -- Poultice
-			(43563504, 36217215, 'Dental Product'), --Dental Pin
-			(21014171, 36217215, 'Dental Product'), -- Dental insert
-			(19082079, -1, 'Made-up extended release oral produt'), -- Extended Release Oral Tablet
-			(19082077, -1, 'Made-up extended release oral produt'), -- Extended Release Oral Capsule
-			(19001949, -1, 'Made-up extended release oral produt'), -- Delayed Release Oral Tablet
-			(19082255, -1, 'Made-up extended release oral produt'), -- Delayed Release Oral Capsule
-			(19082072, 36244042, 'Transdermal System'), -- 72 Hour Transdermal Patch
-			(19082073, 36244042, 'Transdermal System'), -- Biweekly Transdermal Patch
-			(19082252, 36244042, 'Transdermal System'), -- Weekly Transdermal Patch
-			(19082229, 36244042, 'Transdermal System'), -- Transdermal System
-			(19082049, 36244042, 'Transdermal System'), -- 16 Hour Transdermal Patch
-			(19082071, 36244042, 'Transdermal System'), -- 24 Hour Transdermal Patch
-			(42629089, 36244042, 'Transdermal System'), -- Medicated Patch
-			(19130307, 36244042, 'Transdermal System'), -- Medicated Pad
-			(19130329, 36244042, 'Transdermal System'), -- Medicated Tape
-			(19082701, 36244042, 'Transdermal System'), -- Patch
-			(46275062, -2, 'Made-up device injector'), -- Jet Injector
-			(46234468, -2, 'Made-up device injector'), -- Cartridge
-			(46234467, -2, 'Made-up device injector'), -- Pen Injector
-			(46234466, -2, 'Made-up device injector'), -- Auto-Injector 
-			(19000942, -3, 'Suppository Product'), -- Suppository
-			(19082200, -3, 'Suppository Product') -- Rectal Suppository
-		) m ON m.concept_id_1 = c.concept_id
-	WHERE c.vocabulary_id IN (
-			'RxNorm',
-			'RxNorm Extension'
-			)
-		AND c.concept_class_id = 'Dose Form'
-		AND c.invalid_reason IS NULL;
+			AND c.concept_class_id = 'Dose Form'
+			AND c.invalid_reason IS NULL
+		) AS s0;
 
 	-- Delete Dose Form Groups that are too broad
 	DELETE
@@ -2079,16 +2090,17 @@ BEGIN
 					q_int.u_prec
 				) AS df_id,
 			FIRST_VALUE(q_int.dfg_id) OVER (
-				PARTITION BY q_int.qd_combo,
-				q_int.df_code,
-				q_int.bn_code,
-				q_int.mf_code ORDER BY q_int.mf_prec,
-					q_int.bn_prec,
-					q_int.df_prec,
-					q_int.div DESC,
-					q_int.i_prec,
-					q_int.u_prec
-				) AS dfg_id,
+					PARTITION BY q_int.qd_combo,
+					q_int.df_code,
+					q_int.bn_code,
+					q_int.mf_code ORDER BY q_int.idx_rn,
+						q_int.mf_prec,
+						q_int.bn_prec,
+						q_int.df_prec,
+						q_int.div DESC,
+						q_int.i_prec,
+						q_int.u_prec
+					) AS dfg_id,
 			q_int.bn_code,
 			FIRST_VALUE(q_int.bn_id) OVER (
 				PARTITION BY q_int.qd_combo,
@@ -2137,7 +2149,7 @@ BEGIN
 				) AS quant_unit_id
 		FROM (
 			-- create q_existing with all attributes extended to their r-corridors
-			SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, eq.mf_code, mf.mf_id, mf.mf_prec, c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
+			SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, eq.mf_code, mf.mf_id, mf.mf_prec, c.quant_unit, c.quant_unit_id, d.idx_rn -- unit combination, needed to translate quant correctly
 			FROM q_existing eq
 			JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 			JOIN qr_df df ON df.df_code = eq.df_code -- get potential df_ids
@@ -2228,7 +2240,8 @@ BEGIN
 			FIRST_VALUE(q.dfg_id) OVER (
 				PARTITION BY q.qd_combo,
 				q.df_code,
-				q.bn_code ORDER BY q.bn_prec,
+				q.bn_code ORDER BY q.idx_rn,
+					q.bn_prec,
 					q.df_prec,
 					q.div DESC,
 					q.i_prec,
@@ -2265,7 +2278,7 @@ BEGIN
 			1 AS new_rec -- prefer those that are handed down
 		FROM (
 			-- create q_existing with all attributes extended to their r-corridors
-			SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
+			SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, c.quant_unit, c.quant_unit_id, d.idx_rn -- unit combination, needed to translate quant correctly
 			FROM q_existing eq
 			JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 			JOIN qr_df df ON df.df_code = eq.df_code -- get potential df_ids
@@ -2360,7 +2373,8 @@ BEGIN
 			FIRST_VALUE(q.dfg_id) OVER (
 				PARTITION BY q.qd_combo,
 				q.df_code,
-				q.mf_code ORDER BY q.mf_prec,
+				q.mf_code ORDER BY q.idx_rn,
+					q.mf_prec,
 					q.df_prec,
 					q.div DESC,
 					q.i_prec,
@@ -2412,7 +2426,8 @@ BEGIN
 				mf.mf_id,
 				mf.mf_prec,
 				c.quant_unit,
-				c.quant_unit_id -- unit combination, needed to translate quant correctly
+				c.quant_unit_id, -- unit combination, needed to translate quant correctly
+				d.idx_rn
 			FROM q_existing eq
 			JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 			JOIN qr_df df ON df.df_code = eq.df_code -- get potential df_ids  join qr_bn bn on bn.bn_code=eq.bn_code -- get potential brand names, may not exist in Marketed Products
@@ -2511,7 +2526,8 @@ BEGIN
 				) AS df_id,
 			FIRST_VALUE(q.dfg_id) OVER (
 				PARTITION BY q.qd_combo,
-				q.df_code ORDER BY q.df_prec,
+				q.df_code ORDER BY q.idx_rn,
+					q.df_prec,
 					q.div DESC,
 					q.i_prec,
 					q.u_prec
@@ -2545,7 +2561,8 @@ BEGIN
 				df.df_prec,
 				d.dfg_id,
 				c.quant_unit,
-				c.quant_unit_id -- unit combination, needed to translate quant correctly
+				c.quant_unit_id, -- unit combination, needed to translate quant correctly
+				d.idx_rn
 			FROM q_existing eq
 			JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 			JOIN qr_df df ON df.df_code = eq.df_code -- get potential df_ids
@@ -2811,7 +2828,8 @@ BEGIN
 			FIRST_VALUE(q.dfg_id) OVER (
 				PARTITION BY q.qi_combo,
 				q.df_code,
-				q.bn_code ORDER BY q.bn_prec,
+				q.bn_code ORDER BY q.idx_rn,
+					q.bn_prec,
 					q.df_prec,
 					q.i_prec
 				) AS dfg_id,
@@ -2826,7 +2844,7 @@ BEGIN
 			1 AS new_rec
 		FROM (
 			-- create q_existing with all attributes extended to their r-corridors
-			SELECT eq.i_combo AS qi_combo, c.ri_combo, c.i_prec, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec
+			SELECT eq.i_combo AS qi_combo, c.ri_combo, c.i_prec, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, d.idx_rn
 			FROM q_existing eq
 			JOIN qr_i_combo c ON c.qi_combo = eq.i_combo -- get all potential rd_combos
 			JOIN qr_df df ON df.df_code = eq.df_code -- get potential brand names, may not exist in Marketed Products
@@ -2900,7 +2918,10 @@ BEGIN
 				) AS df_id,
 			FIRST_VALUE(q.dfg_id) OVER (
 				PARTITION BY q.qi_combo,
-				q.df_code ORDER BY q.df_prec,
+				q.df_code 
+				ORDER BY 
+					q.idx_rn,
+					q.df_prec,
 					q.i_prec
 				) AS dfg_id,
 			1 AS new_rec
@@ -2912,7 +2933,8 @@ BEGIN
 				eq.df_code,
 				df.df_id,
 				df.df_prec,
-				d.dfg_id
+				d.dfg_id,
+				d.idx_rn
 			FROM q_existing eq
 			JOIN qr_i_combo c ON c.qi_combo = eq.i_combo -- get all potential rd_combos
 			JOIN qr_df df ON df.df_code = eq.df_code -- get potential brand names, may not exist in Marketed Products
@@ -3613,6 +3635,23 @@ BEGIN
 	* 9. Build a complete target corpus in both q and r notation and assign concept_code from q and concept_id from r *
 	*******************************************************************************************************************/
 
+	-- @Fix AVOC-3852 artificial enumerator is created, with the sum of the prec field
+	DROP TABLE IF EXISTS ri_combo_prex_fix;
+	CREATE UNLOGGED TABLE ri_combo_prex_fix AS
+	SELECT ri_combo,
+		SUM(prec)::INT4 AS new_prec
+	FROM x_pattern
+	GROUP BY ri_combo;
+
+	
+	-- @Fix AVOC-3852
+	DROP TABLE IF EXISTS rd_combo_prex_fix;
+	CREATE UNLOGGED TABLE rd_combo_prex_fix AS
+	SELECT rd_combo,
+		SUM(prec)::INT4 AS new_prec
+	FROM x_pattern
+	GROUP BY rd_combo;
+
 	-- Marketed Product
 	-- Definition: d_combo, df and mf must exist, quant, bn and bs are optional
 	DROP TABLE IF EXISTS full_corpus;
@@ -3645,13 +3684,13 @@ BEGIN
 					PARTITION BY c.qd_combo,
 					c.df_code,
 					c.bn_code,
-					c.mf_code ORDER BY x.prec
+					c.mf_code ORDER BY COALESCE(xrif.new_prec, x.prec)
 					) AS ri_combo,
 				FIRST_VALUE(x.rd_combo) OVER (
 					PARTITION BY c.qd_combo,
 					c.df_code,
 					c.bn_code,
-					c.mf_code ORDER BY x.prec
+					c.mf_code ORDER BY COALESCE(xrdf.new_prec, x.prec) 
 					) AS rd_combo,
 				FIRST_VALUE(x.quant_unit_id) OVER (
 					PARTITION BY c.qd_combo,
@@ -3673,6 +3712,8 @@ BEGIN
 			LEFT JOIN extension_bn ebn ON ebn.bn_code = c.bn_code
 			LEFT JOIN x_mf x3 ON x3.mf_code = c.mf_code
 			LEFT JOIN extension_mf emf ON emf.mf_code = c.mf_code
+			LEFT JOIN ri_combo_prex_fix xrif ON xrif.ri_combo = x.ri_combo
+			LEFT JOIN rd_combo_prex_fix xrdf ON xrdf.rd_combo = x.rd_combo
 			) p
 		LEFT JOIN qr_quant q ON q.q_value = p.q_value
 			AND q.quant_unit = p.quant_unit
@@ -3817,12 +3858,12 @@ BEGIN
 				FIRST_VALUE(x.ri_combo) OVER (
 					PARTITION BY c.qd_combo,
 					c.df_code,
-					c.bn_code ORDER BY x.prec
+					c.bn_code ORDER BY COALESCE(xrif.new_prec, x.prec) 
 					) AS ri_combo,
 				FIRST_VALUE(x.rd_combo) OVER (
 					PARTITION BY c.qd_combo,
 					c.df_code,
-					c.bn_code ORDER BY x.prec
+					c.bn_code ORDER BY COALESCE(xrdf.new_prec, x.prec) 
 					) AS rd_combo,
 				FIRST_VALUE(x.quant_unit_id) OVER (
 					PARTITION BY c.qd_combo,
@@ -3839,6 +3880,8 @@ BEGIN
 			LEFT JOIN extension_df edf ON edf.df_code = c.df_code
 			LEFT JOIN x_bn x2 ON x2.bn_code = c.bn_code
 			LEFT JOIN extension_bn ebn ON ebn.bn_code = c.bn_code
+			LEFT JOIN ri_combo_prex_fix xrif ON xrif.ri_combo = x.ri_combo
+			LEFT JOIN rd_combo_prex_fix xrdf ON xrdf.rd_combo = x.rd_combo
 			) p
 		LEFT JOIN qr_quant q ON q.q_value = p.q_value
 			AND q.quant_unit = p.quant_unit
@@ -3977,11 +4020,11 @@ BEGIN
 			SELECT DISTINCT c.*,
 				FIRST_VALUE(x.ri_combo) OVER (
 					PARTITION BY c.qd_combo,
-					c.df_code ORDER BY x.prec
+					c.df_code ORDER BY coalesce(xrif.new_prec, x.prec) 
 					) AS ri_combo,
 				FIRST_VALUE(x.rd_combo) OVER (
 					PARTITION BY c.qd_combo,
-					c.df_code ORDER BY x.prec
+					c.df_code ORDER BY coalesce(xrdf.new_prec, x.prec)
 					) AS rd_combo,
 				FIRST_VALUE(x.quant_unit_id) OVER (
 					PARTITION BY c.qd_combo,
@@ -3993,6 +4036,8 @@ BEGIN
 				AND COALESCE(x.df_code, c.df_code) = c.df_code
 			LEFT JOIN x_df x1 ON x1.df_code = c.df_code
 			LEFT JOIN extension_df edf ON edf.df_code = c.df_code
+			LEFT JOIN ri_combo_prex_fix xrif ON xrif.ri_combo = x.ri_combo
+			LEFT JOIN rd_combo_prex_fix xrdf ON xrdf.rd_combo = x.rd_combo
 			) p
 		LEFT JOIN qr_quant q ON q.q_value = p.q_value
 			AND q.quant_unit = p.quant_unit
@@ -4062,7 +4107,7 @@ BEGIN
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY c.qi_combo,
 				c.df_code,
-				c.bn_code ORDER BY x.prec
+				c.bn_code ORDER BY COALESCE(xrif.new_prec, x.prec) 
 				) AS ri_combo,
 			COALESCE(x.df_id, x1.df_id, edf.df_id, 0) AS df_id,
 			COALESCE(x.bn_id, x2.bn_id, ebn.bn_id, 0) AS bn_id
@@ -4074,6 +4119,7 @@ BEGIN
 		LEFT JOIN extension_df edf ON edf.df_code = c.df_code
 		LEFT JOIN x_bn x2 ON x2.bn_code = c.bn_code
 		LEFT JOIN extension_bn ebn ON ebn.bn_code = c.bn_code
+		LEFT JOIN ri_combo_prex_fix xrif ON xrif.ri_combo = x.ri_combo
 		) m
 	LEFT JOIN (
 		SELECT concept_code,
@@ -4133,7 +4179,7 @@ BEGIN
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY c.qi_combo,
-				c.df_code ORDER BY x.prec
+				c.df_code ORDER BY coalesce(xrif.new_prec, x.prec) 
 				) AS ri_combo,
 			COALESCE(x.df_id, x1.df_id, edf.df_id, 0) AS df_id
 		FROM c
@@ -4141,6 +4187,7 @@ BEGIN
 			AND COALESCE(x.df_code, c.df_code) = c.df_code
 		LEFT JOIN x_df x1 ON x1.df_code = c.df_code
 		LEFT JOIN extension_df edf ON edf.df_code = c.df_code
+		LEFT JOIN ri_combo_prex_fix xrif ON xrif.ri_combo = x.ri_combo
 		) m
 	LEFT JOIN (
 		SELECT concept_code,
@@ -4202,11 +4249,11 @@ BEGIN
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
 				PARTITION BY c.qd_combo,
-				c.bn_code ORDER BY x.prec
+				c.bn_code ORDER BY COALESCE(xrif.new_prec, x.prec) 
 				) AS ri_combo,
 			FIRST_VALUE(x.rd_combo) OVER (
 				PARTITION BY c.qd_combo,
-				c.bn_code ORDER BY x.prec
+				c.bn_code ORDER BY COALESCE(xrdf.new_prec, x.prec) 
 				) AS rd_combo,
 			COALESCE(x.bn_id, x1.bn_id, ebn.bn_id, 0) AS bn_id
 		FROM c
@@ -4214,6 +4261,8 @@ BEGIN
 			AND COALESCE(x.bn_code, c.bn_code) = c.bn_code
 		LEFT JOIN x_bn x1 ON x1.bn_code = c.bn_code
 		LEFT JOIN extension_bn ebn ON ebn.bn_code = c.bn_code
+		LEFT JOIN ri_combo_prex_fix xrif ON xrif.ri_combo = x.ri_combo
+		LEFT JOIN rd_combo_prex_fix xrdf ON xrdf.rd_combo = x.rd_combo
 		) m
 	LEFT JOIN (
 		SELECT concept_code,
@@ -4400,12 +4449,11 @@ BEGIN
 	WHERE concept_id IS NOT NULL;
 
 	-- Connect q_existing concept codes (from drug_concept_stage) to existing corpus or new extensions
+	-- @Fix AVOC-3852 artificial enumerator is created, ordered by highest precision and concept_id
 	DROP TABLE IF EXISTS maps_to;
 	CREATE UNLOGGED TABLE maps_to AS
-	SELECT DISTINCT fc.concept_code AS from_code,
-		FIRST_VALUE(ea.concept_id) OVER (
-			PARTITION BY fc.concept_code ORDER BY q.u_prec
-			) AS to_id -- pick only one of many with the better denominator fit
+	SELECT DISTINCT ON (fc.concept_code) fc.concept_code AS from_code,
+		ea.concept_id AS to_id
 	FROM full_corpus fc
 	JOIN extension_attribute ea ON ea.r_value = fc.r_value
 		AND ea.quant_unit_id = fc.quant_unit_id
@@ -4417,7 +4465,11 @@ BEGIN
 		AND ea.mf_id = fc.mf_id
 	LEFT JOIN qr_d_combo q ON q.qd_combo = fc.qd_combo
 		AND q.rd_combo = ea.rd_combo
-	WHERE fc.concept_code IS NOT NULL;
+	WHERE fc.concept_code IS NOT NULL
+	--fix
+	ORDER BY fc.concept_code,
+		q.u_prec,
+		ea.concept_id;
 
 	/*******************
 	* 11. Create names *
@@ -5798,7 +5850,7 @@ BEGIN
 		FROM concept_stage
 		WHERE concept_class_id = 'Dose Form' -- the new negative ones
 		) df ON df.df_id = de.df_id
-	WHERE de.concept_id < 0
+	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
 		AND de.df_id <> 0;
 
 	-- Brand Names
@@ -5846,7 +5898,7 @@ BEGIN
 		FROM concept_stage
 		WHERE concept_class_id = 'Brand Name' -- the new negative ones
 		) bn ON bn.bn_id = de.bn_id
-	WHERE de.concept_id < 0
+	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
 		AND de.bn_id <> 0;
 
 	-- Suppliers
@@ -5894,7 +5946,7 @@ BEGIN
 		FROM concept_stage
 		WHERE concept_class_id = 'Supplier' -- the new negative ones
 		) mf ON mf.mf_id = de.mf_id
-	WHERE de.concept_id < 0
+	WHERE de.concept_id < 0 AND de.concept_code IS NOT NULL
 		AND de.mf_id <> 0;
 
 	-- Write relationships between Brand Name and Ingredient
@@ -6825,6 +6877,8 @@ BEGIN
 	DROP TABLE ex;
 	DROP TABLE xxx_replace;
 	DROP TABLE workaround_cleanup;
+	DROP TABLE ri_combo_prex_fix; 
+	DROP TABLE rd_combo_prex_fix;
 END;
 $BODY$
 LANGUAGE 'plpgsql' SECURITY INVOKER SET client_min_messages = error;

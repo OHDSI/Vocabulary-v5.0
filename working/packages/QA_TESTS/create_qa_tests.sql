@@ -1,269 +1,212 @@
-1. create package imitation
-CREATE SCHEMA IF NOT EXISTS qa_tests AUTHORIZATION devv5;
-ALTER DEFAULT PRIVILEGES IN SCHEMA qa_tests GRANT SELECT ON TABLES TO PUBLIC;
-ALTER DEFAULT PRIVILEGES IN SCHEMA qa_tests GRANT EXECUTE ON FUNCTIONS TO PUBLIC;
-GRANT USAGE ON SCHEMA qa_tests TO PUBLIC;
-
-2. in DEVV5:
-CREATE TABLE DEVV5.DEV_SUMMARY
-(
-   table_name         VARCHAR (100),
-   vocabulary_id_1    VARCHAR (100),
-   vocabulary_id_2    VARCHAR (100),
-   concept_class_id   VARCHAR (100),
-   relationship_id    VARCHAR (100),
-   invalid_reason     VARCHAR (10),
-   cnt                int4,
-   cnt_delta          int4
-);
-
-3. procedures:
-CREATE OR REPLACE FUNCTION qa_tests.create_dev_table () RETURNS void 
-SET client_min_messages = error
-AS $BODY$
-BEGIN
-	/*
-	CREATE TABLE DEVV5.DEV_SUMMARY
-	(
-	   table_name         VARCHAR (100),
-	   vocabulary_id_1    VARCHAR (100),
-	   vocabulary_id_2    VARCHAR (100),
-	   domain_id          VARCHAR (100),
-	   concept_class_id   VARCHAR (100),
-	   relationship_id    VARCHAR (100),
-	   invalid_reason     VARCHAR (10),
-	   cnt                int4,
-	   cnt_delta          int4
-	);
-	*/
-	IF NOT PG_TRY_ADVISORY_XACT_LOCK(HASHTEXT(CURRENT_SCHEMA)) THEN RAISE EXCEPTION 'This function is already in use in another session'; END IF;
-	CREATE TABLE IF NOT EXISTS DEV_SUMMARY (LIKE DEVV5.DEV_SUMMARY);
-END ; 
-$BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
-
-
-CREATE OR REPLACE FUNCTION qa_tests.purge_cache () RETURNS void AS $BODY$
-BEGIN
-	PERFORM qa_tests.create_dev_table();
-	TRUNCATE TABLE DEV_SUMMARY;
-END ; 
-$BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
-
-
 CREATE OR REPLACE FUNCTION qa_tests.get_summary (
-  table_name varchar, pCompareWith VARCHAR DEFAULT 'prodv5'
+	table_name TEXT,
+	pCompareWith VARCHAR DEFAULT 'prodv5',
+	pConsiderStandardField BOOLEAN DEFAULT TRUE,
+	pConsiderInvalidField BOOLEAN DEFAULT TRUE
 )
 RETURNS TABLE (
-  vocabulary_id_1 varchar,
-  vocabulary_id_2 varchar,
-  domain_id varchar,
-  concept_class_id varchar,
-  relationship_id varchar,
-  invalid_reason varchar,
-  concept_delta integer
+	vocabulary_id_1 concept.vocabulary_id%TYPE,
+	vocabulary_id_2 concept.vocabulary_id%TYPE,
+	standard_concept concept.standard_concept%TYPE,
+	concept_class_id concept.concept_class_id%TYPE,
+	relationship_id concept_relationship.relationship_id%TYPE,
+	invalid_reason concept.invalid_reason%TYPE,
+	concept_delta INT8,
+	concept_delta_percentage TEXT
 ) AS
 $BODY$
+/*
+The function returns a summary (delta) for basic tables in the current schema: concept, concept_relationship and concept_ancestor
+For the concept table, the number of concepts in the context of standard_concept (can be disabled, default enabled), concept_class_id and invalid_reason (can be disabled, default enabled) is taken and compared with the table from the target schema (default - prodv5)
+For the concept_relationship table, the number of concepts in the context of vocabulary_id_1, vocabulary_id_2, relationship_id and invalid_reason is taken and compared with the table from the target schema
+For the concept_ancestor table, the number of concepts in the context of vocabulary_id (ancestor_concept_id) is taken and compared with the table from the target schema
+The last field shows the percentage change in the context (if the target schema does not contain rows in this context, then the last column will be null)
+
+Examples:
+select * from qa_tests.get_summary ('concept','devv5');
+select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
+select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5',pConsiderStandardField=>FALSE,pConsiderInvalidField=>FALSE);
+select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
+select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
+*/
 DECLARE
-	z int2;
-	iTable_name CONSTANT VARCHAR (100) := SUBSTR (LOWER (table_name), 0, 100);
+	pGeneratedStmt_c TEXT;
+	pGeneratedStmt_cr TEXT;
+	pGeneratedStmt_ca TEXT;
+	iTableName TEXT:=LOWER(table_name);
 BEGIN
-	IF iTable_name NOT IN ('concept', 'concept_relationship', 'concept_ancestor')
-	THEN
-		RAISE EXCEPTION 'WRONG_TABLE_NAME';
+	pCompareWith:=LOWER(pCompareWith);
+	IF iTableName NOT IN ('concept', 'concept_relationship', 'concept_ancestor') THEN
+		RAISE EXCEPTION 'Wrong table name';
 	END IF;
 
-	PERFORM qa_tests.create_dev_table();
+	--delta for concept
+	pGeneratedStmt_c:=FORMAT($$
+		SELECT COALESCE(s0.vocabulary_id, s1.vocabulary_id) AS vocabulary_id_1,
+			NULL::VARCHAR AS vocabulary_id_2,
+			COALESCE(NULLIF(s0.standard_concept, 'X'), NULLIF(s1.standard_concept, 'X'))::VARCHAR AS standard_concept,
+			COALESCE(s0.concept_class_id, s1.concept_class_id) AS concept_class_id,
+			NULL::VARCHAR AS relationship_id,
+			COALESCE(NULLIF(s0.invalid_reason, 'X'), NULLIF(s1.invalid_reason, 'X'))::VARCHAR AS invalid_reason,
+			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
+			ELSE
+				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
+		FROM (
+			SELECT vocabulary_id,
+				CASE WHEN %2$L THEN
+					COALESCE(standard_concept, 'X')
+				ELSE
+					'-'
+				END AS standard_concept,
+				concept_class_id,
+				CASE WHEN %3$L THEN
+					COALESCE(invalid_reason, 'X')
+				ELSE
+					'-'
+				END AS invalid_reason,
+				COUNT(*) AS cnt
+			FROM concept
+			GROUP BY 1,
+				2,
+				3,
+				4
+			) s0
+		FULL OUTER JOIN (
+			SELECT vocabulary_id,
+				CASE WHEN %2$L THEN
+					COALESCE(standard_concept, 'X')
+				ELSE
+					'-'
+				END AS standard_concept,
+				concept_class_id,
+				CASE WHEN %3$L THEN
+					COALESCE(invalid_reason, 'X')
+				ELSE
+					'-'
+				END AS invalid_reason,
+				COUNT(*) AS cnt
+			FROM %1$I.concept
+			GROUP BY 1,
+				2,
+				3,
+				4
+			) s1 USING (
+				vocabulary_id,
+				standard_concept,
+				concept_class_id,
+				invalid_reason
+				)
+		WHERE COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) <> 0$$,
+		pCompareWith,
+		pConsiderStandardField,
+		pConsiderInvalidField
+	);
 
-	SELECT COUNT (*) INTO z FROM DEV_SUMMARY;
-	--fill the table if it empty (caching)
-	IF z = 0 THEN
-		--summary for 'concept'
-		EXECUTE FORMAT ($$
-		INSERT INTO DEV_SUMMARY
-		SELECT 
-			'concept' AS table_name,
-			c.vocabulary_id,
-			NULL,
-			c.domain_id,
-			c.concept_class_id,
-			NULL AS relationship_id,
-			c.invalid_reason,
-			COUNT (*) AS cnt,
-			NULL AS cnt_delta
-		FROM %I.concept c
-		GROUP BY c.vocabulary_id, c.domain_id, c.concept_class_id, c.invalid_reason$$, LOWER(pCompareWith));
-				
-		WITH to_be_upserted as (
-			SELECT 
-				'concept'::varchar AS table_name,
-				c.vocabulary_id AS vocabulary_id_1,
-				NULL,
-				c.domain_id,
-				c.concept_class_id,
-				NULL AS relationship_id,
-				c.invalid_reason,
-				COUNT (*) AS cnt,
-				NULL::int4 AS cnt_delta
-			FROM concept c
-			GROUP BY c.vocabulary_id, c.domain_id, c.concept_class_id, c.invalid_reason
-		),
-		to_be_updated as (
-			UPDATE DEV_SUMMARY dv 
-			SET cnt_delta = up.cnt - dv.cnt
-			FROM to_be_upserted up
-			WHERE dv.cnt_delta IS NULL
-			AND dv.table_name = up.table_name
-			AND dv.vocabulary_id_1 = up.vocabulary_id_1
-			AND dv.concept_class_id = up.concept_class_id
-			AND dv.domain_id = up.domain_id
-			AND COALESCE (dv.invalid_reason, 'X') = COALESCE (up.invalid_reason, 'X')
-			RETURNING dv.*
-		)
-		INSERT INTO DEV_SUMMARY
-			SELECT tpu.table_name, tpu.vocabulary_id_1, NULL, tpu.domain_id, tpu.concept_class_id, NULL, tpu.invalid_reason, NULL::int4, tpu.cnt
-			FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1, tpu.domain_id, tpu.concept_class_id, COALESCE (tpu.invalid_reason, 'X'))
-			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.domain_id, up.concept_class_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
-		
-		--summary for concept_relationship
-		EXECUTE FORMAT ($$
-		INSERT INTO DEV_SUMMARY
-		SELECT 
-			'concept_relationship' AS table_name,
-			c1.vocabulary_id,
-			c2.vocabulary_id,
-			NULL as domain_id,
-			NULL AS concept_class_id,
-			r.relationship_id,
-			r.invalid_reason,
-			COUNT (*) AS cnt,
-			NULL AS cnt_delta
-		FROM %1$I.concept c1, %1$I.concept c2, %1$I.concept_relationship r
-		WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2
-		GROUP BY c1.vocabulary_id, c2.vocabulary_id, r.relationship_id, r.invalid_reason$$, LOWER(pCompareWith));
-
-		WITH to_be_upserted as (
-			SELECT 
-				'concept_relationship'::varchar AS table_name,
-				c1.vocabulary_id AS vocabulary_id_1,
+	--delta for concept_relationship
+	pGeneratedStmt_cr:=FORMAT($$
+		SELECT COALESCE(s0.vocabulary_id_1, s1.vocabulary_id_1) AS vocabulary_id_1,
+			COALESCE(s0.vocabulary_id_2, s1.vocabulary_id_2) AS vocabulary_id_2,
+			NULL::VARCHAR AS standard_concept,
+			NULL::VARCHAR AS concept_class_id,
+			COALESCE(s0.relationship_id, s1.relationship_id) AS relationship_id,
+			COALESCE(NULLIF(s0.invalid_reason, 'X'), NULLIF(s1.invalid_reason, 'X'))::VARCHAR AS invalid_reason,
+			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
+			ELSE
+				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
+		FROM (
+			SELECT c1.vocabulary_id AS vocabulary_id_1,
 				c2.vocabulary_id AS vocabulary_id_2,
-				NULL::varchar as domain_id,
-				NULL::varchar AS concept_class_id,
-				r.relationship_id,
-				r.invalid_reason,
-				COUNT (*) AS cnt,
-				NULL::int4 AS cnt_delta
-			FROM concept c1, concept c2, concept_relationship r
-			WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2
-			GROUP BY c1.vocabulary_id, c2.vocabulary_id, r.relationship_id, r.invalid_reason
-		),
-		to_be_updated as (
-			UPDATE DEV_SUMMARY dv 
-			SET cnt_delta = up.cnt - dv.cnt
-			FROM to_be_upserted up
-			WHERE dv.cnt_delta IS NULL
-			AND dv.table_name = up.table_name
-			AND dv.vocabulary_id_1 = up.vocabulary_id_1
-			AND dv.vocabulary_id_2 = up.vocabulary_id_2
-			AND dv.relationship_id = up.relationship_id
-			AND COALESCE (dv.invalid_reason, 'X') = COALESCE (up.invalid_reason, 'X')
-			RETURNING dv.*
-		)
-		INSERT INTO DEV_SUMMARY
-			SELECT tpu.table_name, tpu.vocabulary_id_1, tpu.vocabulary_id_2, NULL, NULL, tpu.relationship_id, tpu.invalid_reason, NULL::int4, tpu.cnt
-			FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1, tpu.vocabulary_id_2, tpu.relationship_id, COALESCE (tpu.invalid_reason, 'X')) 
-			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.vocabulary_id_2, up.relationship_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
+				cr.relationship_id,
+				COALESCE(cr.invalid_reason, 'X') AS invalid_reason,
+				COUNT(*) AS cnt
+			FROM concept_relationship cr
+			JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+			JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+			GROUP BY 1,
+				2,
+				3,
+				4
+			) s0
+		FULL OUTER JOIN (
+			SELECT c1.vocabulary_id AS vocabulary_id_1,
+				c2.vocabulary_id AS vocabulary_id_2,
+				cr.relationship_id,
+				COALESCE(cr.invalid_reason, 'X') AS invalid_reason,
+				COUNT(*) AS cnt
+			FROM %1$I.concept_relationship cr
+			JOIN %1$I.concept c1 ON c1.concept_id = cr.concept_id_1
+			JOIN %1$I.concept c2 ON c2.concept_id = cr.concept_id_2
+			GROUP BY 1,
+				2,
+				3,
+				4
+			) s1 USING (
+				vocabulary_id_1,
+				vocabulary_id_2,
+				relationship_id,
+				invalid_reason
+				)
+		WHERE COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) <> 0$$,
+		pCompareWith
+	);
 
-		--summary for concept_ancestor
-		EXECUTE FORMAT ($$
-		INSERT INTO DEV_SUMMARY
-		SELECT 
-			'concept_ancestor' AS table_name,
-			c.vocabulary_id,
-			NULL,
-			NULL AS concept_class_id,
-			NULL as domain_id,
-			NULL AS relationship_id,
-			NULL AS invalid_reason,
-			COUNT (*) AS cnt,
-			NULL AS cnt_delta
-		FROM %1$I.concept c, %1$I.concept_ancestor ca
-		WHERE c.concept_id = ca.ancestor_concept_id
-		GROUP BY c.vocabulary_id$$, LOWER(pCompareWith));
+	--delta for concept_ancestor
+	pGeneratedStmt_ca:=FORMAT($$
+		SELECT COALESCE(s0.vocabulary_id, s1.vocabulary_id) AS vocabulary_id_1,
+			NULL::VARCHAR AS vocabulary_id_2,
+			NULL::VARCHAR AS standard_concept,
+			NULL::VARCHAR AS concept_class_id,
+			NULL::VARCHAR AS relationship_id,
+			NULL::VARCHAR AS invalid_reason,
+			COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) AS cnt_delta,
+			/*CASE WHEN COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) > 0 THEN
+				'+'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%'
+			ELSE
+				'-'||devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s1.cnt, 0) - COALESCE(s0.cnt, 0))::NUMERIC/COALESCE(s0.cnt, 1),3))||'%%'
+			END AS concept_delta_percentage*/
+			--devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0))::NUMERIC/COALESCE(s1.cnt, 1),3))||'%%' AS concept_delta_percentage
+			devv5.NUMERIC_TO_TEXT(ROUND(100*(COALESCE(s0.cnt, 0) - s1.cnt)::NUMERIC/s1.cnt,3))||'%%' AS concept_delta_percentage
+		FROM (
+			SELECT c.vocabulary_id,
+				COUNT(*) AS cnt
+			FROM concept_ancestor ca
+			JOIN concept c ON c.concept_id = ca.ancestor_concept_id
+			GROUP BY 1
+			) s0
+		FULL OUTER JOIN (
+			SELECT c.vocabulary_id,
+				COUNT(*) AS cnt
+			FROM %1$I.concept_ancestor ca
+			JOIN %1$I.concept c ON c.concept_id = ca.ancestor_concept_id
+			GROUP BY 1
+			) s1 USING (
+				vocabulary_id
+				)
+		WHERE COALESCE(s0.cnt, 0) - COALESCE(s1.cnt, 0) <> 0$$,
+		pCompareWith
+	);
 
-		WITH to_be_upserted as (
-			SELECT 
-				'concept_ancestor'::varchar AS table_name,
-				c.vocabulary_id AS vocabulary_id_1,
-				NULL::varchar,
-				NULL::varchar,
-				NULL::varchar AS concept_class_id,
-				NULL::varchar AS relationship_id,
-				NULL::varchar AS invalid_reason,
-				COUNT (*) AS cnt,
-				NULL::int4 AS cnt_delta
-			FROM concept c, concept_ancestor ca
-			WHERE c.concept_id = ca.ancestor_concept_id
-			GROUP BY c.vocabulary_id
-		),
-		to_be_updated as (
-			UPDATE DEV_SUMMARY dv 
-			SET cnt_delta = up.cnt - dv.cnt
-			FROM to_be_upserted up
-			WHERE dv.cnt_delta IS NULL
-			AND dv.table_name = up.table_name
-			AND dv.vocabulary_id_1 = up.vocabulary_id_1
-			RETURNING dv.*
-		)
-		INSERT INTO DEV_SUMMARY
-			SELECT tpu.table_name, tpu.vocabulary_id_1, NULL, NULL, NULL, NULL, NULL, NULL::int4, tpu.cnt
-			FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1) 
-			NOT IN (SELECT up.table_name, up.vocabulary_id_1 from to_be_updated up);
-	END IF;
-
-	IF iTable_name = 'concept'
-	THEN
-	RETURN QUERY
-		SELECT 
-			ds.vocabulary_id_1,
-			NULL::varchar,
-			ds.domain_id,
-			ds.concept_class_id,
-			NULL::varchar,
-			ds.invalid_reason,
-			COALESCE (ds.cnt_delta, -cnt) AS cnt_delta
-		FROM DEV_SUMMARY ds
-		WHERE COALESCE (ds.cnt_delta, -cnt) <> 0 AND ds.table_name = iTable_name;
-
-	ELSIF iTable_name = 'concept_relationship'
-	THEN
-	RETURN QUERY
-		SELECT 
-			ds.vocabulary_id_1,
-			ds.vocabulary_id_2,
-			NULL::varchar,
-			NULL::varchar,
-			ds.relationship_id,
-			ds.invalid_reason,
-			COALESCE (ds.cnt_delta, -cnt) AS cnt_delta
-		FROM DEV_SUMMARY ds
-		WHERE COALESCE (ds.cnt_delta, -cnt) <> 0 AND ds.table_name = iTable_name;
-
-	ELSIF iTable_name = 'concept_ancestor'
-	THEN
-	RETURN QUERY
-		SELECT 
-		ds.vocabulary_id_1,
-		NULL::varchar,
-		NULL::varchar,
-		NULL::varchar,
-		NULL::varchar,
-		NULL::varchar,
-		COALESCE (ds.cnt_delta, -cnt) AS cnt_delta
-		FROM DEV_SUMMARY ds
-		WHERE COALESCE (ds.cnt_delta, -cnt) <> 0 AND ds.table_name = iTable_name;
+	IF iTableName = 'concept' THEN
+		RETURN QUERY EXECUTE pGeneratedStmt_c;
+	ELSIF iTableName = 'concept_relationship' THEN
+		SET LOCAL parallel_tuple_cost=0; --force parallel execution
+		RETURN QUERY EXECUTE pGeneratedStmt_cr;
+	ELSE
+		RETURN QUERY EXECUTE pGeneratedStmt_ca;
 	END IF;
 END;
-$BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
+$BODY$
+LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION qa_tests.get_checks (checkid IN INT DEFAULT NULL)
 RETURNS TABLE
@@ -440,7 +383,7 @@ AS $BODY$
 			OR (
 				c.valid_end_date <> TO_DATE('20991231', 'YYYYMMDD')
 				AND c.invalid_reason IS NULL
-				AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v)
+				AND c.vocabulary_id NOT IN (SELECT vocabulary_id FROM vocabulary v WHERE v.vocabulary_params ->> 'special_deprecation' = '1')
 				)
 			OR c.valid_start_date > COALESCE(vc.latest_update, CURRENT_DATE) + INTERVAL '15 year' --some concepts might be from near future (e.g. GGR, HCPCS) [AVOF-1015]/increased 20180928 for some NDC concepts
 			OR c.valid_start_date < TO_DATE('19000101', 'yyyymmdd') -- some concepts have a real date < 1970
@@ -741,7 +684,7 @@ BEGIN
 				WHEN COALESCE(cs.invalid_reason, 'D') NOT IN ('D','U') THEN 'wrong value for concept_stage.invalid_reason: '||CASE WHEN cs.invalid_reason='' THEN '''''' ELSE cs.invalid_reason END
 				WHEN date_trunc('day', (cs.valid_start_date)) <> cs.valid_start_date THEN 'wrong format for concept_stage.valid_start_date (not truncated): '||TO_CHAR(cs.valid_start_date,'YYYYMMDD HH24:MI:SS')
 				WHEN date_trunc('day', (cs.valid_end_date)) <> cs.valid_end_date THEN 'wrong format for concept_stage.valid_end_date (not truncated to YYYYMMDD): '||TO_CHAR(cs.valid_end_date,'YYYYMMDD HH24:MI:SS')
-				WHEN (((cs.invalid_reason IS NULL AND cs.valid_end_date <> TO_DATE('20991231', 'yyyymmdd')) AND cs.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v))
+				WHEN (((cs.invalid_reason IS NULL AND cs.valid_end_date <> TO_DATE('20991231', 'yyyymmdd')) AND NOT (COALESCE(v.vocabulary_params->>'special_deprecation','0')='1'))
 					OR (cs.invalid_reason IS NOT NULL AND cs.valid_end_date = TO_DATE('20991231', 'yyyymmdd'))) THEN 'wrong concept_stage.invalid_reason: '||COALESCE(cs.invalid_reason,'NULL')||' for '||TO_CHAR(cs.valid_end_date,'YYYYMMDD')
 				WHEN d.domain_id IS NULL AND cs.domain_id IS NOT NULL THEN 'domain_id not found in the domain: '||CASE WHEN cs.domain_id='' THEN '''''' ELSE cs.domain_id END
 				WHEN cc.concept_class_id IS NULL AND cs.concept_class_id IS NOT NULL THEN 'concept_class_id not found in the concept_class: '||CASE WHEN cs.concept_class_id='' THEN '''''' ELSE cs.concept_class_id END
@@ -793,11 +736,11 @@ BEGIN
 		--drug_strength_stage
 		SELECT
 			'duplicates in drug_strength_stage were found: '||dcs.drug_concept_code||'+'||dcs.vocabulary_id_1||
-				dcs.ingredient_concept_code||'+'||dcs.vocabulary_id_2||'+'||TO_CHAR(dcs.amount_value, 'FM9999999999999999999990.999999999999999999999') AS reason
+				dcs.ingredient_concept_code||'+'||dcs.vocabulary_id_2||'+'||devv5.NUMERIC_TO_TEXT(dcs.amount_value) AS reason
 			FROM drug_strength_stage dcs
 			GROUP BY dcs.drug_concept_code, dcs.vocabulary_id_1, dcs.ingredient_concept_code, dcs.vocabulary_id_2, dcs.amount_value HAVING COUNT (*) > 1
 	) AS s0
 	WHERE reason IS NOT NULL
 	GROUP BY reason;
 END;
-$BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
+$BODY$ LANGUAGE 'plpgsql' STABLE;

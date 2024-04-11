@@ -42,39 +42,34 @@ Repeat steps 3-8.
 
 9. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
 
-10. Clear cache:
+10. Run scripts to get summary, and interpret the results:
 
 ```sql
-SELECT * FROM qa_tests.purge_cache();
-```
-11. Run scripts to get summary, and interpret the results:
-
-```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
+SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
 
-12. Run scripts to collect statistics, and interpret the results:
+11. Run scripts to collect statistics, and interpret the results:
 
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_domain_changes();
+SELECT * FROM qa_tests.get_domain_changes();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+SELECT * FROM qa_tests.get_newly_concepts();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+SELECT * FROM qa_tests.get_standard_concept_changes();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 ```
 ```sql
-SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 
-13. If no problems, enjoy!
+12. If no problems, enjoy!
 
 Manual tables directory permalink:
 https://drive.google.com/drive/u/1/folders/1P2dJ9PDMDuu03K-EqzAR8QgmLj72kEB0

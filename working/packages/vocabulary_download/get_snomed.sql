@@ -80,7 +80,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
     
     --first part, getting raw download link from page
-    select substring(http_content,'<a class="btn btn-info" href="(.+?)"><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'<h1>Current International Edition Release</h1>.+?<a class=.+?href="(.+?)".*?><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --get the proper ticket and concatenate it with the pDownloadURL
@@ -184,7 +184,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
     
     --first part, getting raw download link from page
-    select substring(http_content,'Current US Edition Release</h3>.+?<p><a href="(.+?)" class="btn btn-info">Download Now!</a></p>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'Current US Edition Release.+?<p><a href="(.+?\.zip)".*?>Download Now!</a></p>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --get the proper ticket and concatenate it with the pDownloadURL

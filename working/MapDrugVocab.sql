@@ -8,516 +8,432 @@ analyze internal_relationship_stage;
 
 DROP TABLE IF EXISTS map_drug;
 CREATE TABLE map_drug AS
-SELECT from_code,
-	to_id,
-	'00'::VARCHAR AS map_order
-FROM maps_to
-where to_id>0;
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'1' -- Map Marketed Form to corresponding Branded/Clinical Drug (save box size and quant factor)
-FROM r_existing r
-JOIN ex e ON r.quant_value = e.r_value
-	AND r.quant_unit_id = e.quant_unit_id
-	AND r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.bn_id = e.bn_id
-	AND r.bs = e.bs
-	AND r.mf_id = 0 AND e.mf_id!=0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage limit 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'2' -- Kick box size out
-FROM r_existing r
-JOIN ex e ON r.quant_value = e.r_value
-	AND r.quant_unit_id = e.quant_unit_id
-	AND r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.bn_id = e.bn_id
-	AND r.bs = 0
-	AND r.mf_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage limit 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'3' -- Kick Quant factor out
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.bn_id = e.bn_id
-	AND r.quant_value = 0
-	AND r.quant_unit_id = 0
-	AND r.bs = 0
-	AND r.mf_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage limit 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'3' -- Kick BN out, save Quant factor 
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.quant_value = e.r_value
-	AND r.quant_unit_id = e.quant_unit_id
-	AND r.bs = 0
-	AND r.mf_id = 0
-	AND r.bn_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage limit 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'4' -- Map Branded Drug to corresponding Clinical Drug (save box size)
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.bs = e.bs
-	AND r.bn_id = 0
-	AND r.quant_value = 0
-	AND r.quant_unit_id = 0
-	AND r.mf_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage limit 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'5' -- Map Branded Drug to corresponding Clinical Drug
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.bn_id = 0
-	AND r.quant_value = 0
-	AND r.quant_unit_id = 0
-	AND r.bs = 0
-	AND r.mf_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage LIMIT 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-	INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'6' -- Branded Drug Form
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND r.bn_id = e.bn_id
-	AND trim(r.d_combo) ='' -- was ' ' in r_existing.d_combo
-	AND r.quant_value = 0
-	AND r.quant_unit_id = 0
-	AND r.bs = 0
-	AND r.mf_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage LIMIT 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	r.concept_id,
-	'7' -- Branded Drug Comp
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND r.d_combo = e.rd_combo
-	AND r.bn_id = e.bn_id
-	AND r.df_id = 0
-	AND r.quant_value = 0
-	AND r.quant_unit_id = 0
-	AND r.bs = 0
-	AND r.mf_id = 0
---and e.concept_id like '-%'
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage LIMIT 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT cr.concept_code_1,
-	first_value(r.concept_id) OVER (
-		PARTITION BY cr.concept_code_1 ORDER BY rc2.precedence
-		),
-	'8' -- Clinical Drug Form
-FROM r_existing r
-JOIN ex e ON r.i_combo = e.ri_combo
-	AND trim(r.d_combo) =''
-	AND r.bn_id = 0
-	AND r.quant_value = 0
-	AND r.quant_unit_id = 0
-	AND r.bs = 0
-	AND r.mf_id = 0
-    AND e.concept_id<0
-JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
-JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
-	AND rc2.concept_id_2 = r.df_id
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage LIMIT 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-JOIN internal_relationship_stage i on
-	rc.concept_code_1 = i.concept_code_2 and
-	cr.concept_code_1 = i.concept_code_1
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-WITH e AS (
-		SELECT e.concept_id,
-			e.concept_code,
-			u.rd_combo,
-			u.ri_combo,
-			coalesce(length(e.ri_combo) - length(replace(e.ri_combo, '-', '')), 0) cnt
-		FROM ex e,
-			unnest((
-					SELECT regexp_split_to_array(e.rd_combo, '-')
-					), (
-					SELECT regexp_split_to_array(e.ri_combo, '-')
-					)) AS u(rd_combo, ri_combo)
-		),
-	r AS (
-		SELECT count(r.concept_id) OVER (PARTITION BY e.concept_id) AS cnt_2,
-			e.concept_id,
-			r.concept_id AS r_concept_id
-		FROM e
-		JOIN r_existing r ON r.i_combo = e.ri_combo
+SELECT s1.from_code,
+	s1.to_id,
+	s1.map_order
+FROM (
+	SELECT s0.from_code,
+		s0.to_id,
+		s0.map_order,
+		MIN(s0.map_order) OVER (PARTITION BY s0.from_code) AS min_map_order
+	FROM (
+		SELECT from_code,
+			to_id,
+			0 AS map_order
+		FROM maps_to
+		WHERE to_id > 0
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				1 -- Map Marketed Form to corresponding Branded/Clinical Drug (save box size and quant factor)
+			FROM r_existing r
+			JOIN ex e ON r.quant_value = e.r_value
+				AND r.quant_unit_id = e.quant_unit_id
+				AND r.i_combo = e.ri_combo
+				AND r.d_combo = e.rd_combo
+				AND r.bn_id = e.bn_id
+				AND r.bs = e.bs
+				AND r.mf_id = 0
+				AND e.mf_id <> 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				2 -- Kick box size out
+			FROM r_existing r
+			JOIN ex e ON r.quant_value = e.r_value
+				AND r.quant_unit_id = e.quant_unit_id
+				AND r.i_combo = e.ri_combo
+				AND r.d_combo = e.rd_combo
+				AND r.bn_id = e.bn_id
+				AND r.bs = 0
+				AND r.mf_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				3 -- Kick Quant factor out
+			FROM r_existing r
+			JOIN ex e ON r.i_combo = e.ri_combo
+				AND r.d_combo = e.rd_combo
+				AND r.bn_id = e.bn_id
+				AND r.quant_value = 0
+				AND r.quant_unit_id = 0
+				AND r.bs = 0
+				AND r.mf_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				4 -- Kick BN out, save Quant factor
+			FROM r_existing r
+			JOIN ex e ON r.i_combo = e.ri_combo
+				AND r.d_combo = e.rd_combo
+				AND r.quant_value = e.r_value
+				AND r.quant_unit_id = e.quant_unit_id
+				AND r.bs = 0
+				AND r.mf_id = 0
+				AND r.bn_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				5 -- Map Branded Drug to corresponding Clinical Drug (save box size)
+			FROM r_existing r
+			JOIN ex e ON r.i_combo = e.ri_combo
+				AND r.d_combo = e.rd_combo
+				AND r.bs = e.bs
+				AND r.bn_id = 0
+				AND r.quant_value = 0
+				AND r.quant_unit_id = 0
+				AND r.mf_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				6 -- Map Branded Drug to corresponding Clinical Drug
+			FROM r_existing r
+			JOIN ex e ON r.i_combo = e.ri_combo
+				AND r.d_combo = e.rd_combo
+				AND r.bn_id = 0
+				AND r.quant_value = 0
+				AND r.quant_unit_id = 0
+				AND r.bs = 0
+				AND r.mf_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				7 -- Branded Drug Form
+			FROM r_existing r
+			JOIN ex e ON r.i_combo = e.ri_combo
+				AND r.bn_id = e.bn_id
+				AND TRIM(r.d_combo) = '' -- was ' ' in r_existing.d_combo
+				AND r.quant_value = 0
+				AND r.quant_unit_id = 0
+				AND r.bs = 0
+				AND r.mf_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		SELECT DISTINCT cr.concept_code_1 AS from_code,
+			r.concept_id,
+			8 -- Branded Drug Comp
+		FROM r_existing r
+		JOIN ex e ON r.i_combo = e.ri_combo
 			AND r.d_combo = e.rd_combo
-			AND concept_class_id = 'Clinical Drug Comp'
+			AND r.bn_id = e.bn_id
+			AND r.df_id = 0
+			AND r.quant_value = 0
+			AND r.quant_unit_id = 0
+			AND r.bs = 0
+			AND r.mf_id = 0
+		--AND e.concept_id LIKE '-%'
+		JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+			AND cr.relationship_id = 'Maps to'
+			AND cr.vocabulary_id_1 = (
+				SELECT vocabulary_id
+				FROM drug_concept_stage LIMIT 1
+				)
+			AND cr.vocabulary_id_2 = 'RxNorm Extension'
+		
+		UNION ALL
+		
+		(
+			SELECT DISTINCT ON (cr.concept_code_1) cr.concept_code_1 AS from_code,
+				r.concept_id,
+				9 -- Clinical Drug Form
+			FROM r_existing r
+			JOIN ex e ON r.i_combo = e.ri_combo
+				AND TRIM(r.d_combo) = ''
+				AND r.bn_id = 0
+				AND r.quant_value = 0
+				AND r.quant_unit_id = 0
+				AND r.bs = 0
+				AND r.mf_id = 0
+				AND e.concept_id < 0
+			JOIN relationship_to_concept rc ON rc.concept_id_2 = e.df_id
+			JOIN relationship_to_concept rc2 ON rc.concept_code_1 = rc2.concept_code_1
+				AND rc2.concept_id_2 = r.df_id
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+			JOIN internal_relationship_stage i ON rc.concept_code_1 = i.concept_code_2
+				AND cr.concept_code_1 = i.concept_code_1
+			ORDER BY cr.concept_code_1,
+				rc2.precedence,
+				r.concept_id
+			)
+		
+		UNION ALL
+		
+		(
+			WITH e AS (
+					SELECT e.concept_id,
+						e.concept_code,
+						u.rd_combo,
+						u.ri_combo,
+						COALESCE(LENGTH(e.ri_combo) - LENGTH(REPLACE(e.ri_combo, '-', '')), 0) cnt
+					FROM ex e,
+						UNNEST((
+								SELECT REGEXP_SPLIT_TO_ARRAY(e.rd_combo, '-')
+								), (
+								SELECT REGEXP_SPLIT_TO_ARRAY(e.ri_combo, '-')
+								)) AS u(rd_combo, ri_combo)
+					),
+				r AS (
+					SELECT COUNT(r.concept_id) OVER (PARTITION BY e.concept_id) AS cnt_2,
+						e.concept_id,
+						r.concept_id AS r_concept_id
+					FROM e
+					JOIN r_existing r ON r.i_combo = e.ri_combo
+						AND r.d_combo = e.rd_combo
+						AND concept_class_id = 'Clinical Drug Comp'
+					)
+			SELECT DISTINCT cr.concept_code_1 AS from_code,
+				r_concept_id AS concept_id,
+				10 AS map_order -- Clinical Drug Comp
+			FROM r
+			JOIN e USING (concept_id)
+			JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
+				AND cr.relationship_id = 'Maps to'
+				AND cr.vocabulary_id_1 = (
+					SELECT vocabulary_id
+					FROM drug_concept_stage LIMIT 1
+					)
+				AND cr.vocabulary_id_2 = 'RxNorm Extension'
+				AND r.cnt_2 = e.cnt + 1 -- take only those where components counts are equal
 		)
-SELECT DISTINCT cr.concept_code_1,
-	r_concept_id,
-	'9' -- Clinical Drug Comp
-FROM r
-JOIN e using (concept_id)
-JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
-	AND cr.relationship_id = 'Maps to'
-	AND cr.vocabulary_id_1 = (
-		SELECT vocabulary_id
-		FROM drug_concept_stage LIMIT 1
-		)
-	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where cr.concept_code_1 = from_code
-		)
-	AND cnt_2 = cnt + 1;-- take only those where components counts are equal
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT i.concept_code_1,
-	c.concept_id,
-	'10' -- Drug to ingredient
-FROM internal_relationship_stage i
-JOIN drug_concept_stage ON i.concept_code_2 = concept_code
-	AND concept_class_id = 'Ingredient'
-JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
-	AND relationship_id = 'Maps to'
-JOIN concept c ON c.concept_code = cr.concept_code_2
-	AND c.vocabulary_id LIKE 'Rx%'
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where i.concept_code_1 = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	)
-SELECT DISTINCT i.concept_code_2,
-	c.concept_id,
-	'11' -- add the set of source attributes
-FROM internal_relationship_stage i
-JOIN drug_concept_stage ON i.concept_code_2 = concept_code
-	AND concept_class_id IN (
-		'Ingredient',
-		'Brand Name',
-		'Suppier',
-		'Dose Form'
-		)
-JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
-	AND relationship_id in ('Maps to','Source - RxNorm eq')
-JOIN concept c ON c.concept_code = cr.concept_code_2
-	AND c.vocabulary_id in ('RxNorm','RxNorm Extension')
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where i.concept_code_2 = from_code
-		);
-
---Proceed packs
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	) -- existing mapping
-SELECT DISTINCT pack_concept_code,
-	pack_concept_id,
-	'12'
-FROM q_existing_pack q
-JOIN r_existing_pack using (
-		components,
-		cnt,
-		bn_id,
-		bs,
-		mf_id
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	) -- Map Packs to corresponding Rx Packs without a supplier 
-SELECT DISTINCT pack_concept_code,
-	pack_concept_id,
-	'13'
-FROM q_existing_pack q
-JOIN r_existing_pack using (
-		components,
-		cnt,
-		bn_id,
-		bs
-		)
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where pack_concept_code = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	) -- Map Packs to corresponding Rx Packs without a supplier and box_size
-SELECT DISTINCT pack_concept_code,
-	pack_concept_id,
-	'14'
-FROM q_existing_pack q
-JOIN r_existing_pack using (
-		components,
-		cnt,
-		bn_id
-		)
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where pack_concept_code = from_code
-		);
-
-INSERT INTO map_drug (
-	from_code,
-	to_id,
-	map_order
-	) -- Map Packs to corresponding Rx Packs without a supplier, box size and brand name
-SELECT DISTINCT pack_concept_code,
-	pack_concept_id,
-	'15'
-FROM q_existing_pack q
-JOIN r_existing_pack using (
-		components,
-		cnt
-		)
-WHERE NOT exists (
-		SELECT 1
-		FROM map_drug
-		where pack_concept_code = from_code
-		);
+		
+		UNION ALL
+		
+		SELECT DISTINCT i.concept_code_1 AS from_code,
+			c.concept_id,
+			11 -- Drug to ingredient
+		FROM internal_relationship_stage i
+		JOIN drug_concept_stage ON i.concept_code_2 = concept_code
+			AND concept_class_id = 'Ingredient'
+		JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
+			AND relationship_id = 'Maps to'
+		JOIN concept c ON c.concept_code = cr.concept_code_2
+			AND c.vocabulary_id LIKE 'Rx%'
+		
+		UNION ALL
+		
+		SELECT DISTINCT i.concept_code_2 AS from_code,
+			c.concept_id,
+			12 -- add the set of source attributes
+		FROM internal_relationship_stage i
+		JOIN drug_concept_stage ON i.concept_code_2 = concept_code
+			AND concept_class_id IN (
+				'Ingredient',
+				'Brand Name',
+				'Suppier',
+				'Dose Form'
+				)
+		JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
+			AND relationship_id IN (
+				'Maps to',
+				'Source - RxNorm eq'
+				)
+		JOIN concept c ON c.concept_code = cr.concept_code_2
+			AND c.vocabulary_id LIKE 'Rx%'
+		--Proceed packs
+		
+		UNION ALL
+		
+		-- existing mapping
+		SELECT DISTINCT pack_concept_code AS from_code,
+			pack_concept_id,
+			13
+		FROM q_existing_pack q
+		JOIN r_existing_pack USING (
+				components,
+				cnt,
+				bn_id,
+				bs,
+				mf_id
+				)
+		
+		UNION ALL
+		
+		-- Map Packs to corresponding Rx Packs without a supplier 
+		SELECT DISTINCT pack_concept_code AS from_code,
+			pack_concept_id,
+			14
+		FROM q_existing_pack q
+		JOIN r_existing_pack USING (
+				components,
+				cnt,
+				bn_id,
+				bs
+				)
+		
+		UNION ALL
+		
+		-- Map Packs to corresponding Rx Packs without a supplier and box_size
+		SELECT DISTINCT pack_concept_code AS from_code,
+			pack_concept_id,
+			15
+		FROM q_existing_pack q
+		JOIN r_existing_pack USING (
+				components,
+				cnt,
+				bn_id
+				)
+		
+		UNION ALL
+		
+		-- Map Packs to corresponding Rx Packs without a supplier, box size and brand name
+		SELECT DISTINCT pack_concept_code AS from_code,
+			pack_concept_id,
+			16
+		FROM q_existing_pack q
+		JOIN r_existing_pack USING (
+				components,
+				cnt
+				)
+		) s0
+	) s1
+WHERE s1.map_order = s1.min_map_order;
 
 
 DELETE

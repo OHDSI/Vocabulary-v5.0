@@ -14,7 +14,7 @@ begin
   case pVocabularyID
   when 'UMLS' THEN
       truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel, sources.mrsty;
-      alter table sources.mrconso drop constraint x_mrconso_pk;
+      drop index sources.x_mrconso_aui;
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
       drop index sources.x_mrconso_cui;
@@ -37,11 +37,10 @@ begin
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
       CREATE INDEX x_mrconso_code ON sources.mrconso (code);
       CREATE INDEX x_mrconso_cui ON sources.mrconso (cui);
-      CREATE UNIQUE INDEX x_mrconso_pk ON sources.mrconso (aui);
+      CREATE INDEX x_mrconso_aui ON sources.mrconso (aui);
       CREATE INDEX x_mrconso_sab_tty ON sources.mrconso (sab, tty);
       CREATE INDEX x_mrconso_scui ON sources.mrconso (scui);
       CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
-      ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;
       analyze sources.mrhier;
       analyze sources.mrmap;
@@ -49,6 +48,7 @@ begin
       analyze sources.mrsat;
       analyze sources.mrrel;
       analyze sources.mrsty;
+      PERFORM sources_archive.AddVocabularyToArchive('UMLS', ARRAY['mrconso','mrhier','mrmap','mrsmap','mrsat','mrrel','mrsty'], COALESCE(pVocabularyDate,current_date), 'archive.umls_version', 5);
   when 'CIEL' then
       --set local datestyle='ISO, DMY'; --set proper date format
       truncate table sources.ciel_concept, sources.ciel_concept_class, sources.ciel_concept_name, sources.ciel_concept_reference_map, sources.ciel_concept_reference_term, sources.ciel_concept_reference_source;
@@ -104,6 +104,7 @@ begin
       analyze sources.rxnrel;
       analyze sources.rxnatomarchive;
       analyze sources.rxnconso;
+      PERFORM sources_archive.AddVocabularyToArchive('RxNorm', ARRAY['rxnatomarchive','rxnconso','rxnrel','rxnsat'], COALESCE(pVocabularyDate,current_date), 'archive.rxnorm_version', 10);
   when 'DRG' then
       truncate table sources.fy_table_5;
       execute 'COPY sources.fy_table_5 (drg_code,filler_column1,filler_column2,filler_column3,filler_column4,
@@ -142,6 +143,7 @@ begin
       UPDATE sources.opcs SET cui = REPLACE (cui, '–', '-') WHERE cui LIKE '%–%'; --remove long dashes
       analyze sources.opcs;
       analyze sources.opcssctmap;
+      PERFORM sources_archive.AddVocabularyToArchive('OPCS4', ARRAY['opcs','opcssctmap'], COALESCE(pVocabularyDate,current_date), 'archive.opcs4_version', 10);
   when 'READ' then
       truncate table sources.keyv2, sources.rcsctmap2_uk;
       execute 'COPY sources.keyv2 (termclass,classnumber,description_short,description,description_long,termcode,lang,readcode,digit) FROM '''||pVocabularyPath||'Keyv2.all'' delimiter '','' csv FORCE NULL termclass,description_short,description,description_long';
@@ -181,7 +183,7 @@ begin
       analyze sources.retchch0_etc_hicseqn_hist;
   when 'MEDDRA' then
       truncate table sources.hlgt_pref_term, sources.hlgt_hlt_comp, sources.hlt_pref_term, sources.hlt_pref_comp, sources.low_level_term, 
-      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed;
+      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed, sources.meddra_mappedfrom_icd10;
       execute 'COPY sources.hlgt_pref_term FROM '''||pVocabularyPath||'hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlgt_hlt_comp FROM '''||pVocabularyPath||'hlgt_hlt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlt_pref_term FROM '''||pVocabularyPath||'hlt.asc'' delimiter ''$'' csv quote E''\b''';
@@ -193,7 +195,10 @@ begin
       execute 'COPY sources.soc_hlgt_comp FROM '''||pVocabularyPath||'soc_hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       insert into sources.meddra_mapsto_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',0);
       insert into sources.meddra_mappedfrom_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',1);
+      insert into sources.meddra_mappedfrom_icd10 select * from sources.py_xlsparse_meddra_icd10(pVocabularyPath||'/meddra_mappings_icd10.xlsx',0);
       update sources.hlt_pref_comp set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      PERFORM sources_archive.AddVocabularyToArchive('MedDRA', ARRAY['hlgt_pref_term','hlgt_hlt_comp','hlt_pref_term','hlt_pref_comp','low_level_term',
+        'md_hierarchy','pref_term','soc_term','soc_hlgt_comp','meddra_mapsto_snomed','meddra_mappedfrom_snomed','meddra_mappedfrom_icd10'], COALESCE(pVocabularyDate,current_date), 'archive.meddra_version', 10);
   when 'GPI' then
       truncate table sources.gpi_name, sources.ndw_v_product;
       execute 'COPY sources.gpi_name (gpi_code,drug_string) FROM '''||pVocabularyPath||'gpi_name.txt'' delimiter '';'' csv quote ''$''';
@@ -218,6 +223,7 @@ begin
       insert into sources.icd10pcs (concept_code, concept_name) select trim(substring (icd10pcs_codes_and_desc from 7 for 7)), trim(substring (icd10pcs_codes_and_desc from 78 for 300)) From  SOURCES.icd10pcs_temp;
       update sources.icd10pcs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       analyze sources.icd10pcs;
+      PERFORM sources_archive.AddVocabularyToArchive('ICD10PCS', ARRAY['icd10pcs'], COALESCE(pVocabularyDate,current_date), 'archive.icd10pcs_version', 10);
   when 'NDC_SPL' then
       truncate table sources.product, sources.package;
       execute 'COPY sources.product (productid,productndc,producttypename,proprietaryname,proprietarynamesuffix,nonproprietaryname,dosageformname,
@@ -382,6 +388,7 @@ begin
       ANALYZE sources.spl2ndc_mappings;
       ANALYZE sources.spl_ext;
       ANALYZE sources.product;
+      PERFORM sources_archive.AddVocabularyToArchive('NDC', ARRAY['product','package','spl2rxnorm_mappings','spl2ndc_mappings','spl_ext'], COALESCE(pVocabularyDate,current_date), 'archive.ndc_version', 30);
   when 'NDC' then
       RAISE EXCEPTION 'Use ''NDC_SPL'' instead of %', pVocabularyID;
   when 'SPL' then
@@ -400,7 +407,7 @@ begin
       execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER FORCE NULL loinc_num, component, property, time_aspct, system, scale_typ, method_typ, class, versionlastchanged, 
          chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, relatednames2, shortname, 
          order_obs, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, example_ucum_units, status_reason, 
-         status_text, change_reason_public, common_test_rank, common_order_rank, common_si_test_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
+         status_text, change_reason_public, common_test_rank, common_order_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
          versionfirstreleased, validhl7attachmentrequest, displayname';
       alter table sources.loinc ADD COLUMN vocabulary_date date;
       alter table sources.loinc ADD COLUMN vocabulary_version VARCHAR (200);
@@ -415,7 +422,8 @@ begin
       update sources.loinc_answerslist set displaytext=substr(displaytext,1,255) where length(displaytext)>255;
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'loincanswerlistlink.csv'' delimiter '','' csv HEADER';
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
-      execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER';
+      --execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER'; --use csvcut (pip3 install csvkit --user) for parsing and ignoring new last columns
+      execute 'COPY sources.loinc_forms FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-28 "'||pVocabularyPath||'panelsandforms.csv" '' delimiter '','' csv HEADER';
       truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'parentgroupattributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
@@ -429,6 +437,9 @@ begin
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
       execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'cpt_mrsmap.rrf'' delimiter ''|'' csv';
       execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'documentontology.csv'' delimiter '','' csv HEADER';
+      PERFORM sources_archive.AddVocabularyToArchive('LOINC', ARRAY['loinc','map_to','source_organization','loinc_hierarchy','loinc_documentontology','loinc_answerslist','loinc_answerslistlink','loinc_forms',
+        'loinc_group','loinc_parentgroupattributes','loinc_grouploincterms','loinc_partlink_primary','loinc_partlink_supplementary','loinc_part','loinc_radiology','loinc_class','cpt_mrsmap',
+        'scccrefset_expressionassociation_int','scccrefset_mapcorrorfull_int'], COALESCE(pVocabularyDate,current_date), 'archive.loinc_version', 10);
   when 'HCPCS' then
       truncate table sources.anweb_v2;
       insert into sources.anweb_v2 
@@ -436,8 +447,9 @@ begin
         TO_DATE(add_date,'YYYYMMDD'),TO_DATE(act_eff_dt,'YYYYMMDD'),TO_DATE(term_dt ,'YYYYMMDD'),
         COALESCE(pVocabularyDate,current_date),COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) 
         from sources.py_xlsparse_hcpcs(pVocabularyPath||'/HCPC_CONTR_ANWEB.xlsx') where add_date ~ '\d{6}';
+      PERFORM sources_archive.AddVocabularyToArchive('HCPCS', ARRAY['anweb_v2'], COALESCE(pVocabularyDate,current_date), 'archive.hcpcs_version', 10);
   when 'SNOMED' then
-      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_language_merged;
+      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_attributevalue_full_merged, sources.der2_crefset_language_merged;
       drop index sources.idx_concept_merged_id;
       drop index sources.idx_desc_merged_id;
       drop index sources.idx_rela_merged_id;
@@ -489,6 +501,17 @@ begin
         AND s_int.active = s.active AND s_int.moduleid=s.moduleid
         AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
         AND s_int.targetcomponent = s.targetcomponent AND s_int.ctid > s.ctid);
+      --loading der2_crefset_attributevalue_full_merged
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_crefset_attributevalue_full_merged FROM '''||pVocabularyPath||'der2_cRefset_AttributeValue_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --delete duplicate records
+      DELETE FROM sources.der2_crefset_attributevalue_full_merged s WHERE EXISTS (SELECT 1 FROM sources.der2_crefset_attributevalue_full_merged s_int 
+      	WHERE s_int.id = s.id AND s_int.effectivetime=s.effectivetime
+        AND s_int.active = s.active AND s_int.moduleid=s.moduleid
+        AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
+        AND s_int.valueid = s.valueid AND s_int.ctid > s.ctid);
       CREATE INDEX idx_concept_merged_id ON sources.sct2_concept_full_merged (id);
       CREATE INDEX idx_desc_merged_id ON sources.sct2_desc_full_merged (conceptid);
       CREATE INDEX idx_rela_merged_id ON sources.sct2_rela_full_merged (id);
@@ -518,6 +541,8 @@ begin
       --loading der2_iisssccrefset_extendedmapfull_us
       truncate table sources.der2_iisssccrefset_extendedmapfull_us;
       execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      PERFORM sources_archive.AddVocabularyToArchive('SNOMED', ARRAY['sct2_concept_full_merged','sct2_desc_full_merged','sct2_rela_full_merged','der2_crefset_assreffull_merged','der2_crefset_language_merged',
+        'der2_srefset_simplemapfull_int','der2_ssrefset_moduledependency_merged','der2_iisssccrefset_extendedmapfull_us','der2_crefset_attributevalue_full_merged'], COALESCE(pVocabularyDate,current_date), 'archive.snomed_version', 10);
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';
@@ -525,12 +550,13 @@ begin
       	trim(substring (icd10cm_codes_and_desc from 17 for 60)), trim(substring (icd10cm_codes_and_desc from 78)),
         COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) From  sources.icd10cm_temp;
       analyze sources.icd10cm;
+      PERFORM sources_archive.AddVocabularyToArchive('ICD10CM', ARRAY['icd10cm'], COALESCE(pVocabularyDate,current_date), 'archive.icd10cm_version', 5);
   when 'CVX' then
       if pVocabularyDate is null then 
       	RAISE EXCEPTION 'For current vocabulary (%) you must set the pVocabularyDate!', pVocabularyID;
       end if;
       truncate table sources.cvx, sources.cvx_cpt, sources.cvx_vaccine;
-      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
+      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),TRIM(vaccinestatus),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
         sources.py_xlsparse_cvx_codes(pVocabularyPath||'/web_cvx.xlsx');
       insert into sources.cvx_cpt select TRIM(CPT_CODE),TRIM(CPT_DESCRIPTION),TRIM(CVX_SHORT_DESCRIPTION),TRIM(CVX_CODE),TRIM(MAP_COMMENT),LAST_UPDATED_DATE, TRIM(CPT_CODE_ID) from 
         sources.py_xlsparse_cvx_cpt(pVocabularyPath||'/web_cpt.xlsx');
@@ -548,6 +574,7 @@ begin
               WHERE cvx_code = excluded.cvx_code
               )
       WHERE c.cvx_code = excluded.cvx_code;
+      PERFORM sources_archive.AddVocabularyToArchive('CVX', ARRAY['cvx','cvx_cpt','cvx_vaccine','cvx_dates'], pVocabularyDate, 'archive.cvx_version', 30);
   when 'DPD' then
       truncate table sources.dpd_drug_all, sources.dpd_active_ingredients_all, sources.dpd_form_all, sources.dpd_route_all, 
       	sources.dpd_packaging_all, sources.dpd_status_all, sources.dpd_companies_all, sources.dpd_therapeutic_class_all;
@@ -591,9 +618,11 @@ begin
       execute 'COPY sources.dpd_companies_all FROM '''||pVocabularyPath||'comp_ap.txt'' delimiter '','' csv FORCE NULL mfr_code,company_code,company_name,company_type,
       	address_mailing_flag,address_billing_flag,address_notification_flag,address_other,suite_number,street_name,city_name,province,country,postal_code,post_office_box';
       --ther, ther_ia, ther_ap
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ia.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
-      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ap.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc,tc_ahfs_number,tc_ahfs';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ia.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      execute 'COPY sources.dpd_therapeutic_class_all FROM '''||pVocabularyPath||'ther_ap.txt'' delimiter '','' csv ENCODING ''ISO-8859-1'' FORCE NULL tc_atc_number,tc_atc';
+      PERFORM sources_archive.AddVocabularyToArchive('DPD', ARRAY['dpd_drug_all','dpd_active_ingredients_all','dpd_form_all','dpd_route_all','dpd_packaging_all','dpd_status_all','dpd_companies_all',
+        'dpd_therapeutic_class_all'], COALESCE(pVocabularyDate,current_date), 'archive.dpd_version', 30);
   when 'GGR' then
       truncate table sources.ggr_gal, sources.ggr_innm, sources.ggr_ir, sources.ggr_mp, sources.ggr_mpp, sources.ggr_sam;
       execute 'COPY sources.ggr_gal FROM '''||pVocabularyPath||'Gal.csv'' delimiter '';'' csv HEADER';
@@ -609,34 +638,32 @@ begin
       analyze sources.ggr_mp;
       analyze sources.ggr_mpp;
       analyze sources.ggr_sam;
+      PERFORM sources_archive.AddVocabularyToArchive('GGR', ARRAY['ggr_gal','ggr_innm','ggr_ir','ggr_mp','ggr_mpp','ggr_sam'], COALESCE(pVocabularyDate,current_date), 'archive.ggr_version', 30);
   when 'AMT' then
       truncate table sources.amt_full_descr_drug_only, sources.amt_sct2_concept_full_au, sources.amt_rf2_full_relationships, sources.amt_rf2_ss_strength_refset,
-      	sources.amt_sct2_rela_full_au, sources.amt_crefset_language;
+      	sources.amt_crefset_language;
       drop index sources.idx_amt_concept_id;
       drop index sources.idx_amt_descr_id;
       drop index sources.idx_amt_rela_id;
-      drop index sources.idx_amt_rela2_id;
       drop index sources.idx_amt_lang_refid;
       execute 'COPY sources.amt_full_descr_drug_only FROM '''||pVocabularyPath||'sct2_Description_Full-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_sct2_concept_full_au (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_rf2_full_relationships FROM '''||pVocabularyPath||'sct2_Relationship_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_rf2_ss_strength_refset FROM '''||pVocabularyPath||'der2_ccsRefset_StrengthFull_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_crefset_language FROM '''||pVocabularyPath||'der2_cRefset_LanguageFull-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
-      --execute 'COPY sources.amt_sct2_rela_full_au FROM '''||pVocabularyPath||'sct2_Relationship_Full_AU36.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       update sources.amt_sct2_concept_full_au set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       
       create index idx_amt_concept_id on sources.amt_sct2_concept_full_au (id);
       create index idx_amt_descr_id on sources.amt_full_descr_drug_only (conceptid);
       create index idx_amt_rela_id on sources.amt_rf2_full_relationships (id);
-      create index idx_amt_rela2_id on sources.amt_sct2_rela_full_au (id);
       create index idx_amt_lang_refid on sources.amt_crefset_language (referencedcomponentid);
       
       analyze sources.amt_full_descr_drug_only;
       analyze sources.amt_sct2_concept_full_au;
       analyze sources.amt_rf2_full_relationships;
       analyze sources.amt_rf2_ss_strength_refset;
-      analyze sources.amt_sct2_rela_full_au;
       analyze sources.amt_crefset_language;
+      PERFORM sources_archive.AddVocabularyToArchive('AMT', ARRAY['amt_full_descr_drug_only','amt_sct2_concept_full_au','amt_rf2_full_relationships','amt_rf2_ss_strength_refset','amt_crefset_language'], COALESCE(pVocabularyDate,current_date), 'archive.amt_version', 30);
   when 'ISBT' then
       truncate table sources.isbt_product_desc, sources.isbt_classes, sources.isbt_modifiers, sources.isbt_attribute_values, sources.isbt_attribute_groups, 
       	sources.isbt_categories, sources.isbt_modifier_category_map, sources.isbt_version;
@@ -684,6 +711,7 @@ begin
       UPDATE sources.bdpm_ingredient
       SET dosage = '0,05000 g'
       WHERE dosage = '0, 05000';
+      PERFORM sources_archive.AddVocabularyToArchive('BDPM', ARRAY['bdpm_drug','bdpm_ingredient','bdpm_packaging'], COALESCE(pVocabularyDate,current_date), 'archive.bdpm_version', 30);
   when 'ICDO3' THEN
       drop index sources.idx_icdo3_mrconso;
       drop index sources.idx_icdo3_mrrel;
@@ -729,6 +757,7 @@ begin
       analyze sources.vet_sct2_concept_full;
       analyze sources.vet_sct2_desc_full;
       analyze sources.vet_sct2_rela_full;
+      PERFORM sources_archive.AddVocabularyToArchive('SNOMED Veterinary', ARRAY['vet_sct2_concept_full','vet_sct2_desc_full','vet_sct2_rela_full','vet_der2_crefset_assreffull'], COALESCE(pVocabularyDate,current_date), 'archive.snomedvet_version', 10);
   when 'EDI' then
       truncate table sources.edi_data;
       execute 'COPY sources.edi_data (concept_code,concept_name,concept_synonym,domain_id,vocabulary_id,concept_class_id,valid_start_date,valid_end_date,invalid_reason,ancestor_concept_code,previous_concept_code,material,dosage,dosage_unit,sanjung_name) FROM '''||pVocabularyPath||'ediData_UTF8v3.csv'' delimiter '','' csv quote ''"'' HEADER';
@@ -772,6 +801,7 @@ begin
       truncate table sources.icd10gm;
       execute 'COPY sources.icd10gm (concept_code,concept_name) FROM PROGRAM ''cat "'||pVocabularyPath||'icd10gm.csv"| awk -F "\"*;\"*" ''''{print $7";"$9}''''  '' delimiter '';'' csv quote ''"'' ';
       update sources.icd10gm set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      PERFORM sources_archive.AddVocabularyToArchive('ICD10GM', ARRAY['icd10gm'], COALESCE(pVocabularyDate,current_date), 'archive.icd10gm_version', 5);
   when 'CCAM' then
       truncate table sources.ccam_r_acte, sources.ccam_r_menu, sources.ccam_r_acte_ivite, sources.ccam_r_regroupement, sources.ccam_version;
       execute 'COPY sources.ccam_r_acte FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_ACTE.dbf" | awk "{if(NR>1)print}" ''';
@@ -781,6 +811,7 @@ begin
       execute 'COPY sources.ccam_version (vocabulary_date) FROM PROGRAM ''cat "'||pVocabularyPath||'R_ACTE.txt" | awk "{if(NR==1)print}" ''';
       update sources.ccam_version set vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       analyze sources.ccam_r_acte;
+      PERFORM sources_archive.AddVocabularyToArchive('CCAM', ARRAY['ccam_r_acte','ccam_r_menu','ccam_r_acte_ivite','ccam_r_regroupement','ccam_version'], (select vocabulary_date from sources.ccam_version limit 1), 'archive.ccam_version', 5);
   when 'HEMONC' then
       truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
       alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
@@ -790,6 +821,7 @@ begin
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
       alter table sources.hemonc_cs alter column valid_end_date type date using valid_end_date::date; --return proper type
+      PERFORM sources_archive.AddVocabularyToArchive('HemOnc', ARRAY['hemonc_cs','hemonc_crs','hemonc_css'], COALESCE(pVocabularyDate,current_date), 'archive.hemonc_version', 30);
   when 'DMD' then
       truncate table sources.f_lookup2, sources.f_ingredient2, sources.f_vtm2, sources.f_vmp2, sources.f_vmpp2, sources.f_amp2, sources.f_ampp2, sources.dmdbonus;
       execute 'COPY sources.f_lookup2 (xmlfield) FROM '''||pVocabularyPath||'f_lookup2.xml'' delimiter E''\b''';
@@ -801,6 +833,7 @@ begin
       execute 'COPY sources.f_ampp2 FROM '''||pVocabularyPath||'f_ampp2.xml'' delimiter E''\b''';
       execute 'COPY sources.dmdbonus FROM '''||pVocabularyPath||'dmdbonus.xml'' delimiter E''\b''';
       update sources.f_lookup2 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      PERFORM sources_archive.AddVocabularyToArchive('dm+d', ARRAY['f_lookup2','f_ingredient2','f_vtm2','f_vmp2','f_vmpp2','f_amp2','f_ampp2','dmdbonus'], COALESCE(pVocabularyDate,current_date), 'archive.dmd_version', 30);
   when 'DM+D' then
       RAISE EXCEPTION 'Use ''DMD'' instead of %', pVocabularyID;
   when 'SOPT' then
@@ -819,6 +852,7 @@ begin
       execute 'COPY sources.invdrug_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-15'' HEADER';
       insert into sources.invdrug_pharmsub select concept_id, trim(pt), trim(sy), trim(cas_registry), trim(fda_unii_code), COALESCE(pVocabularyDate,current_date), COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from sources.py_xlsparse_ncit(pVocabularyPath||'/ncit_pharmsub.xlsx');
       execute 'COPY sources.invdrug_inxight FROM '''||pVocabularyPath||'dump-public.gsrs'' delimiter E''\b'' csv quote E''\f''';
+      PERFORM sources_archive.AddVocabularyToArchive('OMOP Invest Drug', ARRAY['invdrug_antineopl','invdrug_pharmsub','invdrug_inxight'], COALESCE(pVocabularyDate,current_date), 'archive.omopinvestdrug_version', 30);
   when 'CIVIC' then
       truncate table sources.civic_variantsummaries_raw, sources.civic_variantsummaries;
       --CIViC has a problem with assertion_civic_urls field, it contains TABs without escaping
@@ -832,6 +866,53 @@ begin
       ) s0;
       --execute 'COPY sources.civic_variantsummaries (variant_id,variant_civic_url,gene,entrez_id,variant,summary,variant_groups,chromosome,start,stop,reference_bases,variant_bases,representative_transcript,ensembl_version,reference_build,chromosome2,start2,stop2,representative_transcript2,variant_types,hgvs_expressions,last_review_date,civic_variant_evidence_score,allele_registry_id,clinvar_ids,variant_aliases,assertion_ids,assertion_civic_urls,is_flagged) FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\t'' csv quote E''\b'' HEADER';
       --update sources.civic_variantsummaries set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      PERFORM sources_archive.AddVocabularyToArchive('CIViC', ARRAY['civic_variantsummaries'], COALESCE(pVocabularyDate,current_date), 'archive.civic_version', 10);
+  when 'META' THEN
+      truncate table sources.meta_mrconso, sources.meta_mrhier, sources.meta_mrmap, sources.meta_mrsmap, sources.meta_mrsat, sources.meta_mrrel, sources.meta_mrsty, sources.meta_mrdef, sources.meta_mrsab, sources.meta_ncimeme;
+      drop index sources.idx_meta_mrsat_cui;
+      drop index sources.idx_meta_mrconso_code;
+      drop index sources.idx_meta_mrconso_cui;
+      drop index sources.idx_meta_mrconso_aui;
+      drop index sources.idx_meta_mrconso_sab_tty;
+      drop index sources.idx_meta_mrconso_scui;
+      drop index sources.idx_meta_mrsty_cui;
+      drop index sources.idx_meta_mrdef_sab_cui;
+      drop index sources.idx_meta_ncimeme_conceptcode;
+
+      execute 'COPY sources.meta_mrconso FROM '''||pVocabularyPath||'MRCONSO.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrhier FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-10 --delimiter="|" "'||pVocabularyPath||'MRHIER.RRF" '' delimiter '','' csv';
+      execute 'COPY sources.meta_mrmap FROM '''||pVocabularyPath||'MRMAP.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsmap FROM '''||pVocabularyPath||'MRSMAP.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsat FROM '''||pVocabularyPath||'MRSAT.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrrel FROM '''||pVocabularyPath||'MRREL.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsty FROM '''||pVocabularyPath||'MRSTY.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrdef FROM '''||pVocabularyPath||'MRDEF.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsab (vcui, rcui, vsab, rsab, son, sf, sver, vstart, vend, imeta, rmeta, slc, scc, srl, tfr, cfr, cxty, ttyl, atnl, lat, cenc, curver, sabin, ssn, scit, vocabulary_date) FROM '''||pVocabularyPath||'MRSAB.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_ncimeme FROM '''||pVocabularyPath||'NCIMEME.txt'' delimiter ''|'' csv quote E''\b''';
+      update sources.meta_mrsab set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+            
+      create index idx_meta_mrsat_cui on sources.meta_mrsat (cui);
+      create index idx_meta_mrconso_code on sources.meta_mrconso (code);
+      create index idx_meta_mrconso_cui on sources.meta_mrconso (cui);
+      create index idx_meta_mrconso_aui on sources.meta_mrconso (aui);
+      create index idx_meta_mrconso_sab_tty on sources.meta_mrconso (sab,tty);
+      create index idx_meta_mrconso_scui on sources.meta_mrconso (scui);
+      create index idx_meta_mrsty_cui on sources.meta_mrsty (cui);
+      create index idx_meta_mrdef_sab_cui on sources.meta_mrdef (sab,cui);
+      create index idx_meta_ncimeme_conceptcode on sources.meta_ncimeme (conceptcode);
+      
+      analyze sources.meta_mrconso;
+      analyze sources.meta_mrhier;
+      analyze sources.meta_mrmap;
+      analyze sources.meta_mrsmap;
+      analyze sources.meta_mrsat;
+      analyze sources.meta_mrrel;
+      analyze sources.meta_mrsty;
+      analyze sources.meta_mrdef;
+      analyze sources.meta_mrsab;
+      analyze sources.meta_ncimeme;
+      
+      PERFORM sources_archive.AddVocabularyToArchive('META', ARRAY['meta_mrconso','meta_mrhier','meta_mrmap','meta_mrsmap','meta_mrsat','meta_mrrel','meta_mrsty','meta_mrdef','meta_mrsab','meta_ncimeme'], COALESCE(pVocabularyDate,current_date), 'archive.meta_version', 5);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

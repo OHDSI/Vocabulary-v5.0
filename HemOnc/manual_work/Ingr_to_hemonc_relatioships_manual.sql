@@ -1,3 +1,4 @@
+--one-off use .sql
 -- In order to preserve inetervocabulary structure  working with newly created RxIngredients (mostly -  reclassified Precise Ingredients) we have to build reliable links from de-novo Rxs to HemOnc
 --The approach is to build the relationships from Rx Ings to HemOnc use the script cloning all the relevant links from HemOnc components to HemOnc Others
 

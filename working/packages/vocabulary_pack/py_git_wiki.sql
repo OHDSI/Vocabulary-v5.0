@@ -129,3 +129,5 @@ $BODY$
   return 'OK'
 $BODY$
 LANGUAGE 'plpython3u' STRICT;
+
+REVOKE EXECUTE ON FUNCTION vocabulary_pack.py_git_wiki FROM PUBLIC, role_read_only;

@@ -42,12 +42,11 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---1   ProcessManualConcepts
+--1. ProcessManualConcepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
-
 
 --2. Add manual relationships
 DO $_$
@@ -61,32 +60,11 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---4 Add mapping from deprecated to fresh concepts (necessary for the next step)
+--4. Add mapping from deprecated to fresh concepts (necessary for the next step)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
-
---4.1. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> ICDO3, but currently we are updating NAACCR)
-DELETE
-FROM concept_relationship_stage crs_o
-WHERE (
-		crs_o.concept_code_1,
-		crs_o.vocabulary_id_1,
-		crs_o.concept_code_2,
-		crs_o.vocabulary_id_2
-		) IN (
-		SELECT crs.concept_code_1,
-			crs.vocabulary_id_1,
-			crs.concept_code_2,
-			crs.vocabulary_id_2
-		FROM concept_relationship_stage crs
-		LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
-			AND v1.latest_update IS NOT NULL
-		LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2
-			AND v2.latest_update IS NOT NULL
-		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
-		);
 
 --5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$

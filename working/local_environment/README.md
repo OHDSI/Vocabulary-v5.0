@@ -8,6 +8,13 @@ This document describes the local database preparation that needs to be done for
 
 PostgreSQL 14 or higher.
 
+# Creating Extensions
+
+Pgcrypto and Tablefunc extensions should be installed for some functions to work correctly. 
+Create extensions:
+>CREATE EXTENSION pg_trgm;  
+>CREATE EXTENSION tablefunc;
+
 # Creating Schemas
 
 As an initial step, it needs to create schemas in the database. 
@@ -59,36 +66,6 @@ This section describes the features and procedures that should be installed in t
 ## qa_tests
 
 - Functions from [Vocabulary-v5.0/working/packages/QA_TESTS at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/QA_TESTS)
-
-## admin_pack
-
-Pgcrypto and Tablefunc extensions should be installed for some functions to work correctly. 
-Create extensions:
->CREATE EXTENSION pgcrypto;  
->CREATE EXTENSION tablefunc;
-
-- admin_pack_ddl.sql  
-    [Vocabulary-v5.0/working/packages/admin_pack/admin_pack_ddl.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/admin_pack_ddl.sql)
-- VirtualLogIn()  
-    [Vocabulary-v5.0/working/packages/admin_pack/VirtualLogIn.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/VirtualLogIn.sql)
-- CreateVirtualUser()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CreateVirtualUser.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CreateVirtualUser.sql)
-- CheckUserPrivilege()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CheckUserPrivilege.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CheckUserPrivilege.sql)
-- GetUserID()  
-    [Vocabulary-v5.0/working/packages/admin_pack/GetUserID.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/GetUserID.sql)
-- CheckEmailCharacters()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CheckEmailCharacters.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CheckEmailCharacters.sql)
-- CheckLoginCharacters()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CheckLoginCharacters.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CheckLoginCharacters.sql)
-- CheckPasswordStrength()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CheckPasswordStrength.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CheckPasswordStrength.sql)
-- CheckPrivilegeCharacters()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CheckPrivilegeCharacters.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CheckPrivilegeCharacters.sql)
-- CheckUserSpecificVocabulary()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CheckUserSpecificVocabulary.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CheckUserSpecificVocabulary.sql)
-- CreatePrivilege()  
-    [Vocabulary-v5.0/working/packages/admin_pack/CreatePrivilege.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/CreatePrivilege.sql)
 
 # Creating Tables
 
@@ -172,6 +149,5 @@ Filling out source tables according to instructions for vocabulary you are going
 
 1. **devv5**.FastRecreateSchema()
 2. Load_Stage in **dev_schema_name**
-3. **qa_tests**.check_stage_tables()
-4. **devv5**.GenericUpdate
-5. **qa_tests**.get_\* functions
+3. **devv5**.GenericUpdate
+4. **qa_tests**.get_\* functions

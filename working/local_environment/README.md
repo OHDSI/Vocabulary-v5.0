@@ -14,6 +14,7 @@ Pgcrypto and Tablefunc extensions should be installed for some functions to work
 Create extensions:
 >CREATE EXTENSION pg_trgm;  
 >CREATE EXTENSION tablefunc;
+>CREATE EXTENSION plpython3u;
 
 # Creating Schemas
 

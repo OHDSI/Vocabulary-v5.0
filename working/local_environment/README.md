@@ -13,7 +13,7 @@ PostgreSQL 14 or higher.
 Pgcrypto and Tablefunc extensions should be installed for some functions to work correctly. 
 Create extensions:
 >CREATE EXTENSION pg_trgm;  
->CREATE EXTENSION tablefunc;
+>CREATE EXTENSION tablefunc;  
 >CREATE EXTENSION plpython3u;
 
 # Creating Schemas

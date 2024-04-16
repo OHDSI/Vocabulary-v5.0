@@ -75,7 +75,7 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 --Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
 --This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
 
-with old_syn as (
+WITH old_syn AS (
 SELECT c.concept_code,
        c.vocabulary_id,
        cs.language_concept_id as old_language_concept_id,
@@ -89,7 +89,7 @@ GROUP BY
        c.vocabulary_id,
        cs.language_concept_id
 ),
-new_syn as (
+new_syn AS (
 SELECT c.concept_code,
        c.vocabulary_id,
        cs.language_concept_id as new_language_concept_id,

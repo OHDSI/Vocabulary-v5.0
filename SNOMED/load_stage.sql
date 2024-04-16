@@ -23,7 +23,7 @@ CREATE OR REPLACE VIEW module_date AS
 SELECT s0.moduleid,
 	CASE 
 		WHEN s0.moduleid = '900000000000207008'
-			THEN TO_CHAR(MIN(s0.int_version) OVER (), 'yyyy-mm-dd')
+			THEN TO_CHAR(MAX(s0.int_version) OVER (), 'yyyy-mm-dd')
 		ELSE s0.local_version
 		END AS version
 FROM (
@@ -1655,20 +1655,25 @@ SET standard_concept = CASE domain_id
 		ELSE 'S'
 		END;
 
---17.1. De-standardize navigational concepts
+-- 17.1. Make invalid concepts non-standard:
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE invalid_reason IS NOT NULL;
+
+--17.2. De-standardize navigational concepts
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code = '363743006' -- Navigational Concept
 	AND cs.concept_code = sa.descendant_concept_code;
 
---17.2. Make those Obsolete routes non-standard
+--17.3. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---17.3 Make domain 'Geography' non-standard, except countries:
+--17.4 Make domain 'Geography' non-standard, except countries:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id = 'Location'
@@ -1678,7 +1683,7 @@ AND concept_code NOT IN (
 		WHERE ancestor_concept_code = '223369002' -- Country
 		);
 
---17.4 Make procedures with the context = 'Done' non-standard:
+--17.5 Make procedures with the context = 'Done' non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -1691,7 +1696,7 @@ WHERE EXISTS (
 			AND crs.invalid_reason IS NULL
 		);
 
---17.5 Make certain hierarchical branches non-standard:
+--17.6 Make certain hierarchical branches non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
@@ -1715,7 +1720,7 @@ WHERE sa.ancestor_concept_code IN (
 		)
 	AND cs.concept_code = sa.descendant_concept_code;
 
---17.6 Make certain concept classes non-standard:
+--17.7 Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id IN (

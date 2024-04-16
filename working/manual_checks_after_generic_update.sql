@@ -75,53 +75,63 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 --Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
 --This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
 
-WITH old_syn AS (
-
+with old_syn as (
 SELECT c.concept_code,
        c.vocabulary_id,
-       cs.language_concept_id,
-       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) AS old_synonym
+       cs.language_concept_id as old_language_concept_id,
+       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as old_synonym
 FROM devv5.concept c
 JOIN devv5.concept_synonym cs
     ON c.concept_id = cs.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
-GROUP BY c.concept_code,
+GROUP BY
+    c.concept_code,
        c.vocabulary_id,
        cs.language_concept_id
 ),
-
-new_syn AS (
-
+new_syn as (
 SELECT c.concept_code,
        c.vocabulary_id,
-       cs.language_concept_id,
-       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) AS new_synonym
+       cs.language_concept_id as new_language_concept_id,
+       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as new_synonym
 FROM concept c
 JOIN concept_synonym cs
     ON c.concept_id = cs.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
-GROUP BY c.concept_code,
+GROUP BY
+    c.concept_code,
        c.vocabulary_id,
        cs.language_concept_id
 )
-
 SELECT DISTINCT
-       o.concept_code,
-       o.vocabulary_id,
-       o.old_synonym,
-       n.new_synonym,
-       devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
+    o.concept_code,
+    o.vocabulary_id,
+    o.old_synonym,
+    n.new_synonym,
+    o.old_language_concept_id,
+    n.new_language_concept_id,
+    CASE
+        WHEN o.old_synonym = n.new_synonym AND o.old_language_concept_id != n.new_language_concept_id THEN
+            1
+        WHEN (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id != n.new_language_concept_id THEN
+            2
+    END AS language_changed,
+    CASE
+        WHEN (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id = n.new_language_concept_id THEN
+             devv5.similarity(o.old_synonym::varchar, n.new_synonym::varchar)
+        WHEN (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id != n.new_language_concept_id THEN
+             devv5.similarity(o.old_synonym::varchar, n.new_synonym::varchar)
+        --ELSE 0
+    END AS similarity_or_condition
 FROM old_syn o
-
 LEFT JOIN new_syn n
     ON o.concept_code = n.concept_code
         AND o.vocabulary_id = n.vocabulary_id
-        AND o.language_concept_id = n.language_concept_id
-
-WHERE o.old_synonym != n.new_synonym OR n.new_synonym IS NULL
-
-ORDER BY devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
-;
+WHERE
+    o.old_synonym = n.new_synonym AND o.old_language_concept_id != n.new_language_concept_id
+    OR (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id = n.new_language_concept_id
+    OR (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id != n.new_language_concept_id
+ORDER BY similarity_or_condition, language_changed;
 
 --02. Mapping of concepts
 
@@ -955,7 +965,7 @@ WHERE c.vocabulary_id IN (:your_vocabs)
                     WHERE cr2.relationship_id IN ('Maps to')
                         AND cr2.invalid_reason IS NULL
                         AND cr2.concept_id_1 = cr.concept_id_1)
-    AND cr.relationship_id IN ('Concept replaced by', 'Concept same_AS to', 'Concept alt_to to', 'Concept was_a to')
+    AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
 
@@ -970,7 +980,7 @@ FROM concept_relationship_manual crm1
          AND crm1.concept_code_2 = crm2.concept_code_1
 WHERE (crm1.relationship_id = 'Maps to' AND crm2.relationship_id = 'Mapped from')
 OR (crm1.relationship_id = 'Is a' AND crm2.relationship_id = 'Subsumes')
-OR (crm1.relationship_id = 'Maps to value' AND crm2.relationship_id = 'Value mapped FROM')
+OR (crm1.relationship_id = 'Maps to value' AND crm2.relationship_id = 'Value mapped from')
 AND crm1.vocabulary_id_1 = crm2.vocabulary_id_2
 AND crm2.vocabulary_id_1 = crm1.vocabulary_id_2
 AND crm1.vocabulary_id_1 IN (:your_vocabs)

@@ -76,52 +76,62 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 --This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
 
 with old_syn as (
-
 SELECT c.concept_code,
        c.vocabulary_id,
-       cs.language_concept_id,
+       cs.language_concept_id as old_language_concept_id,
        array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as old_synonym
 FROM devv5.concept c
 JOIN devv5.concept_synonym cs
     ON c.concept_id = cs.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
-GROUP BY c.concept_code,
+GROUP BY
+    c.concept_code,
        c.vocabulary_id,
        cs.language_concept_id
 ),
-
 new_syn as (
-
 SELECT c.concept_code,
        c.vocabulary_id,
-       cs.language_concept_id,
+       cs.language_concept_id as new_language_concept_id,
        array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as new_synonym
 FROM concept c
 JOIN concept_synonym cs
     ON c.concept_id = cs.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
-GROUP BY c.concept_code,
+GROUP BY
+    c.concept_code,
        c.vocabulary_id,
        cs.language_concept_id
 )
-
 SELECT DISTINCT
-       o.concept_code,
-       o.vocabulary_id,
-       o.old_synonym,
-       n.new_synonym,
-       devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
+    o.concept_code,
+    o.vocabulary_id,
+    o.old_synonym,
+    n.new_synonym,
+    o.old_language_concept_id,
+    n.new_language_concept_id,
+    CASE
+        WHEN o.old_synonym = n.new_synonym AND o.old_language_concept_id != n.new_language_concept_id THEN
+            1
+        WHEN (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id != n.new_language_concept_id THEN
+            2
+    END AS language_changed,
+    CASE
+        WHEN (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id = n.new_language_concept_id THEN
+             devv5.similarity(o.old_synonym::varchar, n.new_synonym::varchar)
+        WHEN (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id != n.new_language_concept_id THEN
+             devv5.similarity(o.old_synonym::varchar, n.new_synonym::varchar)
+        --ELSE 0
+    END AS similarity_or_condition
 FROM old_syn o
-
 LEFT JOIN new_syn n
     ON o.concept_code = n.concept_code
         AND o.vocabulary_id = n.vocabulary_id
-        AND o.language_concept_id = n.language_concept_id
-
-WHERE o.old_synonym != n.new_synonym OR n.new_synonym IS NULL
-
-ORDER BY devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
-;
+WHERE
+    o.old_synonym = n.new_synonym AND o.old_language_concept_id != n.new_language_concept_id
+    OR (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id = n.new_language_concept_id
+    OR (o.old_synonym != n.new_synonym OR n.new_synonym IS NULL) AND o.old_language_concept_id != n.new_language_concept_id
+ORDER BY similarity_or_condition, language_changed;
 
 --02. Mapping of concepts
 

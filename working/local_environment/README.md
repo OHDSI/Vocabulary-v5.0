@@ -34,13 +34,10 @@ This section describes the features and procedures that should be installed in t
 
 ## devv5
 
-- GenericUpdate() (a version of the GenericUpdate function for a local environment)
-    [Vocabulary-v5.0/working/generic_update.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/local_environment/working/generic_update.sql)
-- FastRecreateSchema()  
-    [Vocabulary-v5.0/working/fast_recreate_schema.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/fast_recreate_schema.sql)
-- GetPrimaryRelationshipID() [Vocabulary-v5.0/working/packages/admin_pack/GetPrimaryRelationshipID.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/GetPrimaryRelationshipID.sql)
-- Functions from  
-    [Vocabulary-v5.0/working/packages/DevV5_additional_functions](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/DevV5_additional_functions)
+- GenericUpdate() (a version of the GenericUpdate function for a local environment)  [Vocabulary-v5.0/working/generic_update.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/local_environment/working/generic_update.sql)
+- FastRecreateSchema()  [Vocabulary-v5.0/working/fast_recreate_schema.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/fast_recreate_schema.sql)
+- GetPrimaryRelationshipID()  [Vocabulary-v5.0/working/packages/admin_pack/GetPrimaryRelationshipID.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/GetPrimaryRelationshipID.sql)
+- Functions from  [Vocabulary-v5.0/working/packages/DevV5_additional_functions](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/DevV5_additional_functions)
 
 ## vocabulary_pack
 

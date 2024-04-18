@@ -41,25 +41,16 @@ This section describes the features and procedures that should be installed in t
 
 ## vocabulary_pack
 
-- DropFKConstraints()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/DropFKConstraints.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DropFKConstraints.sql)
-- SetLatestUpdate()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/SetLatestUpdate.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/SetLatestUpdate.sql)
-- ProcessManualSynonyms()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualSynonyms.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualSynonyms.sql)
-- CheckManualSynonyms()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckManualSynonyms.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckManualSynonyms.sql)
-- ProcessManualRelationships()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualRelationships.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualRelationships.sql)
-- CheckReplacementMappings()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckReplacementMappings.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckReplacementMappings.sql)
-- AddFreshMAPSTO()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/AddFreshMAPSTO.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/AddFreshMAPSTO.sql)
-- GetActualConceptInfo() [Vocabulary-v5.0/working/packages/vocabulary_pack/GetActualConceptInfo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/GetActualConceptInfo.sql)
-- DeprecateWrongMapsTo() [Vocabulary-v5.0/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql)
-- DeleteAmbiguousMapsTo()
-
-[Vocabulary-v5.0/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql)
+- DropFKConstraints()  [Vocabulary-v5.0/working/packages/vocabulary_pack/DropFKConstraints.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DropFKConstraints.sql)
+- SetLatestUpdate()  [Vocabulary-v5.0/working/packages/vocabulary_pack/SetLatestUpdate.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/SetLatestUpdate.sql)
+- ProcessManualSynonyms()  [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualSynonyms.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualSynonyms.sql)
+- CheckManualSynonyms()  [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckManualSynonyms.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckManualSynonyms.sql)
+- ProcessManualRelationships()  [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualRelationships.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualRelationships.sql)
+- CheckReplacementMappings()  [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckReplacementMappings.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckReplacementMappings.sql)
+- AddFreshMAPSTO()  [Vocabulary-v5.0/working/packages/vocabulary_pack/AddFreshMAPSTO.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/AddFreshMAPSTO.sql)
+- GetActualConceptInfo()  [Vocabulary-v5.0/working/packages/vocabulary_pack/GetActualConceptInfo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/GetActualConceptInfo.sql)
+- DeprecateWrongMapsTo()  [Vocabulary-v5.0/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql)
+- DeleteAmbiguousMapsTo()  [Vocabulary-v5.0/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql)
 
 ## qa_tests
 

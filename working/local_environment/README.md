@@ -34,39 +34,39 @@ This section describes the features and procedures that should be installed in t
 
 ## devv5
 
-- GenericUpdate_LE.sql (a version of the GenericUpdate function for a local environment)
-    [Vocabulary-v5.0/working/local_environment/GenericUpdate_LE.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/local_environment/GenericUpdate_LE.sql)
+- GenericUpdate() (a version of the GenericUpdate function for a local environment)
+    [Vocabulary-v5.0/working/generic_update.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/local_environment/working/generic_update.sql)
 - FastRecreateSchema()  
-    [Vocabulary-v5.0/working/fast_recreate_schema.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/fast_recreate_schema.sql)
-- GetPrimaryRelationshipID() [Vocabulary-v5.0/working/packages/admin_pack/GetPrimaryRelationshipID.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/GetPrimaryRelationshipID.sql)
+    [Vocabulary-v5.0/working/fast_recreate_schema.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/fast_recreate_schema.sql)
+- GetPrimaryRelationshipID() [Vocabulary-v5.0/working/packages/admin_pack/GetPrimaryRelationshipID.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/GetPrimaryRelationshipID.sql)
 - Functions from  
-    [Vocabulary-v5.0/working/packages/DevV5_additional_functions at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/DevV5_additional_functions)
+    [Vocabulary-v5.0/working/packages/DevV5_additional_functions](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/DevV5_additional_functions)
 
 ## vocabulary_pack
 
 - DropFKConstraints()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/DropFKConstraints.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DropFKConstraints.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/DropFKConstraints.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DropFKConstraints.sql)
 - SetLatestUpdate()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/SetLatestUpdate.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/SetLatestUpdate.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/SetLatestUpdate.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/SetLatestUpdate.sql)
 - ProcessManualSynonyms()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualSynonyms.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualSynonyms.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualSynonyms.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualSynonyms.sql)
 - CheckManualSynonyms()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckManualSynonyms.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckManualSynonyms.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckManualSynonyms.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckManualSynonyms.sql)
 - ProcessManualRelationships()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualRelationships.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualRelationships.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/ProcessManualRelationships.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/ProcessManualRelationships.sql)
 - CheckReplacementMappings()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckReplacementMappings.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckReplacementMappings.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/CheckReplacementMappings.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/CheckReplacementMappings.sql)
 - AddFreshMAPSTO()  
-    [Vocabulary-v5.0/working/packages/vocabulary_pack/AddFreshMAPSTO.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/AddFreshMAPSTO.sql)
-- GetActualConceptInfo() [Vocabulary-v5.0/working/packages/vocabulary_pack/GetActualConceptInfo.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/GetActualConceptInfo.sql)
-- DeprecateWrongMapsTo() [Vocabulary-v5.0/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql)
+    [Vocabulary-v5.0/working/packages/vocabulary_pack/AddFreshMAPSTO.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/AddFreshMAPSTO.sql)
+- GetActualConceptInfo() [Vocabulary-v5.0/working/packages/vocabulary_pack/GetActualConceptInfo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/GetActualConceptInfo.sql)
+- DeprecateWrongMapsTo() [Vocabulary-v5.0/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeprecateWrongMapsTo.sql)
 - DeleteAmbiguousMapsTo()
 
-[Vocabulary-v5.0/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql)
+[Vocabulary-v5.0/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/DeleteAmbiguousMapsTo.sql)
 
 ## qa_tests
 
-- Functions from [Vocabulary-v5.0/working/packages/QA_TESTS at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/QA_TESTS)
+- Functions from [Vocabulary-v5.0/working/packages/QA_TESTS](https://github.com/OHDSI/Vocabulary-v5.0/tree/master/working/packages/QA_TESTS)
 
 # Creating Tables
 
@@ -83,16 +83,14 @@ In case the table structure already exists in the database, this part can be ski
 When tables are created for the first time, everything should be executed from the script except creating constraints and indexes so that they do not interfere with the import of vocabularies from Athena.
 
 - DevV5_DDL.sql without created, created_by, modified, modified_by fields
-    [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
-    Or just run this script DevV5_tables_DDL.sql from this folder
-- Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)
+    [Vocabulary-v5.0/working/DevV5_DDL.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
+- Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)
 
 ## development schema
 
 - DevV5_DDL.sql without created, created_by, modified, modified_by fields
-    [Vocabulary-v5.0/working/DevV5_DDL.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
-    Or just run this script DevV5_tables_DDL.sql from this folder
-- Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql at master · OHDSI/Vocabulary-v5.0 (github.com)](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)  
+    [Vocabulary-v5.0/working/DevV5_DDL.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
+- Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)  
 
 ## Update Vocabulary table structure
 
@@ -138,9 +136,7 @@ The “COPY” command to import data from CSV files (psql):
 >
 >COPY DOMAIN FROM '&lt;path_to_csv_file&gt;\\DOMAIN.csv' WITH DELIMITER E'\\t' CSV HEADER QUOTE E'\\b';
 
-After all the data has been imported, it is necessary to create constraints and indexes from the DevV5_DDL.sql, mentioned above, or use this script:
-**DevV5_constraints_DDL.sql**
-<https://github.com/OHDSI/Vocabulary-v5.0/blob/master/local_environment/DevV5_constraints_DDL.sql>
+After all the data has been imported, it is necessary to create constraints and indexes from the DevV5_DDL.sql, mentioned above.
 
 # Import Source Data
 

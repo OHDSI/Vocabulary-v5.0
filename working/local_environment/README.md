@@ -1,4 +1,4 @@
-Preparing a Local Environment for the Vocabulary Development Process
+# Preparing a Local Environment for the Vocabulary Development Process
 
 # Description
 

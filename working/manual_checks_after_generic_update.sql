@@ -255,7 +255,8 @@ select a.concept_id,
        string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
        string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
        string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.vocabulary_id end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as vocabulary_agg
+       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.vocabulary_id end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as vocabulary_agg,
+       string_agg (case when (a.concept_code, a.vocabulary_id, r.relationship_id, b.concept_code, b.vocabulary_id) IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 from concept_relationship_manual where vocabulary_id_1 IN (:your_vocabs)) then 'manual file' else 'ls' end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as source_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -289,25 +290,8 @@ select b.vocabulary_id as vocabulary_id,
        a.relationship_agg as old_relat_agg,
        a.code_agg as old_code_agg,
        a.name_agg as old_name_agg,
+       b.source_agg,
        b.relationship_agg as new_relat_agg,
-       CASE WHEN (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 1), split_part(b.code_agg, '-', 1), split_part(b.vocabulary_agg, '-', 1))
-        NOT IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-and (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 2), split_part(b.code_agg, '-', 2), split_part(b.vocabulary_agg, '-', 2))
-        IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-and (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 3), split_part(b.code_agg, '-', 3), split_part(b.vocabulary_agg, '-', 3))
-        IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-and (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 4), split_part(b.code_agg, '-', 4), split_part(b.vocabulary_agg, '-', 4))
-        IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-and (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 5), split_part(b.code_agg, '-', 5), split_part(b.vocabulary_agg, '-', 5))
-        IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-           THEN 'mapping exist in the manual file'
-           ELSE NULL
-           END AS source,
        b.code_agg as new_code_agg,
        b.name_agg as new_name_agg
 from old_map a
@@ -337,7 +321,8 @@ select a.concept_id,
        string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
        string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
        string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.vocabulary_id end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as vocabulary_agg
+       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.vocabulary_id end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as vocabulary_agg,
+       string_agg (case when (a.concept_code, a.vocabulary_id, r.relationship_id, b.concept_code, b.vocabulary_id) IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 from concept_relationship_manual where vocabulary_id_1 IN (:your_vocabs)) then 'manual file' else 'ls' end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as source_agg
 from concept a
 left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 left join concept b on b.concept_id = concept_id_2
@@ -371,27 +356,14 @@ select b.vocabulary_id as vocabulary_id,
        a.relationship_agg as old_relat_agg,
        a.code_agg as old_code_agg,
        a.name_agg as old_name_agg,
+       b.source_agg,
        b.relationship_agg as new_relat_agg,
        b.code_agg as new_code_agg,
        b.name_agg as new_name_agg
 from old_map a
 join new_map b
 on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) or (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
-where (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 1), split_part(b.code_agg, '-', 1), split_part(b.vocabulary_agg, '-', 1))
-        NOT IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-OR (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 2), split_part(b.code_agg, '-', 2), split_part(b.vocabulary_agg, '-', 2))
-        NOT IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-OR (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 3), split_part(b.code_agg, '-', 3), split_part(b.vocabulary_agg, '-', 3))
-        NOT IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-OR (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 4), split_part(b.code_agg, '-', 4), split_part(b.vocabulary_agg, '-', 4))
-        NOT IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
-OR (b.concept_code, b.vocabulary_id, split_part(b.relationship_agg, '-', 5), split_part(b.code_agg, '-', 5), split_part(b.vocabulary_agg, '-', 5))
-        NOT IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    from concept_relationship_manual)
+where b.source_agg !~* 'manual file'
 order by a.concept_code
 ;
 

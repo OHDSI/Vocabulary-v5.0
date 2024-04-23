@@ -58,20 +58,14 @@ This section describes the features and procedures that should be installed in t
 
 # Creating Tables
 
-The next four columns are for internal use only, so they should be excluded from the DevV5_DDL script before execution (from **base_concept_relationship_manual**, **base_concept_manual**, **base_concept_synonym_manual** tables):
-- created
-- created_by
-- modified
-- modified_by
-
 ## Devv5
 
 In case the table structure already exists in the database, this part can be skipped.
 
 When tables are created for the first time, everything should be executed from the script except creating constraints and indexes so that they do not interfere with the import of vocabularies from Athena.
 
-- DevV5_DDL.sql without created, created_by, modified, modified_by fields
-    [Vocabulary-v5.0/working/DevV5_DDL.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_DDL.sql)  
+- DevV5_DDL.sql (create only tables structures without any constraints)
+    [Vocabulary-v5.0/working/DevV5_DDL.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/local_environment/working/DevV5_DDL.sql)  
 - Prepare_manual_tables.sql [Vocabulary-v5.0/working/packages/admin_pack/prepare_manual_tables.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/admin_pack/prepare_manual_tables.sql)
 
 ## development schema

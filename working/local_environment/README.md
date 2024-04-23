@@ -31,6 +31,7 @@ It is also necessary to give an appropriate name to a schema for the vocabulary 
 # Creating Functions
 
 This section describes the features and procedures that should be installed in the database in the appropriate schemas.
+All functions except Generic_Update() (which is in the **local_environment** brantch) are in the **master** branch.
 
 ## devv5
 

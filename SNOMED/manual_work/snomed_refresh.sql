@@ -36,8 +36,8 @@ INSERT INTO concept_manual
 SELECT * FROM concept_manual_backup_YYYY_MM_DD;*/
 
 --3.2. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous snomed refresh.
-
-/*DROP TABLE dev_snomed.snomed_mapped;
+/*
+DROP TABLE dev_snomed.snomed_mapped;
 CREATE TABLE dev_snomed.snomed_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -47,9 +47,14 @@ CREATE TABLE dev_snomed.snomed_mapped
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),
     source_vocabulary_id varchar(50),
+	cr_invalid_reason varchar(1),
+	mapping_tool varchar(255),
+	mapping_source varchar(255),
+	confidence varchar(5),
     relationship_id varchar(50),
-    cr_invalid_reason varchar(1),
+    relationship_id_predicate varchar(10),
     source varchar(255),
+	comments varchar(255),
     target_concept_id int,
     target_concept_code varchar(50),
     target_concept_name varchar(255),
@@ -57,8 +62,11 @@ CREATE TABLE dev_snomed.snomed_mapped
     target_standard_concept varchar(20),
     target_invalid_reason varchar(20),
     target_domain_id varchar(50),
-    target_vocabulary_id varchar(50)
+    target_vocabulary_id varchar(50),
+	mapper_id varchar(10),
+	reviewer_id varchar(10)
 ); */
+
 
 --Adding constraints for unique records
 ALTER TABLE dev_snomed.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
@@ -67,8 +75,14 @@ ALTER TABLE dev_snomed.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source
 TRUNCATE TABLE dev_snomed.snomed_mapped;
 
 --Format after uploading
+UPDATE dev_snomed.snomed_mapped SET mapping_tool = NULL WHERE mapping_tool = '';
+UPDATE dev_snomed.snomed_mapped SET mapping_source = NULL WHERE mapping_source = '';
+UPDATE dev_snomed.snomed_mapped SET confidence = NULL WHERE confidence = '';
+UPDATE dev_snomed.snomed_mapped SET relationship_id_predicate = NULL WHERE relationship_id_predicate = '';
 UPDATE dev_snomed.snomed_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
 UPDATE dev_snomed.snomed_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
+UPDATE dev_snomed.snomed_mapped SET mapper_id = NULL WHERE mapper_id = '';
+UPDATE dev_snomed.snomed_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
 
 --9.2.4 Change concept_relationship_manual table according to snomed_mapped table.
 --Insert new relationships
@@ -126,37 +140,3 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
-
---9.5. Create concept_mapped table and populate it with the resulting manual table of the previous hcpcs refresh
-INSERT INTO concept_manual AS cm
-(concept_name,
- domain_id,
- vocabulary_id,
- concept_class_id,
- standard_concept,
- concept_code,
- valid_start_date,
- valid_end_date,
- invalid_reason)
-SELECT concept_name,
-       domain_id,
-       vocabulary_id,
-       concept_class_id,
-       standard_concept,
-       concept_code,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason
-FROM dev_snomed.cm_update
-
-	ON CONFLICT ON CONSTRAINT unique_manual_concepts
-	DO UPDATE
-	SET concept_name = excluded.concept_name,
-	    domain_id = excluded.domain_id,
-	    standard_concept = excluded.standard_concept,
-	     valid_start_date = excluded.valid_start_date,
-	    valid_end_date = excluded.valid_end_date,
-	    invalid_reason = excluded.invalid_reason
-WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept, cm.invalid_reason)
-	IS DISTINCT FROM
-	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept, excluded.invalid_reason);

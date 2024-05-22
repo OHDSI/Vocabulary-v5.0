@@ -615,6 +615,7 @@ UNION ALL
 			'900000000000073002', --Defined
 			'900000000000074008' --Primitive
 			)
+		AND c.active = 1
 		AND c.moduleid NOT IN (
 			'999000011000001104', --SNOMED CT United Kingdom drug extension module
 			'999000021000001108' --SNOMED CT United Kingdom drug extension reference set module
@@ -686,8 +687,6 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Finding asso with'
 		WHEN typeid = '246075003'
 			THEN 'Has causative agent'
-		WHEN typeid = '263502005'
-			THEN 'Has clinical course'
 		WHEN typeid = '246093002'
 			THEN 'Has component'
 		WHEN typeid = '363699004'
@@ -749,7 +748,11 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Has method'
 		WHEN typeid = '246454002'
 			THEN 'Has occurrence'
-		WHEN typeid = '246100006'
+		WHEN typeid IN (
+		        '246100006',
+		        '263502005',
+		   		'260908002'
+		        )
 			THEN 'Has clinical course'
 		WHEN typeid = '123005000'
 			THEN 'Part of'
@@ -1568,7 +1571,7 @@ WHERE concept_name ILIKE '%score%'
 
 --Trim word 'route' from the concepts in 'Route' domain [AVOC-4087]
 UPDATE concept_stage
-SET concept_name = RTRIM(concept_name, ' route')
+SET concept_name = regexp_replace(concept_name, '\sroute$', '')
 WHERE concept_name LIKE '% route'
 	AND domain_id = 'Route';
 
@@ -1832,7 +1835,17 @@ WHERE EXISTS (
 		FROM concept_stage c
 		WHERE c.concept_code = p.replacementid
 			AND c.standard_concept IS NOT NULL
-		);
+		)
+AND NOT EXISTS(
+       SELECT 1
+       FROM concept_relationship_stage crs
+       WHERE crs.concept_code_1 = p.conceptid
+       AND crs.concept_code_2 = p.replacementid
+       AND crs.vocabulary_id_1 = 'SNOMED'
+       AND crs.vocabulary_id_2 = 'SNOMED'
+       AND crs.relationship_id = 'Maps to'
+       AND crs.invalid_reason IS NULL
+);
 
 --19. Append manual concepts again for final assignment of concept characteristics
 DO $_$

@@ -247,22 +247,22 @@ BEGIN
 		('365737007',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Finding related to ability to process information at normal speed
 		('365748000',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Finding related to ability to analyze information
 		('59274003',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Intentional drug overdose
-		('401783003',			'Device',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Disposable insulin U100 syringe+needle
-		('401826003',			'Device',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Hypodermic U100 insulin syringe sterile single use / single patient use 0.5ml with 12mm needle 0.33mm/29gauge
-		('401830000',			'Device',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Hypodermic U100 insulin syringe sterile single use / single patient use 1ml with 12mm needle 0.33mm/29gauge
+		('401783003',			'Device',		TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Disposable insulin U100 syringe+needle
+		('401826003',			'Device',		TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Hypodermic U100 insulin syringe sterile single use / single patient use 0.5ml with 12mm needle 0.33mm/29gauge
+		('401830000',			'Device',		TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Hypodermic U100 insulin syringe sterile single use / single patient use 1ml with 12mm needle 0.33mm/29gauge
 		('91723000', 			'Spec Anatomic Site',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Anatomical structure
 		('284648005',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Dietary intake finding
-		('911001000000101',	'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Serum norclomipramine measurement
-		('288533004',			'Meas Value',TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Change values
+		('911001000000101',		'Measurement',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Serum norclomipramine measurement
+		('288533004',			'Meas Value',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Change values
 		('782964007',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Genetic disease
 		('237834000',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Disorder of stature
 		('400038003',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Congenital malformation syndrome
 		('162300006',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Unilateral headache
 		('428264009',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Painful gait
-		('905231000000103',	'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Imbalanced intake of fibre
-		('896531000000104',	'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Imbalanced dietary intake of fat
+		('905231000000103',		'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Imbalanced intake of fibre
+		('896531000000104',		'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Imbalanced dietary intake of fat
 		('735643002',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Short stature of childhood
-		('948391000000106',	'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- O/E - antalgic gait
+		('948391000000106',		'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- O/E - antalgic gait
 		('43528001',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Distomolar supernumerary tooth
 		('163166004',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- O/E - tongue examined
 		('231466009',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Acute drug intoxication
@@ -273,7 +273,7 @@ BEGIN
 		('138875005',			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150104', 'YYYYMMDD'),	NULL), -- root
 		('138875005',			'Metadata',  	TO_DATE('20150104', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- root
 		--history:off
-		('900000000000441003','Metadata',  	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SNOMED CT Model Component
+		('900000000000441003',	'Metadata',  	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SNOMED CT Model Component
 
 		--Clinical Finding
 		('365873007',			'Gender',		TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gender
@@ -289,33 +289,32 @@ BEGIN
 		('413296003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Depression requiring intervention
 		('103020000',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adrenarche
 		('405729008',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematochezia
-		('300391003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
 		('300393000',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of odor of stool
 		('165816005',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- HIV positive
 		('106019003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of elimination pattern
 		('72670004',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sign
 		--history:on
-		('365605003',			'Measurement',	 TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Body measurement finding
+		('365605003',			'Measurement',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Body measurement finding
 		('365605003',			'Observation',  TO_DATE('20170810', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Body measurement finding
 		--history:off
 		--history:on
-		('448717002',			'Measurement',	 TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Decline in Edinburgh postnatal depression scale score
+		('448717002',			'Measurement',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Decline in Edinburgh postnatal depression scale score
 		('448717002',			'Condition',	TO_DATE('20170810', 'YYYYMMDD'),	TO_DATE('20231013', 'YYYYMMDD'),	NULL), -- Decline in Edinburgh postnatal depression scale score
 		--history:off
 		--history:on
-		('449413009',			'Measurement',	 TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Decline in Edinburgh postnatal depression scale score at 8 months
+		('449413009',			'Measurement',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Decline in Edinburgh postnatal depression scale score at 8 months
 		('449413009',			'Condition',	TO_DATE('20170810', 'YYYYMMDD'),	TO_DATE('20231013', 'YYYYMMDD'),	NULL), -- Decline in Edinburgh postnatal depression scale score at 8 months
 		--history:off
 		--history:on
 		--TODO: Check this peak after mapping
-		('441742003',			'Measurement',	 TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Evaluation finding
+		('441742003',			'Measurement',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20170810', 'YYYYMMDD'),	NULL), -- Evaluation finding
 		('441742003',			'Condition',	TO_DATE('20170810', 'YYYYMMDD'),	TO_DATE('20201104', 'YYYYMMDD'),	NULL), -- Evaluation finding
-		('441742003',			'Measurement',	 TO_DATE('20201104', 'YYYYMMDD'),	TO_DATE('20201210', 'YYYYMMDD'),	NULL), -- Evaluation finding
+		('441742003',			'Measurement',	TO_DATE('20201104', 'YYYYMMDD'),	TO_DATE('20201210', 'YYYYMMDD'),	NULL), -- Evaluation finding
 		('441742003',			'Condition',	TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation finding
 		--history:off
 		('13197004',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Contraception
 
-		('364721000000101',	'Measurement',	 TO_DATE('20170314', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- DFT: dynamic function test
+		('364721000000101',		'Measurement',	TO_DATE('20170314', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- DFT: dynamic function test
 		('365980008',			'Observation',  TO_DATE('20170314', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tobacco use and exposure - finding
 		('129843006',			'Observation',  TO_DATE('20170314', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Health management finding
 		('118227000',			'Condition',	TO_DATE('20170810', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vital signs finding
@@ -327,7 +326,7 @@ BEGIN
 		('125125001',			'Observation',  TO_DATE('20181107', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal organ weight
 		('125124002',			'Observation',  TO_DATE('20181107', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal organ weight
 
-		('366154003',  		'Observation',	TO_DATE('20190211', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory flow rate - finding
+		('366154003',  			'Observation',	TO_DATE('20190211', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory flow rate - finding
 		('397731000',			'Race',			TO_DATE('20190827', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ethnic group finding
 
 		('365866002',			'Measurement',	 TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of HIV status
@@ -358,9 +357,9 @@ BEGIN
 		('365341008',			'Observation',  TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform community living activities
 		('365031000',			'Observation',  TO_DATE('20201124', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform activities of everyday life
 		('365242003',			'Observation',  TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform domestic activities
-		('1240591000000102',  'Measurement',	TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 not detected
+		('1240591000000102',  	'Measurement',	TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 not detected
 
-		('1240581000000104',  'Measurement',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 detected
+		('1240581000000104',  	'Measurement',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 detected
 		('129063003',			'Observation',  TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Instrumental activity of daily living
 		('863903001',			'Observation',  TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy to vaccine product
 
@@ -389,32 +388,32 @@ BEGIN
 		('267038008',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Edema
 		('65124004',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Swelling
 		('276438008',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Swelling / lump finding
-		('1157237004',		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Altered perception
+		('1157237004',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Altered perception
 		('25470001000004105',	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cognitive impairment due to multiple sclerosis
-		('386806002', 	 	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Impaired cognition
-		('423884000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Repetitious behavior
+		('386806002', 	 		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Impaired cognition
+		('423884000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Repetitious behavior
 		('26628009',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disturbance in thinking
 		('25786006',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal behaviour
 		('112630007',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal facies
 		('131148009',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bleeding
 		('22253000',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pain
 		('45352006',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Spasm
-		('247348008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tenderness
+		('247348008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tenderness
 		('48694002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Anxiety
-		('102943000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Personality change
+		('102943000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Personality change
 		('113381000119100',  	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Codependency
-		('404640003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dizziness
-		('102957003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Neurological finding
-		('431950004',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bloodstream finding
-		('118235002',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eye / vision finding
+		('404640003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dizziness
+		('102957003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Neurological finding
+		('431950004',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bloodstream finding
+		('118235002',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eye / vision finding
 		('106048009',		  	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory finding
-		('300577008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of lesion
-		('247441003', 		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erythema
-		('225552003', 		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Wound finding
+		('300577008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of lesion
+		('247441003', 			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erythema
+		('225552003', 			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Wound finding
 		('246556002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Central nervous system finding
 		('300862005',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass of body region
 		('302292003',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of trunk structure
-		('298314008', 		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to coordination / incoordination
+		('298314008', 			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to coordination / incoordination
 		('248402002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- General finding of soft tissue
 		('302293008',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of limb structure
 		('298325004',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of movement
@@ -426,7 +425,7 @@ BEGIN
 		('106129007',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Motor function behavior finding
 		('816081007',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Extracellular fluid volume depletion
 		('386617003',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Digestive system finding
-		('8659000',			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ectopic production of endocrine substance
+		('8659000',				'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ectopic production of endocrine substance
 		('415531008',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Skin AND/OR mucosa finding
 		('51178009',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sudden infant death syndrome
 		('39104002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Illness
@@ -437,96 +436,96 @@ BEGIN
 		--history:off
 		('165232002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urinary incontinence
 		('72042002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Incontinence of feces
-		('1086911000119107',  'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Complete fecal incontinence
-		('737585009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abulia
-		('609555007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diastolic heart failure stage A
-		('609556008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Systolic heart failure stage A
-		('277850002',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diogenes syndrome
-		('248279007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Frailty
-		('248548009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nocturnal dyspnea
-		('247845000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Specific fear
-		('268637002',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Psychosexual dysfunction
-		('272030005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Syncope
-		('271787007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Collapse
-		('63384009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Distorted body image
-		('29738008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Proteinuria
-		('61373006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bacteriuria
-		('274769005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Albuminuria
-		('53397008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Biliuria
-		('45154002',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glycosuria
-		('68600005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hemoglobinuria
-		('737176000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypermagnesuria
-		('762434003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypomagnesuria
-		('274783007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ketonuria
-		('123769001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methemoglobinuria
-		('48165008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Myoglobinuria
+		('1086911000119107',  	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Complete fecal incontinence
+		('737585009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abulia
+		('609555007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diastolic heart failure stage A
+		('609556008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Systolic heart failure stage A
+		('277850002',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diogenes syndrome
+		('248279007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Frailty
+		('248548009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nocturnal dyspnea
+		('247845000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Specific fear
+		('268637002',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Psychosexual dysfunction
+		('272030005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Syncope
+		('271787007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Collapse
+		('63384009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Distorted body image
+		('29738008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Proteinuria
+		('61373006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bacteriuria
+		('274769005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Albuminuria
+		('53397008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Biliuria
+		('45154002',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glycosuria
+		('68600005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hemoglobinuria
+		('737176000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypermagnesuria
+		('762434003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypomagnesuria
+		('274783007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ketonuria
+		('123769001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methemoglobinuria
+		('48165008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Myoglobinuria
 		('10917810000001008',	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Myoglobinuria
-		('165517008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Neutropenia
-		('165518003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Neutrophilia
-		('50820005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cytopenia
-		('129647005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypoglobulinemia
-		('119249001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Agammaglobulinemia
-		('119250001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypogammaglobulinemia
-		('59828008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hemolytic crisis
-		('123770000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methemalbuminemia
-		('89627008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyponatremia
+		('165517008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Neutropenia
+		('165518003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Neutrophilia
+		('50820005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cytopenia
+		('129647005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypoglobulinemia
+		('119249001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Agammaglobulinemia
+		('119250001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypogammaglobulinemia
+		('59828008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hemolytic crisis
+		('123770000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methemalbuminemia
+		('89627008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyponatremia
 
-		('3761000119104',  	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypotestosteronism
-		('64088006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyperviscosity
-		('47872005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypoviscosity
-		('37097005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erythroblastosis
-		('46049004',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Reticulocytosis
-		('123806003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bisalbuminemia
+		('3761000119104', 	 	'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypotestosteronism
+		('64088006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyperviscosity
+		('47872005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypoviscosity
+		('37097005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erythroblastosis
+		('46049004',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Reticulocytosis
+		('123806003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bisalbuminemia
 		('1162569002',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Postoperative bacteremia
-		('81647003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Increased serum protein level
-		('250243009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dacrocytosis
-		('373372005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Histological grade finding
-		('372048000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnancy with abnormal glucose tolerance test
+		('81647003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Increased serum protein level
+		('250243009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dacrocytosis
+		('373372005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Histological grade finding
+		('372048000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnancy with abnormal glucose tolerance test
 		('1156100006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnancy with normal glucose tolerance test
 		-- Joint stiffness
-		('84445001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249912007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249917001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('298241001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249915009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249914008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('298232006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249913002',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('40144003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('202510005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249918006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('298231004',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('249916005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('84445001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249912007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249917001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('298241001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249915009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249914008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('298232006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249913002',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('40144003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('202510005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249918006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('298231004',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('249916005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 
-		('300857009',  		'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass of urinary system structure
-		('20154006',  		'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pneumatouria
-		('300474003',  		'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of urine output
-		('76023003',  		'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Impairment of urinary concentration
+		('300857009',  			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass of urinary system structure
+		('20154006',  			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pneumatouria
+		('300474003',  			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of urine output
+		('76023003',  			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Impairment of urinary concentration
 
-		('67374007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Instability of joint
-		('302690004',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Encopresis
-		('416113008',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder characterized by fever
-		('103075007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Humoral immune defect
-		('42341009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Agnosia
-		('27206009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Agraphia
-		('102996009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cryesthesia
-		('32566006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dysmetria
-		('39051003',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Kernig's sign
-		('70537007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hegar's sign
+		('67374007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Instability of joint
+		('302690004',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Encopresis
+		('416113008',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder characterized by fever
+		('103075007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Humoral immune defect
+		('42341009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Agnosia
+		('27206009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Agraphia
+		('102996009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cryesthesia
+		('32566006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dysmetria
+		('39051003',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Kernig's sign
+		('70537007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hegar's sign
 		('9686009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Goodell's sign
-		('15311007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erichsen's sign
-		('441461000',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Destot sign
-		('44717005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chvostek sign
-		('413814005',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chadwick's sign
-		('70651004',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Calkin's sign
-		('82345001',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Brudzinski's sign
+		('15311007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erichsen's sign
+		('441461000',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Destot sign
+		('44717005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chvostek sign
+		('413814005',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chadwick's sign
+		('70651004',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Calkin's sign
+		('82345001',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Brudzinski's sign
 
-		('37057007',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Psychophysiologic disorder
-		('386661006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fever
-		('48188009',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Azoospermia
-		('162274004',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual symptoms
-		('106134006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Perception AND/OR perception disturbance
-		('12479006',  		'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Compulsive behavior
+		('37057007',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Psychophysiologic disorder
+		('386661006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fever
+		('48188009',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Azoospermia
+		('162274004',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual symptoms
+		('106134006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Perception AND/OR perception disturbance
+		('12479006',  			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Compulsive behavior
 		('301366005',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pain of truncal structure
 		('309524007',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass pf trunk
 		('724386005',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lesion of genitalia
@@ -541,42 +540,42 @@ BEGIN
 		('397852001',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- V/Q - Ventilation/perfusion ratio
 		('302083008',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of Apgar score
 		('413347006',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of American Society of Anesthesiologists physical status classification
-		('881501000000104',	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gross Motor Function Classification System for Cerebral Palsy level finding
-		('61481000000106',	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level I
-		('61501000000102',	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level II
-		('61511000000100',	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level III
-		('61521000000106', 	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level IV
-		('1321791000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result equivocal
-		('1321771000000105',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result negative
-		('1321761000000103',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result positive
-		('1321781000000107',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result unknown
-		('1321541000000108',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result positive
-		('1321591000000103',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result equivocal
-		('1321571000000102',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result negative
-		('1321641000000107',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result unknown
-		('1321631000000103',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result equivocal
-		('1321561000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result negative
-		('1321551000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result positive
-		('1321581000000100',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result unknown
-		('1322901000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result indeterminate
-		('1322911000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
-		('1322801000000101',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result indeterminate
-		('1322791000000100',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result negative
-		('1322781000000102',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result positive
-		('1322821000000105',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
-		('1324601000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) RNA detection result positive
-		('260246004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity finding
-		('302082003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of birth length
+		('881501000000104',		'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gross Motor Function Classification System for Cerebral Palsy level finding
+		('61481000000106',		'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level I
+		('61501000000102',		'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level II
+		('61511000000100',		'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level III
+		('61521000000106',	 	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MACS for Children with Cerebral Palsy 4-18 years - Level IV
+		('1321791000000109', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result equivocal
+		('1321771000000105',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result negative
+		('1321761000000103', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result positive
+		('1321781000000107', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result unknown
+		('1321541000000108', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result positive
+		('1321591000000103', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result equivocal
+		('1321571000000102',	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result negative
+		('1321641000000107',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result unknown
+		('1321631000000103', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result equivocal
+		('1321561000000109',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result negative
+		('1321551000000106',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result positive
+		('1321581000000100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result unknown
+		('1322901000000109',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result indeterminate
+		('1322911000000106',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+		('1322801000000101',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result indeterminate
+		('1322791000000100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result negative
+		('1322781000000102',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result positive
+		('1322821000000105',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
+		('1324601000000106',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) RNA detection result positive
+		('260246004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity finding
+		('302082003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of birth length
 		--history: on
 		('118245000',			'Measurement',	 TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Measurement finding
 		('118245000',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measurement finding
 		--history:off
-		('250520004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dairy food test finding
-		('719724007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deoxyribonucleic acid of Campylobacter not detected
-		('719707001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deoxyribonucleic acid of Salmonella not detected
-		('251342007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dermatological test finding
-		('790741000000104',	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Equivocal immunology finding
-		('307577005', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of Heaf test
+		('250520004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dairy food test finding
+		('719724007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deoxyribonucleic acid of Campylobacter not detected
+		('719707001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deoxyribonucleic acid of Salmonella not detected
+		('251342007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dermatological test finding
+		('790741000000104',		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Equivocal immunology finding
+		('307577005', 			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of Heaf test
 		('62117008',		  	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bacterial antibody increase, paired specimens
 		('365408009',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- ECG waveform - finding
 		('395536008',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Surgical margin finding
@@ -584,13 +583,13 @@ BEGIN
 		('165009005',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy testing - no reaction
 		('1236949008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of placental volume
 		('1187035007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood viscosity below reference range
-		('298717003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of measures of thorax
-		('366147009',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory measurements - finding
-		('249131000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of amniotic fluid volume
-		('34641000087106', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematology test outside reference range
-		('366092004', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eye measurements - finding
-		('366158000', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vascular measurements - finding
-		('106200001', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematopoietic system finding
+		('298717003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of measures of thorax
+		('366147009',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory measurements - finding
+		('249131000',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of amniotic fluid volume
+		('34641000087106',	 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematology test outside reference range
+		('366092004', 			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eye measurements - finding
+		('366158000', 			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vascular measurements - finding
+		('106200001', 			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematopoietic system finding
 
 		('705075002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see
 		('719749006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see using assistive device
@@ -614,10 +613,10 @@ BEGIN
 		('249211006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lochia finding
 		('271880003',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- O/E - specified examination findings
 		('371078007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of eating pattern
-		('106131003',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mood finding
-		('58424009',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Overeating
-		('248536006',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of functional performance and activity
-		('827031005', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Site of injection normal
+		('106131003',  			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mood finding
+		('58424009',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Overeating
+		('248536006',  			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of functional performance and activity
+		('827031005', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Site of injection normal
 		('302288005',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal coordination
 		('27086002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal physical attitude
 		('86678000',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal station
@@ -642,9 +641,9 @@ BEGIN
 		('79015004',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Worried
 		('364734006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Quality of construction of footwear - finding
 		('129879003',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Parenting finding
-		('1149345007', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Excessive weight gain during pregnancy
-		('364826005', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform breast-feeding
-		('243826008', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antenatal care status
+		('1149345007', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Excessive weight gain during pregnancy
+		('364826005', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform breast-feeding
+		('243826008', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antenatal care status
 		('116336009',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eating / feeding / drinking finding
 		('289159000',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Thirst finding
 		('250869005',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Equipment finding
@@ -668,22 +667,22 @@ BEGIN
 		('247950007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sleep behavior finding
 		('281459007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bending of spinal fixation device
 		('365861007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of immune status
-		('1144566001',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Managing to control withdrawal symptoms
-		('365690003',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Presence of organism - finding
-		('365698005',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Organism growth - finding
-		('278542003',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dental appliance or restoration finding
-		('118192006',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding relating to self-concept
+		('1144566001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Managing to control withdrawal symptoms
+		('365690003',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Presence of organism - finding
+		('365698005',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Organism growth - finding
+		('278542003',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dental appliance or restoration finding
+		('118192006',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding relating to self-concept
 		('341000119102',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tattoo of skin
 		--Piercing
 		('698015006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('1281807004',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('1260230003',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('1260232006',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('1260221006',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('1260220007',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('1260222004',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('1281807004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('1260230003',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('1260232006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('1260221006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('1260220007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('1260222004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 		('23506009',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal flora
-		('275530009',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Amputee - limb
+		('275530009',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Amputee - limb
 		('247522004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hair finding
 		('365853002',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging finding
 		('404509004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Large gram-negative coccobacilli
@@ -706,7 +705,7 @@ BEGIN
 		('70733008',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Limitation of joint movement
 		('870752006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to health literacy
 		('365949003',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Health-related behavior finding
-		('1260078007',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Maternal breastfeeding
+		('1260078007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Maternal breastfeeding
 		('417186004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Precipitous drop in hematocrit
 		('409683007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Stable hematocrit
 		('870578004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Persistent abnormal electrolytes
@@ -714,7 +713,7 @@ BEGIN
 		('444138006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Speckled antinuclear antibody pattern
 		('124875007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Acquisition of new antigens
 		('166165005',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antibody studies normal
-		('471841000124105',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Analyte not reportable due to high human immunodeficiency virus antibody
+		('471841000124105',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Analyte not reportable due to high human immunodeficiency virus antibody
 		('365705006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antimicrobial susceptibility - finding
 		('442703001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aspiration test negative for air during procedure
 		('442718000',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aspiration test negative for blood during procedure
@@ -729,19 +728,19 @@ BEGIN
 		('365857001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Child examination finding
 		('301833004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- CSU = no abnormality
 		('124983002',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cytokinetic alteration
-		('93771000119109',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diagnosis deferred
+		('93771000119109',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diagnosis deferred
 		('723663001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diagnosis not made
 		('301120008',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electrocardiogram finding
 		('370351008',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Endoscopy finding
 		('414253004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of cellular component of blood
 		('168457008',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gross pathology - NAD
-		('450241000124104',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gynecological examination normal
+		('450241000124104',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gynecological examination normal
 		('250537006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Histopathology finding
 		('397918000',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Human leukocyte antigen type
 		('444059002',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypercholesterolemia well controlled
 		('252097006',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypersensitivity finding
 		('395034001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Immune complex observation
-		('197411000000101',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Isolate finding
+		('197411000000101',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Isolate finding
 		('124877004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Loss of isoantigens
 		('124876008',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Loss of normal antigens
 		('250429001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Macroscopic specimen observation
@@ -775,36 +774,36 @@ BEGIN
 		('281283002',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 		('281282007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 		('281281000',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
-		('840851000000100',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('840851000000100',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 
 		('395028008',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Skin sample observation
 		('125154007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Specimen unsatisfactory for evaluation
-		('363171000000104',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Timed collection of specimen
-		('842211000000104',	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Timed sample series
+		('363171000000104',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Timed collection of specimen
+		('842211000000104',		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Timed sample series
 		('118207001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to molecular conformation
 		('106221001',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Genetic finding
 		('719756000',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hemosiderin laden macrophages seen
 		('458471000124109',  	'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- High risk of adverse medication event
-		('168452002',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Forensic examination normal
-		('123828003',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fungal organisms morphologically consistent with Candida species
-		('107645002',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size finding
+		('168452002',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Forensic examination normal
+		('123828003',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fungal organisms morphologically consistent with Candida species
+		('107645002',  			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size finding
 		('1149085006',  		'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Satisfied with management of pain
 		('366636003',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Facial appearance finding
 		('281457009',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Breakage of bone fixation device
 		('6071000119100',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Upper respiratory tract allergy
-		('451321000124108',	'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Needs maximal assistance
-		('451311000124100',	'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Needs moderate assistance
+		('451321000124108',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Needs maximal assistance
+		('451311000124100',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Needs moderate assistance
 		('442076002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Early satiety
 		('716366009',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Requires continuous home oxygen supply
 		('428264009',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Painful gait
 		('236556004',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bloodstained peritoneal dialysis effluent
-		('25911000175109',	'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eyelid normal
+		('25911000175109',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eyelid normal
 		('413585005',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aspiration into respiratory tract
 		('364747001',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Presentation of fetus - finding
-		('1231194004',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal visual motion detection
-		('1149054002',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal reproductive system function
-		('1260401008',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Epiphyseal closure
-		('1220629002',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Impaired response to stem cell mobilization procedure
+		('1231194004',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal visual motion detection
+		('1149054002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal reproductive system function
+		('1260401008',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Epiphyseal closure
+		('1220629002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Impaired response to stem cell mobilization procedure
 		('366140006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Method of breathing - finding
 		('365430005',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of urine appearance
 		('118231006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Communication finding
@@ -824,29 +823,28 @@ BEGIN
 		('711635006',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal periapical tissue
 		('714482007',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal periodontal tissue
 		('609433001',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypersensitivity disposition
-		('118228005',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Functional finding
-		('301346001',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of lip
-		('1209208002', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pale face
-		('59901004',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cheek biting
-		('711292003',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Decrease of chin to throat length
-		('711291005',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Increase of chin to throat length
-		('710781009',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deep mentolabial sulcus
-		('737034006',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Obtuse nasolabial angle
-		('471397004',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Long lower third of face
-		('699440004',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Long middle third of face
-		('767358005',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Shallow mentolabial sulcus
-		('73595000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Stress
-		('106126000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emotional state finding
-		('42688000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Preoccupation of thought
+		('118228005',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Functional finding
+		('301346001',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of lip
+		('1209208002', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pale face
+		('59901004',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cheek biting
+		('711292003',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Decrease of chin to throat length
+		('711291005',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Increase of chin to throat length
+		('710781009',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deep mentolabial sulcus
+		('737034006',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Obtuse nasolabial angle
+		('471397004',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Long lower third of face
+		('699440004',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Long middle third of face
+		('767358005',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Shallow mentolabial sulcus
+		('73595000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Stress
+		('42688000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Preoccupation of thought
 		('1177022006',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Colonization of respiratory tract with Pneumocystis jirovecii
-		('127325009',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure related finding
+		('127325009',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure related finding
 		('30693006', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aerophagy
-		('1217022005', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Colonization of genitourinary tract by Streptococcus agalactiae
-		('283021003', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mobile tooth
+		('1217022005', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Colonization of genitourinary tract by Streptococcus agalactiae
+		('283021003', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mobile tooth
 		('86569001', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Postpartum state
-		('248727005', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Venous finding
-		('298180004', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of range of joint movement
-		('252041008', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Micturition finding
+		('248727005', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Venous finding
+		('298180004', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of range of joint movement
+		('252041008', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Micturition finding
 		('36456004',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mental state finding
 		('118242002',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding by palpation
 		('118244001',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding by percussion
@@ -859,24 +857,24 @@ BEGIN
 		--history: off
 		('299956006',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal sensation
 		('609625009',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of pelvic region of trunk
-		('5277004',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urinary casts
+		('5277004',				'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urinary casts
 		('300361008',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vomit contains blood
 		('719602003',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Radiologic finding of tumor invasion penetrating colonic serosa
 		('102866000',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal urine
-		('5271000124101', 	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal cranial nerves
-		('77386006',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnancy
-		('398018000',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Inadequate anesthetic assessment
-		('365636006',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of blood group
-		('167911000',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone marrow examination abnormal
-		('366219004',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tendency to bleed - finding
+		('5271000124101', 		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal cranial nerves
+		('77386006',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Pregnancy
+		('398018000',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Inadequate anesthetic assessment
+		('365636006',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of blood group
+		('167911000',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone marrow examination abnormal
+		('366219004',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tendency to bleed - finding
 		('1156330008',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal respiratory system
-		('106098005',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urinary system finding
-		('365619003',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of red blood cell morphology
+		('106098005',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urinary system finding
+		('365619003',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of red blood cell morphology
 		('366256008',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Finding of bowel action
 		('365648009',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  --Blood compatibility - finding
 
 		--history:on
-		('710954001',			'Measurement',	 TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20220504', 'YYYYMMDD'),	NULL), -- Bacteria present
+		('710954001',			'Measurement',	TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20220504', 'YYYYMMDD'),	NULL), -- Bacteria present
 		('710954001',			'Condition',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Bacteria present
 		('710954001',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bacteria present
 		--history:off
@@ -885,15 +883,39 @@ BEGIN
 		('284530008',			'Observation',  TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20211027', 'YYYYMMDD'),	NULL), -- Communication, speech and language finding
 		('284530008',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Communication, speech and language finding
 		--history:off
+		('247619007',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Thought finding
+		('387712008',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Neonatal jaundice
+		('1295289001',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Maternal perinatal jaundice
+		('290122005',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Finding of lactation
+		('82832008',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- General body state finding
+		('78164000',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Feeding problem
+		('4800001',				'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Pyuria
+	--history:on
+		('106126000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Emotional state finding
+		('106126000',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Emotional state finding
+	--history:off
+		('118188004',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Finding of neonate
+		('47340003',			'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Birth weight finding
+		('102898006',			'Observation',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Emotional relationship
+	--history:on
+		('300391003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
+		('300391003',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
+	--history:off
+		('309196005',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal cytology findings
+		('310437009',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urine cytology
+		('18523001',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nudity
+		('29679002',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Carrier of disorder
+
 
 		--Context-dependent
 		('395098000',			'Condition',	TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder confirmed
 		('443938003',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure carried out on subject
+		('300475002',			'Measurement',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of measures of urine output
 
 		--Disorder
 		--history:on
 		('282100009',			'Observation',  TO_DATE('20170825', 'YYYYMMDD'),	TO_DATE('20171116', 'YYYYMMDD'),	NULL), -- Adverse reaction caused by substance
-		--(282100009,		'Observation',  TO_DATE('20180820', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse reaction caused by substance
+		--(282100009,			'Observation',  TO_DATE('20180820', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse reaction caused by substance
 		--history:off
 		('28926001',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eruption due to drug
 		('402752000',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dermatosis resulting from cytotoxic therapy
@@ -903,7 +925,7 @@ BEGIN
 		('312963001',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methanol retinopathy
 		('82545002',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood transfusion reaction
 		('234992005',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plasma cell gingivitis
-		('418634005',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergic reaction to substance
+		('418634005',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Allergic reaction to substance
 
 		('64572001',			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disease
 		('193570009',			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cataract
@@ -911,28 +933,30 @@ BEGIN
 		('702809001',			'Condition', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug reaction with eosinophilia and systemic symptoms
 		('422593004',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Acute renal failure due to ACE inhibitor
 
-		('232032008', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug-induced retinopathy
+		('232032008', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug-induced retinopathy
 		('448177004',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse drug interaction
 		('294842007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematological agents allergy
 		--history:on
 		('62014003',			'Condition',	TO_DATE('20170810', 'YYYYMMDD'),	TO_DATE('20180820', 'YYYYMMDD'),	NULL), -- Adverse reaction to drug
 		('62014003',			'Observation',  TO_DATE('20180820', 'YYYYMMDD'),	TO_DATE('20201110', 'YYYYMMDD'),	NULL), -- Adverse reaction to drug
 		--history: off
-		('956271000000104',	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aliskiren allergy
-		('1104821000000102',  'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy to diagnostic dye
-		('201551000000109',	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy to plasters
-		('956291000000100',	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Prasugrel allergy
-		('956311000000104',	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ticagrelor allergy	--Location
-		('325651000000108',	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Contact allergy
+		('956271000000104',		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aliskiren allergy
+		('1104821000000102', 	'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy to diagnostic dye
+		('201551000000109',		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy to plasters
+		('956291000000100',		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Prasugrel allergy
+		('956311000000104',		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ticagrelor allergy	--Location
+		('325651000000108',		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Contact allergy
 		('275322007',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Scar
 		('281647001',			'Observation',  TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse reaction
 		('20558004',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse effect of radiation therapy
 		('403753000',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse cutaneous reaction to acupuncture
 		('402763002',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse cutaneous reaction to diagnostic procedure
 		('56317004',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Alopecia
-		('112401000119106',	'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lesion of conjunctiva
+		('112401000119106',		'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lesion of conjunctiva
 		('15250008',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder of cornea
 		('402150002',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insect bite reaction
+
+		('419076005',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergic reaction
 
 		--Location
 		--history:on
@@ -971,19 +995,19 @@ BEGIN
 		('396277003',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fluid observable
 		('386725007',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Body temperature
 		('434912009',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood glucose concentration
-		('934171000000101',	'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood lead level
-		('934191000000102',	'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood lead level
-		('1107241000000102',  'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Calcium substance concentration in plasma adjusted for albumin
-		('1107251000000104',  'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Calcium substance concentration in serum adjusted for albumin
+		('934171000000101',		'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood lead level
+		('934191000000102',		'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood lead level
+		('1107241000000102',  	'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Calcium substance concentration in plasma adjusted for albumin
+		('1107251000000104',  	'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Calcium substance concentration in serum adjusted for albumin
 		('434910001',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Interstitial fluid glucose concentration
 		('395527009',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Microscopic specimen observable
 		('246116008',			'Measurement',	 TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lesion size
 		('439260001',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Thromboelastography observable
 		('364362002',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Obstetric investigative observable
 		('364200006',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of urination
-		('1240461000000109',  'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measurement of Severe acute respiratory syndrome coronavirus 2 antibody
+		('1240461000000109',  	'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measurement of Severe acute respiratory syndrome coronavirus 2 antibody
 		('364575001',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone observable
-		('804361000000106',	'Observation',  TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone density scan due date
+		('804361000000106',		'Observation',  TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone density scan due date
 		('405043008',			'Observation',  TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone healing status
 		('364576000',			'Observation',  TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Form of bone
 		('364577009',			'Observation',  TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Movement of bone
@@ -1036,7 +1060,7 @@ BEGIN
 		('364580005',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal measure
 		('252124009',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Test distance
 		('434911002',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plasma glucose concentration
-		('935051000000108',	'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Serum adjusted calcium concentration
+		('935051000000108',		'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Serum adjusted calcium concentration
 		('399435001',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Specimen measurable
 		('102485007',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Personal risk factor
 		('250430006',			'Measurement',	 TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Color of specimen
@@ -1065,7 +1089,7 @@ BEGIN
 		('80943009', 			'Measurement',	 TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Risk factor
 
 		('263605001',			'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Length dimension of neoplasm
-		('4370001000004107',  'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Length of excised tissue specimen
+		('4370001000004107',  	'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Length of excised tissue specimen
 		('443527007',			'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of lymph nodes containing metastatic neoplasm in excised specimen
 		('396236002',			'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Depth of invasion by tumour
 		('396239009',			'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Horizontal extent of stromal invasion by tumour
@@ -1097,52 +1121,52 @@ BEGIN
 		('251838003',			'Measurement',	 TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Total body potassium
 
 		('871560001',			'Measurement',	 TO_DATE('20230712', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Detection of ribonucleic acid of severe acute respiratory syndrome coronavirus 2 using polymerase chain reaction (observable entity)
-		('363870007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mental state, behavior / psychosocial function observable
-		('1099121000000104',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Young Townson FootSkin Hydration Scale for Diabetic Neuropathy level
-		('865939009',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Active insulin time
+		('363870007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mental state, behavior / psychosocial function observable
+		('1099121000000104',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Young Townson FootSkin Hydration Scale for Diabetic Neuropathy level
+		('865939009',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Active insulin time
 		('872121000000100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Frequency of hyperglycaemic episodes
-		('712656006',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Frequency of hypoglycemia attack
-		('789480007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insulin dose
-		('736101003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insulin infusion rate
-		('789496005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insulin to carbohydrate ratio
+		('712656006',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Frequency of hypoglycemia attack
+		('789480007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insulin dose
+		('736101003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insulin infusion rate
+		('789496005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insulin to carbohydrate ratio
 		('874181000000108',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Time since last hyperglycaemic episode
-		('442547005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of alcohol units consumed on heaviest drinking day
-		('228330005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Total time drunk alcohol
-		('228329000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Time since stopped drinking
-		('103208001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erythrocyte sedimentation rate
-		('417595002',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cell feature
-		('165581004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- International normalized ratio
+		('442547005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of alcohol units consumed on heaviest drinking day
+		('228330005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Total time drunk alcohol
+		('228329000',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Time since stopped drinking
+		('103208001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Erythrocyte sedimentation rate
+		('417595002',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cell feature
+		('165581004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- International normalized ratio
 		('368481000000103',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bowel cancer screening programme: faecal occult blood result
-		('364465001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of upper limb
-		('299220001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Leg size
-		('249363002',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adenoids size
-		('364032004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of nose
-		('364231004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of vagina
-		('364224003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of vulval structure
-		('248944004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Uterus size
-		('248913008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Uterine cervix size
-		('248955004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ovary size
-		('364472000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of clavicle
-		('364470008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of scapula
-		('363953003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of pupil
-		('363937001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of globe
-		('422149008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Optic disc size
-		('249050003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetus size
-		('364616001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of fetus
-		('251682005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetal kick count
-		('249046005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of fetal hearts heard
-		('363983007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity
-		('311528003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual scanning speed
-		('251794006',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Refraction
-		('246648006',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual image size
-		('423083007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glaucoma hemifield test
-		('419862005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Accommodative amplitude
-		('251837008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Total body water
-		('364333003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of labor
-		('364564000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Range of joint movement
-		('364286003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adenoids size
-		('364539003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of skin
-		('264752007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Grading values
+		('364465001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of upper limb
+		('299220001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Leg size
+		('249363002',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adenoids size
+		('364032004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of nose
+		('364231004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of vagina
+		('364224003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of vulval structure
+		('248944004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Uterus size
+		('248913008',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Uterine cervix size
+		('248955004',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ovary size
+		('364472000',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of clavicle
+		('364470008',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of scapula
+		('363953003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of pupil
+		('363937001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Size of globe
+		('422149008',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Optic disc size
+		('249050003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetus size
+		('364616001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of fetus
+		('251682005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetal kick count
+		('249046005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of fetal hearts heard
+		('363983007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity
+		('311528003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual scanning speed
+		('251794006',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Refraction
+		('246648006',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual image size
+		('423083007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glaucoma hemifield test
+		('419862005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Accommodative amplitude
+		('251837008',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Total body water
+		('364333003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of labor
+		('364564000',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Range of joint movement
+		('364286003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adenoids size
+		('364539003',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of skin
+		('264752007',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Grading values
 		('1285654008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Identification of bacteria by matrix assisted laser desorption ionization time of flight mass spectrometry
 		('363891000119100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Identification of bacteria in sputum by culture
 		('1285667006',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Identification of fungus by matrix assisted laser desorption ionization time of flight mass spectrometry
@@ -1153,21 +1177,21 @@ BEGIN
 		('143481000237106',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fluid chemistry observable
 		('143471000237109',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Microbiology laboratory observable
 		('1290195007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Detection of antibody to infective organism
-		('4401000237103',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass concentration ratio of immunoglobulin G antibody to albumin in cerebrospinal fluid
+		('4401000237103',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass concentration ratio of immunoglobulin G antibody to albumin in cerebrospinal fluid
 		('143441000237100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Clinical chemistry observable
-		('164835000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Limb length
-		('106054005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lung volume AND/OR capacity
-		('70337006',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cardiovascular function
-		('11953005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Renal function
-		('130953005',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Rate of urine output, function
+		('164835000',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Limb length
+		('106054005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lung volume AND/OR capacity
+		('70337006',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cardiovascular function
+		('11953005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Renal function
+		('130953005',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Rate of urine output, function
 		('985791000000107',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Total fluid estimated need
-		('364400009',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feature of fluid loss
+		('364400009',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feature of fluid loss
 		('1179058006',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Estimated quantity of intake of fluid
-		('364399002',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of fluid intake
-		('1465031000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of clinically significant hypoglycaemic episodes recorded by point-of-care monitoring of capillary blood glucose
-		('1597861000000105',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of suspend episodes in insulin pump greater than 60 minutes
+		('364399002',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of fluid intake
+		('1465031000000109',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of clinically significant hypoglycaemic episodes recorded by point-of-care monitoring of capillary blood glucose
+		('1597861000000105',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of suspend episodes in insulin pump greater than 60 minutes
 		('143541000237101',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urinalysis observable
-		('2661000237108',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transferrin saturation index (Iron saturation/transferrin percent) in serum
+		('2661000237108',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transferrin saturation index (Iron saturation/transferrin percent) in serum
 		('50851000237104',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- RBCs (red blood cells) in blood smear microscopy qualitative result
 		('65201000237103',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fungal precipitin in serum qualitative result
 		('50571000237109',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fungal precipitin in plasma qualitative result
@@ -1181,45 +1205,45 @@ BEGIN
 		('55461000237109',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eosin 5-maleimide labelled red blood cells control MFI (mean fluorescence intensity) in blood
 		('55511000237106',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- NK (natural killer) T lymphocyte percent count in blood
 		('58481000237107',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ethyl sulphate mass concentration in hair
-		('6961000237104',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Catecholamine molar concentration in 24 hr urine
+		('6961000237104',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Catecholamine molar concentration in 24 hr urine
 		('58041000237107',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Prostate health index
 		('54031000237108',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Metamyelocyte percent count in blood
 		('52641000237100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Naive B lymphocyte percent count in blood
 		('53291000237102',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Medium RNA reticulocyte percent count in blood
 		('51151000237100',  	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Clue cells in high vaginal swab microscopy qualitative result
-		('396631001',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Icterus index ordinal value in serumSurgical margin observable
-		('364671000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dialysis observable
-		('13861000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Normirtazepine mass concentration in plasma
+		('396631001',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Icterus index ordinal value in serumSurgical margin observable
+		('364671000',  			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dialysis observable
+		('13861000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Normirtazepine mass concentration in plasma
 		('1241000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Sexual abstinence duration
 		('3041000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Dopamine molar concentration in 24 hr urine
-		('27921000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --HMMA (4-hydroxy-3-methoxymandelic acid)/creatinine molar concentration ratio in urine
-		('49921000237109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group O+ RBC (red blood cell O antigen and Rhesus D antigen positive) in plasma qualitative result
-		('50171000237102',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --RhD- blood group (Rhesus D antigen negative red blood cell) in plasma qualitative result
-		('50601000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group A+ RBC (red blood cell A antigen positive and Rhesus D antigen positive) in plasma qualitative result
-		('51071000237108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group AB+ RBC (red blood cell A and B antigen positive and Rhesus D antigen positive) in plasma qualitative result
-		('51891000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group O- RBC (red blood cell O positive and Rhesus D antigen negative) in plasma qualitative result
-		('57541000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Noradrenaline molar concentration in urine
-		('59481000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group AB- RBC (red blood cell A and B antigen positive and Rhesus D antigen negative) in plasma qualitative result
-		('66241000237108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group B+ RBC (red blood cell B antigen positive and Rhesus D antigen positive) in plasma qualitative result
-		('68691000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Complement C3 nephritic factor presence in plasma
-		('143451000237102',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Coagulation laboratory observable
-		('143461000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Fertility testing observable
-		('143531000237108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Toxicology laboratory observable
-		('568331000005101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Intake of nutritional supplement
-		('375911000119106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Differential count of white blood cells by automated method
-		('15141000237109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Red blood cell count in fluid
-		('55881000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Promyelocyte percent count in blood
-		('52251000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group B- RBC (red blood cell B antigen positive and Rhesus D antigen negative) in plasma qualitative result
-		('49941000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Epithelial cells in mid-stream urine microscopy qualitative result
-		('567951000005106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Certainty of estimated date of delivery
-		('630001000004109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Presence of metastatic discontinuous spread of malignant neoplasm of colon to pericolic tissue
+		('27921000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --HMMA (4-hydroxy-3-methoxymandelic acid)/creatinine molar concentration ratio in urine
+		('49921000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group O+ RBC (red blood cell O antigen and Rhesus D antigen positive) in plasma qualitative result
+		('50171000237102',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --RhD- blood group (Rhesus D antigen negative red blood cell) in plasma qualitative result
+		('50601000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group A+ RBC (red blood cell A antigen positive and Rhesus D antigen positive) in plasma qualitative result
+		('51071000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group AB+ RBC (red blood cell A and B antigen positive and Rhesus D antigen positive) in plasma qualitative result
+		('51891000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group O- RBC (red blood cell O positive and Rhesus D antigen negative) in plasma qualitative result
+		('57541000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Noradrenaline molar concentration in urine
+		('59481000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group AB- RBC (red blood cell A and B antigen positive and Rhesus D antigen negative) in plasma qualitative result
+		('66241000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group B+ RBC (red blood cell B antigen positive and Rhesus D antigen positive) in plasma qualitative result
+		('68691000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Complement C3 nephritic factor presence in plasma
+		('143451000237102',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Coagulation laboratory observable
+		('143461000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Fertility testing observable
+		('143531000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Toxicology laboratory observable
+		('568331000005101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Intake of nutritional supplement
+		('375911000119106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Differential count of white blood cells by automated method
+		('15141000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Red blood cell count in fluid
+		('55881000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Promyelocyte percent count in blood
+		('52251000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group B- RBC (red blood cell B antigen positive and Rhesus D antigen negative) in plasma qualitative result
+		('49941000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Epithelial cells in mid-stream urine microscopy qualitative result
+		('567951000005106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Certainty of estimated date of delivery
+		('630001000004109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Presence of metastatic discontinuous spread of malignant neoplasm of colon to pericolic tissue
 		('3381000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Glycophorin count percent in plasma
-		('56091000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Small bowel biopsy weight in small intestine specimen
-		('62921000237106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group A- RBC (red blood cell A antigen positive and Rhesus D antigen negative) in plasma qualitative result
-		('56881000237106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Collagen/adrenaline closure time in blood
-		('57031000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Methylglutarylcarnitine molar concentration in plasma
-		('57591000237109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Eosin 5-maleimide labelled red blood cells control MFI (mean fluorescence intensity) in blood
-		('60841000237107',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --RhD+ blood group (Rhesus D antigen positive red blood cell) in plasma qualitative result
+		('56091000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Small bowel biopsy weight in small intestine specimen
+		('62921000237106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blood group A- RBC (red blood cell A antigen positive and Rhesus D antigen negative) in plasma qualitative result
+		('56881000237106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Collagen/adrenaline closure time in blood
+		('57031000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Methylglutarylcarnitine molar concentration in plasma
+		('57591000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Eosin 5-maleimide labelled red blood cells control MFI (mean fluorescence intensity) in blood
+		('60841000237107',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --RhD+ blood group (Rhesus D antigen positive red blood cell) in plasma qualitative result
 		('2381000237106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Immature reticulocyte percent in blood
 		('1464821000000102',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentage of time below level 2 hypoglycaemic threshold to total continuous glucose monitoring time using minimally-invasive continuous glucose monitoring device
 		('2541000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Lambda cells percent in serum
@@ -1227,47 +1251,47 @@ BEGIN
 		('2991000237107',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Kappa cells percent in serum
 		('3181000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Platelet distribution width percent in blood
 		('3741000237106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --HVMA (homovanillylmandelic acid) molar concentration in 24 hr urine
-		('11861000237102',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Oestradiol molar concentration in plasma
+		('11861000237102',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Oestradiol molar concentration in plasma
 		('3771000237102',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Keratin arbitrary concentration in serum
-		('31000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number of days abstinence prior to semen sample production
+		('31000237108',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number of days abstinence prior to semen sample production
 		('391000237102',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Eicosatrienoic acid molar concentration in serum
-		('16151000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Normirtazepine mass concentration in serum
-		('16181000237107',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --White blood cell count in fluid
+		('16151000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Normirtazepine mass concentration in serum
+		('16181000237107',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --White blood cell count in fluid
 		('611000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Smear cells percent in blood
 		('4081000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Platelet/neutrophil count ratio in blood
 		('4331000237102',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Alpha amino butyrate molar concentration in serum
 		('1281000237107',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Free beta HCG (human chorionic gonadotropin) multiple of the median in serum
-		('52931000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Switched memory B lymphocyte percent count in blood
-		('53001000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Non-switched memory B lymphocyte percent count in blood
-		('53031000237105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --MCVr (mean cell volume of reticulocytes) in blood
-		('53281000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Transitional B lymphocyte percent count in blood
-		('53931000237106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Euglobulin clot lysis time time in blood
-		('54451000237105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Turbidity index
-		('54711000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Metamyelocyte count in blood
-		('54871000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Patient height
-		('55161000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blast cell percent count in bone marrow
-		('55471000237104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Naive T lymphocyte percent count in blood
-		('55491000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Patient weight
-		('56101000237106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Low RNA reticulocyte percent count in blood
-		('56231000237108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --7-Aminonitrazepam mass concentration in oral fluid
-		('56411000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blast cell percent count in blood
-		('56551000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Eosin 5-maleimide labelled red blood cells MFI (mean fluorescence intensity) in blood
-		('56661000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Thiocyanate molar concentration in serum
-		('56801000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Plasmablasts percent count in blood
-		('57381000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --High RNA reticulocyte percent count in blood
-		('57711000237107',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reticulocyte percent count in blood
-		('57731000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Haemolysis index
-		('58051000237105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Plasma cells percent count in bone marrow aspirate
-		('67561000237109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Carbonate and phosphate percent calculus content
-		('67821000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --ADAMTS13 (disintegrin and metalloproteinase with thrombospondin type 1 motif 13) enzyme activity in plasma
-		('67921000237109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Calculus weight
+		('52931000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Switched memory B lymphocyte percent count in blood
+		('53001000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Non-switched memory B lymphocyte percent count in blood
+		('53031000237105',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --MCVr (mean cell volume of reticulocytes) in blood
+		('53281000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Transitional B lymphocyte percent count in blood
+		('53931000237106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Euglobulin clot lysis time time in blood
+		('54451000237105',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Turbidity index
+		('54711000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Metamyelocyte count in blood
+		('54871000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Patient height
+		('55161000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blast cell percent count in bone marrow
+		('55471000237104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Naive T lymphocyte percent count in blood
+		('55491000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Patient weight
+		('56101000237106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Low RNA reticulocyte percent count in blood
+		('56231000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --7-Aminonitrazepam mass concentration in oral fluid
+		('56411000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Blast cell percent count in blood
+		('56551000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Eosin 5-maleimide labelled red blood cells MFI (mean fluorescence intensity) in blood
+		('56661000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Thiocyanate molar concentration in serum
+		('56801000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Plasmablasts percent count in blood
+		('57381000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --High RNA reticulocyte percent count in blood
+		('57711000237107',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reticulocyte percent count in blood
+		('57731000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Haemolysis index
+		('58051000237105',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Plasma cells percent count in bone marrow aspirate
+		('67561000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Carbonate and phosphate percent calculus content
+		('67821000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --ADAMTS13 (disintegrin and metalloproteinase with thrombospondin type 1 motif 13) enzyme activity in plasma
+		('67921000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Calculus weight
 		('1290531000000106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Monkeypox virus qualitative result
 		('1340001000004103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number of metastatic discontinuous tumor deposits of primary malignant neoplasm of colon
 		('1730561000004108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Presence of metastatic discontinuous spread of primary malignant neoplasm
 		('1833121000000106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Wound, Ischemia and foot Infection classification system Wound grade
-		('25761000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --sFlt-1 (soluble fms-like tyrosine kinase 1)/PlGF (placental growth factor) mass concentration ratio in serum
-		('143381000237103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Allergy clinical laboratory observable
-		('376201000119106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Differential count of white blood cells by manual method
+		('25761000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --sFlt-1 (soluble fms-like tyrosine kinase 1)/PlGF (placental growth factor) mass concentration ratio in serum
+		('143381000237103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Allergy clinical laboratory observable
+		('376201000119106',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Differential count of white blood cells by manual method
 		('1464671000000104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Mean substance concentration of glucose in capillary blood using minimally-invasive continuous glucose monitoring device
 		('1464731000000106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Mean substance concentration of glucose in capillary blood by self-monitoring of blood glucose using blood glucose meter
 		('1464741000000102',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Standard deviation of mean substance concentration of glucose in capillary blood using minimally-invasive continuous glucose monitoring device
@@ -1287,8 +1311,8 @@ BEGIN
 		('3550001000004108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Presence of receptor tyrosine-protein kinase erbB-2 in primary malignant neoplasm of breast by immunohistochemistry
 		('3980001000004105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Radial location of primary malignant neoplasm in excised breast specimen
 		('4050001000004108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Status of progesterone receptor stain in control cells by immunohistochemistry
-		('26421000237108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Docosanoate (C22) molar concentration in plasma
-		('26901000237105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Pyridinium crosslinks molar concentration in serum
+		('26421000237108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Docosanoate (C22) molar concentration in plasma
+		('26901000237105',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Pyridinium crosslinks molar concentration in serum
 		('1003521000004104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number of tumor buds in primary malignant neoplasm of colon in microscopic field 0.785 mm2
 		('1030001000004100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Site of excised primary malignant neoplasm of rectosigmoid colon relative to peritoneal reflection
 		('1049601000000108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number of weeks attendance of weight management programme
@@ -1301,17 +1325,17 @@ BEGIN
 		('1597881000000101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentage of time spent by continuous automated insulin delivery system in low glucose suspend
 		('1597891000000104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentage of time spent by continuous automated insulin delivery system in predictive low glucose suspend
 		('6270001000004106',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Presence of ulcer in primary malignant melanoma of skin
-		('30121000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Neurokinin A molar concentration in plasma
-		('43871000237100',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Plasmodium falciparum antigen arbitrary concentration in serum
-		('46051000237109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Nucleated red blood cells percent in blood
-		('50451000237101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Semen viscosity qualitative result
-		('551791000124104',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Superior transverse sacral axis motion
-		('551801000124103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Longitudinal sacral axis motion
-		('568121000005101',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Irregular blood group antibody observable
-		('568131000005103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Rhesus antibody observable
-		('568161000005105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Maternal pre-pregnancy alcoholic beverage intake
-		('591201000124109',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Severe acute respiratory syndrome coronavirus 2 vaccination status
-		('591251000124108',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Oblique sacral axis motion
+		('30121000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Neurokinin A molar concentration in plasma
+		('43871000237100',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Plasmodium falciparum antigen arbitrary concentration in serum
+		('46051000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Nucleated red blood cells percent in blood
+		('50451000237101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Semen viscosity qualitative result
+		('551791000124104',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Superior transverse sacral axis motion
+		('551801000124103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Longitudinal sacral axis motion
+		('568121000005101',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Irregular blood group antibody observable
+		('568131000005103',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Rhesus antibody observable
+		('568161000005105',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Maternal pre-pregnancy alcoholic beverage intake
+		('591201000124109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Severe acute respiratory syndrome coronavirus 2 vaccination status
+		('591251000124108',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Oblique sacral axis motion
 		('1464851000000107',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentage of readings above level 2 hyperglycaemic threshold to total self-monitored capillary blood glucose readings using blood glucose meter
 		('1464861000000105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentage of readings above level 1 hyperglycaemic threshold to total self-monitored capillary blood glucose readings using blood glucose meter
 		('1464871000000103',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentage of readings below level 2 hypoglycaemic threshold to total self-monitored capillary blood glucose readings using blood glucose meter
@@ -1344,7 +1368,7 @@ BEGIN
 		('6411000237109',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Calculated serum osmolarity molar concentration in serum
 
 		('363884002',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Recognition observable
-		('6769007',  			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Attention
+		('6769007',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Attention
 		('311718005',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cognitive discrimination
 		('363885001',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Characteristic of intellect
 		('312012004',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cognitive function: awareness
@@ -1379,6 +1403,8 @@ BEGIN
 		('363887009',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Memory observable
 		('363896009',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Behavior observable
 		('364287007',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feature of consistency of cervical mucous
+	--2024-05-10
+		('1010511000000108', 'Observation',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Serum T4 level
 
 		-- Physical Object
 		('303624006',  		'Device', 		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal device
@@ -1398,6 +1424,7 @@ BEGIN
 		('105799003',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Household device
 		('40188005',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Household accessory
 		('698101006',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Smoking device
+		('129464000',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Medical administrative equipment
 
 		--Pharma/Biol Product
 		--history:on
@@ -1418,7 +1445,7 @@ BEGIN
 		('327838005',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Intravenous nutrition
 		('226311003',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dietary fiber supplementation
 		('411115002',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug-device combination product
-		('12222501000001106', 'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Virtual radiopharmaceutical moiety
+		('12222501000001106', 	'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Virtual radiopharmaceutical moiety
 		('736542009',			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Pharmaceutical dose form
 
 		--Procedure
@@ -1461,14 +1488,14 @@ BEGIN
 		('117617002',			'Measurement',	TO_DATE('20200428', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Immunohistochemistry procedure
 		('404933001',			'Measurement',	TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Berg balance test
 		--history: on
-		('1321161000000104',  'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Household quarantine to prevent exposure of community to contagion
-		('1321161000000104',  'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Household quarantine to prevent exposure of community to contagion
-		('1321151000000102',  'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
-		('1321151000000102',  'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
-		('1321141000000100',  'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
-		('1321141000000100',  'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
-		('1321131000000109',  'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Self quarantine and similar
-		('1321131000000109',  'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Self quarantine and similar
+		('1321161000000104',  	'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Household quarantine to prevent exposure of community to contagion
+		('1321161000000104',  	'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Household quarantine to prevent exposure of community to contagion
+		('1321151000000102',  	'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
+		('1321151000000102',  	'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
+		('1321141000000100',  	'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
+		('1321141000000100',  	'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
+		('1321131000000109',  	'Visit',		TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20240131', 'YYYYMMDD'),	NULL), --Self quarantine and similar
+		('1321131000000109',  	'Observation',	TO_DATE('20240131', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Self quarantine and similar
 		--history: off
 
 		('20135006', 			'Measurement',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Screening procedure
@@ -1479,15 +1506,15 @@ BEGIN
 		('118292001',			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Removal
 		('128967005',			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Exercise challenge
 		('91251008', 			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Physical therapy procedure
-		('711540006', 		'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MRI of breast for screening
+		('711540006', 			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- MRI of breast for screening
 		('31687009', 			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Multiphasic screening procedure
-		('444783004', 		'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Screening colonoscopy
+		('444783004', 			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Screening colonoscopy
 		('24623002', 			'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Screening mammography
-		('3421000175104',  	'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Video screen time assessment
-		('472824009', 	 	'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetal echocardiography screening
-		('716035006', 	 	'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Scintimammography for malignant neoplasm screening
+		('3421000175104',  		'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Video screen time assessment
+		('472824009', 	 		'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetal echocardiography screening
+		('716035006', 	 		'Procedure',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Scintimammography for malignant neoplasm screening
 		('88884005', 			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Alpha-1-antitrypsin phenotyping
-		('851211000000105',	'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Assessment of sedation level
+		('851211000000105',		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Assessment of sedation level
 		('37859006', 			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pulmonary ventilation perfusion study
 		('30058000', 			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Therapeutic drug monitoring assay
 		('441967009',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of cerebrospinal fluid
@@ -1532,7 +1559,7 @@ BEGIN
 		('164822009',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Special male genital test
 		('164814002',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Postcoital test
 		('252222003',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gastrointestinal tract function test
-		('167252002',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urine pregnancy test
+		('167252002',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Urine pregnancy test
 		('252801000',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ophthalmological test
 		('445536008',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Assessment using assessment scale
 		('250221001',			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Detection of hemoglobin
@@ -1546,24 +1573,34 @@ BEGIN
 		('183452005',			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emergency hospital admission
 		('183851006',			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Referral to clinic
 		('105396008',			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visit of patient by chaplain
-		('699823003', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Provision of written information
-		('229252009', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Active joint movements
+		('699823003', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Provision of written information
+		('229252009', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Active joint movements
 		('84478008', 	 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Occupational therapy
 		('12799001', 	 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Physiotherapy class activities
-		('409073007', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Education
-		('252314007',  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood transfusion test
-		('16830007',  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity testing
-		('441813004',  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of peritoneal fluid
-		('446428008',  		'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of musculoskeletal system
-		('252758009',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electromyography of anal sphincter
-		('284393006',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Examination of joint
-		('363119001',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Exploration of musculoskeletal system
-		('441958009',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging of musculoskeletal system
-		('107739004',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal system endoscopy
-		('363215001',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal system physical examination
-		('447486003',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Perioperative evaluation of musculoskelatal system
-		('68848009',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transillumination of newborn skull
-		('418419008',  		'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Virtual CT bronchoscopy
+		('409073007', 			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Education
+		('252314007',  			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood transfusion test
+		('16830007',  			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity testing
+		('441813004',  			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of peritoneal fluid
+		('446428008',  			'Measurement',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Evaluation of musculoskeletal system
+		('252758009',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electromyography of anal sphincter
+		('284393006',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Examination of joint
+		('363119001',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Exploration of musculoskeletal system
+		('441958009',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging of musculoskeletal system
+		('107739004',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal system endoscopy
+		('363215001',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal system physical examination
+		('447486003',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Perioperative evaluation of musculoskelatal system
+		('68848009',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transillumination of newborn skull
+		('418419008',  			'Procedure', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Virtual CT bronchoscopy
+
+		('74036000',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnancy detection examination
+		('167592004',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Examination of feces
+		('42987007',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vestibular function test
+		('165079009',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Exercise tolerance test
+		('3971006',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Duchenne muscular dystrophy carrier detection
+		('44489000',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cystic fibrosis carrier detection
+		('59851008',  			'Procedure', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electronystagmogram
+		('390906007',  			'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Follow-up encounter
+		('11429006',  			'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Consultation
 
 		--Qualifier Value
 		('260245000',			'Meas Value',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding Value
@@ -1573,21 +1610,21 @@ BEGIN
 		--history:off
 		--history:on
 		('385285004',			'Drug',			TO_DATE('20150518', 'YYYYMMDD'),	TO_DATE('20230925', 'YYYYMMDD'),	NULL), -- dialysis dosage form
-		('385285004',  		'Device',		TO_DATE('20230925', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Dialysis dosage form
+		('385285004',  			'Device',		TO_DATE('20230925', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Dialysis dosage form
 		--history:off
 
-		('421347001',			'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Cutaneous aerosol
-		('105904009',			'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Type of drug preparation
+		('421347001',		'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Cutaneous aerosol
+		('105904009',		'Drug',			TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Type of drug preparation
 
-		('767524001',			'Unit',			TO_DATE('20190211', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --  Unit of measure (Top unit)
-		('8653201000001106',  'Drug',			TO_DATE('20190827', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --dm+d value
+		('767524001',		'Unit',			TO_DATE('20190211', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --  Unit of measure (Top unit)
+		('8653201000001106', 	'Drug',			TO_DATE('20190827', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --dm+d value
 
-		('260299005',			'Meas Value',	TO_DATE('20201117', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number [AVOF-2893]
-		('272063003',			'Meas Value',	TO_DATE('20201117', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Alphanumeric[AVOF-2893]
+		('260299005',		'Meas Value',	TO_DATE('20201117', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Number [AVOF-2893]
+		('272063003',		'Meas Value',	TO_DATE('20201117', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Alphanumeric[AVOF-2893]
 
-		('371234007',			'Meas Value',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Color modifier
-		('272104009',			'Meas Value',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Absolute times
-		('297289008',			'Language',		TO_DATE('20221030', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --World languages
+		('371234007',		'Meas Value',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Color modifier
+		('272104009',		'Meas Value',	TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Absolute times
+		('297289008',		'Language',		TO_DATE('20221030', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --World languages
 
 		('276135000',	'Meas Value Operator',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Mathematical sign
 
@@ -1597,105 +1634,110 @@ BEGIN
 		('385281008',  		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Radiopharmaceutical dosage form
 		('278474008',  		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Types of contrast medium
 		('9906801000001108',  'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Nebuliser
-		('90213003',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --False positive
-		('61707005',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --False negative
-		('272099008',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Descriptor
-		('258395000',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Levels
-		('258391009',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Classes
-		('272423005',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Degrees of severity
-		('258237008',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Editions
-		('272422000',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Fractions of movement
-		('261586004',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Groups
-		('415068004',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentile value
+		('90213003',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --False positive
+		('61707005',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --False negative
+		('272099008',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Descriptor
+		('258395000',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Levels
+		('258391009',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Classes
+		('272423005',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Degrees of severity
+		('258237008',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Editions
+		('272422000',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Fractions of movement
+		('261586004',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Groups
+		('415068004',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Percentile value
 		('449741000124101',	'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Preparation level
-		('261612004',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Stages
-		('277975002',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Temperature ranges
-		('278159002',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --FAB type values
-		('276726000',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Microbiology subtype
-		('272397003',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Numerical types
-		('272402004',			'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Types TH
+		('261612004',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Stages
+		('277975002',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Temperature ranges
+		('278159002',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --FAB type values
+		('276726000',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Microbiology subtype
+		('272397003',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Numerical types
+		('272402004',		'Meas Value',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Types TH
 
-		('246292004',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Level of arrest
-		('134408007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Cycle of change stage
-		('309689007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Occult carcinoma - stage
+		('246292004',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Level of arrest
+		('134408007',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Cycle of change stage
+		('309689007',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Occult carcinoma - stage
 
-		('420719007',			'Route',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Intraventricular route
+		('420719007',		'Route',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Intraventricular route
 
 		--Social context
 		--history:on
-		('223366009',			'Provider Specialty',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20190201', 'YYYYMMDD'),	NULL), -- Healthcare professional
-		('223366009',			'Provider',  	TO_DATE('20190201', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Healthcare professional
+		('223366009',		'Provider Specialty',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20190201', 'YYYYMMDD'),	NULL), -- Healthcare professional
+		('223366009',		'Provider',  	TO_DATE('20190201', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Healthcare professional
 		--history:off
-		('372148003',			'Race',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Ethnic group
-		('415229000',			'Race',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Racial group
-		('125677006',			'Relationship',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Relationship
-		('224620002',			'Observation', 	TO_DATE('20230925', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Human aid to communication
+		('372148003',		'Race',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Ethnic group
+		('415229000',		'Race',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Racial group
+		('125677006',		'Relationship',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Relationship
+		('224620002',		'Observation', 	TO_DATE('20230925', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Human aid to communication
+		('1295407004',		'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- ICD-10 glaucoma staging
+
+		--Staging|Scales
+		('258257007',		'Meas Value',	TO_DATE('20240503', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Additional tumour staging descriptor
+
 
 		--Substance
-		('264301008',			'Observation',  TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Psychoactive substance of abuse - non-pharmaceutical
-		('289964002',			'Device',		TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Surgical material
-		('418920007',			'Device',		TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adhesive agent
-		('255922001',			'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dental material
-		('118417008',			'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Filling material
-		('445214009',			'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- corneal storage medium
+		('264301008',		'Observation',  TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Psychoactive substance of abuse - non-pharmaceutical
+		('289964002',		'Device',		TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Surgical material
+		('418920007',		'Device',		TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adhesive agent
+		('255922001',		'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dental material
+		('118417008',		'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Filling material
+		('445214009',		'Device',		TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- corneal storage medium
 		--history:on
-		('373782009',			'Observation',  TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20180208', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
-		('373782009',			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
+		('373782009',		'Observation',  TO_DATE('20141231', 'YYYYMMDD'),	TO_DATE('20180208', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
+		('373782009',		'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- diagnostic substance, exception of drug
 		--history:off
-		('410942007',			'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug or medicament
-		('111160004',			'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sodium iodide (131-I)
-		('385420005',			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Contrast media
-		('419148000',			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diagnostic dye
-		('766886003',			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Technetium (99m-Tc) bicisate
-		('373222005',			'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disinfectants and cleansers
-		('332525008',			'Device',		TO_DATE('20190418', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),  --Camouflaging preparations
-		('771387000',			'Drug',			TO_DATE('20200312', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Substance with effector mechanism of action
+		('410942007',		'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug or medicament
+		('111160004',		'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sodium iodide (131-I)
+		('385420005',		'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Contrast media
+		('419148000',		'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Diagnostic dye
+		('766886003',		'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Technetium (99m-Tc) bicisate
+		('373222005',		'Device',		TO_DATE('20180208', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disinfectants and cleansers
+		('332525008',		'Device',		TO_DATE('20190418', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),  --Camouflaging preparations
+		('771387000',		'Drug',			TO_DATE('20200312', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Substance with effector mechanism of action
 
-		('418672000',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vitreoretinal surgical agent
-		('373517009',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Protective agent (for skin)
-		('109192009',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hysteroscopy fluid
-		('14399003',		 	'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine radioisotope
-		('373569004',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Flea and tick agent
-		('373545003',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Replacement agent
-		('373724007',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Colloidal oatmeal powder
-		('289122001',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cosmetic material
-		('256673003',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mucosa, skin and subcutaneous material
-		('256899007',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cardiovascular material
-		('418588009',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dusting powder agent
+		('418672000',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vitreoretinal surgical agent
+		('373517009',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Protective agent (for skin)
+		('109192009',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hysteroscopy fluid
+		('14399003',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine radioisotope
+		('373569004',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Flea and tick agent
+		('373545003',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Replacement agent
+		('373724007',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Colloidal oatmeal powder
+		('289122001',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cosmetic material
+		('256673003',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mucosa, skin and subcutaneous material
+		('256899007',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cardiovascular material
+		('418588009',		'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dusting powder agent
 
-		('255640000',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Biocide
-		('11713004',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Water
-		('301054007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Phytochemical
-		('106181007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Immunologic substance
-		('418297009',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pharmaceutical base or inactive agent
-		('419556005',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Medical gas
-		('57795002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical element
-		('412232009',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Microbial agent
-		('762766007',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Edible substance
-		('33638001', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Isotope
+		('255640000',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Biocide
+		('11713004',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Water
+		('301054007',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Phytochemical
+		('106181007',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Immunologic substance
+		('418297009',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pharmaceutical base or inactive agent
+		('419556005',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Medical gas
+		('57795002',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical element
+		('412232009',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Microbial agent
+		('762766007',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Edible substance
+		('33638001', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Isotope
 		('767266004', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine and iodine compound
-		('28268006', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnanediol
-		('71159008', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnanetriol
+		('28268006', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnanediol
+		('71159008', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnanetriol
 		('771388005', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Molecular messenger
-		('43218009', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allo-cortols
+		('43218009', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allo-cortols
 		('706932000', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Free progesterone
-		('61789006', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dye
+		('61789006', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dye
 		('301434004', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Turpentine or derivative
 		('409893003', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bisacodyl metabolites
-		('47389008', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methyl tert-butyl ether
+		('47389008', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Methyl tert-butyl ether
 		('706933005', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Free phenytoin
-		('68329003', 			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fuller's earth
+		('68329003', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fuller's earth
 		('226916002', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Beef
 		('1284919009', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bovine gelatin
 		('256363008', 		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Animal protein
 		('39248411000001101', 'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sodium iodide (131-I)
-		('1368003', 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine-131
-		('33271006', 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodohippurate (131-I) sodium
-		('33785000', 			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine (125-I) liothyronine
-		('432884004',			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chlorotoxin (131-I)
+		('1368003', 		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine-131
+		('33271006', 		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodohippurate (131-I) sodium
+		('33785000', 		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine (125-I) liothyronine
+		('432884004',		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chlorotoxin (131-I)
 		('765010006', 		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine (131-I) labeled monoclonal antibody
-		('765117007',			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine (131-I) ethiodized oil
-		('373273002',			'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- General inhalation anesthetic
+		('765117007',		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Iodine (131-I) ethiodized oil
+		('373273002',		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- General inhalation anesthetic
 		('373703002',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Intravenous fluids and electrolytes
 		('373523004',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Skin antifungal agent
 		('417901007',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Oxymetazoline
@@ -1703,7 +1745,8 @@ BEGIN
 		('406463001',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug allergen
 		('782573007',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glycerol phenylbutyrate
 		('441900009',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical
-
+--2024-05-10
+		('29750002',  		'Drug',			TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Substance
 
 		--history:on
 		('364066008',			'Observation',	TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable

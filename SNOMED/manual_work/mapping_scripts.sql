@@ -16,7 +16,7 @@ select source_code_description,
        m.relationship_id,
        relationship_id_predicate,
        m.source,
-       comments,
+       case when m.target_concept_id != c.concept_id then '!target updated!' END as comments,
        c.concept_id as target_concept_id,
        c.concept_code as target_concept_code,
        c.concept_name as target_concept_name,
@@ -31,10 +31,10 @@ from snomed_mapped m
 join concept cc on (cc.concept_code, cc.vocabulary_id) = (m.target_concept_code, m.target_vocabulary_id)
 left join devv5.concept_relationship cr on cc.concept_id = cr.concept_id_1 and cr.relationship_id = 'Maps to' and cr.invalid_reason is null
 left join devv5.concept c on c.concept_id = cr.concept_id_2
-where m.cr_invalid_reason = ''
+where m.cr_invalid_reason  is NULL
 and cr.relationship_id in ('Maps to', 'Maps to value')
 
-union all
+union
 
 select source_code_description,
        source_code,
@@ -49,8 +49,7 @@ select source_code_description,
        m.relationship_id,
        relationship_id_predicate,
        m.source,
-       case when target_concept_code = '' then '!no target!'
-              else null end as comments,
+       case when target_concept_code is NULL then '!no target!' end as comments,
        target_concept_id,
        target_concept_code,
        target_concept_name,
@@ -64,8 +63,8 @@ select source_code_description,
 from snomed_mapped m
 where relationship_id not in ('Maps to', 'Maps to value')
 or (relationship_id in ('Maps to', 'Maps to value') and cr_invalid_reason = 'D')
---or target_concept_id = 0
-or target_concept_code = ''
+or target_concept_id = 0
+or target_concept_code is null
 ),
 
 to_review as (
@@ -82,7 +81,7 @@ select source_code_description,
        m.relationship_id,
        relationship_id_predicate,
        m.source,
-       case when c.standard_concept is null then '!non-standard target!'
+       case when c.standard_concept is null and c.concept_code is not null then '!non-standard target!'
               else null end as comments,
        c.concept_id as target_concept_id,
        c.concept_code as target_concept_code,
@@ -95,13 +94,13 @@ select source_code_description,
        mapper_id,
        reviewer_id
 from snomed_mapped m
-join devv5.concept c on c.concept_id = m.target_concept_id
+join devv5.concept c on (c.concept_code, c.vocabulary_id) = (m.target_concept_code, m.target_vocabulary_id)
 where not exists (select 1
                   from reviewed r
                   where (r.source_code, r.relationship_id, r.cr_invalid_reason) = (m.source_code, m.relationship_id, m.cr_invalid_reason)))
 
 select * from reviewed
-union all
+union
 select * from to_review
 order by source, source_code, relationship_id
 ;
@@ -386,7 +385,7 @@ where c.vocabulary_id = 'SNOMED'
 	and (c.invalid_reason is null or c.invalid_reason = 'D')
 	and c.concept_code not in (select source_code
 	                           from snomed_mapped m
-	                           where m.relationship_id = 'Maps to'
+	                           where m.relationship_id in ('Maps to', 'Maps to value')
 	                           and m.cr_invalid_reason is null)
 
 union all
@@ -415,7 +414,7 @@ select distinct c.concept_name as source_name,
 		ii.vocabulary_id as target_vocabulary_id,
      	'your_name' as mapper_id
 from concept c
-join concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id = 'Has causative agent' and cr.invalid_reason IS NULL
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id = 'Has causative agent' and cr.invalid_reason IS NULL
 left join concept_relationship ccr on ccr.concept_id_1 = cr.concept_id_2 and ccr.relationship_id = 'Maps to' and cr.invalid_reason IS NULL
 join concept ii on ii.concept_id = ccr.concept_id_2
 join snomed_ancestor sa ON sa.descendant_concept_code::TEXT = c.concept_code
@@ -425,8 +424,8 @@ where c.vocabulary_id = 'SNOMED'
 	and (c.invalid_reason is null or c.invalid_reason = 'D')
 	and c.concept_code not in (select source_code
 	                           from snomed_mapped m
-	                           where m.relationship_id = 'Maps to'
-	                           and m.cr_invalid_reason is null)
+ 								where m.relationship_id in ('Maps to', 'Maps to value')
+ 								  and m.cr_invalid_reason is null)
 
 order by source_code, relationship_id
 ;
@@ -469,7 +468,7 @@ and not exists (select 1
 	                and cr.invalid_reason is null)
 ;
 
--- 2.6 Countries
+-- 2.5 Countries
 select c.concept_name,
         c.concept_code,
         c.concept_class_id,
@@ -501,13 +500,55 @@ and c.vocabulary_id != cc.vocabulary_id
 and c.vocabulary_id = 'SNOMED'
 and cc.concept_class_id = '2nd level';
 
+--2.6 Scores and scales
+select c.concept_name,
+        c.concept_code,
+        c.concept_class_id,
+        c.invalid_reason,
+        c.domain_id,
+        c.vocabulary_id,
+		null as cr_invalid_reason,
+        null as mapping_tool,
+        null as mapping_source,
+        '1' as confidence,
+        'Maps to' as relationship_id,
+        'eq' as relationship_preference,
+        'score/scale dedup' as source,
+        null as comment,
+        cc.concept_id,
+		cc.concept_code,
+       	cc.concept_name,
+       	cc.concept_class_id as target_concept_class_id,
+       	cc.standard_concept as target_standard_concept,
+       	cc.invalid_reason as target_invalid_reason,
+       	cc.domain_id as target_domain_id,
+       	cc.vocabulary_id as target_vocabulary_id,
+       	'MK' as mapper_id
+from concept c
+left join concept cc on regexp_replace(c.concept_name, ' score', '') = regexp_replace(cc.concept_name, ' scale', '')
+where c.vocabulary_id = 'SNOMED'
+and cc.vocabulary_id = 'SNOMED'
+and c.standard_concept = 'S'
+and cc.standard_concept = 'S'
+and c.domain_id = 'Measurement'
+and c.concept_class_id = 'Observable Entity'
+and cc.concept_class_id = 'Staging / Scales'
+;
+
 -- 3. Extract source concepts for manual mapping
 select c.concept_name,
         c.concept_code,
         c.concept_class_id,
         c.invalid_reason ,
         c.domain_id ,
-        c.vocabulary_id
+        c.vocabulary_id,
+		null as cr_invalid_reason,
+        null as mapping_tool,
+        null as mapping_source,
+        '1' as confidence,
+        'Maps to' as relationship_id,
+        '' as relationship_preference,
+        null as source
 from concept c
 where vocabulary_id = 'SNOMED'
 and domain_id in ('Race', 'Gender', 'Unit', 'Provider')
@@ -523,3 +564,89 @@ and not exists (select 1
 	          		and relationship_id = 'Maps to'
 	                and cr.invalid_reason is null);
 
+
+--4. Draft script to explore and map duplicates within SNOMED:
+with uk as (
+select concept_id_1, 'UK' as flag from concept_relationship
+where relationship_id = 'Has Module'
+and concept_id_2 = 44812389
+),
+us as (
+select concept_id_1, 'US' as flag from concept_relationship
+where relationship_id = 'Has Module'
+and concept_id_2 in (3169365, 764868)
+),
+int as (
+select concept_id_1, 'INT' as flag from concept_relationship
+where relationship_id = 'Has Module'
+and concept_id_2 in (40642539, 40642533)
+),
+modules as (
+select * from uk
+union
+select * from us
+union
+select * from int
+)
+
+select c.concept_name,
+        c.concept_code,
+        m.flag as source_module,
+        c.concept_class_id,
+        c.invalid_reason ,
+        c.domain_id ,
+        c.vocabulary_id,
+		null as cr_invalid_reason,
+        null as mapping_tool,
+        null as mapping_source,
+        '1' as confidence,
+        'Maps to' as relationship_id,
+        'eq' as relationship_preference,
+        'dedup' as source,
+        '' as comment,
+		cc.concept_id,
+		cc.concept_code,
+		m1.flag as target_module,
+       	cc.concept_name,
+       	cc.concept_class_id as target_concept_class_id,
+       	cc.standard_concept as target_standard_concept,
+       	cc.invalid_reason as target_invalid_reason,
+       	cc.domain_id as target_domain_id,
+       	cc.vocabulary_id as target_vocabulary_id,
+       	'your_name' as mapper_id
+from concept c, concept cc, modules m, modules m1
+where lower(c.concept_name) = lower(cc.concept_name)
+and c.concept_id != cc.concept_id
+and c.domain_id = cc.domain_id
+and c.vocabulary_id = 'SNOMED'
+and cc.vocabulary_id = 'SNOMED'
+and c.standard_concept = 'S'
+and cc.standard_concept = 'S'
+and c.concept_id = m.concept_id_1
+and m.flag != 'INT' -- we map local SNOMEDs to the international module
+and cc.concept_id = m1.concept_id_1
+and c.concept_class_id not in ('Organism', 'Disposition', 'Substance', 'Qualifier Value', 'Physical Object', 'Morph Abnormality')
+and cc.concept_class_id not in ('Organism', 'Disposition', 'Substance', 'Qualifier Value', 'Physical Object', 'Morph Abnormality')
+order by c.domain_id, c.concept_name, c.concept_class_id;
+
+-- script to populate concept_mapped table
+select distinct null as concept_name,
+       null as domain_id,
+       source_vocabulary_id,
+       null as concept_class_id,
+       null as standard_concept,
+       source_code,
+       null as valid_start_date,
+       null as valid_end_date,
+       'X' as invalid_reason
+from snomed_mapped m
+where source_code in (
+       select concept_code
+       from concept
+       where standard_concept = 'S'
+       and vocabulary_id = 'SNOMED'
+	   )
+and m.relationship_id in ('Maps to', 'Maps to value')
+and m.cr_invalid_reason is null
+and m.target_concept_code is not null
+and m.target_concept_id != 0;

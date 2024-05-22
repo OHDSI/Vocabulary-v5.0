@@ -629,7 +629,7 @@ and c.concept_class_id not in ('Organism', 'Disposition', 'Substance', 'Qualifie
 and cc.concept_class_id not in ('Organism', 'Disposition', 'Substance', 'Qualifier Value', 'Physical Object', 'Morph Abnormality')
 order by c.domain_id, c.concept_name, c.concept_class_id;
 
--- script to populate concept_mapped table
+-- 5. Script to populate concept_mapped table
 select distinct null as concept_name,
        null as domain_id,
        source_vocabulary_id,
@@ -651,7 +651,7 @@ and m.cr_invalid_reason is null
 and m.target_concept_code is not null
 and m.target_concept_id != 0;
 
---5. Check for personal history concepts without value:
+--6. Check for personal history concepts without value:
 with without_values as (
 select c.*
 from concept c
@@ -706,3 +706,28 @@ where cr.relationship_id = 'Maps to value'
 	   select concept_id
 	   from without_values
 			  );
+
+-- 7. Check for concepts that have 'Maps to value' relationships without 'Maps to' to Observation/Measurement target:
+select *
+from dev_snomed.concept_relationship a
+join dev_snomed.concept aa
+on aa.concept_id=a.concept_id_1
+where exists(
+       select 1
+       from dev_snomed.concept_relationship c
+       where a.concept_id_1 = c.concept_id_1
+       and (c.relationship_id = 'Maps to value')
+       and c.invalid_reason is null
+            )
+and not exists(
+       select 1
+       from dev_snomed.concept_relationship b
+       left join dev_snomed.concept c
+       on c.concept_id = b.concept_id_2
+       where a.concept_id_1 = b.concept_id_1
+       and c.domain_id in ('Observation', 'Measurement')
+       and (b.relationship_id = 'Maps to')
+       and b.invalid_reason is null
+              )
+and aa.vocabulary_id IN (:your_vocabs)
+;

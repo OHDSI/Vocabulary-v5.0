@@ -1,3 +1,9 @@
+-- These scripts are used to create custom SNOMED source with defined SNOMED modules release dates
+--- 1) create custom tables in dev_snomed
+--- 2) use SNOMED source tables from the sources schema and cut off the content that was released after the desired release dates
+--- 3) populate the custom tables with the resulting content
+
+-- Custom tables naming:
 --sources.der2_ssrefset_moduledependency_merged => dev_snomed.der2_ssrefset_moduledependency_merged_2024v2
 --sources.sct2_concept_full_merged => dev_snomed.sct2_concept_full_merged_2024v2
 --sources.sct2_desc_full_merged => dev_snomed.sct2_desc_full_merged_2024v2
@@ -5,11 +11,11 @@
 --sources.sct2_rela_full_merged => dev_snomed.sct2_rela_full_merged_2024v2
 --sources.der2_crefset_assreffull_merged => dev_snomed.der2_crefset_assreffull_merged_2024v2
 
+-- SNOMED modules settings
 ---	900000000000207008 --Core (international) module --2024-02-01
 --- 900000000000012004	-- SNOMED CT model component --2024-02-01
 --- 999000011000000103 --UK edition --2024-04-10
 --- 731000124108 --US edition --2024-03-01
-
 
 --1. sources.der2_ssrefset_moduledependency_merged => dev_snomed.der2_ssrefset_moduledependency_merged_custom_2024v2
 --DROP TABLE dev_snomed.der2_ssrefset_moduledependency_merged_2024v2;

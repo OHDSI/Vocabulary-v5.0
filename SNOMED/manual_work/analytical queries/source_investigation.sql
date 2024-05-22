@@ -1,3 +1,8 @@
+--We have three SNOMED modules automatically merged into source tables.
+-- These modules do not correspond to the dependencies between local and international versions of SNOMED.
+-- We need an approach for creating a merged source according to the pre-defined versions.
+-- The scripts below are used to compare the content of the trimmed by the defined date source tables with their archive version with the same module dates.
+
 --List of SNOMED source tables:
 ---der2_ssrefset_moduledependency_merged
 ---sct2_concept_full_merged
@@ -7,7 +12,6 @@
 ---der2_crefset_assreffull_merged
 
 --1. Adjust archive parameters:
-
 SELECT * FROM sources_archive.ShowArchiveDetails() WHERE table_name = 'sct2_concept_full_merged';
 
 DO $$

@@ -1,4 +1,4 @@
---18.1. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous snomed refresh.
+--18.3.1 Create snomed_mapped table and pre-populate it with the resulting manual table of the previous snomed refresh.
 /*
 DROP TABLE dev_snomed.snomed_mapped;
 CREATE TABLE dev_snomed.snomed_mapped
@@ -34,7 +34,7 @@ CREATE TABLE dev_snomed.snomed_mapped
 --Adding constraints for unique records
 ALTER TABLE dev_snomed.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
 
---18.2. Truncate the 'snomed_mapped' table. Save the spreadsheet as the 'snomed_mapped table' and upload it into the working schema.
+--18.3.3 Truncate the 'snomed_mapped' table. Save the spreadsheet as the 'snomed_mapped table' and upload it into the working schema.
 TRUNCATE TABLE dev_snomed.snomed_mapped;
 
 --Format after uploading
@@ -47,7 +47,7 @@ UPDATE dev_snomed.snomed_mapped SET source_invalid_reason = NULL WHERE source_in
 UPDATE dev_snomed.snomed_mapped SET mapper_id = NULL WHERE mapper_id = '';
 UPDATE dev_snomed.snomed_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
 
---18.3. Change concept_relationship_manual table according to snomed_mapped table.
+--18.3.6 Change concept_relationship_manual table according to snomed_mapped table.
 --Insert new relationships
 --Update existing relationships
 INSERT INTO dev_snomed.concept_relationship_manual AS mapped
@@ -104,7 +104,7 @@ AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
 
---18.4. Create concept_mapped table and populate it with the resulting manual table of the previous SNOMED refresh
+--18.3.7 Create concept_mapped table and populate it with concepts that require manual changes
 /*CREATE TABLE concept_mapped
 (
        id SERIAL PRIMARY KEY,
@@ -119,7 +119,7 @@ AND crm.invalid_reason IS NOT NULL
 --Adding constraints for unique records
 ALTER TABLE dev_snomed.concept_mapped ADD CONSTRAINT idx_pk_concept UNIQUE (concept_code, vocabulary_id);
 
--- 18.5. Truncate cm_update table. Save the spreadsheet as 'cm_update table' and upload it to the schema:
+-- 18.3.8 Truncate concept_mapped table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema:
 TRUNCATE TABLE concept_mapped;
 
 --Format after uploading:
@@ -128,7 +128,7 @@ UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
 UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
 UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
 
---18.3. Change concept_manual table according to cm_update table.
+--18.3.9 Change concept_manual table according to concept_mapped table.
 INSERT INTO concept_manual AS cm
 (concept_name,
  domain_id,

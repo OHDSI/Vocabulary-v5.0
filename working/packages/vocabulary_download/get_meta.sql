@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION vocabulary_download.get_umls (
+CREATE OR REPLACE FUNCTION vocabulary_download.get_meta (
 iOperation text default null,
 out session_id int4,
 out last_status INT,
@@ -7,7 +7,7 @@ out result_output text
 AS
 $BODY$
 DECLARE
-pVocabularyID constant text:='UMLS';
+pVocabularyID constant text:='META';
 pVocabulary_auth vocabulary_access.vocabulary_auth%type;
 pVocabulary_url vocabulary_access.vocabulary_url%type;
 pVocabulary_login vocabulary_access.vocabulary_login%type;
@@ -17,25 +17,33 @@ pVocabularySrcVersion text;
 pVocabularyNewDate date;
 pVocabularyNewVersion text;
 pCookie text;
+pCookie_p1 text;
+pCookie_p1_value text;
+pCookie_p2 text;
+pCookie_p2_value text;
 pContent text;
-pTicket text;
 pDownloadURL text;
+auth_hidden_param varchar(10000);
 pErrorDetails text;
 pVocabularyOperation text;
-pJumpToOperation text; --ALL (default), JUMP_TO_UMLS_PREPARE, JUMP_TO_UMLS_IMPORT
+/*
+  possible values of pJumpToOperation:
+  ALL (default), JUMP_TO_META_PREPARE, JUMP_TO_META_IMPORT
+*/
+pJumpToOperation text;
 z int;
 cRet text;
 CRLF constant text:=E'\r\n';
 pSession int4;
 pVocabulary_load_path text;
 BEGIN
-  pVocabularyOperation:='GET_UMLS';
+  pVocabularyOperation:='GET_META';
   select nextval('vocabulary_download.log_seq') into pSession;
   
   select new_date, new_version, src_date, src_version 
   	into pVocabularyNewDate, pVocabularyNewVersion, pVocabularySrcDate, pVocabularySrcVersion 
   from vocabulary_pack.CheckVocabularyUpdate(pVocabularyID);
-
+  
   set local search_path to vocabulary_download;
   
   perform write_log (
@@ -45,38 +53,22 @@ BEGIN
     iVocabulary_status=>0
   );
   
-  if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
-  
   if iOperation is null then pJumpToOperation:='ALL'; else pJumpToOperation:=iOperation; end if;
-  if iOperation not in ('ALL', 'JUMP_TO_UMLS_PREPARE', 'JUMP_TO_UMLS_IMPORT') then raise exception 'Wrong iOperation %',iOperation; end if;
+  if iOperation not in ('ALL', 'JUMP_TO_META_PREPARE', 'JUMP_TO_META_IMPORT'
+  ) then raise exception 'Wrong iOperation %',iOperation; end if;
+  
+  if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
   
   if not pg_try_advisory_xact_lock(hashtext(pVocabularyID)) then raise exception 'Processing of % already started',pVocabularyID; end if;
   
   select var_value||pVocabularyID into pVocabulary_load_path from devv5.config$ where var_name='vocabulary_load_path';
     
   if pJumpToOperation='ALL' then
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-
-    --first part, getting raw download link from page
-    select substring(http_content,'<td>\s*<a[^>]*href="(.+?)".*?>\s*UMLS Metathesaurus Full Subset\s*</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    pDownloadURL:=regexp_replace(pDownloadURL, '[[:cntrl:]]+', '','g');
-    if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
-    
-    --get the proper ticket and concatenate it with the pDownloadURL
-    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login,pDownloadURL);
-    pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
-    
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>pVocabularyOperation||' authorization successful',
-      iVocabulary_status=>1
-    );
+    --get download link, no need to parse
+    select vocabulary_url into pDownloadURL from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
 
     --start downloading
-    pVocabularyOperation:='GET_UMLS downloading';
+    pVocabularyOperation:='GET_META downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
@@ -85,36 +77,36 @@ BEGIN
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_UMLS downloading complete',
+      iVocabulary_operation=>'GET_META downloading complete',
       iVocabulary_status=>1
     );
   end if;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_UMLS_PREPARE') then
-  	pJumpToOperation:='ALL';
-    --UMLS needs some preparation (MetaMorphoSys) <--no longer needed, deprecated. Just unpack
-    pVocabularyOperation:='GET_UMLS prepare';
-    perform get_umls_prepare (
+  if pJumpToOperation in ('ALL','JUMP_TO_META_PREPARE') then
+    pJumpToOperation:='ALL';
+    --extraction
+    pVocabularyOperation:='GET_META prepare';
+    perform get_meta_prepare (
       iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip'
+      iFilename=>lower(pVocabularyID)
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_UMLS prepare complete',
+      iVocabulary_operation=>'GET_META prepare complete',
       iVocabulary_status=>1
     );
   end if;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_UMLS_IMPORT') then
-  	pJumpToOperation:='ALL';
+  if pJumpToOperation in ('ALL','JUMP_TO_META_IMPORT') then
+    pJumpToOperation:='ALL';
     --finally we have all input tables, we can start importing
-    pVocabularyOperation:='GET_UMLS load_input_tables';
+    pVocabularyOperation:='GET_META load_input_tables';
     perform sources.load_input_tables(pVocabularyID,pVocabularyNewDate,pVocabularyNewVersion);
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_UMLS load_input_tables complete',
+      iVocabulary_operation=>'GET_META load_input_tables complete',
       iVocabulary_status=>1
     );
   end if;
@@ -122,7 +114,7 @@ BEGIN
   perform write_log (
     iVocabularyID=>pVocabularyID,
     iSessionID=>pSession,
-    iVocabulary_operation=>'GET_UMLS all tasks done',
+    iVocabulary_operation=>'GET_META all tasks done',
     iVocabulary_status=>3
   );
   

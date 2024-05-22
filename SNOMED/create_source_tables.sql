@@ -39,7 +39,7 @@ CREATE TABLE SOURCES.SCT2_DESC_FULL_MERGED
    CONCEPTID            TEXT,
    LANGUAGECODE         VARCHAR (2),
    TYPEID               TEXT,
-   TERM                 VARCHAR (256),
+   TERM                 TEXT,
    CASESIGNIFICANCEID   TEXT
 );
 

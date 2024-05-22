@@ -1,5 +1,5 @@
-CREATE OR REPLACE FUNCTION devv5.GTranslate(pInputTable text, pInputField text, pOutputField text, pDestLang text default 'en', pSrcLang text default 'auto')
-RETURNS void AS
+CREATE OR REPLACE FUNCTION google_pack.GTranslate(pInputTable text, pInputField text, pOutputField text, pDestLang text default 'en', pSrcLang text default 'auto')
+RETURNS VOID AS
 $BODY$
 /*
 Function for translation using googletrans python module
@@ -17,7 +17,7 @@ Usage:
 --run in the schema where you have the input table
 DO $_$
 BEGIN
-	PERFORM devv5.GTranslate(
+	PERFORM google_pack.GTranslate(
 		pInputTable    =>'input_table',
 		pInputField    =>'field_with_foreign_names',
 		pOutputField   =>'field_with_translated_names',
@@ -30,7 +30,7 @@ Example:
 CREATE TABLE input_table AS
 SELECT concept_synonym_name AS foreign_string,
 	NULL::TEXT AS translated_string
-FROM devv5.concept_synonym
+FROM google_pack.concept_synonym
 WHERE language_concept_id = 4175771 LIMIT 10;
 
 Note: the output field in the input table must be in TEXT type, because we don't know in advance how many characters the translation will take
@@ -38,7 +38,7 @@ Note: the output field in the input table must be in TEXT type, because we don't
 --now run the function
 DO $_$
 BEGIN
-	PERFORM devv5.GTranslate(
+	PERFORM google_pack.GTranslate(
 		pInputTable    =>'input_table',
 		pInputField    =>'foreign_string',
 		pOutputField   =>'translated_string',
@@ -130,7 +130,7 @@ BEGIN
 		BEGIN
 			EXECUTE FORMAT ($$
 				UPDATE %1$I AS s SET %3$I = t.translated_text
-				FROM devv5.py_gtranslate($1, %4$L, %5$L) AS t
+				FROM google_pack.py_gtranslate($1, %4$L, %5$L) AS t
 				WHERE s.%2$I = t.original_text;
 			$$, pInputTable, pInputField, pOutputField, pDestLang, pSrcLang)
 			USING r_src.array_str;
@@ -163,4 +163,4 @@ END;
 $BODY$
 LANGUAGE 'plpgsql' STRICT;
 
-REVOKE EXECUTE ON FUNCTION devv5.GTranslate FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION google_pack.GTranslate FROM PUBLIC;

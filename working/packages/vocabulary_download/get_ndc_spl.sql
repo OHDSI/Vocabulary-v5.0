@@ -72,7 +72,7 @@ BEGIN
 
     --start downloading
     pVocabularyOperation:='GET_NDC_SPL downloading';
-    perform run_wget (
+    perform run_curl (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
       iDownloadLink=>pDownloadURL

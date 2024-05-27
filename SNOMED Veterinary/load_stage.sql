@@ -290,7 +290,7 @@ WITH attr_rel AS (
 					)
 			-- get the latest in a sequence of relationships, to decide whether it is still active
 			ORDER BY r.id,
-				TO_TIMESTAMP(r.effectivetime) DESC,
+				r.effectivetime DESC,
 				d.id DESC -- fix for AVOF-650
 			) AS s0
 		WHERE s0.active = 1

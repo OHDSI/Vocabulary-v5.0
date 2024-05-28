@@ -650,3 +650,59 @@ and m.relationship_id in ('Maps to', 'Maps to value')
 and m.cr_invalid_reason is null
 and m.target_concept_code is not null
 and m.target_concept_id != 0;
+
+--5. Check for personal history concepts without value:
+with without_values as (
+select c.*
+from concept c
+join concept_relationship cr on cr.concept_id_1 = c.concept_id
+where cr.relationship_id = 'Maps to'
+and cr.invalid_reason is null
+and cr.concept_id_2 = 1340204
+and c.concept_id not in (
+       select concept_id_1
+       from concept_relationship
+       where relationship_id = 'Maps to value'
+       and invalid_reason is null
+	   )
+and c.vocabulary_id = 'SNOMED')
+
+select distinct c.concept_name,
+        c.concept_code,
+        c.concept_class_id,
+        c.invalid_reason,
+        c.domain_id ,
+        c.vocabulary_id,
+		null as cr_invalid_reason,
+        null as mapping_tool,
+        null as mapping_source,
+        '1' as confidence,
+        'Maps to value' as relationship_id,
+        'eq' as relationship_preference,
+        'lost values' as source,
+        '' as comment,
+        cc.concept_id,
+		cc.concept_code,
+       	cc.concept_name,
+       	cc.concept_class_id as target_concept_class_id,
+       	cc.standard_concept as target_standard_concept,
+       	cc.invalid_reason as target_invalid_reason,
+       	cc.domain_id as target_domain_id,
+       	cc.vocabulary_id as target_vocabulary_id,
+       	'MK' as mapper_id
+
+from concept_relationship cr
+join concept_relationship cr1 on cr.concept_id_1 = cr1.concept_id_2
+                                        and cr1.relationship_id in ('Maps to',
+                                                               'Concept replaced by',
+                                                               'Concept same_as to',
+                                                               'Concept alt_to to',
+                                                               'Concept was_a to')
+join concept c on cr1.concept_id_1 = c.concept_id and c.vocabulary_id = 'SNOMED'
+join concept cc on cc.concept_id = cr.concept_id_2
+where cr.relationship_id = 'Maps to value'
+	and cr.invalid_reason is null
+	and c.concept_id in (
+	   select concept_id
+	   from without_values
+			  );

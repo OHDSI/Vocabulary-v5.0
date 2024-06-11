@@ -658,7 +658,7 @@ from concept c
 join concept_relationship cr on cr.concept_id_1 = c.concept_id
 where cr.relationship_id = 'Maps to'
 and cr.invalid_reason is null
-and cr.concept_id_2 = 1340204
+--and cr.concept_id_2 = 1340204 -- History of event
 and c.concept_id not in (
        select concept_id_1
        from concept_relationship

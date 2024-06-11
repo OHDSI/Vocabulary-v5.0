@@ -1598,7 +1598,9 @@ BEGIN
 		('165079009',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Exercise tolerance test
 		('3971006',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Duchenne muscular dystrophy carrier detection
 		('44489000',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cystic fibrosis carrier detection
+		('252895004',  			'Measurement', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urodynamic studies
 		('59851008',  			'Procedure', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electronystagmogram
+		('230937006',  			'Procedure', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure for monitoring intracranial pressure
 		('390906007',  			'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Follow-up encounter
 		('11429006',  			'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Consultation
 
@@ -1657,6 +1659,9 @@ BEGIN
 		('309689007',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Occult carcinoma - stage
 
 		('420719007',		'Route',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Intraventricular route
+
+		--('1285138006',		'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Level of neoplasm response to antineoplastic neoadjuvant therapy
+		--('303105007',		'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Disease phases
 
 		--Social context
 		--history:on

@@ -170,10 +170,7 @@ WHERE rx.sab = 'VANDF'
 		'IN'
 		)
 	AND c.vocabulary_id = 'RxNorm'
-    AND c.concept_class_id not in ('Brand Name', 'Branded Dose Group', 'Precise Ingredient',
-                                  'Multiple Ingredients', 'Dose Form Group', 'Dose Form',
-                                  'Clinical Dose Group')
-	--AND c.standard_concept = 'S'
+	AND c.standard_concept = 'S'
 	;
 
 --7. Fill relationships VANDF to VA Class

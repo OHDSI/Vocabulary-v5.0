@@ -289,6 +289,7 @@ BEGIN
 		('413296003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Depression requiring intervention
 		('103020000',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adrenarche
 		('405729008',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematochezia
+		('300391003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
 		('300393000',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of odor of stool
 		('165816005',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- HIV positive
 		('106019003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of elimination pattern
@@ -591,7 +592,7 @@ BEGIN
 		('366158000', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vascular measurements - finding
 		('106200001', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematopoietic system finding
 
-		('106126000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emotional state finding		('705075002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see
+		('705075002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see
 		('719749006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see using assistive device
 		('264786003',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Amsler chart finding
 		('82132006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal visual acuity
@@ -835,6 +836,7 @@ BEGIN
 		('699440004',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Long middle third of face
 		('767358005',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Shallow mentolabial sulcus
 		('73595000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Stress
+		('106126000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emotional state finding
 		('42688000',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Preoccupation of thought
 		('1177022006',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Colonization of respiratory tract with Pneumocystis jirovecii
 		('127325009',  		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure related finding
@@ -890,7 +892,6 @@ BEGIN
 		('78164000',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Feeding problem
 		('289906003',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Female genital tract problem
 		('106126000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emotional state finding
-		('300391003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
 		('18523001',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nudity
 		('299698007',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feeding poor
 		('1269562006',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- At increased risk for postpartum disorder

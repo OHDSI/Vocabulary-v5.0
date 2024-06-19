@@ -1,5 +1,5 @@
 --peak test
-with code as (SELECT '106126000'::varchar as code)
+with code as (SELECT 'peak_code'::varchar as code)
 
 --All the ancestors
 SELECT * FROM (

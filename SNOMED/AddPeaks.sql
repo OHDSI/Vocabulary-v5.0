@@ -682,7 +682,7 @@ BEGIN
 		('1260220007',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 		('1260222004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 		('23506009',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal flora
-		('275530009',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Amputee - limb
+		('275530009',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Amputee - limb
 		('247522004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hair finding
 		('365853002',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging finding
 		('404509004',			'Observation',  TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Large gram-negative coccobacilli
@@ -862,7 +862,7 @@ BEGIN
 		('719602003',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Radiologic finding of tumor invasion penetrating colonic serosa
 		('102866000',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal urine
 		('5271000124101', 		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal cranial nerves
-		('77386006',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Pregnancy
+		('77386006',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pregnancy
 		('398018000',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Inadequate anesthetic assessment
 		('365636006',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of blood group
 		('167911000',  			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone marrow examination abnormal
@@ -883,34 +883,21 @@ BEGIN
 		('284530008',			'Observation',  TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20211027', 'YYYYMMDD'),	NULL), -- Communication, speech and language finding
 		('284530008',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Communication, speech and language finding
 		--history:off
-		('247619007',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Thought finding
+--		('247619007',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Thought finding
+		('83507006',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Delusions
 		('387712008',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Neonatal jaundice
 		('1295289001',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Maternal perinatal jaundice
-		('290122005',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Finding of lactation
-		('82832008',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- General body state finding
 		('78164000',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Feeding problem
-		('4800001',				'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Pyuria
-	--history:on
-		('106126000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Emotional state finding
-		('106126000',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Emotional state finding
-	--history:off
-		('118188004',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Finding of neonate
-		('47340003',			'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Birth weight finding
-		('102898006',			'Observation',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Emotional relationship
-	--history:on
-		('300391003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20240510', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
-		('300391003',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
-	--history:off
-		('309196005',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal cytology findings
-		('310437009',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urine cytology
+		('289906003',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Female genital tract problem
+		('106126000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emotional state finding
+		('300391003',			'Condition',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of appearance of stool
 		('18523001',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nudity
-		('29679002',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Carrier of disorder
-
+		('299698007',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feeding poor
+		('1269562006',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- At increased risk for postpartum disorder
 
 		--Context-dependent
 		('395098000',			'Condition',	TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder confirmed
 		('443938003',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure carried out on subject
-		('300475002',			'Measurement',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of measures of urine output
 
 		--Disorder
 		--history:on
@@ -1404,14 +1391,23 @@ BEGIN
 		('363896009',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Behavior observable
 		('364287007',  		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feature of consistency of cervical mucous
 	--2024-05-10
-		('1010511000000108', 'Observation',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Serum T4 level
+		('1010511000000108', 'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Serum T4 level
+		('372461000119109',	'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lactate in blood
+		('246214002',		'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Number of neoplasms in excised tissue specimen
+		('1287180006',		'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Percentage of primary malignant neoplasm of prostate with Gleason histologic pattern 4
+		('1268771007',		'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Presence of Helicobacter pylori in stool
+		('249606000',		'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Prostate size
+		('364351000119103',	'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Detection of Streptococcus pneumoniae antigen in urine
+		('1290323003',		'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glaucoma stage
+		('374451000119101',	'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Rheumatoid factor in serum
+		('1144301005',		'Measurement',  TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measured quantity of intake of protein and/or protein derivative in 24 hours
 
 		-- Physical Object
 		('303624006',  		'Device', 		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal device
 		('303620002',  		'Device', 		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urogenital device
 		('360009006',  		'Device', 		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pressure garments
-		('272179000',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Domestic, office and garden artifact
-		('705620005',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Floor mat
+		('272179000',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Domestic, office and garden artifact
+		('705620005',		'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Floor mat
 		('456151000124107',	'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Foreign body
 		('80519002',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hospital furniture, device
 		('312201009',  		'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Instrument of aggression

@@ -30,6 +30,7 @@ CREATE TABLE dev_snomed.snomed_mapped
 	reviewer_id varchar(10)
 ); */
 
+--18.3.2. Review the previous mapping and map new concepts. Use cr_invalid_reason field to deprecate mappings.
 
 --Adding constraints for unique records
 ALTER TABLE dev_snomed.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
@@ -46,6 +47,9 @@ UPDATE dev_snomed.snomed_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_re
 UPDATE dev_snomed.snomed_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
 UPDATE dev_snomed.snomed_mapped SET mapper_id = NULL WHERE mapper_id = '';
 UPDATE dev_snomed.snomed_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
+
+
+--18.3.4. Perform any mapping checks you have set.
 
 --18.3.6 Change concept_relationship_manual table according to snomed_mapped table.
 --Insert new relationships

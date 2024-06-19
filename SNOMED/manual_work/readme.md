@@ -43,7 +43,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 18.3.1. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous SNOMED refresh.
 
-18.3.2. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+18.3.2. Review the previous mapping and map new concepts. Use _cr_invalid_reason_ field to deprecate mappings.
 
 18.3.3. Truncate the snomed_mapped table. Save the spreadsheet as the snomed_mapped table and upload it into the working schema.
 

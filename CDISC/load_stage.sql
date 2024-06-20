@@ -62,9 +62,18 @@ JOIN
             CASE WHEN code in (SELECT TRIM(TRAILING 'CD' FROM t.code)
                                  FROM sources.meta_mrconso t
                                  WHERE t.scui = main.scui AND t.code LIKE '%CD') THEN 1
-                 WHEN tty = 'PT' AND sab = 'CDISC' THEN 2
-                 WHEN tty = 'SY' AND ispref = 'Y' THEN 3
-                 WHEN sab = 'NCI' AND tty = 'SY' AND ispref = 'Y' THEN 4
+                 WHEN tty = 'PT' AND sab = 'CDISC' THEN
+                     CASE WHEN (SELECT COUNT(*)
+
+                                  FROM sources.meta_mrconso c2
+                                 WHERE c2.str = main.str
+                                   AND c2.tty = 'PT'
+                                   AND c2.sab = 'CDISC'
+                                   AND c2.scui = main.scui) > 1 THEN 2
+                         ELSE 3
+                     END
+                 WHEN tty = 'SY' AND ispref = 'Y' THEN 4
+                 WHEN sab = 'NCI' AND tty = 'SY' AND ispref = 'Y' THEN 5
             END,
             LENGTH(str) DESC
         ) as applied_condition
@@ -167,10 +176,10 @@ FROM concepts c
 JOIN concepts_count cc ON c.concept_name = cc.concept_name;
 
 --Domain cnd Classes Processing based on Definition table
-
 -- Update Domain for units
 UPDATE concept_stage
-SET domain_id = 'Unit', concept_class_id = 'Unit'
+SET domain_id = 'Unit',
+    concept_class_id = 'Unit'
 WHERE concept_code in
 (SELECT concept_code FROM source s
     JOIN sources.meta_mrdef b
@@ -178,7 +187,10 @@ on s.cui=b.cui
 and (
     b.def ilike 'unit of%'
         or b.def ilike 'a unit of%'
-                or b.def ilike 'the unit of%')
+                or b.def ilike 'the unit of%'
+    or b.def ilike 'a unit for%'
+       or b.def ilike 'the unit for%'
+    )
 and b.sab='CDISC' )
 ;
 
@@ -218,7 +230,6 @@ and cs.concept_class_id <> 'Staging / Scales'
 ;
 
 -- Working with concept_manual table
---Process fo Man con
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();

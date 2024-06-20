@@ -156,66 +156,76 @@ END $_$;
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'ICD10CM'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id in ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-
+	(
+		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+			c2.domain_id
+		FROM concept_relationship_stage crs
+		JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+			AND cs1.vocabulary_id = crs.vocabulary_id_1
+			AND cs1.vocabulary_id = 'ICD10CM'
+		JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+			AND c2.vocabulary_id = crs.vocabulary_id_2
+			AND c2.vocabulary_id IN (
+				'SNOMED',
+				'Cancer Modifier',
+				'OMOP Extension'
+				)
+		WHERE crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+		ORDER BY cs1.concept_code,
+			CASE c2.domain_id
+				WHEN 'Condition'
+					THEN 1
+				WHEN 'Observation'
+					THEN 2
+				WHEN 'Procedure'
+					THEN 3
+				WHEN 'Measurement'
+					THEN 4
+				WHEN 'Device'
+					THEN 5
+				END
+		)
+	
 	UNION ALL
-
-	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'ICD10CM'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id in ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
-	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
-		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_1 = cs1.concept_code
-				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
+	
+	(
+		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+			c2.domain_id
+		FROM concept_relationship cr
+		JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+			AND c1.vocabulary_id = 'ICD10CM'
+		JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+			AND c2.vocabulary_id IN (
+				'SNOMED',
+				'Cancer Modifier',
+				'OMOP Extension'
+				)
+		JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
+			AND cs1.vocabulary_id = c1.vocabulary_id
+		WHERE cr.relationship_id = 'Maps to'
+			AND cr.invalid_reason IS NULL
+			AND NOT EXISTS (
+				SELECT 1
+				FROM concept_relationship_stage crs_int
+				WHERE crs_int.concept_code_1 = cs1.concept_code
+					AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
+					AND crs_int.relationship_id = cr.relationship_id
+				)
+		ORDER BY cs1.concept_code,
+			CASE c2.domain_id
+				WHEN 'Condition'
+					THEN 1
+				WHEN 'Observation'
+					THEN 2
+				WHEN 'Procedure'
+					THEN 3
+				WHEN 'Measurement'
+					THEN 4
+				WHEN 'Device'
+					THEN 5
+				END
+		)
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10CM';
@@ -223,7 +233,7 @@ WHERE i.concept_code = cs.concept_code
 --Update domain for tumor concepts
 UPDATE concept_stage
 SET domain_id = 'Condition'
-WHERE concept_code ~* 'C';
+WHERE concept_code ILIKE '%C%';
 
 --TODO: check why the actual U* code limitation is not used.
 --Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
@@ -242,24 +252,23 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT DISTINCT
-    code AS synonym_concept_code,
+SELECT code AS synonym_concept_code,
 	synonym_name,
 	'ICD10CM' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 FROM (
-	SELECT DISTINCT long_name AS synonym_name,
+	SELECT long_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	
 	UNION
 	
-	SELECT DISTINCT short_name AS synonym_name,
+	SELECT short_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
 	) AS s0;
 
---`15. Working with manual synonyms
+--15. Working with manual synonyms
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();

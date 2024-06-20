@@ -1,6 +1,6 @@
 --9.3.1. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous hcpcs refresh.
-
---DROP TABLE dev_hcpcs.hcpcs_mapped;
+/*
+DROP TABLE dev_hcpcs.hcpcs_mapped;
 CREATE TABLE dev_hcpcs.hcpcs_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -10,9 +10,14 @@ CREATE TABLE dev_hcpcs.hcpcs_mapped
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),
     source_vocabulary_id varchar(50),
+	cr_invalid_reason varchar(1),
+	mapping_tool varchar(255),
+	mapping_source varchar(255),
+	confidence varchar(5),
     relationship_id varchar(50),
-    cr_invalid_reason varchar(1),
+    relationship_id_predicate varchar(10),
     source varchar(255),
+	comments varchar(255),
     target_concept_id int,
     target_concept_code varchar(50),
     target_concept_name varchar(255),
@@ -20,8 +25,10 @@ CREATE TABLE dev_hcpcs.hcpcs_mapped
     target_standard_concept varchar(20),
     target_invalid_reason varchar(20),
     target_domain_id varchar(50),
-    target_vocabulary_id varchar(50)
-);
+    target_vocabulary_id varchar(50),
+	mapper_id varchar(10),
+	reviewer_id varchar(10)
+);*/
 
 --Adding constraints for unique records
 ALTER TABLE dev_hcpcs.hcpcs_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
@@ -96,3 +103,43 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
+
+-- 9.3.8 Truncate concept_mapped table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema:
+TRUNCATE TABLE concept_mapped;
+
+--Format after uploading:
+UPDATE concept_mapped SET concept_name = NULL WHERE concept_name = '';
+UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
+UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
+UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
+
+--18.3. Change concept_manual table according to cm_update table.
+INSERT INTO concept_manual AS cm
+(concept_name,
+ domain_id,
+ vocabulary_id,
+ concept_class_id,
+ standard_concept,
+ concept_code,
+ valid_start_date,
+ valid_end_date,
+ invalid_reason)
+SELECT concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       null as valid_start_date,
+       null as valid_end_date,
+       'X' as invalid_reason
+FROM dev_hcpcs.concept_mapped
+
+	ON CONFLICT ON CONSTRAINT unique_manual_concepts
+	DO UPDATE
+	SET concept_name = excluded.concept_name,
+	    domain_id = excluded.domain_id,
+	    standard_concept = excluded.standard_concept
+WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept)
+	IS DISTINCT FROM
+	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept);

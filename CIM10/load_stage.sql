@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Timur Vakhitov, Dmitry Dymshyts
 * Date: 2022
 **************************************************************************/
@@ -35,92 +35,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Create temporary tables with classes and modifiers from XML source
---modifier classes
-DROP TABLE IF EXISTS modifier_classes;
-CREATE UNLOGGED TABLE modifier_classes AS
-SELECT s1.modifierclass_code,
-	s1.modifierclass_modifier,
-	s1.superclass_code,
-	s1.rubric_id,
-	s1.rubric_kind,
-	l.rubric_label
-FROM (
-	SELECT *
-	FROM (
-		SELECT TRIM((xpath('/ModifierClass/@code', i.xmlfield))[1]::VARCHAR) modifierclass_code,
-			(xpath('/ModifierClass/@modifier', i.xmlfield))[1]::VARCHAR modifierclass_modifier,
-			(xpath('/ModifierClass/SuperClass/@code', i.xmlfield))[1]::VARCHAR superclass_code,
-			UNNEST(xpath('/ModifierClass/Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
-			UNNEST(xpath('/ModifierClass/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-			UNNEST(xpath('/ModifierClass/Rubric', i.xmlfield)) rubric_label
-		FROM (
-			SELECT UNNEST(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
-			FROM sources.cim10 i
-			) AS i
-		) AS s0
-	) AS s1
-LEFT JOIN LATERAL(SELECT STRING_AGG(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-		SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-		) AS s0) l ON TRUE;
-
---classes
-DROP TABLE IF EXISTS classes;
-CREATE UNLOGGED TABLE classes AS
-WITH classes
-AS (
-	SELECT s1.class_code,
-		s1.rubric_kind,
-		s1.superclass_code,
-		s1.modifiedby_code,
-		l.rubric_label
-	FROM (
-		SELECT *
-		FROM (
-			SELECT (xpath('/Class/@code', i.xmlfield))[1]::VARCHAR class_code,
-				l.superclass_code,
-				l1.modifiedby_code,
-				UNNEST(xpath('/Class/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-				UNNEST(xpath('/Class/Rubric', i.xmlfield)) rubric_label
-			FROM (
-				SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
-				FROM sources.cim10 i
-				) AS i
-			LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
-			LEFT JOIN LATERAL(SELECT UNNEST(xpath('/Class/ModifiedBy/@code', i.xmlfield))::VARCHAR modifiedby_code) l1 ON true
-			) AS s0
-		) AS s1
-	LEFT JOIN LATERAL(SELECT string_agg(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-			SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-			) AS s0) l ON TRUE
-	)
---modify classes_table replacing  preferred name to preferredLong where it's possible
-SELECT a.class_code,
-	a.rubric_kind,
-	a.superclass_code,
-	a.modifiedby_code,
-	COALESCE(b.rubric_label, a.rubric_label) AS rubric_label
-FROM classes a
-LEFT JOIN classes b ON a.class_code = b.class_code
-	AND a.rubric_kind = 'preferred'
-	AND b.rubric_kind = 'preferredLong'
-WHERE a.rubric_kind <> 'preferredLong';
-
---3.1. Manual fixes for some codes that are not picked up by the underlying logic
-INSERT INTO classes
-SELECT c.class_code || m.modifierclass_code,
-	c.rubric_kind,
-	c.superclass_code,
-	NULL,
-	c.rubric_label || ', ' || m.rubric_label
-FROM classes c
-JOIN modifier_classes m ON m.modifierclass_modifier = c.modifiedby_code
-	AND m.rubric_kind = 'preferred'
-	AND m.rubric_label <> 'ModifierClass.0' --an artifact
-WHERE c.superclass_code ~ '^[A-Z]\d\d$'
-	AND c.rubric_kind = 'preferred';
-
---4. Fill the concept_stage
+--3. Fill the concept_stage
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -132,81 +47,16 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-WITH codes_need_modified AS (
-		--define all the concepts having modifiers, use filter a.rubric_kind ='modifierlink'
-		SELECT DISTINCT a.class_code,
-			a.rubric_label,
-			a.superclass_code,
-			b.class_code AS concept_code,
-			b.rubric_label AS concept_name,
-			b.superclass_code AS super_concept_code
-		FROM classes a
-		JOIN classes b ON b.class_code LIKE a.class_code || '%'
-		WHERE (
-				a.rubric_kind = 'modifierlink'
-				OR a.modifiedby_code IS NOT NULL
-				)
-			AND b.rubric_kind = 'preferred'
-			AND b.class_code NOT LIKE '%-%'
-		),
-	codes AS (
-		SELECT a.*,
-			b.modifierclass_code,
-			b.rubric_label AS modifer_name
-		FROM codes_need_modified a
-		LEFT JOIN modifier_classes b ON SUBSTRING(b.modifierclass_modifier, '^...(.*?)_') = a.class_code
-			AND b.modifierclass_modifier NOT LIKE '%_6'
-			AND b.rubric_kind = 'preferred'
-		),
-	concepts_modifiers AS (
-		--add all the modifiers using patterns described in a table
-		--'I70M10_4' with or without gangrene related to gout, seems to be a bug, modifier says [See site code at the beginning of this chapter]
-		SELECT a.concept_code || b.modifierclass_code AS concept_code,
-			REGEXP_REPLACE(a.concept_name, '[A-Z]\d\d(\.|-|$).*', '', 'g') || ', ' || LOWER(REGEXP_REPLACE(b.modifer_name, '[A-Z]\d\d(\.|-|$).*', '', 'g')) AS concept_name
-		FROM codes a
-		JOIN codes b ON SUBSTRING(a.rubric_label, '\D\d\d') = b.concept_code
-			AND a.rubric_label = b.rubric_label
-			AND a.class_code <> b.class_code
-		WHERE (
-				--modifyer with "." is added to code without "." and vice ver
-				(
-					a.concept_code NOT LIKE '%.%'
-					AND b.modifierclass_code LIKE '%.%'
-					)
-				OR (
-					a.concept_code LIKE '%.%'
-					AND b.modifierclass_code NOT LIKE '%.%'
-					)
-				)
-		
-		UNION
-		
-		--basic modifiers having relationship modifier - concept
-		SELECT a.concept_code || a.modifierclass_code AS concept_code,
-			a.concept_name || ', ' || a.modifer_name
-		FROM codes a
-		WHERE (
-				(
-					a.concept_code NOT LIKE '%.%'
-					AND a.modifierclass_code LIKE '%.%'
-					)
-				OR (
-					a.concept_code LIKE '%.%'
-					AND a.modifierclass_code NOT LIKE '%.%'
-					)
-				)
-			AND a.modifierclass_code IS NOT NULL
-		)
-SELECT concept_name,
+SELECT vocabulary_pack.CutConceptName(lib_complet) AS concept_name,
 	NULL AS domain_id,
 	'CIM10' AS vocabulary_id,
-	CASE 
-		WHEN LENGTH(concept_code) = 3
+	CASE
+		WHEN LENGTH(code) = 3
 			THEN 'ICD10 Hierarchy'
 		ELSE 'ICD10 code'
 		END AS concept_class_id,
 	NULL AS standard_concept,
-	concept_code,
+	REGEXP_REPLACE(code, '(.{3})(.+)', '\1.\2') AS concept_code, --add a dot after the 3d position
 	(
 		SELECT latest_update
 		FROM vocabulary
@@ -214,100 +64,14 @@ SELECT concept_name,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
-FROM (
-	--full list of concepts 
-	SELECT *
-	FROM concepts_modifiers
-	--we exclude some codes, because they are in the query below with more correct names
-	WHERE concept_code NOT IN (
-			'U83.70',
-			'U83.71',
-			'U82.10'
-			)
-	
-	UNION
-	
-	SELECT class_code,
-		CASE 
-			WHEN rubric_label LIKE 'Emergency use of%'
-				THEN rubric_label
-			ELSE REGEXP_REPLACE(rubric_label, '[A-Z]\d\d(\.|-|$).*', '', 'g') -- remove related code (A52.7) i.e.  Late syphilis of kidneyA52.7 but except of cases like "Emergency use of U07.0"
-			END AS concept_name
-	FROM classes
-	WHERE rubric_kind = 'preferred'
-		AND class_code NOT LIKE '%-%'
-	) AS s0
-WHERE concept_code ~ '[A-Z]\d\d.*'
-	AND concept_code !~ 'M(21\.3|21\.5|21\.6|21\.7|21\.8|24\.3|24\.7|54\.2|54\.3|54\.4|54\.5|54\.6|65\.3|65\.4|70\.0|70\.2|70\.3|70\.4|70\.5|70\.6|70\.7|71\.2|72\.0|72\.1|72\.2|76\.1|76\.2|76\.3|76\.4|76\.5|76\.6|76\.7|76\.8|76\.9|77\.0|77\.1|77\.2|77\.3|77\.4|77\.5|79\.4|85\.2|88\.0|94\.0)+\d+';
+FROM sources.cim10;
 
-UPDATE concept_stage cs
-SET concept_name = i.new_name
-FROM (
-	SELECT c.concept_code,
-		cs.concept_name || ' ' || LOWER(c.concept_name) AS new_name
-	FROM concept_stage c
-	LEFT JOIN classes cl ON cl.class_code = c.concept_code
-	LEFT JOIN concept_stage cs ON cs.concept_code = cl.superclass_code
-	WHERE c.concept_code ~ '(Y06|Y07).+'
-		AND rubric_kind = 'preferred'
-	
-	UNION ALL
-	
-	SELECT c.concept_code,
-		c.concept_name || ' as the cause of abnormal reaction of the patient, or of later complication, without mention of misadventure at the time of the procedure'
-	FROM concept_stage c
-	WHERE c.concept_code ~ '(Y83|Y84).+'
-	
-	UNION ALL
-	
-	SELECT c.concept_code,
-		'Adverse effects in the therapeutic use of ' || LOWER(concept_name)
-	FROM concept_stage c
-	WHERE concept_code >= 'Y40'
-		AND concept_code < 'Y60'
-	
-	UNION ALL
-	
-	SELECT c.concept_code,
-		REPLACE(cs.concept_name, 'during%', '') || ' ' || LOWER(c.concept_name)
-	FROM concept_stage c
-	LEFT JOIN classes cl ON cl.class_code = c.concept_code
-	LEFT JOIN concept_stage cs ON cs.concept_code = cl.superclass_code
-	WHERE c.concept_code ~ '(Y60|Y61|Y62).+'
-		AND rubric_kind = 'preferred'
-	) i
-WHERE cs.concept_code = i.concept_code;
-
---temporary solution --6 digit codes
-INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date
-	)
-SELECT c.concept_name || ', ' || a.rubric_label AS concept_name,
-	NULL AS domain_id,
-	'CIM10' AS vocabulary_id,
-	'ICD10 code' AS concept_class_id,
-	NULL AS standard_concept,
-	c.concept_code || modifierclass_code AS concept_code,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'CIM10'
-		) AS valid_start_date,
-	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date
-FROM concept_stage c
-JOIN modifier_classes a ON (
-		c.concept_code LIKE 'F00.__'
-		OR c.concept_code LIKE 'F01.__'
-		OR c.concept_code LIKE 'F02.__'
-		) -- these are codes_need_modified
-	AND a.modifierclass_modifier = 'S05F00_6';
+--4. Append manual concepts and relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 --5. Inherit external relations from international ICD10 whenever possible
 INSERT INTO concept_relationship_stage (
@@ -331,55 +95,53 @@ SELECT c.concept_code AS concept_code_1,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM concept_stage cs
-JOIN concept c ON c.vocabulary_id = 'ICD10'
-	AND c.concept_code = cs.concept_code
+JOIN concept c ON c.concept_code = cs.concept_code
+	AND c.vocabulary_id = 'ICD10'
 JOIN concept_relationship r ON r.concept_id_1 = c.concept_id
 	AND r.invalid_reason IS NULL
 	AND r.relationship_id IN (
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c2 ON c2.concept_id = r.concept_id_2;
+JOIN concept c2 ON c2.concept_id = r.concept_id_2
+LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = c.concept_code
+	AND crs.vocabulary_id_1 = 'CIM10'
+WHERE crs.concept_code_1 IS NULL;
 
---6. Append manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---7. Working with replacement mappings
+--6. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---8. Add mapping from deprecated to fresh concepts
+--7. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--8. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
+--10. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---12. Add "subsumes" relationship between concepts where the concept_code is like of another
+--11. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
+
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -387,31 +149,28 @@ INSERT INTO concept_relationship_stage (
 	vocabulary_id_2,
 	relationship_id,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
+	valid_end_date
 	)
-SELECT DISTINCT c1.concept_code AS concept_code_1,
+SELECT c1.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	CURRENT_DATE AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM concept_stage c1,
-	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '%'
-	AND c1.concept_code <> c2.concept_code
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-		);
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CIM10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_stage c1
+JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+	AND c1.concept_code <> c2.concept_code;
+
 DROP INDEX trgm_idx;
 
---13. Update domain_id for ICD10 from target concepts domains
+--12. Update domain_id for ICD10 from target concepts domains
+ANALYZE concept_relationship_stage;
+
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -440,9 +199,9 @@ FROM (
 					THEN 5
 				END
 		)
-	
+
 	UNION ALL
-	
+
 	(
 		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
 			c2.domain_id
@@ -478,60 +237,78 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---Manual fix for concepts without mapping
+--13. Manual fix for concepts without mapping
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---additional French work
--- Preserve original names in concept_synonym_stage
-UPDATE concept_stage a
-SET concept_name = b.rubric_label
-FROM classes b
-WHERE a.concept_code = b.class_code
-	AND b.class_code IN (
-		'D51',
-		'U07.4',
-		'D51.8',
-		'U07.3',
-		'U07.2',
-		'D51.3',
-		'U07.5',
-		'U07.7',
-		'U07.8',
-		'U07.9',
-		'U07.6'
-		)
-	AND b.rubric_kind = 'preferred';
+--14. Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ILIKE '%C%';
 
+--15. Fill synonyms
 INSERT INTO concept_synonym_stage (
 	synonym_name,
 	synonym_concept_code,
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT concept_name,
-	concept_code,
-	'CIM10',
-	4180190 -- French language
-FROM concept_stage;
+SELECT lib_complet AS synonym_name,
+	REGEXP_REPLACE(code, '(.{3})(.+)', '\1.\2') AS synonym_concept_code,
+	'CIM10' AS synonym_vocabulary_id,
+	4180190 AS language_concept_id -- French language
+FROM sources.cim10;
 
---update concept_stage, set english names from ICD10
---11427 rows affected in 2019 version
+--16. Update concept_stage, set english names from ICD10
 UPDATE concept_stage cs
 SET concept_name = c.concept_name
 FROM concept c
 WHERE c.concept_code = cs.concept_code
 	AND c.vocabulary_id = 'ICD10';
 
---14. Working with concept_manual table
+--17. Translate the rest of names
+--DROP TABLE cim10_translated_source;
+--TRUNCATE TABLE cim10_translated_source;
+--CREATE TABLE cim10_translated_source
+--(concept_code text,
+--concept_name  text,
+--concept_name_translated text);
+--
+--INSERT INTO cim10_translated_source
+--    SELECT concept_code,
+--          concept_name,
+--          null as concept_name_translated
+--    FROM concept_stage
+--where concept_code not in (SELECT concept_code FROM concept c where c.vocabulary_id = 'ICD10')
+--;
+
+----Translation
+--DO $_$
+--BEGIN
+--	PERFORM google_pack.GTranslate(
+--		pInputTable    =>'cim10_translated_source',
+--		pInputField    =>'concept_name',
+--		pOutputField   =>'concept_name_translated',
+--		pDestLang      =>'en',
+--	    pSrcLang       =>'fr'
+--	);
+--END $_$;
+--
+--UPDATE cim10_translated_source
+--SET concept_name_translated = cim10_translated_source.concept_name_translated ||' (machine translation)'
+--where concept_name_translated !~* '(machine translation)';
+--
+
+UPDATE concept_stage cs
+SET concept_name = vocabulary_pack.CutConceptName(ts.concept_name_translated)
+FROM dev_cim10.cim10_translated_source ts
+WHERE cs.concept_name = ts.concept_name;
+
+--18. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
-
---15. Clean up
-DROP TABLE modifier_classes;
-DROP TABLE classes;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

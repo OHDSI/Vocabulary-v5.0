@@ -177,6 +177,7 @@ JOIN concepts_count cc ON c.concept_name = cc.concept_name;
 
 --Domain cnd Classes Processing based on Definition table
 -- Update Domain for units
+-- Update Domain for units
 UPDATE concept_stage
 SET domain_id = 'Unit',
     concept_class_id = 'Unit'
@@ -190,6 +191,21 @@ and (
                 or b.def ilike 'the unit of%'
     or b.def ilike 'a unit for%'
        or b.def ilike 'the unit for%'
+
+       or b.def like 'A non-SI unit%'
+       or b.def like 'The non-SI unit%'
+
+    or b.def like 'A SI unit%'
+       or b.def like 'The SI unit%'
+
+            or b.def like 'A SI derived unit%'
+       or b.def like 'The SI derived unit %'
+
+        or b.def like 'The metric unit%'
+       or b.def like 'A metric unit%'
+
+           or b.def like 'A traditional unit%'
+       or b.def like 'The traditional unit%'
     )
 and b.sab='CDISC' )
 ;
@@ -253,7 +269,7 @@ WHERE synonym is not null;
 
 -- Adopt mappings from NCIm/UMLS
 --DROP TABLE IF EXISTS rel;
-TRUNCATE TABLE rel;
+--TRUNCATE TABLE rel;
 CREATE TABLE rel (
     scui varchar,
     concept_name varchar,

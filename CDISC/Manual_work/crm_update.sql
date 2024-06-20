@@ -30,3 +30,9 @@ SELECT concept_code as concept_code_1,
        null as invalid_reason
        FROM cdisc_mapped
     WHERE target_concept_id is not null);
+
+--Working with concept_relationship_manual table
+DELETE FROM concept_relationship_manual
+where vocabulary_id_1='CDISC'
+and concept_code_2='No matching concept'
+;

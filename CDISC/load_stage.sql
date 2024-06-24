@@ -268,8 +268,7 @@ FROM source
 WHERE synonym is not null;
 
 -- Adopt mappings from NCIm/UMLS
---DROP TABLE IF EXISTS rel;
---TRUNCATE TABLE rel;
+DROP TABLE IF EXISTS rel;
 CREATE TABLE rel (
     scui varchar,
     concept_name varchar,
@@ -494,6 +493,19 @@ INSERT INTO rel (SELECT DISTINCT s.scui,
                                    AND s.scui NOT IN (SELECT scui FROM rel))
 ;
 
+--Working with concept_relationship_manual table
+DELETE FROM concept_relationship_manual
+where vocabulary_id_1='CDISC'
+and concept_code_2='No matching concept'
+;
+
+--working with manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+
 --concept_relationship_stage
 --insert only 1-to-1 mappings
 INSERT INTO concept_relationship_stage (
@@ -547,11 +559,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---working with manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
 DROP TABLE source;
 DROP TABLE rel;
+

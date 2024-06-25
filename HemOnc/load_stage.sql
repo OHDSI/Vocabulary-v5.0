@@ -108,7 +108,9 @@ SELECT DISTINCT r.concept_code_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	CASE 
+	CASE
+	    WHEN r.relationship_id = 'Has synthetic regimen'
+			THEN 'Has synth regimen'
 		WHEN r.relationship_id = 'Is historical in adult'
 			THEN 'Is hist in adult'
 		WHEN r.relationship_id = 'Is current in adult'
@@ -142,15 +144,42 @@ LEFT JOIN concept c ON c.concept_code = r.concept_code_2
 LEFT JOIN concept_stage cs2 ON cs2.concept_code = r.concept_code_2
 	AND cs2.vocabulary_id = r.vocabulary_id_2
 WHERE r.relationship_id NOT IN (
-		-- these aren't investigated well yet
-		'Was studied in', --looks irrelevant and non-needed as it's combined
-		'Has been compared to',
-		'Can be preceded by',
-		'Can be followed by',
-		'May require',
-		'Has major class',
-		'Has minor class'
-		)
+    -- these aren't investigated well yet
+                                'Was studied in', --looks irrelevant and non-needed as it's combined
+                                'Has been compared to',
+                                'Can be preceded by',
+                                'Can be followed by',
+                                'May require',
+                                'Has major class',
+                                'Has minor class',
+                                'Was NMPA approved yr',
+                                'Was PMDA approved yr',
+                                'Was FDA approved yr',
+                                'Was EMA approved yr',
+                                'Was HC approved yr',
+                                'Had experimental design',
+                                'Has second author',
+                                'Has middle author',
+                                'Has first author',
+                                'Has last author',
+                                'Has study group',
+                                'Has study type',
+                                'Has reported endpt',
+                                'Has min cycle length',
+                                'Has max cycle length',
+                                'Has min cycle num',
+                                'Has max cycle num',
+                                'Was published year',
+                                'Has min duration',
+                                'Has max duration',
+                                'Has PMCID',
+                                'Has PMID',
+                                'Has trial ID',
+                                'Was published in',
+                                'Has DOI',
+                                'Has URL',
+                                'Has reference'
+)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
 		r.concept_code_1 = '37'
@@ -338,6 +367,9 @@ FROM (
 				THEN 'Has radiotherapy Rx'
 			WHEN 'Has pept-drug cjgt'
 				THEN 'Has pept-drg cjg Rx'
+
+		    WHEN 'Has growth factor'
+				THEN 'Has growth factor Rx'
 			ELSE NULL
 			END AS relationship_id,
 		cs1.valid_start_date,
@@ -483,10 +515,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---15. Add mapping from deprecated to fresh concepts
+--15.1 Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--15.2 Add mapping from deprecated to fresh concepts for 'Maps to value'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
 --16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts

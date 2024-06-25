@@ -3,7 +3,12 @@ CREATE TABLE icd_cde_source_backup_local_ver as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_local_ver);
 SELECT * FROM icd_cde_source;
+
+--Backup before update from _mapped
 CREATE TABLE icd_cde_source_backup_6_17_2024 as SELECT * FROM icd_cde_source;
+
+--Backup after update from _mapped
+
 
 --1. СDE source insertion
 DROP TABLE dev_icd10.icd_cde_source;

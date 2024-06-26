@@ -30,7 +30,7 @@ BEGIN
         'Manual concept ancestor in '||UPPER(CURRENT_SCHEMA)||' completed'||crlf||
         CASE WHEN pIncludeNonStandard THEN 'incliding non-standard concepts' ELSE '' END||crlf||
         CASE WHEN pIncludeInvalidReason THEN 'including invalid reason ' ELSE '' END||crlf||
-        'Execution time: '||cWorkTime||' min'||crlf||
+        'Execution time: '||cWorkTime||' min'
         
     );
 

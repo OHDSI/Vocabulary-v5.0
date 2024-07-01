@@ -10,34 +10,34 @@ CREATE OR REPLACE FUNCTION vocabulary_pack.CheckVocabularyUpdate (
 AS
 $body$
 DECLARE
-  /*
-  CREATE TABLE devv5.vocabulary_access(
-      vocabulary_id VARCHAR (20) NOT NULL,
-      vocabulary_auth VARCHAR (500),
-      vocabulary_url VARCHAR (500) NOT NULL,
-      vocabulary_login VARCHAR (100),
-      vocabulary_pass VARCHAR (100),
-      vocabulary_order INT NOT NULL,
-      vocabulary_source_table VARCHAR (1000),
-      vocabulary_dev_schema VARCHAR (100),
-      vocabulary_update_after VARCHAR (20),
-      vocabulary_params JSONB,
-      vocabulary_enabled INT NOT NULL DEFAULT 1);
-  ALTER TABLE devv5.vocabulary_access ADD CONSTRAINT unique_vocab_access UNIQUE (vocabulary_id,vocabulary_order);
-  */
-  cURL            devv5.vocabulary_access.vocabulary_url%TYPE;
-  cVocabOldDate   DATE;
-  cVocabOldVer    VARCHAR (500);
-  cVocabSrcDate   DATE;
-  cVocabHTML      TEXT;
-  cVocabDate      DATE;
-  cVocabVer       VARCHAR (500);
-  cVocabSrcVer    VARCHAR (500);
-  cPos1           INT4;
-  cPos2           INT4;
-  cSearchString   VARCHAR (500);
-  cVocabSrcTable  VARCHAR (1000);
-  cVocabularyName VARCHAR (20);
+    /*
+    CREATE TABLE devv5.vocabulary_access(
+        vocabulary_id VARCHAR (20) NOT NULL,
+        vocabulary_auth VARCHAR (500),
+        vocabulary_url VARCHAR (500) NOT NULL,
+        vocabulary_login VARCHAR (100),
+        vocabulary_pass VARCHAR (100),
+        vocabulary_order INT NOT NULL,
+        vocabulary_source_table VARCHAR (1000),
+        vocabulary_dev_schema VARCHAR (100),
+        vocabulary_update_after VARCHAR (20),
+        vocabulary_params JSONB,
+        vocabulary_enabled INT NOT NULL DEFAULT 1);
+    ALTER TABLE devv5.vocabulary_access ADD CONSTRAINT unique_vocab_access UNIQUE (vocabulary_id,vocabulary_order);
+    */
+    cURL            devv5.vocabulary_access.vocabulary_url%TYPE;
+    cVocabOldDate   DATE;
+    cVocabOldVer    VARCHAR (500);
+    cVocabSrcDate   DATE;
+    cVocabHTML      TEXT;
+    cVocabDate      DATE;
+    cVocabVer       VARCHAR (500);
+    cVocabSrcVer    VARCHAR (500);
+    cPos1           INT4;
+    cPos2           INT4;
+    cSearchString   VARCHAR (500);
+    cVocabSrcTable  VARCHAR (1000);
+    cVocabularyName VARCHAR (20);
 BEGIN
         cVocabularyName:=UPPER(pVocabularyName);
         

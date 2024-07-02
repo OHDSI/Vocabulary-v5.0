@@ -135,16 +135,16 @@ END $_$;
 
 --synth reg
 
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has synthetic regimen (HemOnc)',
-	pRelationship_id			=>'Has synth regimen',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Synthetic regimen of(HemOnc)',
-	pReverse_relationship_id		=>'Synth regimen of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
+    DO $_$
+    BEGIN
+        PERFORM vocabulary_pack.AddNewRelationship(
+        pRelationship_name			=>'Has synthetic regimen (HemOnc)',
+        pRelationship_id			=>'Has synth regimen',
+        pIs_hierarchical			=>0,
+        pDefines_ancestry			=>0,
+        pRelationship_name_rev	=>'Synthetic regimen of(HemOnc)',
+        pReverse_relationship_id		=>'Synth regimen of',
+        pIs_hierarchical_rev		=>0,
+        pDefines_ancestry_rev		=>0
+    );
+    END $_$;

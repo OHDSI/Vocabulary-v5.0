@@ -304,6 +304,30 @@ BEGIN
         THEN
             cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'This distribution contains the NCI Metathesaurus version <strong>(\d+)</strong>'),'yyyymm');
             cVocabVer := 'META '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
+        WHEN cVocabularyName = 'ATC'
+        THEN
+            -- _atc_ver stores a string containing three concatenated dates in the format YYMMDD`
+            SELECT _atc_ver
+              INTO cVocabVer
+              FROM sources.atc_codes LIMIT 1;
+            
+            -- To determine the new version of the source to download, it needs to compare the dates from the three URLs
+            -- If the new date string is different from the existing one, this means that the data source contains a new version
+            IF (SELECT cVocabVer != (
+                (SELECT TO_CHAR(TO_DATE((regexp_match(http_content, 'Last updated:\s*(\d{4}-\d{2}-\d{2})'))[1], 'YYYY-MM-DD'), 'YYMMDD')
+                   FROM vocabulary_download.py_http_get(url => SPLIT_PART(cURL, ',', 1), allow_redirects => TRUE)) ||
+                (SELECT TO_CHAR(TO_DATE((regexp_match(http_content, 'Last updated:\s*(\d{4}-\d{2}-\d{2})'))[1], 'YYYY-MM-DD'), 'YYMMDD')
+                   FROM vocabulary_download.py_http_get(url => SPLIT_PART(cURL, ',', 2), allow_redirects => TRUE)) ||
+                (SELECT TO_CHAR(TO_DATE((regexp_match(http_content, 'Last updated:\s*(\d{4}-\d{2}-\d{2})'))[1], 'YYYY-MM-DD'), 'YYMMDD')
+                   FROM vocabulary_download.py_http_get(url => SPLIT_PART(cURL, ',', 3), allow_redirects => TRUE)))
+            )
+            THEN
+                cVocabDate := CURRENT_DATE;
+                cVocabVer := 'ATC '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
+            ELSE
+                cVocabDate := cVocabSrcDate;
+                cVocabVer := cVocabSrcVer;
+            END IF;
         ELSE
             RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
     END CASE;

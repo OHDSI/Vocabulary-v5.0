@@ -16,10 +16,10 @@
 * Authors: Irina Zherko, Dmitry Dymshyts, Polina Talapova, Daryna Ivakhnenko
 * Date: 2024
 **************************************************************************/
---Create table icd10cn_refresh
-DROP TABLE icd10cn_refresh;
-TRUNCATE TABLE icd10cn_refresh;
-CREATE TABLE icd10cn_refresh
+--Create table KCD7_refresh
+DROP TABLE KCD7_refresh;
+TRUNCATE TABLE KCD7_refresh;
+CREATE TABLE KCD7_refresh
 (
     source_code             TEXT NOT NULL,
     source_code_description varchar(255),
@@ -40,7 +40,7 @@ CREATE TABLE icd10cn_refresh
 );
 
 --Insert concepts, which are represented in the crm and where changed by functions
-INSERT INTO icd10cn_refresh
+INSERT INTO KCD7_refresh
     (source_code,
      source_code_description,
      source_vocabulary_id,
@@ -71,7 +71,7 @@ with deprecated_mappings as
 						crs.vocabulary_id_1,
 						crs.vocabulary_id_2
 					)
-			)) FROM concept_relationship_stage crs)) --108
+			)) FROM concept_relationship_stage crs))
 SELECT
     crs.concept_code_1 as source_code,
     cs.concept_name as source_code_description,
@@ -99,7 +99,7 @@ LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id
 
 UNION ALL
 
-SELECT -- 69
+SELECT
 crs.concept_code_1 as source_code,
     cs.concept_name as source_code_description,
     crs.vocabulary_id_1 as source_vocabulary_id,
@@ -131,7 +131,7 @@ and crs.invalid_reason is null
 ;
 
 --Insert other potential replacement mappings for concepts from crm
-INSERT INTO icd10cn_refresh
+INSERT INTO KCD7_refresh
     (source_code,
      source_code_description,
      source_vocabulary_id,
@@ -199,8 +199,10 @@ WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relatio
        AND c.standard_concept = 'S'
        AND c.invalid_reason is null);
 
+SELECT * FROM KCD7_refresh;
+
 --Insert the rest of crm concepts
-INSERT INTO icd10cn_refresh
+INSERT INTO KCD7_refresh
     (source_code,
      source_code_description,
      source_vocabulary_id,
@@ -237,11 +239,11 @@ SELECT
 FROM concept_relationship_manual crm
 LEFT JOIN concept c on crm.concept_code_1 = c.concept_code and crm.vocabulary_id_1 = c.vocabulary_id
 LEFT JOIN concept c2 on crm.concept_code_2 = c2.concept_code and crm.vocabulary_id_2 = c2.vocabulary_id
-WHERE (crm.concept_code_1, crm.vocabulary_id_1, crm.relationship_id) not in (SELECT source_code, source_vocabulary_id, relationship_id FROM icd10cn_refresh)
-AND crm.vocabulary_id_1 = 'ICD10CN';
+WHERE (crm.concept_code_1, crm.vocabulary_id_1, crm.relationship_id) not in (SELECT source_code, source_vocabulary_id, relationship_id FROM KCD7_refresh)
+AND crm.vocabulary_id_1 = 'KCD7';
 
 --Insert concepts without mapping --Not used at every refresh
-INSERT INTO icd10cn_refresh
+INSERT INTO KCD7_refresh
     (source_code,
      source_code_description,
      source_vocabulary_id,

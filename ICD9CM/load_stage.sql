@@ -44,18 +44,17 @@ INSERT INTO concept_stage (
 	standard_concept,
 	concept_code,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
+	valid_end_date
 	)
 SELECT NAME AS concept_name,
 	NULL AS domain_id,
 	'ICD9CM' AS vocabulary_id,
 	CASE 
 		WHEN SUBSTR(code, 1, 1) = 'V'
-			THEN length(code) || '-dig billing V code'
+			THEN LENGTH(code) || '-dig billing V code'
 		WHEN SUBSTR(code, 1, 1) = 'E'
-			THEN length(code) - 1 || '-dig billing E code'
-		ELSE length(code) || '-dig billing code'
+			THEN LENGTH(code) - 1 || '-dig billing E code'
+		ELSE LENGTH(code) || '-dig billing code'
 		END AS concept_class_id,
 	NULL AS standard_concept,
 	CASE -- add dots to the codes
@@ -70,11 +69,10 @@ SELECT NAME AS concept_name,
 		FROM vocabulary
 		WHERE vocabulary_id = 'ICD9CM'
 		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM SOURCES.CMS_DESC_LONG_DX;
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM sources.cms_desc_long_dx;
 
---4. Add codes which are not in the CMS_DESC_LONG_DX table
+--4. Add codes which are not in the cms_desc_long_dx table
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -83,18 +81,17 @@ INSERT INTO concept_stage (
 	standard_concept,
 	concept_code,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
+	valid_end_date
 	)
-SELECT SUBSTR(str, 1, 256) AS concept_name,
+SELECT vocabulary_pack.CutConceptName(str) AS concept_name,
 	NULL AS domain_id,
 	'ICD9CM' AS vocabulary_id,
 	CASE 
 		WHEN SUBSTR(code, 1, 1) = 'V'
-			THEN length(replace(code, '.', '')) || '-dig nonbill V code'
+			THEN LENGTH(REPLACE(code, '.', '')) || '-dig nonbill V code'
 		WHEN SUBSTR(code, 1, 1) = 'E'
-			THEN length(replace(code, '.', '')) - 1 || '-dig nonbill E code'
-		ELSE length(replace(code, '.', '')) || '-dig nonbill code'
+			THEN LENGTH(REPLACE(code, '.', '')) - 1 || '-dig nonbill E code'
+		ELSE LENGTH(REPLACE(code, '.', '')) || '-dig nonbill code'
 		END AS concept_class_id,
 	NULL AS standard_concept,
 	code AS concept_code,
@@ -103,14 +100,13 @@ SELECT SUBSTR(str, 1, 256) AS concept_name,
 		FROM vocabulary
 		WHERE vocabulary_id = 'ICD9CM'
 		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM SOURCES.mrconso
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM sources.mrconso
 WHERE sab = 'ICD9CM'
 	AND NOT code LIKE '%-%'
 	AND tty = 'HT'
-	AND devv5.INSTR(code, '.') != 3 -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
-	AND LENGTH(code) != 2 -- Procedure code
+	AND position('.' IN code) <> 3 -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
+	AND LENGTH(code) <> 2 -- Procedure code
 	AND code NOT IN (
 		SELECT concept_code
 		FROM concept_stage
@@ -118,7 +114,7 @@ WHERE sab = 'ICD9CM'
 		)
 	AND suppress = 'N';
 
---5. load into concept_synonym_stage name from both CMS_DESC_LONG_DX.txt and CMS_DESC_SHORT_DX
+--5. load into concept_synonym_stage name from both cms_desc_long_dx.txt and CMS_DESC_SHORT_DX
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -137,13 +133,13 @@ SELECT CASE -- add dots to the codes
 	4180186 AS language_concept_id -- English
 FROM (
 	SELECT *
-	FROM SOURCES.CMS_DESC_LONG_DX
+	FROM sources.cms_desc_long_dx
 	
 	UNION
 	
 	SELECT code,
 		name
-	FROM SOURCES.CMS_DESC_SHORT_DX
+	FROM sources.cms_desc_short_dx
 	) AS s0;
 
 --6. Add codes which are not in the cms_desc_long_dx table as a synonym
@@ -154,15 +150,15 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT code AS synonym_concept_code,
-	SUBSTR(str, 1, 256) AS synonym_name,
+	vocabulary_pack.CutConceptSynonymName(str) AS synonym_name,
 	'ICD9CM' AS vocabulary_id,
 	4180186 AS language_concept_id -- English
-FROM SOURCES.mrconso
+FROM sources.mrconso
 WHERE sab = 'ICD9CM'
 	AND NOT code LIKE '%-%'
 	AND tty = 'HT'
-	AND devv5.INSTR(code, '.') != 3 -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
-	AND LENGTH(code) != 2 -- Procedure code
+	AND position('.' IN code) <> 3 -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
+	AND LENGTH(code) <> 2 -- Procedure code
 	AND code NOT IN (
 		SELECT concept_code
 		FROM concept_stage
@@ -222,6 +218,11 @@ WHERE c.vocabulary_id = 'ICD9CM'
 			AND co.vocabulary_id = 'ICD9CM'
 		) limit 10;-- only new codes we don't already have
 */
+--7. Add manual concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
 --8. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 DO $_$
@@ -232,6 +233,7 @@ END $_$;
 --9. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
+
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -291,83 +293,85 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---14. Update domain_id for ICD9CM from SNOMED
-UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
-	FROM concept_relationship_stage crs
-	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
-		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'ICD9CM'
-	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		--AND c2.vocabulary_id = 'SNOMED'
-	WHERE crs.relationship_id = 'Maps to'
-		AND crs.invalid_reason IS NULL
-	
-	UNION ALL
-	
-	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			)
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'ICD9CM'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		--AND c2.vocabulary_id = 'SNOMED'
-	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
-		AND cs1.vocabulary_id = c1.vocabulary_id
-	WHERE cr.relationship_id = 'Maps to'
-		AND cr.invalid_reason IS NULL
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_1 = cs1.concept_code
-				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
-				AND crs_int.relationship_id = cr.relationship_id
-			)
-	) i
-WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'ICD9CM';
-
---15. Check for NULL in domain_id
-ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
-ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
-
---16. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--14. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
+
+--15. Update domain_id for ICD9CM
+UPDATE concept_stage cs
+SET domain_id = i.domain_id
+FROM (
+	(
+		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+			c2.domain_id
+		FROM concept_relationship_stage crs
+		JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+			AND cs1.vocabulary_id = crs.vocabulary_id_1
+			AND cs1.vocabulary_id = 'ICD9CM'
+		JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+			AND c2.vocabulary_id = crs.vocabulary_id_2
+		--AND c2.vocabulary_id = 'SNOMED'
+		WHERE crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+		ORDER BY cs1.concept_code,
+			CASE c2.domain_id
+				WHEN 'Condition'
+					THEN 1
+				WHEN 'Observation'
+					THEN 2
+				WHEN 'Procedure'
+					THEN 3
+				WHEN 'Measurement'
+					THEN 4
+				WHEN 'Device'
+					THEN 5
+				END
+		)
+	
+	UNION ALL
+	
+	(
+		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+			c2.domain_id
+		FROM concept_relationship cr
+		JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+			AND c1.vocabulary_id = 'ICD9CM'
+		JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		--AND c2.vocabulary_id = 'SNOMED'
+		JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
+			AND cs1.vocabulary_id = c1.vocabulary_id
+		WHERE cr.relationship_id = 'Maps to'
+			AND cr.invalid_reason IS NULL
+			AND NOT EXISTS (
+				SELECT 1
+				FROM concept_relationship_stage crs_int
+				WHERE crs_int.concept_code_1 = cs1.concept_code
+					AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
+					AND crs_int.relationship_id = cr.relationship_id
+				)
+		ORDER BY cs1.concept_code,
+			CASE c2.domain_id
+				WHEN 'Condition'
+					THEN 1
+				WHEN 'Observation'
+					THEN 2
+				WHEN 'Procedure'
+					THEN 3
+				WHEN 'Measurement'
+					THEN 4
+				WHEN 'Device'
+					THEN 5
+				END
+		)
+	) i
+WHERE i.concept_code = cs.concept_code
+	AND cs.vocabulary_id = 'ICD9CM';
+
+--16. Check for NULL in domain_id
+ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
+ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
 --17. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (

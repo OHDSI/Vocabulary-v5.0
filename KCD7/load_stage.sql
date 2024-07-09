@@ -94,6 +94,12 @@ UNION ALL
 VALUES ('U18','신종질환의 국내 임시적 지정이나 응급사용','KCD7',4175771),
 	('U18.1','신종 코로나바이러스 감염','KCD7',4175771);
 
+--7. Add KCD7 to SNOMED manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
 --5. Add mapping through ICD10 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -102,8 +108,7 @@ INSERT INTO concept_relationship_stage (
 	vocabulary_id_2,
 	relationship_id,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
+	valid_end_date
 	)
 SELECT cs.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
@@ -111,8 +116,7 @@ SELECT cs.concept_code AS concept_code_1,
 	c2.vocabulary_id AS vocabulary_id_2,
 	cr.relationship_id AS relationship_id,
 	CURRENT_DATE AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM concept_stage cs
 JOIN concept c ON c.concept_code = cs.concept_code
 	AND c.vocabulary_id = 'ICD10'
@@ -122,7 +126,11 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 		'Maps to',
 		'Maps to value'
 		)
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2;
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
+	AND crs.vocabulary_id_1 = cs.vocabulary_id
+WHERE crs.concept_code_1 IS NULL;
+
 
 --6. Add "Subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -153,16 +161,16 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 
 DROP INDEX trgm_idx;
 
---7. Add KCD7 to SNOMED manual mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---8. Add mapping from deprecated to fresh concepts
+--7. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--8. Add mapping from deprecated to fresh concepts for 'Maps to value'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
 --9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -171,40 +179,45 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---10. Update domain_id for KCD7 from SNOMED
+--10. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--11. Update domain_id for KCD7
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT cs1.concept_code,
-		FIRST_VALUE(c2.domain_id) OVER (
-			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
-						THEN 1
-					WHEN 'Observation'
-						THEN 2
-					WHEN 'Procedure'
-						THEN 3
-					WHEN 'Measurement'
-						THEN 4
-					WHEN 'Device'
-						THEN 5
-					ELSE 6
-					END
-			) AS domain_id
+	SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
+		c2.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 		AND cs1.vocabulary_id = crs.vocabulary_id_1
 		AND cs1.vocabulary_id = 'KCD7'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		--AND c2.vocabulary_id = 'SNOMED'
+	--AND c2.vocabulary_id = 'SNOMED'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
+	ORDER BY cs1.concept_code,
+		CASE c2.domain_id
+			WHEN 'Condition'
+				THEN 1
+			WHEN 'Observation'
+				THEN 2
+			WHEN 'Procedure'
+				THEN 3
+			WHEN 'Measurement'
+				THEN 4
+			WHEN 'Device'
+				THEN 5
+			END
 	) i
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'KCD7';
 
---11. If domain_id is empty we use previous and next domain_id
+--12. If domain_id is empty we use previous and next domain_id
 UPDATE concept_stage c
 SET domain_id = rd.domain_id
 FROM (
@@ -241,12 +254,25 @@ WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7'
 	AND c.domain_id IS NULL;
 
---11.1 Detect and Update misclassified domains to Condition
+--Detect and Update misclassified domains to Condition
 UPDATE concept_stage c
 SET domain_id = 'Condition'
 WHERE domain_id = 'Condition/Observatio';
 
---12. Manual name fix
+UPDATE concept_stage c
+SET domain_id = 'Condition'
+WHERE domain_id = 'Condition/Measuremen';
+
+UPDATE concept_stage c
+SET domain_id = 'Observation'
+WHERE domain_id = 'Measurement/Observat';
+
+--Update domain for tumor concepts
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code ILIKE '%C%';
+
+--13. Manual name fix
 UPDATE concept_stage
 SET concept_name = 'Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2'
 WHERE concept_code = 'U07.1';

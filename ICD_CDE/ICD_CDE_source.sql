@@ -60,7 +60,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
-                            for_review,
+                            --for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -78,7 +78,7 @@ SELECT source_code as source_code,
        source_vocabulary_id as source_vocabulary_id,
        source_code_description as group_name,
        relationship_id as relationship_id,
-       '1' as for_review,
+       --'1' as for_review,
        target_concept_id,
        target_concept_code,
        target_concept_name,
@@ -99,7 +99,7 @@ SELECT source_code as source_code,
 -- If there are several mapping sources all the versions should be included, excluding duplicates within one vocabulary.
 -- Mapping duplicates between vocabularies are preserved
 
---ICD10 with mappings
+--ICD10 with mappings / insert only new mappings during refresh
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
                             source_vocabulary_id,
@@ -146,8 +146,8 @@ LEFT JOIN concept c
     on crs.concept_code_2 = c.concept_code
     and crs.vocabulary_id_2 = c.vocabulary_id
 where cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter')
---and (cs.concept_code, c.concept_id) not in (SELECT source_code, target_concept_id FROM icd_cde_source WHERE source_vocabulary_id = 'ICD10')
---and crs.concept_code_2 IS NOT NULL
+and (cs.concept_code, c.concept_id) not in (SELECT source_code, target_concept_id FROM icd_cde_source WHERE source_vocabulary_id = 'ICD10')
+and crs.concept_code_2 IS NOT NULL
 ;
 
 --Update 'mappings_origin' flag
@@ -205,7 +205,7 @@ valid_end_date,
 mappings_origin
 FROM icd10_refresh;
 
---ICD10CM with mappings
+--ICD10CM with mappings / insert only new mappings during refresh
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
                             source_vocabulary_id,
@@ -260,7 +260,8 @@ AND (cs.concept_code, c.concept_id) not in (SELECT source_code, target_concept_i
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source s SET
 mappings_origin = 'functions_updated'
-WHERE valid_start_date in (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
+WHERE for_review = '1'
+AND valid_start_date in (SELECT DISTINCT GREATEST (d.lu_1, d.lu_2)
 FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
 			FROM dev_icd10cm.concept_relationship_stage crs
 			JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
@@ -516,7 +517,8 @@ LEFT JOIN dev_icd9cm.concept_relationship_stage crs
 LEFT JOIN concept c
     on crs.concept_code_2 = c.concept_code
     and crs.vocabulary_id_2 = c.vocabulary_id
-where crs.concept_code_2 IS NOT NULL;
+where (cs.concept_code, c.concept_id) not in (SELECT source_code, target_concept_id FROM icd_cde_source WHERE source_vocabulary_id = 'ICD9CM')
+and crs.concept_code_2 IS NOT NULL;
 
 --Update 'mappings_origin' flag
 UPDATE icd_cde_source s SET
@@ -541,6 +543,7 @@ INSERT INTO icd_cde_source (source_code,
                             source_vocabulary_id,
                             group_name,
                             relationship_id,
+                            for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -559,6 +562,7 @@ source_code_description,
 source_vocabulary_id,
 source_code_description as group_name,
 relationship_id,
+'1' as for_review,
 target_concept_id,
 target_concept_code,
 target_concept_name,
@@ -623,25 +627,26 @@ INSERT INTO icd_cde_source (source_code,
                             valid_start_date,
                             valid_end_date,
                             mappings_origin)
-SELECT source_code,
-       source_code_description,
-       source_vocabulary_id,
-       source_code_description,
+SELECT s.source_code,
+       s.source_code_description,
+       s.source_vocabulary_id,
+       s.source_code_description,
        '1' as for_review,
-       relationship_id,
-       target_concept_id,
-       target_concept_code,
-       target_concept_name,
-       target_concept_class_id,
-       'S' as target_standard_concept,
-       null as target_invalid_reason,
-       target_domain_id,
-       target_vocabulary_id,
-       rel_invalid_reason,
-       valid_start_date,
-       valid_end_date,
+       s.relationship_id,
+       c.concept_id as target_concept_id,
+       c.concept_code as target_concept_code,
+       c.concept_name as target_concept_name,
+       c.concept_class_id as target_concept_class_id,
+       c.standard_concept as  target_standard_concept,
+       c.invalid_reason as target_invalid_reason,
+       c.domain_id as target_domain_id,
+       c.vocabulary_id as target_vocabulary_id,
+       s.rel_invalid_reason,
+       s.valid_start_date,
+       s.valid_end_date,
        'CC' as mappings_origin
-FROM dev_icd10.icd_community_contribution;
+FROM dev_icd10.icd_community_contribution s
+JOIN devv5.concept c on s.target_concept_id = c.concept_id;
 
 --2. check all the inserted rows
 SELECT * FROM icd_cde_source
@@ -874,7 +879,7 @@ SELECT DISTINCT
 s.group_name,
 s.group_id,
 c.group_code,
-array_agg (DISTINCT s.mappings_origin),
+array_agg (DISTINCT s.mappings_origin) as mappings_origin,
 s.for_review,
 s.relationship_id,
 --s.decision,
@@ -906,7 +911,7 @@ GROUP BY s.group_id, s.group_name,
          s.relationship_id,
          s.group_id,
          c.group_code,
-         s.decision,
+         --s.decision,
          s.for_review,
          s.group_name,
          s.target_concept_id,
@@ -937,6 +942,7 @@ and group_id in (
 ;
 
 --Update for those with several mapping candidates
+
 --Decidion '1' for those with only mapping candidate with several sources
 UPDATE icd_cde_ext_sources SET decision = '1', decision_date = current_date
 WHERE group_name in (
@@ -1005,24 +1011,24 @@ WHERE  t.source_code = rs.source_code AND
        t.source_vocabulary_id = rs.source_vocabulary_id AND
        t.target_concept_id = rs.target_concept_id;
 
---For manual review --2507 groups
+--For manual review
 SELECT DISTINCT * FROM icd_cde_ext_sources
 where group_id not in (
 SELECT DISTINCT group_id FROM icd_cde_ext_sources WHERE decision = '1');
 
---10. Table for manual mapping and review creation
+--10. Table for manual mapping and review creation -- data for the exact refresh
 --DROP TABLE icd_cde_manual;
 TRUNCATE TABLE icd_cde_manual;
 CREATE TABLE icd_cde_manual
 (
 group_name varchar,
 group_id int,
-group_code varchar,
+group_code varchar[],
 medium_group_id int,
 medium_group_code varchar,
 broad_group_id int,
 broad_group_code varchar,
-mappings_origin text[],
+mappings_origin varchar[],
 for_review varchar,
 relationship_id varchar,
 relationship_id_predicate varchar,
@@ -1037,6 +1043,8 @@ target_standard_concept varchar,
 target_invalid_reason varchar,
 target_domain_id varchar,
 target_vocabulary_id varchar,
+valid_start_date           date,
+valid_end_date             date,
 mapper_id varchar);
 
 INSERT INTO icd_cde_manual (
@@ -1044,7 +1052,7 @@ group_name,
 group_id,
 group_code,
 mappings_origin,
-for_review,
+--for_review,
 relationship_id,
 --decision,
 target_concept_id,
@@ -1054,7 +1062,10 @@ target_concept_class_id,
 target_standard_concept,
 target_invalid_reason,
 target_domain_id,
-target_vocabulary_id)
+target_vocabulary_id
+--valid_start_date,
+--valid_end_date
+)
 
 with code_agg as
     (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code))) as group_code
@@ -1070,8 +1081,8 @@ SELECT DISTINCT
 s.group_name,
 s.group_id,
 c.group_code,
-array_agg (DISTINCT s.mappings_origin),
-s.for_review,
+(array_agg (DISTINCT s.mappings_origin)) as mappings_origin,
+--s.for_review,
 s.relationship_id,
 --s.decision,
 s.target_concept_id,
@@ -1082,29 +1093,32 @@ s.target_standard_concept,
 s.target_invalid_reason,
 s.target_domain_id,
 s.target_vocabulary_id
+--s.valid_start_date,
+--s.valid_end_date
 FROM icd_cde_source s
 JOIN code_agg c ON s.group_id = c.group_id
 --JOIN map_or m ON s.group_id = m.group_id
-WHERE for_review = '1'
-AND (target_invalid_reason is null
-AND target_standard_concept = 'S')
-OR target_concept_id is null
-AND s.group_id in
-(SELECT group_id FROM icd_cde_manual
-GROUP BY group_id
-    HAVING count (group_id)>1)
+WHERE s.group_id in (
+    SELECT group_id FROM icd_cde_source
+    WHERE for_review = '1')
 AND s.group_id not in (
     SELECT group_id FROM icd_cde_source s
     WHERE s.decision = '1')
-GROUP BY s.group_id, s.group_name,
-         target_concept_id,
-         s.for_review,
-         s.relationship_id,
+--AND (target_invalid_reason is null
+--AND target_standard_concept = 'S')
+OR target_concept_id is null
+--AND s.group_id in
+--(SELECT group_id FROM icd_cde_manual
+--GROUP BY group_id
+--    HAVING count (group_id)>1)
+GROUP BY s.group_name,
          s.group_id,
          c.group_code,
-         s.decision,
-         s.for_review,
-         s.group_name,
+         target_concept_id,
+         --s.for_review,
+         s.relationship_id,
+         --s.decision,
+         --s.for_review,
          s.target_concept_id,
          s.target_concept_code,
          s.target_concept_name,
@@ -1113,39 +1127,125 @@ GROUP BY s.group_id, s.group_name,
          s.target_invalid_reason,
          s.target_domain_id,
          s.target_vocabulary_id
+--        s.valid_start_date,
+--       s.valid_end_date
 ORDER BY group_id desc
 ;
 
-SELECT * FROM icd_cde_manual; --16255
+DROP TABLE for_manual_review;
+CREATE TABLE for_manual_review as (
+SELECT
+m.group_name,
+m.group_id,
+m.group_code,
+m.medium_group_id,
+m.medium_group_code,
+m.broad_group_id,
+m.broad_group_code,
+m.mappings_origin,
+m.for_review,
+m.relationship_id,
+m.relationship_id_predicate,
+m.decision,
+m.decision_date,
+m.comments,
+c.concept_id,
+c.concept_code,
+c.concept_name,
+c.concept_class_id,
+c.standard_concept,
+c.invalid_reason,
+c.domain_id,
+c.vocabulary_id,
+m.valid_start_date,
+m.valid_end_date,
+m.mapper_id
+FROM icd_cde_manual m
+LEFT JOIN concept c ON m.target_concept_id = c.concept_id
+WHERE m.target_concept_code = concept_code
+AND c.standard_concept = 'S'
+AND c.invalid_reason is null
+
+UNION
+
+SELECT DISTINCT
+m.group_name,
+m.group_id,
+m.group_code,
+m.medium_group_id,
+m.medium_group_code,
+m.broad_group_id,
+m.broad_group_code,
+m.mappings_origin,
+m.for_review,
+m.relationship_id,
+m.relationship_id_predicate,
+m.decision,
+m.decision_date,
+m.comments,
+c.concept_id,
+c.concept_code,
+c.concept_name,
+c.concept_class_id,
+c.standard_concept,
+c.invalid_reason,
+c.domain_id,
+c.vocabulary_id,
+m.valid_start_date,
+m.valid_end_date,
+m.mapper_id
+FROM icd_cde_manual m
+LEFT JOIN concept c ON m.target_concept_code = c.concept_code
+WHERE m.target_concept_code IN (SELECT target_concept_code FROM icd_cde_manual m1 LEFT JOIN concept c1 ON m1.target_concept_id = c1.concept_id
+    WHERE m.target_concept_code != concept_code)
+AND c.standard_concept = 'S'
+AND c.invalid_reason is null
+AND mappings_origin = '{functions_updated}'
+
+UNION
+
+SELECT *
+FROM icd_cde_manual
+    WHERE mappings_origin = '{without mapping}'
+    );
+
+SELECT * FROM for_manual_review order by group_id; --3199
+
+--manual file for external mappings integration
+SELECT DISTINCT * FROM icd_cde_ext_sources es
+where group_id not in (
+SELECT DISTINCT group_id FROM icd_cde_ext_sources WHERE decision = '1')
+AND group_id not in (SELECT group_id FROM icd_cde_manual)
+;
 
 --for manual work: external mappings
-SELECT DISTINCT * FROM icd_cde_manual m
-WHERE group_id in
-(SELECT group_id FROM icd_cde_manual
-GROUP BY group_id
-    HAVING count (group_id)>1)
-AND group_id not in (
-    SELECT group_id FROM icd_cde_source s
-    WHERE s.decision = '1')
+--SELECT DISTINCT * FROM icd_cde_manual m
+--WHERE group_id in
+--(SELECT group_id FROM icd_cde_manual
+--GROUP BY group_id
+--    HAVING count (group_id)>1)
+--AND group_id not in (
+--    SELECT group_id FROM icd_cde_source s
+--    WHERE s.decision = '1')
 --AND group_name not in (select group_name from icd_cde_mapped) -- only to add some group names
-ORDER BY group_name;
+--ORDER BY group_name;
 
 --for manual work
-SELECT DISTINCT * FROM icd_cde_manual
-WHERE group_id in
-((SELECT group_id FROM icd_cde_manual
-GROUP BY group_id
-    HAVING count (group_id)>1)
-UNION
-SELECT group_id FROM icd_cde_manual
-WHERE mappings_origin in ('CC', 'without mapping')
-GROUP BY group_id
-    HAVING count (group_id)=1)
-AND group_id not in (
-    SELECT group_id FROM icd_cde_source s
-    WHERE s.decision = '1')
+--SELECT DISTINCT * FROM icd_cde_manual
+--WHERE group_id in
+--((SELECT group_id FROM icd_cde_manual
+--GROUP BY group_id
+--    HAVING count (group_id)>1)
+--UNION
+--SELECT group_id FROM icd_cde_manual
+--WHERE mappings_origin in ('CC', 'without mapping')
+--GROUP BY group_id
+--    HAVING count (group_id)=1)
+--AND group_id not in (
+--    SELECT group_id FROM icd_cde_source s
+--    WHERE s.decision = '1')
 --AND group_name not in (select group_name from icd_cde_mapped) -- only to add some group names
-ORDER BY group_name;
+--ORDER BY group_name;
 
 --USE only if updates in the google sheet table are needed
 --Create new table with all necessary updates
@@ -1645,4 +1745,23 @@ SELECT DISTINCT
        m.valid_end_date,
        m.mappings_origin
 FROM concepts c LEFT JOIN icd_cde_mapped m ON c.group_name = m.group_name;
+
+
+
+
+
+
+SELECT DISTINCT s.target_concept_id, s.target_concept_code, s.target_concept_name, c.concept_id, c.concept_code, c.concept_name FROM icd_cde_source s
+JOIN concept c on s.target_concept_id = c.concept_id
+AND s.target_vocabulary_id = c.vocabulary_id
+WHERE s.target_concept_code != c.concept_code --250
+
+UNION
+
+SELECT DISTINCT s.target_concept_id, s.target_concept_code, s.target_concept_name, c.concept_id, c.concept_code, c.concept_name FROM icd_cde_source s
+JOIN concept c on s.target_concept_code = c.concept_code
+AND s.target_vocabulary_id = c.vocabulary_id
+WHERE s.target_concept_id != c.concept_id; --269
+
+
 

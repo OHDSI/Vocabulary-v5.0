@@ -5,7 +5,10 @@
 --meddra_snomed_eq: sourced from previously existed MedDRA-SNOMED eq
 --meddra_ICD10: mappings via ICD10 vocabulary
 
-CREATE TABLE dev_meddra.meddra_pt_only_081123 AS
+SELECT *
+FROM dev_meddra.meddra_pt_only_100624;
+
+CREATE TABLE dev_meddra.meddra_pt_only_100624 AS
 WITH tab AS (
 
 -- all MedDRA-SNOMED mappings from manual table (meddra_mapped)
@@ -196,6 +199,7 @@ SELECT
     '' AS relationship_id_predicate,
     '' AS decision_date,
     '' AS decision, -- 1 if mapping is accepted, NULL if mapping is declined
+    '' AS confidence,
     '' AS comments,
     target_concept_id,
     target_concept_code,
@@ -239,6 +243,21 @@ ORDER BY source_code, relationship_id, count_aggr DESC;
 
 --7.2.5. Save the spreadsheet as the 'meddra_environment_table' and upload it into the working schema.
 
+-- Correction of meddra_environment_table content
+
+-- Delete all linebreaks from meddra_environment
+DELETE FROM dev_meddra.meddra_environment
+WHERE source_code='';
+-- Standardise relationship_id
+
+UPDATE dev_meddra.meddra_environment
+SET relationship_id = 'Maps to' WHERE relationship_id ilike '%maps to%' AND relationship_id not ilike '%value%';
+
+UPDATE dev_meddra.meddra_environment
+SET relationship_id = 'Maps to value' WHERE relationship_id ilike '%value%';
+
+
+
 --7.2.6. Change concept_relationship_manual table according to meddra_environment table.
 
 --Deprecate all mappings that differ from the new version of resulting mapping file
@@ -269,7 +288,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
                     WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END = crm_old.relationship_id
     )
-    AND invalid_reason IS NULL
+    AND invalid_reason IS NULL AND crm_old.relationship_id LIKE 'Maps to%'
     )
 AND vocabulary_id_1 = 'MedDRA'
 ;
@@ -328,7 +347,6 @@ AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL;
 
 
-
 --7.2.7. Create hierarchical relationships with SNOMED and OMOP Extension.
 WITH tab AS(
 SELECT CASE WHEN relationship_id_predicate='eq' OR relationship_id_predicate = 'down' THEN target_concept_code
@@ -347,9 +365,26 @@ FROM dev_meddra.meddra_environment
 WHERE decision='1'
 AND relationship_id = 'Maps to'
 AND target_vocabulary_id IN ('SNOMED', 'OMOP Extension')
+AND source_code NOT IN (SELECT source_code FROM dev_meddra.meddra_environment AS t1
+WHERE relationship_id='Maps to value' AND decision='1' AND (target_domain_id = 'Meas Value' OR target_concept_class_id = 'Qualifier Value')
 )
 
-INSERT INTO dev_meddra.concept_relationship_manual AS mapped
+UNION ALL
+
+SELECT source_code AS concept_code_1, target_concept_code AS concept_code_2,
+       source_vocabulary_id AS vocabulary_id_1, target_vocabulary_id AS vocabulary_id_2,
+       'Is a' AS relationship_id,
+	    current_date AS valid_start_date,
+        to_date('20991231','yyyymmdd') AS valid_end_date,
+        NULL AS invalid_reason
+FROM dev_meddra.meddra_environment
+WHERE decision='1' AND relationship_id='Maps to'
+AND target_vocabulary_id IN ('SNOMED', 'OMOP Extension')
+AND source_code IN (SELECT source_code FROM dev_meddra.meddra_environment AS t1
+WHERE relationship_id='Maps to value' AND decision='1' AND (target_domain_id = 'Meas Value' OR target_concept_class_id = 'Qualifier Value'))
+
+)
+INSERT INTO dev_meddra.concept_relationship_manual
     (concept_code_1,
     concept_code_2,
     vocabulary_id_1,
@@ -358,6 +393,7 @@ INSERT INTO dev_meddra.concept_relationship_manual AS mapped
     valid_start_date,
     valid_end_date,
     invalid_reason)
+
 SELECT concept_code_1,
        concept_code_2,
        vocabulary_id_1,
@@ -366,4 +402,30 @@ SELECT concept_code_1,
        valid_start_date,
        valid_end_date,
        invalid_reason
-FROM tab;
+FROM tab
+WHERE NOT EXISTS (SELECT 1 FROM dev_meddra.concept_relationship_manual AS crm WHERE
+                 tab.concept_code_1 = crm.concept_code_1 AND
+                 tab.concept_code_2 = crm.concept_code_2 AND
+                 tab.vocabulary_id_1 = crm.vocabulary_id_1 AND
+                 tab.vocabulary_id_2 = crm.vocabulary_id_2 AND
+                 tab.relationship_id = crm.relationship_id AND
+                 crm.invalid_reason IS NULL) AND concept_code_1 IS NOT NULL and concept_code_2 IS NOT NULL;
+
+
+
+
+-- Депрекировать старые иерархические отношения после добавлением новых!
+
+UPDATE dev_meddra.concept_relationship_manual AS crm
+SET invalid_reason = 'D', valid_end_date = current_date
+WHERE (crm.concept_code_1, crm.concept_code_2) IN (
+    SELECT crm_old.concept_code_1, crm_old.concept_code_2
+    FROM dev_meddra.concept_relationship_manual AS crm_old
+    JOIN dev_meddra.concept_relationship_manual AS crm_new
+        ON crm_old.concept_code_1 = crm_new.concept_code_2
+        AND crm_old.concept_code_2 = crm_new.concept_code_1
+        AND crm_new.valid_start_date > crm_old.valid_start_date
+    WHERE crm_old.vocabulary_id_1 IN ('MedDRA', 'SNOMED', 'OMOP Extension')
+        AND crm_old.vocabulary_id_2 IN ('SNOMED', 'MedDRA', 'OMOP Extension')
+        AND crm_old.relationship_id IN ('Is a')
+        AND crm_old.invalid_reason IS NULL);

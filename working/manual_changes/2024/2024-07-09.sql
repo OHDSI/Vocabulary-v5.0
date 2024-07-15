@@ -23,55 +23,6 @@ BEGIN
 	);
 END $_$;
 
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'centimeter watercolumn-second',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'cm[H2O].s'
-	);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'liter per second per centimeter watercolumn',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'L/s/cm[H2O]'
-	);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'centimeter watercolumn per liter per second',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'cm[H2O]/L/s'
-	);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'centigrams per liter',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'cg/l'
-	);
-END $_$;
-
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewConcept(
@@ -117,5 +68,17 @@ BEGIN
 		pConcept_class_id	=>'Unit',
 		pStandard_concept	=>'S',
 		pConcept_code		=>'mmol/(48.h)'
+	);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewConcept(
+		pConcept_name		=>'centigram per liter',
+		pDomain_id			=>'Unit',
+		pVocabulary_id		=>'UCUM',
+		pConcept_class_id	=>'Unit',
+		pStandard_concept	=>'S',
+		pConcept_code		=>'cg/l'
 	);
 END $_$;

@@ -15,6 +15,10 @@ CREATE TABLE icd_cde_source_backup_6_30_2024 as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_30_2024);
 
+CREATE TABLE icd_cde_source_backup_7_15_2024 as SELECT * FROM icd_cde_source;
+TRUNCATE TABLE icd_cde_source;
+INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_15_2024);
+
 --1. СDE source insertion
 DROP TABLE dev_icd10.icd_cde_source;
 TRUNCATE TABLE dev_icd10.icd_cde_source;
@@ -107,6 +111,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
+                            --for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -126,6 +131,7 @@ SELECT cs.concept_code     as source_code,
        'ICD10'             as source_vocabulary_id,
        cs.concept_name     as group_name,
        crs.relationship_id as relationship_id,
+       --'1'                 as for_review,
        c.concept_id        as target_concept_id,
        crs.concept_code_2  as target_concept_code,
        c.concept_name      as target_concept_name,
@@ -173,6 +179,7 @@ INSERT INTO icd_cde_source (source_code,
                             source_vocabulary_id,
                             group_name,
                             relationship_id,
+                            for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -191,6 +198,7 @@ source_code_description,
 source_vocabulary_id,
 source_code_description as group_name,
 relationship_id,
+'1' as for_review,
 target_concept_id,
 target_concept_code,
 target_concept_name,
@@ -212,7 +220,7 @@ INSERT INTO icd_cde_source (source_code,
                             group_name,
                             --medium_group_id,
                             --broad_group_id,
-                            for_review,
+                            --for_review,
                             relationship_id,
                             target_concept_id,
                             target_concept_code,
@@ -231,7 +239,7 @@ SELECT cs.concept_code     as source_code,
        cs.concept_name     as source_code_description,
        'ICD10CM'           as source_vocabulary_id,
        cs.concept_name     as group_name,
-       '1'                 as for_review,
+       --'1'                 as for_review,
        crs.relationship_id as relationship_id,
        c.concept_id        as target_concept_id,
        crs.concept_code_2  as target_concept_code,
@@ -244,8 +252,7 @@ SELECT cs.concept_code     as source_code,
        crs.invalid_reason  as rel_invalid_reason,
        crs.valid_start_date as valid_start_date,
        crs.valid_end_date as valid_end_date,
-       --CASE WHEN c.concept_id is not null THEN 'crs' ELSE null END as mappings_origin
-       'functions_updated' as mappings_origin
+       CASE WHEN c.concept_id is not null THEN 'crs' ELSE null END as mappings_origin
 FROM dev_icd10cm.concept_stage cs
 LEFT JOIN dev_icd10cm.concept_relationship_stage crs
     on cs.concept_code = crs.concept_code_1
@@ -323,6 +330,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
+                            for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -340,6 +348,7 @@ SELECT source_code,
        source_vocabulary_id,
        source_code_description,
        relationship_id,
+       '1' as for_review,
        target_concept_id,
        target_concept_code,
        target_concept_name,
@@ -362,6 +371,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
+                            for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -379,6 +389,7 @@ SELECT source_code,
        source_vocabulary_id,
        source_code_description,
        relationship_id,
+       '1' as for_review,
        target_concept_id,
        target_concept_code,
        target_concept_name,
@@ -401,6 +412,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
+                            for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -418,6 +430,7 @@ SELECT source_code,
        source_vocabulary_id,
        source_code_description,
        relationship_id,
+       '1' as for_review,
        target_concept_id,
        target_concept_code,
        target_concept_name,
@@ -440,6 +453,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
+                            for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -457,6 +471,7 @@ SELECT source_code,
        source_vocabulary_id,
        source_code_description,
        relationship_id,
+       '1' as for_review,
        target_concept_id,
        target_concept_code,
        target_concept_name,
@@ -479,6 +494,7 @@ INSERT INTO icd_cde_source (source_code,
                             --medium_group_id,
                             --broad_group_id,
                             relationship_id,
+                            --for_review,
                             target_concept_id,
                             target_concept_code,
                             target_concept_name,
@@ -495,9 +511,10 @@ INSERT INTO icd_cde_source (source_code,
 -- To insert mappings from concept_relationship_stage
 SELECT cs.concept_code     as source_code,
        cs.concept_name     as source_code_description,
-       'ICD9CM'             as source_vocabulary_id,
+       --'ICD9CM'             as source_vocabulary_id,
        cs.concept_name     as group_name,
        crs.relationship_id as relationship_id,
+       '1'                 as for_review,
        c.concept_id        as target_concept_id,
        crs.concept_code_2  as target_concept_code,
        c.concept_name      as target_concept_name,
@@ -663,8 +680,8 @@ AND concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter');
 --4. check all the ICD10CM concepts are in the CDE
 SELECT *
 FROM dev_icd10cm.concept_stage
-WHERE (concept_code, concept_name) not in
-(SELECT source_code, source_code_description FROM icd_cde_source
+WHERE concept_code not in
+(SELECT source_code FROM icd_cde_source
 WHERE source_vocabulary_id = 'ICD10CM');
 
 --5. Check for null values in source_code, source_code_description, source_vocabulary_id fields
@@ -1011,11 +1028,6 @@ WHERE  t.source_code = rs.source_code AND
        t.source_vocabulary_id = rs.source_vocabulary_id AND
        t.target_concept_id = rs.target_concept_id;
 
---For manual review
-SELECT DISTINCT * FROM icd_cde_ext_sources
-where group_id not in (
-SELECT DISTINCT group_id FROM icd_cde_ext_sources WHERE decision = '1');
-
 --10. Table for manual mapping and review creation -- data for the exact refresh
 --DROP TABLE icd_cde_manual;
 TRUNCATE TABLE icd_cde_manual;
@@ -1218,50 +1230,203 @@ SELECT DISTINCT group_id FROM icd_cde_ext_sources WHERE decision = '1')
 AND group_id not in (SELECT group_id FROM icd_cde_manual)
 ;
 
---for manual work: external mappings
---SELECT DISTINCT * FROM icd_cde_manual m
---WHERE group_id in
+--USE only if updates in the google sheet table are needed
+--Create new table with all necessary updates
+DROP TABLE icd_cde_manual_updated;
+TRUNCATE TABLE icd_cde_manual_updated;
+CREATE TABLE icd_cde_manual_updated
+(
+group_name varchar,
+group_id int,
+group_code varchar[],
+medium_group_id int,
+medium_group_code varchar,
+broad_group_id int,
+broad_group_code varchar,
+mappings_origin varchar[],
+for_review varchar,
+relationship_id varchar,
+relationship_id_predicate varchar,
+decision varchar,
+decision_date date,
+comments varchar,
+target_concept_id int,
+target_concept_code varchar,
+target_concept_name varchar,
+target_concept_class_id varchar,
+target_standard_concept varchar,
+target_invalid_reason varchar,
+target_domain_id varchar,
+target_vocabulary_id varchar,
+valid_start_date           date,
+valid_end_date             date,
+mapper_id varchar);
+
+INSERT INTO icd_cde_manual_updated (
+group_name,
+group_id,
+group_code,
+mappings_origin,
+--for_review,
+relationship_id,
+--decision,
+target_concept_id,
+target_concept_code,
+target_concept_name,
+target_concept_class_id,
+target_standard_concept,
+target_invalid_reason,
+target_domain_id,
+target_vocabulary_id
+--valid_start_date,
+--valid_end_date
+)
+
+with code_agg as
+    (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code))) as group_code
+    FROM icd_cde_source
+    GROUP BY group_id
+    ORDER BY group_id)
+    -- map_or as
+    --(SELECT group_id, string_agg (DISTINCT mappings_origin, ',') as mapping_origin
+    --FROM icd_cde_source
+    --GROUP BY group_id, target_concept_id
+    --ORDER BY group_id)
+SELECT DISTINCT
+s.group_name,
+s.group_id,
+c.group_code,
+(array_agg (DISTINCT s.mappings_origin)) as mappings_origin,
+--s.for_review,
+s.relationship_id,
+--s.decision,
+s.target_concept_id,
+s.target_concept_code,
+s.target_concept_name,
+s.target_concept_class_id,
+s.target_standard_concept,
+s.target_invalid_reason,
+s.target_domain_id,
+s.target_vocabulary_id
+--s.valid_start_date,
+--s.valid_end_date
+FROM icd_cde_source s
+JOIN code_agg c ON s.group_id = c.group_id
+--JOIN map_or m ON s.group_id = m.group_id
+WHERE s.group_id in (
+    SELECT group_id FROM icd_cde_source
+    WHERE for_review = '1')
+AND group_name NOT IN  (SELECT group_name FROM icd_cde_manual)
+AND (s.group_id not in (
+    SELECT group_id FROM icd_cde_source s
+    WHERE s.decision = '1')
+--AND (target_invalid_reason is null
+--AND target_standard_concept = 'S')
+OR target_concept_id is null)
+--AND s.group_id in
 --(SELECT group_id FROM icd_cde_manual
 --GROUP BY group_id
 --    HAVING count (group_id)>1)
---AND group_id not in (
---    SELECT group_id FROM icd_cde_source s
---    WHERE s.decision = '1')
---AND group_name not in (select group_name from icd_cde_mapped) -- only to add some group names
---ORDER BY group_name;
+GROUP BY s.group_name,
+         s.group_id,
+         c.group_code,
+         target_concept_id,
+         --s.for_review,
+         s.relationship_id,
+         --s.decision,
+         --s.for_review,
+         s.target_concept_id,
+         s.target_concept_code,
+         s.target_concept_name,
+         s.target_concept_class_id,
+         s.target_standard_concept,
+         s.target_invalid_reason,
+         s.target_domain_id,
+         s.target_vocabulary_id
+--        s.valid_start_date,
+--       s.valid_end_date
+ORDER BY group_id desc;
 
---for manual work
---SELECT DISTINCT * FROM icd_cde_manual
---WHERE group_id in
---((SELECT group_id FROM icd_cde_manual
---GROUP BY group_id
---    HAVING count (group_id)>1)
---UNION
---SELECT group_id FROM icd_cde_manual
---WHERE mappings_origin in ('CC', 'without mapping')
---GROUP BY group_id
---    HAVING count (group_id)=1)
---AND group_id not in (
---    SELECT group_id FROM icd_cde_source s
---    WHERE s.decision = '1')
---AND group_name not in (select group_name from icd_cde_mapped) -- only to add some group names
---ORDER BY group_name;
+DROP TABLE for_manual_review_upd;
+CREATE TABLE for_manual_review_upd as (
+SELECT
+m.group_name,
+m.group_id,
+m.group_code,
+m.medium_group_id,
+m.medium_group_code,
+m.broad_group_id,
+m.broad_group_code,
+m.mappings_origin,
+m.for_review,
+m.relationship_id,
+m.relationship_id_predicate,
+m.decision,
+m.decision_date,
+m.comments,
+c.concept_id,
+c.concept_code,
+c.concept_name,
+c.concept_class_id,
+c.standard_concept,
+c.invalid_reason,
+c.domain_id,
+c.vocabulary_id,
+m.valid_start_date,
+m.valid_end_date,
+m.mapper_id
+FROM icd_cde_manual_updated m
+LEFT JOIN concept c ON m.target_concept_id = c.concept_id
+WHERE m.target_concept_code = concept_code
+AND c.standard_concept = 'S'
+AND c.invalid_reason is null
 
---USE only if updates in the google sheet table are needed
---Create new table with all necessary updates
---CREATE TABLE icd_cde_manual_updated
---as (SELECT DISTINCT * FROM icd_cde_manual
---WHERE group_id in
---((SELECT group_id FROM icd_cde_manual
---GROUP BY group_id
---    HAVING count (group_id)>1)
---UNION
---SELECT group_id FROM icd_cde_manual
---WHERE mappings_origin in ('CC', 'without mapping')
---GROUP BY group_id
---    HAVING count (group_id)=1)
---ORDER BY group_name);
---
+UNION
+
+SELECT DISTINCT
+m.group_name,
+m.group_id,
+m.group_code,
+m.medium_group_id,
+m.medium_group_code,
+m.broad_group_id,
+m.broad_group_code,
+m.mappings_origin,
+m.for_review,
+m.relationship_id,
+m.relationship_id_predicate,
+m.decision,
+m.decision_date,
+m.comments,
+c.concept_id,
+c.concept_code,
+c.concept_name,
+c.concept_class_id,
+c.standard_concept,
+c.invalid_reason,
+c.domain_id,
+c.vocabulary_id,
+m.valid_start_date,
+m.valid_end_date,
+m.mapper_id
+FROM icd_cde_manual_updated m
+LEFT JOIN concept c ON m.target_concept_code = c.concept_code
+WHERE m.target_concept_code IN (SELECT target_concept_code FROM icd_cde_manual m1 LEFT JOIN concept c1 ON m1.target_concept_id = c1.concept_id
+    WHERE m.target_concept_code != concept_code)
+AND c.standard_concept = 'S'
+AND c.invalid_reason is null
+AND mappings_origin = '{functions_updated}'
+
+UNION
+
+SELECT *
+FROM icd_cde_manual_updated
+    WHERE mappings_origin = '{without mapping}'
+    );
+
+SELECT * FROM for_manual_review_upd;
+
+
 ----Create current manual table and upload current state of google sheet
 --CREATE TABLE icd_cde_manual_current
 --(

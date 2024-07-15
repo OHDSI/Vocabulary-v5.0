@@ -70,15 +70,3 @@ BEGIN
 		pConcept_code		=>'mmol/(48.h)'
 	);
 END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'centigram per liter',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'cg/l'
-	);
-END $_$;

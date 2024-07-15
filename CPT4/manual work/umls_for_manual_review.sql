@@ -5,14 +5,20 @@ WITH umls_mapping AS (
 		 a.concept_code AS source_concept_code,
 		 a.concept_class_id AS source_concept_class_id,
 		 a.invalid_reason AS source_invalid_reason,
-		 a.standard_concept AS source_standard_concept,
 		 a.domain_id AS source_domain_id,
+		 a.vocabulary_id AS source_vocabulary_id,
+		 null AS cr_invalid_reason,
+		 null AS mapping_tool,
+		 null AS mapping_source,
+		 '1' AS confidence,
 	 CASE WHEN rel = 'PAR'
 	        THEN 'Is a'
 		WHEN rel = 'SY'
 			THEN 'Maps to'
 			END AS relationship_id,
-		 'to_review' AS flag,
+		null as relationship_id_predicate,
+		 'to_review' AS source,
+		 null as comments,
 		 c.concept_id AS target_concept_id,
 		 c.concept_code AS target_concept_code,
 		 c.concept_name AS target_concept_name,
@@ -21,6 +27,8 @@ WITH umls_mapping AS (
 		 c.invalid_reason AS target_invalid_reason,
 		 c.domain_id AS target_domain_id,
 		 c.vocabulary_id AS target_vocabulary_id,
+		 'your_name' AS mapper_id,
+		 'your_name' AS reviewer_id,
 		 ROW_NUMBER() OVER (PARTITION BY m2.code || ' ' || m3.code) AS sort
 	FROM (SELECT cui1, cui2, rel
 				FROM sources.mrrel

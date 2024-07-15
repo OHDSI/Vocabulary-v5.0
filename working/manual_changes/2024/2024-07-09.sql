@@ -2,7 +2,7 @@
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'Cigar Dosing Unit',
+		pConcept_name		=>'cigar dosing unit',
 		pDomain_id			=>'Unit',
 		pVocabulary_id		=>'UCUM',
 		pConcept_class_id	=>'Unit',
@@ -14,7 +14,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'Cigarette Dosing Unit',
+		pConcept_name		=>'cigarette dosing unit',
 		pDomain_id			=>'Unit',
 		pVocabulary_id		=>'UCUM',
 		pConcept_class_id	=>'Unit',
@@ -23,53 +23,6 @@ BEGIN
 	);
 END $_$;
 
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'milligram per specimen',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'mg/{spec}'
-	);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'Kaolin clotting time',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'KCT'
-	);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'picomole per hour per punch',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'pmol/hr/punch'
-	);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'unit per milliliter of white blood cells',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'[U]/mL{WBC}'
-	);
-END $_$;
 
 DO $_$
 BEGIN
@@ -110,7 +63,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'centigrams Per Liter',
+		pConcept_name		=>'centigrams per liter',
 		pDomain_id			=>'Unit',
 		pVocabulary_id		=>'UCUM',
 		pConcept_class_id	=>'Unit',

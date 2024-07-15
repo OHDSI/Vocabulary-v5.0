@@ -23,17 +23,6 @@ BEGIN
 	);
 END $_$;
 
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name		=>'square millimole per liter in square',
-		pDomain_id			=>'Unit',
-		pVocabulary_id		=>'UCUM',
-		pConcept_class_id	=>'Unit',
-		pStandard_concept	=>'S',
-		pConcept_code		=>'mmol2/L2'
-	);
-END $_$;
 
 DO $_$
 BEGIN

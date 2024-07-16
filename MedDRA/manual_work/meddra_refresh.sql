@@ -246,8 +246,10 @@ ORDER BY source_code, relationship_id, count_aggr DESC;
 -- Correction of meddra_environment_table content
 
 -- Delete all linebreaks from meddra_environment
+
 DELETE FROM dev_meddra.meddra_environment
 WHERE source_code='';
+
 -- Standardise relationship_id
 
 UPDATE dev_meddra.meddra_environment
@@ -256,6 +258,9 @@ SET relationship_id = 'Maps to' WHERE relationship_id ilike '%maps to%' AND rela
 UPDATE dev_meddra.meddra_environment
 SET relationship_id = 'Maps to value' WHERE relationship_id ilike '%value%';
 
+-- Update domains in meddra_environment according to actual in concept table
+UPDATE dev_meddra.meddra_environment AS t1
+SET target_domain_id = (SELECT c.domain_id FROM devv5.concept AS c WHERE t1.target_concept_id = c.concept_id);
 
 
 --7.2.6. Change concept_relationship_manual table according to meddra_environment table.
@@ -270,13 +275,12 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
        FROM concept_relationship_manual crm_old
        WHERE NOT exists(SELECT source_code,
                                target_concept_code,
-                               'MedDRA',
-                               target_vocabulary_id,
                                CASE
                                    WHEN relationship_id ~* 'value' THEN 'Maps to value'
                                    WHEN relationship_id ~* 'Is a' THEN 'Is a'
                                    WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
-                                   ELSE 'Maps to' END
+                                   ELSE 'Maps to' END,
+                               target_vocabulary_id
                         FROM meddra_environment crm_new
                         WHERE decision='1'
                           AND source_code = crm_old.concept_code_1
@@ -289,11 +293,9 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
                    ELSE 'Maps to' END = crm_old.relationship_id
     )
     AND invalid_reason IS NULL AND crm_old.relationship_id LIKE 'Maps to%'
+    AND vocabulary_id_1 = 'MedDRA'
     )
-AND vocabulary_id_1 = 'MedDRA'
 ;
-
-
 
 --Insert new and update existing relationships
 --TODO: Set proper deprecation for relationships (invalid reason)
@@ -412,9 +414,7 @@ WHERE NOT EXISTS (SELECT 1 FROM dev_meddra.concept_relationship_manual AS crm WH
                  crm.invalid_reason IS NULL) AND concept_code_1 IS NOT NULL and concept_code_2 IS NOT NULL;
 
 
-
-
--- Депрекировать старые иерархические отношения после добавлением новых!
+-- Deprecate all hierarchical relationships after adding new
 
 UPDATE dev_meddra.concept_relationship_manual AS crm
 SET invalid_reason = 'D', valid_end_date = current_date
@@ -429,3 +429,23 @@ WHERE (crm.concept_code_1, crm.concept_code_2) IN (
         AND crm_old.vocabulary_id_2 IN ('SNOMED', 'MedDRA', 'OMOP Extension')
         AND crm_old.relationship_id IN ('Is a')
         AND crm_old.invalid_reason IS NULL);
+
+
+UPDATE dev_meddra.concept_relationship_manual crm
+SET valid_end_date = current_date,
+    invalid_reason='D'
+WHERE (
+            (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2) NOT IN
+            (SELECT source_code, target_concept_code, source_vocabulary_id, target_vocabulary_id
+             FROM dev_meddra.meddra_environment) AND
+            (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2) NOT IN
+            (SELECT target_concept_code, source_code, target_vocabulary_id, source_vocabulary_id
+             FROM dev_meddra.meddra_environment)
+    )
+  AND crm.relationship_id='Is a' AND crm.invalid_reason IS NULL AND (crm.vocabulary_id_1='MedDRA' OR crm.vocabulary_id_2='MedDRA');
+
+
+
+
+
+

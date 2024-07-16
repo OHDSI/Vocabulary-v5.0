@@ -367,6 +367,4 @@ WHERE v1.vocabulary_id = crs.vocabulary_id_1
 	AND v1.latest_update IS NULL
 	AND v2.latest_update IS NULL;
 
---13. "History of" / replacement mapping fix
-
 --At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

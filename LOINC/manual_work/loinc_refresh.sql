@@ -244,7 +244,7 @@ AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
 
-----19.3.8. Change concept_manual if needed
+--19.3.8. Change concept_manual if needed
 SELECT *
 FROM concept_manual
 WHERE vocabulary_id = 'LOINC';

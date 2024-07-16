@@ -21,15 +21,17 @@ JOIN  sources.meta_mrsty st
    ON s.cui = st.cui
 WHERE s.sab='CDISC'
    ```
-3. Perform manual mappings based on Pre-selected priorities, upload the result into cdisc_mapped (crm_update.sql)
-4. Run load_stage.sql
-5. Run generic_update:
+3. Perform manual mappings based on Pre-selected priorities, upload the result into cdisc_mapped (cdisc_refresh.sql)
+4. Run cdisc_refresh.sql
+5. Run load_stage.sql
+6. Run generic_update:
    ```sql
    DO $_$
    BEGIN
        PERFORM devv5.GenericUpdate();
    END $_$;
    ```
-6. Run basic tables check (should retrieve NULL):
+7. Run basic tables check (should retrieve NULL):
    ```sql
     SELECT * FROM qa_tests.get_checks();
+8. cdisc_mapped table content to be used for MetaData Vocabulary processing

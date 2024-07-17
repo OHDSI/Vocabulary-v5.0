@@ -828,6 +828,10 @@ WHERE group_id in (
     SELECT group_id FROM icd_cde_source
    WHERE mappings_origin = 'Concept poss_eq to');
 
+--For concepts after checks
+UPDATE icd_cde_source SET for_review = '1'
+WHERE source_code in (SELECT DISTINCT source_code FROM to_check);
+
 --For community contribution
 --UPDATE icd_cde_source SET for_review = '1'
 --WHERE group_id in (
@@ -1425,7 +1429,6 @@ FROM icd_cde_manual_updated
     );
 
 SELECT * FROM for_manual_review_upd;
-
 
 ----Create current manual table and upload current state of google sheet
 --CREATE TABLE icd_cde_manual_current

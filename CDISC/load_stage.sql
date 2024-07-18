@@ -218,7 +218,7 @@ SELECT DISTINCT concept_code as concept_code_1,
        null as invalid_reason
        FROM cdisc_mapped
     WHERE target_concept_id is not null
-    and mapping_source ='manual'
+    and 'manual' = all(mapping_source)
       and target_concept_code !='No matching concept'  -- _mapped file can contatin them
     and decision is true
 ORDER BY concept_code,relationship_id;
@@ -260,7 +260,7 @@ WHERE s.concept_code in
 (   SELECT  concept_code
     FROM cdisc_mapped
         where  decision is TRUE
-        and  mapping_source != 'manual'
+        and  'manual' != all(mapping_source)
     GROUP BY  concept_code
     HAVING count(*) = 1 -- for the 1st iteration automatic 1toM and to_value were prohibited
 )
@@ -295,7 +295,7 @@ WHERE s.concept_code in
 (   SELECT  concept_code
     FROM cdisc_mapped
         where  decision is TRUE
-        and  mapping_source != 'manual'
+        and  'manual' != all(mapping_source)
     GROUP BY  concept_code
     HAVING count(*) = 2 -- for the 1st iteration automatic 1toM and to_value were prohibited
 )

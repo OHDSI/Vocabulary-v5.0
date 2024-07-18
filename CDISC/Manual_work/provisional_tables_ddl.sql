@@ -10,7 +10,7 @@ CREATE TABLE cdisc_mapped
     mapability VARCHAR, -- -OMOP mapability of source code e.g.: FoN - flavor of null;NOmop - non omop use-case; NULL - mappable (voc_metadata extension)
     relationship_id VARCHAR (20), --OMOP Rel
     relationship_id_predicate VARCHAR (20),  --OMOP Rel Predicate (voc_metadata extension)
-    mapping_source VARCHAR, -- Origin of Mapping
+    mapping_source VARCHAR [], -- Origin of Mapping
     mapping_path VARCHAR [], -- For non-manual sources the array with codes in a chain
     decision  boolean,
     confidence FLOAT,  --OMOP Rel Confidence (voc_metadata extension)

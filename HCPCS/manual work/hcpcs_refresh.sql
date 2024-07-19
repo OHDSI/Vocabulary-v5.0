@@ -40,8 +40,14 @@ ALTER TABLE dev_hcpcs.hcpcs_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_c
 TRUNCATE TABLE dev_hcpcs.hcpcs_mapped;
 
 --Format after uploading
+UPDATE dev_hcpcs.hcpcs_mapped SET mapping_tool = NULL WHERE mapping_tool = '';
+UPDATE dev_hcpcs.hcpcs_mapped SET mapping_source = NULL WHERE mapping_source = '';
+UPDATE dev_hcpcs.hcpcs_mapped SET confidence = NULL WHERE confidence = '';
+UPDATE dev_hcpcs.hcpcs_mapped SET relationship_id_predicate = NULL WHERE relationship_id_predicate = '';
 UPDATE dev_hcpcs.hcpcs_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
 UPDATE dev_hcpcs.hcpcs_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
+UPDATE dev_hcpcs.hcpcs_mapped SET mapper_id = NULL WHERE mapper_id = '';
+UPDATE dev_hcpcs.hcpcs_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
 
 --9.3.5. Perform any mapping checks you have set.
 
@@ -112,8 +118,9 @@ UPDATE concept_mapped SET concept_name = NULL WHERE concept_name = '';
 UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
 UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
 UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
+UPDATE concept_mapped SET invalid_reason = NULL WHERE invalid_reason = '';
 
---18.3. Change concept_manual table according to cm_update table.
+--18.3. Change concept_manual table according to concept_mapped table.
 INSERT INTO concept_manual AS cm
 (concept_name,
  domain_id,
@@ -132,14 +139,17 @@ SELECT concept_name,
        concept_code,
        null as valid_start_date,
        null as valid_end_date,
-       'X' as invalid_reason
+       invalid_reason
 FROM dev_hcpcs.concept_mapped
 
 	ON CONFLICT ON CONSTRAINT unique_manual_concepts
 	DO UPDATE
 	SET concept_name = excluded.concept_name,
 	    domain_id = excluded.domain_id,
-	    standard_concept = excluded.standard_concept
-WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept)
+	    standard_concept = excluded.standard_concept,
+		valid_start_date = CASE WHEN excluded.valid_start_date IS NOT NULL THEN excluded.valid_start_date ELSE cm.valid_start_date END,
+		valid_end_date = CASE WHEN excluded.valid_end_date IS NOT NULL THEN excluded.valid_end_date ELSE cm.valid_end_date END,
+		invalid_reason = excluded.invalid_reason
+WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept, cm.valid_start_date, cm.valid_end_date, cm.invalid_reason)
 	IS DISTINCT FROM
-	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept);
+	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept, excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason);

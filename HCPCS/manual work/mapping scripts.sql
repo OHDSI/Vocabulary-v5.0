@@ -107,7 +107,7 @@ select * from to_review
 order by source, source_code, relationship_id
 ;
 
---1. Extract new concepts for manual mapping or manual hierarchy creation:
+--2. Extract new concepts for manual mapping or manual hierarchy creation:
 SELECT c.concept_name,
         c.concept_code,
         c.concept_class_id,
@@ -127,12 +127,69 @@ AND concept_code NOT IN (SELECT concept_code
 ORDER BY concept_code
 ;
 
-SELECT distinct b.rxcui, a.atv as hcpcs, b.tty, b.str
+with all_brands as (
+SELECT distinct /*b.rxcui,*/ a.atv as hcpcs, b.tty, /*b.str,*/ SUBSTRING(b.str FROM '\[(.+)\]') as brand
 FROM sources.rxnsat a, sources.rxnconso b
 WHERE a.atn = 'DHJC'
-AND a.atv like 'J%'
+AND (a.atv like 'J%'
+or a.atv like 'Q%'
+or a.atv like 'C%'
+or a.atv like 'A%')
 AND a.rxcui = b.rxcui
-AND b.tty in ('GPCK', 'BPCK', 'SCD', 'SBD')
-ORDER BY a.atv;
+AND b.tty in (/*'GPCK', 'BPCK', 'SCD',*/ 'SBD')
+ORDER BY a.atv),
 
-SELECT * from sources.rxnsat where atn = 'DHJC' AND atv = 'J%';
+rxcount as (
+select hcpcs, count(brand) as count
+from all_brands
+group by hcpcs),
+
+rxbrand as (SELECT hcpcs, a.brand
+from all_brands a
+join rxcount c using (hcpcs)
+where c.count = 1),
+
+all_mapped as (
+SELECT DISTINCT m.source_code, c.concept_name as brand
+from hcpcs_mapped m
+join concept_relationship cr on m.target_concept_id = cr.concept_id_1 and cr.relationship_id = 'Has brand name' and cr.invalid_reason is null
+join concept c on c.concept_id = cr.concept_id_2),
+
+m_count as (
+       SELECT source_code, count(brand) as count
+       from all_mapped
+       GROUP BY source_code
+),
+
+m_brand as (
+SELECT source_code, brand
+from all_mapped a
+join m_count c USING (source_code)
+where c.count = 1
+	   )
+
+select m.source_code, m.brand, r.brand
+FROM m_brand m
+left join rxbrand r on r.hcpcs = m.source_code
+where m.brand <> r.brand
+ORDER BY source_code
+;
+
+with all_mapped as (
+SELECT DISTINCT m.source_code, c.concept_name as brand
+from hcpcs_mapped m
+join concept_relationship cr on m.target_concept_id = cr.concept_id_1 and cr.relationship_id = 'Has brand name' and cr.invalid_reason is null
+join concept c on c.concept_id = cr.concept_id_2),
+
+m_count as (
+       SELECT source_code, count(brand) as count
+       from all_mapped
+       GROUP BY source_code
+)
+SELECT source_code, brand
+from all_mapped a
+join m_count c USING (source_code)
+where c.count = 1
+
+;
+

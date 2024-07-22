@@ -243,3 +243,8 @@ AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.targe
 AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
+
+--19.3.8. Change concept_manual if needed
+SELECT *
+FROM concept_manual
+WHERE vocabulary_id = 'LOINC';

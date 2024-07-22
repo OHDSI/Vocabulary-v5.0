@@ -137,8 +137,8 @@ SELECT concept_name,
        concept_class_id,
        standard_concept,
        concept_code,
-       null as valid_start_date,
-       null as valid_end_date,
+       valid_start_date,
+       valid_end_date,
        invalid_reason
 FROM dev_hcpcs.concept_mapped
 

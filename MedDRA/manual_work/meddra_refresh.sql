@@ -414,11 +414,10 @@ WHERE NOT EXISTS (SELECT 1 FROM dev_meddra.concept_relationship_manual AS crm WH
                  crm.invalid_reason IS NULL) AND concept_code_1 IS NOT NULL and concept_code_2 IS NOT NULL;
 
 
--- Deprecate all hierarchical relationships after adding new
-
-UPDATE dev_meddra.concept_relationship_manual AS crm
-SET invalid_reason = 'D', valid_end_date = current_date
-WHERE (crm.concept_code_1, crm.concept_code_2) IN (
+-- New variant deprecate all hierarchical relationships after adding new
+----
+WITH concept_pairs AS (
+    -- Deprecate all inverted hierarchical relationships
     SELECT crm_old.concept_code_1, crm_old.concept_code_2
     FROM dev_meddra.concept_relationship_manual AS crm_old
     JOIN dev_meddra.concept_relationship_manual AS crm_new
@@ -427,19 +426,31 @@ WHERE (crm.concept_code_1, crm.concept_code_2) IN (
         AND crm_new.valid_start_date > crm_old.valid_start_date
     WHERE crm_old.vocabulary_id_1 IN ('MedDRA', 'SNOMED', 'OMOP Extension')
         AND crm_old.vocabulary_id_2 IN ('SNOMED', 'MedDRA', 'OMOP Extension')
-        AND crm_old.relationship_id IN ('Is a')
-        AND crm_old.invalid_reason IS NULL);
+        AND (crm_old.vocabulary_id_1 = 'MedDRA' OR crm_old.vocabulary_id_2 = 'MedDRA')
+        AND crm_old.relationship_id = 'Is a'
+        AND crm_old.invalid_reason IS NULL
+
+    UNION
+    -- Deprecate all relationships after removed previous mappings between vocabularies
+    SELECT crm.concept_code_1, crm.concept_code_2
+    FROM dev_meddra.concept_relationship_manual AS crm
+    WHERE (crm.concept_code_1, crm.concept_code_2, crm.vocabulary_id_1, crm.vocabulary_id_2) NOT IN (
+            SELECT source_code, target_concept_code, source_vocabulary_id, target_vocabulary_id
+            FROM dev_meddra.meddra_environment
+        )
+        AND (crm.concept_code_1, crm.concept_code_2, crm.vocabulary_id_1, crm.vocabulary_id_2) NOT IN (
+            SELECT target_concept_code, source_code, target_vocabulary_id, source_vocabulary_id
+            FROM dev_meddra.meddra_environment
+        )
+        AND crm.relationship_id = 'Is a'
+        AND crm.invalid_reason IS NULL
+        AND (crm.vocabulary_id_1 = 'MedDRA' OR crm.vocabulary_id_2 = 'MedDRA')
+)
+
+UPDATE dev_meddra.concept_relationship_manual AS crm
+SET invalid_reason = 'D', valid_end_date = current_date
+WHERE (crm.concept_code_1, crm.concept_code_2) IN (SELECT concept_code_1, concept_code_2 FROM concept_pairs);
 
 
-UPDATE dev_meddra.concept_relationship_manual crm
-SET valid_end_date = current_date,
-    invalid_reason='D'
-WHERE (
-            (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2) NOT IN
-            (SELECT source_code, target_concept_code, source_vocabulary_id, target_vocabulary_id
-             FROM dev_meddra.meddra_environment) AND
-            (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2) NOT IN
-            (SELECT target_concept_code, source_code, target_vocabulary_id, source_vocabulary_id
-             FROM dev_meddra.meddra_environment)
-    )
-  AND crm.relationship_id='Is a' AND crm.invalid_reason IS NULL AND (crm.vocabulary_id_1='MedDRA' OR crm.vocabulary_id_2='MedDRA');
+
+

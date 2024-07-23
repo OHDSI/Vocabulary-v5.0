@@ -443,9 +443,3 @@ WHERE (
              FROM dev_meddra.meddra_environment)
     )
   AND crm.relationship_id='Is a' AND crm.invalid_reason IS NULL AND (crm.vocabulary_id_1='MedDRA' OR crm.vocabulary_id_2='MedDRA');
-
-
-
-
-
-

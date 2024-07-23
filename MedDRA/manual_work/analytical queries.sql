@@ -1,7 +1,6 @@
 --Check the parents of MedDRA code (including itselt)
 SELECT cc.concept_name, cc.concept_class_id, ca.max_levels_of_separation, cc.concept_code
 FROM devv5.concept c
-
 JOIN devv5.concept_ancestor ca
     ON c.concept_id = ca.descendant_concept_id
 JOIN devv5.concept cc

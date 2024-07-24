@@ -418,7 +418,6 @@ WHERE NOT EXISTS (SELECT 1 FROM dev_meddra.concept_relationship_manual AS crm WH
 
 
 --7.2.8. Deprecate previously assigned hierarchical relationships
-
 WITH concept_pairs AS (
     SELECT concept_code_1,
            concept_code_2,
@@ -462,5 +461,3 @@ WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2) IN
                            (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2
                            FROM concept_pairs)
       AND crm.relationship_id = 'Is a';
-
-

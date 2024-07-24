@@ -63,16 +63,16 @@ WHERE meddra_code IN ('', '')
 
 -- Changed domains in MedDRA concepts (use it before GenericUpdate)
 
-select new.concept_code,
-       new.concept_name as concept_name,
-       new.standard_concept as standard_concept,
-       new.vocabulary_id as vocabulary_id,
-       old.concept_class_id as old_concept_class_id,
-       new.concept_class_id as new_concept_class_id
-from dev_meddra.concept_stage new
-join dev_meddra.concept old
-    using (concept_code)
-where old.concept_class_id!= new.concept_class_id
+SELECT new.concept_code,
+       new.concept_name AS concept_name,
+       new.standard_concept AS standard_concept,
+       new.vocabulary_id AS vocabulary_id,
+       old.concept_class_id AS old_concept_class_id,
+       new.concept_class_id AS new_concept_class_id
+FROM dev_meddra.concept_stage new
+JOIN dev_meddra.concept old
+    USING (concept_code)
+WHERE old.concept_class_id!= new.concept_class_id
     AND new.vocabulary_id = 'MedDRA' AND old.vocabulary_id='MedDRA';
 
 

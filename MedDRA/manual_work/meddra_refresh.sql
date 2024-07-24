@@ -416,37 +416,15 @@ WHERE NOT EXISTS (SELECT 1 FROM dev_meddra.concept_relationship_manual AS crm WH
                  crm.invalid_reason IS NULL) AND concept_code_1 IS NOT NULL and concept_code_2 IS NOT NULL;
 
 
---
--- --7.2.8. Deprecate previously assigned hierarchical relationships for measurements
--- UPDATE concept_relationship_manual AS crm
--- SET invalid_reason = 'D', valid_end_date = current_date
--- WHERE vocabulary_id_2 = 'MedDRA' AND vocabulary_id_2 IN ('SNOMED', 'OMOP Extension')
---     AND relationship_id = 'Is a'
---     AND concept_code_2 IN (SELECT source_code FROM dev_meddra.meddra_environment AS t1
--- WHERE relationship_id='Maps to value' AND decision='1' AND (target_domain_id = 'Meas Value' OR target_concept_class_id = 'Qualifier Value'));
---
---
--- --7.2.9. Deprecate previously assigned hierarchical relationships for concepts who changed mappings
--- UPDATE concept_relationship_manual AS crm
--- SET invalid_reason = 'D', valid_end_date = current_date
--- WHERE relationship_id = 'Is a'
---   AND ((vocabulary_id_1 = 'MedDRA' AND vocabulary_id_2 IN ('SNOMED', 'OMOP Extension'))
---            OR (vocabulary_id_2 = 'MedDRA' AND vocabulary_id_1 IN ('SNOMED', 'OMOP Extension')))
--- AND exists(
---     SELECT 1 FROM concept_relationship_manual crm1
---     WHERE crm.concept_code_1 = crm1.concept_code_1
---     AND crm.vocabulary_id_1 = crm1.vocabulary_id_1
---     AND crm.concept_code_2 = crm1.concept_code_2
---     AND crm.vocabulary_id_2 = crm1.vocabulary_id_2
---     AND crm1.relationship_id = 'Maps to'
---     AND crm1.invalid_reason = 'D'
---     );
 
-
+--7.2.8. Deprecate previously assigned hierarchical relationships
 
 WITH concept_pairs AS (
-    SELECT crm.concept_code_1, crm.concept_code_2
-FROM dev_meddra.concept_relationship_manual AS crm
+    SELECT concept_code_1,
+           concept_code_2,
+           vocabulary_id_1,
+           vocabulary_id_2
+    FROM dev_meddra.concept_relationship_manual AS crm
 WHERE
     -- Deprecate previously assigned hierarchical relationships for  concepts with reassigned hierarchy
     (
@@ -480,7 +458,9 @@ WHERE
 )
 UPDATE dev_meddra.concept_relationship_manual AS crm
 SET invalid_reason = 'D', valid_end_date = current_date
-WHERE (crm.concept_code_1, crm.concept_code_2) IN (SELECT concept_code_1, concept_code_2 FROM concept_pairs)
+WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2) IN
+                           (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2
+                           FROM concept_pairs)
       AND crm.relationship_id = 'Is a';
 
 

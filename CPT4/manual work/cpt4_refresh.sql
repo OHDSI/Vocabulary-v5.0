@@ -71,7 +71,8 @@ INSERT INTO dev_cpt4.concept_relationship_manual AS mapped
 	FROM dev_cpt4.cpt4_mapped m
 	--Only related to cpt4 vocabulary
 	WHERE (source_vocabulary_id = 'CPT4' OR target_vocabulary_id = 'CPT4')
-	    AND target_concept_id != 0
+	    AND (target_concept_id != 0
+		OR target_concept_id IS NULL)
 
 	ON CONFLICT ON CONSTRAINT unique_manual_relationships
 	DO UPDATE

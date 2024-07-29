@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts, Alexander Davydov, Maria Khitrun
-* Date: 2023
+* Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts, Alexander Davydov, Masha Khitrun
+* Date: 2024
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -258,6 +258,7 @@ AS (
 				THEN 'Drug'
 			WHEN concept_code BETWEEN 'C9600'
 					AND 'C9803'
+					OR concept_code = 'C9901'
 				THEN 'Procedure'
 			WHEN concept_code = 'C9703'
 				THEN 'Device'
@@ -314,7 +315,8 @@ AS (
 					AND 'D9999'
 				THEN 'Procedure'
 					-- E codes
-			WHEN l1.str = 'E-codes'
+			WHEN concept_code like 'E%'
+			       AND length(concept_code) >2
 				THEN 'Device' -- all of them Level 1: E0100-E9999
 					-- G codes
 			WHEN l2.str = 'Vaccine Administration'
@@ -854,7 +856,7 @@ AS (
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4304'
+					AND 'Q4333'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
@@ -942,7 +944,8 @@ AS (
 			WHEN concept_code BETWEEN 'S4005'
 					AND 'S4042'
 				THEN 'Procedure' -- IVF procedures
-			WHEN concept_code = 'S4989'
+			WHEN concept_code BETWEEN 'S4988'
+					AND 'S4989'
 				THEN 'Device' -- Contraceptive implant
 			WHEN concept_code IN (
 					'S5000',

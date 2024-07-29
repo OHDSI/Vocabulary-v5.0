@@ -178,7 +178,7 @@ END $_$;
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT ON (crs.concept_code) crs.concept_code,
+	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1,
 		c2.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
@@ -191,7 +191,7 @@ FROM (
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'ICD10GM'
-	ORDER BY crs.concept_code,
+	ORDER BY crs.concept_code_1,
 		CASE c2.domain_id
 			WHEN 'Condition'
 				THEN 1

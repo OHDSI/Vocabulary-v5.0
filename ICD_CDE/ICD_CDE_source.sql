@@ -774,6 +774,17 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S27.80:ICD10CM
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S67.0:ICD10CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S92.90:ICD10CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.10:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G23.2:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['H59.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I22.9:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I61.5:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M05.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M05.19:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['R65.2:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.10:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z85.21:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z85.810:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z87.11:ICD10CM']);
 
 --6. Check every concept is represented in only one group
 SELECT DISTINCT
@@ -1591,7 +1602,7 @@ rel_invalid_reason varchar,
 valid_start_date  date,
 valid_end_date  date);
 
-DELETE FROM icd_cde_mapped WHERE group_code is null;
+DELETE FROM icd_cde_mapped_ext WHERE group_code is null;
 
 INSERT INTO icd_cde_mapped (
     SELECT * FROM icd_cde_mapped_ext
@@ -1621,6 +1632,8 @@ valid_end_date = '2099-12-31'
 WHERE decision = '1'
 AND mappings_origin in ('without mapping', 'manual');
 
+UPDATE icd_cde_mapped SET relationship_id = 'Maps to' WHERE relationship_id = 'Maps to ';
+
 --13. Create final table with mappings
 CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
 TRUNCATE TABLE icd_cde_proc;
@@ -1641,7 +1654,7 @@ SELECT DISTINCT
 s.source_code as source_code,
 s.source_code_description as source_code_description,
 s.source_vocabulary_id as source_vocabulary_id,
-m.relationship_id as relatioonship_id,
+m.relationship_id as relationship_id,
 m.relationship_id_predicate as relationship_id_predicate,
 m.target_concept_id,
 m.target_concept_code,
@@ -1673,7 +1686,7 @@ SELECT DISTINCT
 s.source_code as source_code,
 s.source_code_description as source_code_description,
 s.source_vocabulary_id as source_vocabulary_id,
-m.relationship_id as relatioonship_id,
+m.relationship_id as relationship_id,
 m.relationship_id_predicate as relationship_id_predicate,
 m.target_concept_id,
 m.target_concept_code,

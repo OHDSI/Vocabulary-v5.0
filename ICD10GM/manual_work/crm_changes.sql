@@ -110,22 +110,23 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
  -- Minor manual updates
-INSERT INTO concept_relationship_manual VALUES ('O83.8', '236973005', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
-INSERT INTO concept_relationship_manual VALUES ('O83.9', '236973005', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
-INSERT INTO concept_relationship_manual VALUES ('S62.70', '1255340003', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
-INSERT INTO concept_relationship_manual VALUES ('P01', '1269102002', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--INSERT INTO concept_relationship_manual VALUES ('O83.8', '236973005', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--INSERT INTO concept_relationship_manual VALUES ('O83.9', '236973005', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--INSERT INTO concept_relationship_manual VALUES ('S62.70', '1255340003', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
+--INSERT INTO concept_relationship_manual VALUES ('P01', '1269102002', 'ICD10GM', 'SNOMED', 'Maps to', '2024-02-27', '2099-12-31', null);
 
 --2. Update the concept_manual table to add translations for newly added concepts
-TRUNCATE concept_manual;
-INSERT INTO concept_manual
-SELECT concept_name,
-       domain_id,
-       vocabulary_id,
-       concept_class_id,
-       standard_concept,
-       concept_code,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason
-FROM devv5.base_concept_manual
-WHERE vocabulary_id = 'ICD10GM';
+--TRUNCATE concept_manual;
+--INSERT INTO concept_manual
+--SELECT concept_name,
+--       domain_id,
+--       vocabulary_id,
+--       concept_class_id,
+--       standard_concept,
+--       concept_code,
+--       valid_start_date,
+--       valid_end_date,
+--       invalid_reason
+--FROM devv5.base_concept_manual
+--WHERE vocabulary_id = 'ICD10GM';
+

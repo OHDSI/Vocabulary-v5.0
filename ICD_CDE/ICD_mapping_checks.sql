@@ -1,3 +1,5 @@
+CREATE TABLE icd_mappings_backup as SELECT * FROM icd_mappings;
+
 --Create table with ICD10, ICD10CM, ICD9CM
 TRUNCATE TABLE icd_mappings;
 DROP TABLE icd_mappings;
@@ -41,9 +43,9 @@ LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code
 --AND c.standard_concept = 'S'
 --AND c.invalid_reason is null
 LEFT JOIN concept c2 ON crs.concept_code_1 = c2.concept_code
-AND crs.vocabulary_id_1 = 'ICD10'
+AND crs.vocabulary_id_1 = c2.vocabulary_id
 WHERE crs.relationship_id in ('Maps to', 'Maps to value')
-AND crs.invalid_reason is null
+AND crs.invalid_reason is null)
 
 UNION ALL
 

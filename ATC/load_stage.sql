@@ -4,7 +4,7 @@ BEGIN
 	pVocabularyName			=> 'ATC',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.rxnatomarchive LIMIT 1),
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.rxnatomarchive LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_ATATUR'
+	pVocabularyDevSchema	=> 'DEV_ATC'
 );
 END $_$;
 
@@ -83,7 +83,7 @@ FROM
                         ELSE active
                     END AS invalid_reason
                 from sources.atc_codes t1
-                left join dev_atatur.new_adm_r t2 on t1.class_code = t2.class_code
+                left join dev_atc.new_adm_r t2 on t1.class_code = t2.class_code
                 where t1.active != 'C'
             ) t1;
 
@@ -203,7 +203,7 @@ FROM
             relationship_id,
             unnest(string_to_array(ids, ', ')) as concept_code_2
         FROM
-            new_atc_codes_ings_for_manual
+            dev_atc.new_atc_codes_ings_for_manual
      ) t1
       JOIN devv5.concept t2
           ON t1.concept_code_2::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
@@ -407,7 +407,7 @@ SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
 WHERE (concept_code_1, concept_code_2) IN (
     SELECT t1.atc_code, t2.concept_code
-    FROM existent_atc_rxnorm_to_drop t1
+    FROM dev_atc.existent_atc_rxnorm_to_drop t1
     JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id
     WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
     AND t1.to_drop = 'D'
@@ -432,7 +432,7 @@ SET invalid_reason = 'D',
 where (concept_id_1, concept_id_2) in (
 select concept_id_atc,
        concept_id_rx
-from atc_rxnorm_to_drop_in_sources
+from dev_atc.atc_rxnorm_to_drop_in_sources
 where drop = 'D');
 
 

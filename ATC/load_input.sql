@@ -1,10 +1,18 @@
 /**************************************************************************
-    this script collects ATC - RxNorm connections from different sources and produces
+    this script collects ATC - RxNorm connections from different sources
 **************************************************************************/
 
---- taking DMD from sources
-drop table if exists dmd2atc;
-CREATE TABLE if not exists dmd2atc AS
+
+--TODO: Describe data sources in one sentence and put links to the respective directories
+--TODO: Follow the OHDSI code style and change to uppercase (eg. SELECT, FROM, etc.)
+
+--Schema preparation: load dmd sources
+--TODO: Probable must be removed from this script
+--dmd processing scripts are available from the respective dmd folder:
+--https://github.com/OHDSI/Vocabulary-v5.0/tree/master/dmd
+--Source dmd processing is also described in the respective folder 
+DROP TABLE IF EXISTS dmd2atc;
+CREATE TABLE IF NOT EXISTS dmd2atc AS
 SELECT unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('/VMP/ATC/text()', i.xmlfield))::VARCHAR ATC
 FROM (
@@ -13,9 +21,9 @@ FROM (
 	) AS i;
 
 
------------------------------
-drop table if exists class_atc_rxn_huge_temp;
-create table class_ATC_RXN_huge_temp as   ------ wo ancestor
+--1. Create temporary table to store source data to ATC relationships
+DROP TABLE IF EXISTS class_atc_rxn_huge_temp;
+CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
     SELECT
             source,
             c.concept_id as concept_id,
@@ -28,7 +36,7 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
             (SELECT
                 *
             FROM
-                ------- dm+d--------
+                    ------dm+d------
             (
                 with base as (select t1.concept_id,
                        t1.concept_name,
@@ -44,10 +52,10 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
                         and vocabulary_id = 'dm+d') t1
                     join
                     (   select *
-                        from dev_atc.dmd2atc ------ надо эту табличку в dmd и обновлять ее
+                        from dev_atc.dmd2atc --TODO: can be transferred to sources
                         where length(atc) = 7) t2 on concept_code = vpid
                     join
-                        sources.atc_codes t3 on t2.atc = t3.class_code)  --- Эти коды должны приходить из sources
+                        sources.atc_codes t3 on t2.atc = t3.class_code)
             select
                 t1.concept_id_2::int as concept_id,
                 base.class_code as class_code,
@@ -67,7 +75,7 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
                      t2.atc_code,
                      'BDPM' as source
               from sources.bdpm_packaging t1
-                       join dev_atc.bpdm_atc_codes t2 on t1.drug_code = t2.id::VARCHAR ----- Перенести в сорсы.
+                       join dev_atc.bpdm_atc_codes t2 on t1.drug_code = t2.id::VARCHAR --TODO: can be transferred to sources
                        join devv5.concept t3 on t1.din_7::VARCHAR = t3.concept_code and t3.vocabulary_id = 'BDPM'
                        join devv5.concept_relationship cr
                             on cr.concept_id_1 = t3.concept_id and cr.relationship_id = 'Maps to'
@@ -76,7 +84,6 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
 
             UNION
 
-                    ----------------
 
                     ------GRR-------
             (with base_up as(
@@ -111,7 +118,9 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
                 and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension'))
 
             UNION
-                    ----- UMLS-------
+            
+            
+                    ------UMLS------
             (select
                 t3.concept_id::int as concept_id,
                 t1.code as class_code,
@@ -127,9 +136,10 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
             and t2.sab = 'RXNORM'
             and t3.vocabulary_id = 'RxNorm')
 
-            ----- VANDF-------
             UNION
 
+
+                    ------VANDF------
             (
                 select
                        t5.concept_id::int,
@@ -149,7 +159,8 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
 
             UNION
 
-            -------------- JMDC -------------------
+
+                    ------JMDC------
             (
             select
                    c.concept_id,
@@ -169,7 +180,8 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
             and c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
              )
 
-            ------- Other ------- to many trash from this source -------
+
+--The following sources are excluded from the data collection due to multiple mistakenly assigned ATC codes
 
 --             UNION
 --
@@ -191,22 +203,23 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
 --
 --              )
 
-            ----- z-index
-
             UNION
 
+
+                    ------Z-index------
                 (
 --                     select concept_id, class_code, 'z-index' as source
 --                         from dev_atc.z_index
 
                     select targetid, atc, 'z-index' as source
-                      from dev_atc.zindex_full
+                      from dev_atc.zindex_full      --TODO: CAUTION! Proprietary data
 
                     )
 
-            ------------Norske---------------    ---- Move to DEV_ATC
-
             UNION
+
+
+                    ------Norske Drug Bank------   --TODO: Manual table
             (
                 select rx_ids,
                        atc_code,
@@ -216,6 +229,8 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
 
             UNION
 
+
+                    ------KDC------
                 (
                     SELECT
                         t3.concept_id,
@@ -230,7 +245,9 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
              )
 
             UNION
-            ------------ DPD ----------------
+
+
+                    ------DPD------
             (
 
                 select
@@ -255,10 +272,10 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
 
             ) t2
                 join devv5.concept c on t2.concept_id = c.concept_id
-                join sources.atc_codes atc on t2.class_code = atc.class_code  ---- табличка должна быть в sources
+                join sources.atc_codes atc on t2.class_code = atc.class_code  --ATC must be loaded to the sources schema
             where c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                    and c.concept_class_id
-                                            --not in     --------- Сразу отсечем все ненужные гранулированные формы.
+                                            --not in     --Do not use certain forms
 --                                             ('Ingredient', 'Precise Ingredient',
 --                                              'Branded Drug Component', 'Clinical Drug Component', 'Dose Form', 'Brand',
 --                                              'Drug', 'Dose Form Group', 'Clinical Dose Group',
@@ -281,13 +298,12 @@ create table class_ATC_RXN_huge_temp as   ------ wo ancestor
 
             order by class_code;
 
------------- ancestor build --------
-drop table if exists class_ATC_RXN_huge_ancestor_temp;
-create table class_ATC_RXN_huge_ancestor_temp as
-SELECT *
-FROM
 
-                    -------------HUGE ANCESTOR------------
+--2. Build custom ancestor table
+DROP TABLE IF EXISTS class_ATC_RXN_huge_ancestor_temp;
+CREATE TABLE class_ATC_RXN_huge_ancestor_temp as
+SELECT concept_id, concept_name, ids, names, concept_class_id
+FROM
 (select
                          c.concept_id,
                          c.concept_name,
@@ -323,6 +339,7 @@ FROM
                     and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')) t1
 
 UNION
+
 (
 select
                          c.concept_id as concept_id,
@@ -358,33 +375,8 @@ select
                     and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
             );
 
-                -------------SMALL ANCESTOR------------
--- select
---                          c.concept_id,
---                          c.concept_name,
---                          c2.concept_id AS ids,
---                          c2.concept_name AS names,
---                          c2.concept_class_id
---             from devv5.concept_ancestor ca
---                 join devv5.concept c on descendant_concept_id = c.concept_id
---                 join devv5.concept c2 on ancestor_concept_id =  c2.concept_id
---             where --c.concept_class_id = 'Clinical Drug'
---                     c2.concept_class_id not in
---                                             ('Ingredient', 'Precise Ingredient',   --- 'Clinical Drug Form', 'Branded Drug Form'
---                                              'Branded Drug Component',
---                                              'Clinical Drug Component', 'Dose Form', 'Brand',
---                                              'Drug', 'Dose Form Group', 'Clinical Dose Group',
---                                              'Clinical Drug Comp', 'Branded Drug Comp', 'Branded Dose Group')
---                     and c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
---                     and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
------------- ancestor end --------
-
-
-
--------------RxNorm Extension with RxNorm_is_a connection-----------
-
-
+--3. Add RxNorm is a relationships
 INSERT INTO class_ATC_RXN_huge_temp
 SELECT
     'RxNorm_is_a' as source,
@@ -401,12 +393,11 @@ FROM
 ;
 
 
----------------Первый проход анцестоора-------------------------
+--4. Build new ATC - RxNorm links
+DROP TABLE IF EXISTS class_ATC_RXN_huge;
+CREATE TABLE class_ATC_RXN_huge as
 
-drop table if exists class_ATC_RXN_huge;
-create table class_ATC_RXN_huge as
-
-SELECT distinct *
+SELECT DISTINCT *
 FROM
     (
         SELECT
@@ -425,7 +416,7 @@ FROM
             on t2.concept_id = t1.concept_id) full_table
 UNION
 
-        (select     ------ Чтобы не терялись некоторые коды после работы с анцестором
+        (select     --Prevents losing certain codes
                 class_code,
                 class_name,
                 'ATC - RxNorm' as relationship_id,
@@ -434,11 +425,10 @@ UNION
                 concept_name,
                 source
         from class_ATC_RXN_huge_temp);
-------------------------------------------------------
 
---------Расширение промежуточной таблицы за счет RxNorm is a---------------------------
 
-insert into class_ATC_RXN_huge
+--5. Add RxNorm is a relationships
+INSERT INTO class_ATC_RXN_huge
 SELECT
     t1.class_code as class_code,
     t1.class_name as class_name,
@@ -453,12 +443,12 @@ JOIN devv5.concept_relationship cr ON t1.ids = cr.concept_id_1
 JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id
     AND t2.invalid_reason IS NULL
     AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
---
--- -------- Второй прогон анцестора и финальная временная таблица----------
 
-drop table if exists class_ATC_RXN_huge_fin;
-create table class_ATC_RXN_huge_fin as
 
+--6. Deduplication and creating final version of the table
+--TODO: Can't we combine steps 3 - 6 in one step? Seems redundant
+DROP TABLE IF EXISTS class_ATC_RXN_huge_fin;
+CREATE TABLE class_ATC_RXN_huge_fin as
 SELECT distinct *
 FROM
     (
@@ -481,9 +471,9 @@ UNION
 
 (SELECT * FROM class_ATC_RXN_huge)
 ;
---
--- ------------------- Clinical Drug Form Extension with RxNormIsA connection---------------------
---
+
+
+--7. Add RxNorm is a relationships
 INSERT INTO dev_atc.class_ATC_RXN_huge_fin (
     class_code,
     class_name,
@@ -503,7 +493,7 @@ SELECT
     'RxNorm_is_a' as source
 FROM dev_atc.class_ATC_RXN_huge_fin t1
 JOIN devv5.concept_relationship cr ON t1.ids = cr.concept_id_1
-    AND t1.concept_class_id in ('Clinical Drug', 'Clinical Drug Form', 'Quant Clinical Drug')  ---- Эти формы могут давать после Reverse is a в итоге Clinical Drug Form
+    AND t1.concept_class_id in ('Clinical Drug', 'Clinical Drug Form', 'Quant Clinical Drug')
 
     AND cr.relationship_id = 'RxNorm is a'
 JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id
@@ -511,20 +501,19 @@ JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id
     AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
 
 
-
--------Формируем результирущую таблицу выделяя Distinct Value
+--8. Create final version of the table
+--TODO: rename table
 DROP TABLE IF EXISTS dev_atc.class_ATC_RXN_huge_fin__11_7_24_rxis;
-create table dev_atc.class_ATC_RXN_huge_fin__11_7_24_rxis as
-select distinct *
-    from dev_atc.class_ATC_RXN_huge_fin;
+CREATE TABLE dev_atc.class_ATC_RXN_huge_fin__11_7_24_rxis as
+SELECT DISTINCT *
+    FROM dev_atc.class_ATC_RXN_huge_fin;
 
 
-
-
--------------- Step-Aside approach------------------
-drop table if exists  step_aside_source;
-create table step_aside_source as
-    select distinct t1.concept_id,
+--9. Taking step aside and adding relationships to all related forms through Dose Form Groups
+--Eg. Adding relationships to Oral Capsules if relationships to Oral Tablets exist
+DROP TABLE IF EXISTS  step_aside_source;
+CREATE TABLE step_aside_source as
+    SELECT DISTINCT t1.concept_id,
                                             t1.concept_name,
                                             array_agg(t5.concept_id ORDER BY t5.concept_name)   AS array_ing_id,
                                             array_agg(t5.concept_name ORDER BY t5.concept_name) AS array_ing,
@@ -569,7 +558,7 @@ create table step_aside_source as
                                              t5.concept_class_id = 'Ingredient'
 
                             where t1.concept_id in (select distinct ids
-                                                    from dev_atc.class_atc_rxn_huge_fin__11_7_24_rxis    --------- Here should be name of source table!
+                                                    from dev_atc.class_atc_rxn_huge_fin__11_7_24_rxis    --Source table
                                                     where concept_class_id = 'Clinical Drug Form')
                               --filter out not useful dose form groups
                               and t3.concept_id NOT IN (
@@ -620,6 +609,8 @@ from step_aside_source s
       and t.dose_form_id = s.potential_dose_form_id
 order by s.concept_id;
 
+
+--10. Resulting table
 DROP TABLE IF EXISTS new_atc_codes_rxnorm;
 CREATE TABLE new_atc_codes_rxnorm as
 SELECT *
@@ -634,14 +625,14 @@ FROM
 from dev_atc.class_atc_rxn_huge_fin__11_7_24_rxis t1
      join atc_step_aside_final t2 on t1.ids = t2.source_concept_id and t1.concept_class_id = 'Clinical Drug Form') t1
 
+--TODO: Does it work properly? Please expand column list
 UNION
 
-(select
-    *
-from
-    dev_atc.class_atc_rxn_huge_fin__11_7_24_rxis);
+(select * from dev_atc.class_atc_rxn_huge_fin__11_7_24_rxis);
 -------------------------------------------------------------
 
+
+--11. Clean up the temporary tables
 DROP TABLE IF EXISTS class_atc_rxn_huge_fin__11_7_24_rxis;
 DROP TABLE IF EXISTS step_aside_source;
 DROP TABLE IF EXISTS step_aside_target;

@@ -1,3 +1,24 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* Authors: Anton Tatur
+*
+* Date: 2024
+**************************************************************************/
+
+--1. Update a 'latest_update' field to a new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -9,6 +30,7 @@ BEGIN
 END $_$;
 
 
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -16,11 +38,7 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 
-
-                    /***************************************************************
-                    **************************CONCEPT_STAGE*************************
-                    ***************************************************************/
-
+--3. Populate concept_stage
 INSERT INTO concept_stage
             (
              concept_id,
@@ -70,9 +88,9 @@ FROM
                     t1.class_code as concept_code,
                     CASE
                         WHEN active = 'NA' and t1.class_code not in (
-                                                                    select distinct replaced_by      ----
-                                                                    from sources.atc_codes           ----  all codes except those for which we know actual dates
-                                                                    where replaced_by != 'NA'        ----  get standard 1970-2099 values.
+                                                                    select distinct replaced_by
+                                                                    from sources.atc_codes           --all codes except those for which we know actual dates
+                                                                    where replaced_by != 'NA'        --get standard 1970-2099 values.
                                                                     )
                         THEN TO_DATE('1970-01-01', 'YYYY-MM-DD')
                         ELSE start_date
@@ -87,9 +105,8 @@ FROM
                 where t1.active != 'C'
             ) t1;
 
-                    /***************************************************************
-                    **********************CONCEPT_SYNONYM_STAGE*********************
-                    ***************************************************************/
+
+--3. Populate concept_synonym_stage
 INSERT INTO concept_synonym_stage
             (
             synonym_concept_id,
@@ -110,7 +127,7 @@ SELECT
 FROM
     (
           SELECT class_code as synonym_concept_code,
-                 class_name || ' ' || ddd || ' ' || u || ' ' || product                                                                               as synonym_name
+                 class_name || ' ' || ddd || ' ' || u || ' ' || product as synonym_name
           FROM
               (
                 SELECT
@@ -163,14 +180,10 @@ FROM
         JOIN sources.atc_codes t2
         on t1.synonym_concept_code = t2.class_code;
 
-                    /***************************************************************
-                    ********************CONCEPT_RELATIONSHIP_STAGE******************
-                    ***************************************************************/
 
--------------------------------
----- ATC - Ings connections----
--------------------------------
+--concept_relationship_stage population
 
+--4. Insert ATC - Ingredient relationships
 INSERT INTO concept_relationship_stage
     (
 	concept_id_1,
@@ -208,10 +221,8 @@ FROM
       JOIN devv5.concept t2
           ON t1.concept_code_2::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
--------------------------------
-------Maps to connections------
--------------------------------
 
+--5. Insert Maps to relationships
 INSERT INTO concept_relationship_stage
     (
 	concept_id_1,
@@ -249,16 +260,14 @@ FROM
       JOIN devv5.concept t2
           ON t1.concept_code_2::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
--------------------------------
---------ATC - RxNorm-----------
--------------------------------
+
+--6. Insert ATC - RxNorm relationships
 DROP TABLE IF EXISTS  new_unique_atc_codes_rxnorm;
 CREATE TABLE new_unique_atc_codes_rxnorm AS
 SELECT DISTINCT class_code, ids
 FROM new_atc_codes_rxnorm
-where length(class_code) = 7
-and concept_class_id = 'Clinical Drug Form';
-
+WHERE length(class_code) = 7
+AND concept_class_id = 'Clinical Drug Form';
 
 INSERT INTO concept_relationship_stage
     (
@@ -287,9 +296,7 @@ SELECT
 FROM new_unique_atc_codes_rxnorm t1
     JOIN devv5.concept t2 ON t1.ids::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
--------------------------------
-------Concept replaced by------
--------------------------------
+--7. Insert replacement relationships
 INSERT INTO concept_relationship_stage
     (
     concept_code_1,
@@ -313,11 +320,8 @@ FROM
 WHERE
     active = 'U';
 
----------------------------------
---ATC - SNOMED + ATC - Internal--
----------------------------------
 
---ATC - SNOMED
+--8. Insert ATC - SNOMED and internal relationships
 INSERT INTO concept_relationship_stage
     (
     concept_code_1,
@@ -383,11 +387,8 @@ WHERE uppr.invalid_reason IS NULL
 		);
 
 
-                    /***************************************************************
-                    *********CORRECTION OF LEGACY (STANDARD MANUAL TABLES)**********
-                    ***************************************************************/
-
-    ----- THESE TWO ARE NOT NEEDED (BUILDED ABOVE FROM SCRATCH). DON'T RUN!
+--TODO: Manual tables are not processed in the current iterations
+    ----- THESE TWO ARE NOT NEEDED (BUILT ABOVE FROM SCRATCH). DON'T RUN!
 --  DO $_$
 -- BEGIN
 -- 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
@@ -401,7 +402,7 @@ WHERE uppr.invalid_reason IS NULL
 -- END $_$;
 
 
----- deprecating wrong mappings using manual table ----
+--9. Deprecate wrong relationships
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
@@ -415,16 +416,14 @@ WHERE (concept_code_1, concept_code_2) IN (
 and vocabulary_id_1 = 'ATC'
 and vocabulary_id_2 in ('RxNorm', 'RxNorm Extension');
 
-                    /***************************************************************
-                    ************************POSTPROCESSING**************************
-                    ***************************************************************/
 
--- Add manually created relationships using the function which processes the concept_relationship_manual table
+--10. Process manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
+--TODO: workaround
 --- Drop all 'bad' connections from stage table
 UPDATE concept_relationship_stage
 SET invalid_reason = 'D',
@@ -438,26 +437,34 @@ where drop = 'D');
 
 ANALYZE concept_relationship_stage;
 
--- Perform mapping replacement using function below
+--11. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
--- Add mappings from deprecated to fresh codes
+--12. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
--- Deprecate 'Maps to' mappings to deprecated AND updated codes
+--13. Add mapping (to value) from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
--- Remove ambiguous 'Maps to' mappings
+--15. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DELETEAmbiguousMAPSTO();
 END $_$;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

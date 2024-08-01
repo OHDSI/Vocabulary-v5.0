@@ -183,6 +183,9 @@ and cs.domain_id <> 'Observation'
 and cs.concept_class_id <> 'Social Context'
 ;
 
+-- Some manual domain changes
+UPDATE concept_stage SET domain_id = 'Observation', concept_class_id = 'Observable Entity'  WHERE concept_code in ('C156595', 'C189365', 'C17943', 'C20050');
+
 
 --4.3 Working with concept_manual table (not yet implemented)
 DO $_$

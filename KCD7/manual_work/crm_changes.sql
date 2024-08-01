@@ -18,6 +18,7 @@
 **************************************************************************/
  --1. Update the concept_relationship_manual table
 CREATE TABLE concept_relationship_manual_bu as (SELECT * FROM concept_relationship_manual);
+INSERT INTO concept_relationship_manual (SELECT * FROM concept_relationship_manual_bu);
 TRUNCATE TABLE dev_KCD7.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -115,7 +116,6 @@ UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relatio
 
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'P05' and concept_code_2 = '18471004';
 INSERT INTO concept_relationship_manual VALUES ('P05', '267258002', 'KCD7', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
-
 INSERT INTO concept_relationship_manual VALUES ('I62.0', '291581000119109', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('I72.2', '36184004', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('I72.6', '297176007', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);

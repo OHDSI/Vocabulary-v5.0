@@ -17,6 +17,7 @@
 * Date: 2021
 **************************************************************************/
 --1. Update the concept_relationship_manual table
+CREATE TABLE concept_relationship_manual_bu as (SELECT * FROM concept_relationship_manual);
 TRUNCATE TABLE dev_ICD10CN.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -111,5 +112,8 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 ;
 
 UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relationship_id = 'Maps to ';
+
+ -- Minor manual updates
+INSERT INTO concept_relationship_manual VALUES ('J68.001', '205237003', 'ICD10CN', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
 
 

@@ -74,6 +74,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
+
 --6. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
@@ -87,7 +88,7 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT i.concept_code AS concept_code_1,
+SELECT DISTINCT i.concept_code AS concept_code_1,
 	c.concept_code AS concept_code_2,
 	'ICD10GM' AS vocabulary_id_1,
 	c.vocabulary_id AS vocabulary_id_2,

@@ -19,6 +19,12 @@ CREATE TABLE icd_cde_source_backup_7_26_2024 as SELECT * FROM icd_cde_source;
 TRUNCATE TABLE icd_cde_source;
 INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_26_2024);
 
+--backup new ICD10CM
+DROP TABLE icd_cde_source_backup_7_30_2024;
+CREATE TABLE icd_cde_source_backup_7_30_2024 as SELECT * FROM icd_cde_source;
+TRUNCATE TABLE icd_cde_source;
+INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_30_2024);
+
 --1. СDE source insertion
 DROP TABLE dev_icd10.icd_cde_source;
 TRUNCATE TABLE dev_icd10.icd_cde_source;
@@ -785,6 +791,47 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.10:ICD10CM
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z85.21:ICD10CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z85.810:ICD10CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z87.11:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A49.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['B01.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['E11.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F25.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F32.9:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F60.3:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F84.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F91.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F91.2:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F98.5:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G31.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G44.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G44.3:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G80.3:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I13.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I61.6:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['K05.2:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['K29.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M06.00:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M06.32:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.02:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M66.10:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M70.11:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['N48.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Q91.3:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['R63.6:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S68.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S68.1:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['V29.2:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['V47.0:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A15.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A15.5:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A15.6:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.2:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.4:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.5:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.6:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.8:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.9:ICD10CM']);
 
 --6. Check every concept is represented in only one group
 SELECT DISTINCT
@@ -1539,7 +1586,8 @@ SELECT * FROM for_manual_review_upd;
 --11. Create mapped table
 --DROP TABLE icd_cde_mapped;
 --TRUNCATE TABLE icd_cde_mapped;
---CREATE TABLE icd_cde_mapped_feb_back_26_7 AS SELECT * FROM icd_cde_mapped;
+--CREATE TABLE icd_cde_mapped_feb_back_30_7 AS SELECT * FROM icd_cde_mapped;
+INSERT INTO icd_cde_mapped (SELECT * FROM icd_cde_mapped_feb_back_30_7);
 CREATE TABLE icd_cde_mapped
 (
 group_name varchar,
@@ -1601,6 +1649,8 @@ mapper_id varchar,
 rel_invalid_reason varchar,
 valid_start_date  date,
 valid_end_date  date);
+
+SELECT * FROM icd_cde_mapped_ext;
 
 DELETE FROM icd_cde_mapped_ext WHERE group_code is null;
 
@@ -1907,7 +1957,7 @@ INSERT INTO icd_cde_source
     source_code_description,
     source_vocabulary_id,
     group_name,
-    group_id,
+    --group_id,
     decision,
     decision_date,
     relationship_id,
@@ -1935,12 +1985,12 @@ SELECT DISTINCT
        c.group_name as source_code_description,
        split_part(c.group_code, ':', 1) as source_vocabulary_id,
        c.group_name as group_name,
-       m.group_id as group_id,
+       --m.group_id as group_id,
        m.decision,
        m.decision_date,
        m.relationship_id,
        m.relationship_id_predicate,
-       m.target_concept_id,
+       m.target_concept_id::int,
        m.target_concept_code,
        m.target_concept_name,
        m.target_concept_class_id,
@@ -1955,9 +2005,7 @@ SELECT DISTINCT
 FROM concepts c LEFT JOIN icd_cde_mapped m ON c.group_name = m.group_name;
 
 
-
-
-
+SELECT * FROM icd_cde_source where source_vocabulary_id = 'ICD10GM';
 
 SELECT DISTINCT s.target_concept_id, s.target_concept_code, s.target_concept_name, c.concept_id, c.concept_code, c.concept_name FROM icd_cde_source s
 JOIN concept c on s.target_concept_id = c.concept_id

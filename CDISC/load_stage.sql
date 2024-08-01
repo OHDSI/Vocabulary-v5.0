@@ -13,10 +13,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Irina Zherko,  Masha Khitrun,
-* Aliaksei Katyshou, Vlad Korsik,
-* Alexander Davydov, Oleg Zhuk,
-* Timur Vakhitov
+* Authors: Irina Zherko, Masha Khitrun, Aliaksei Katyshou, Vlad Korsik,
+* Alexander Davydov, Oleg Zhuk, Timur Vakhitov
+*
 * Date: 2024
 **************************************************************************/
 
@@ -186,7 +185,6 @@ and cs.concept_class_id <> 'Social Context'
 -- Some manual domain changes
 UPDATE concept_stage SET domain_id = 'Observation', concept_class_id = 'Observable Entity'  WHERE concept_code in ('C156595', 'C189365', 'C17943', 'C20050');
 
-
 --4.3 Working with concept_manual table (not yet implemented)
 DO $_$
 BEGIN
@@ -231,8 +229,6 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
-
-
 
 -- 7. concept_relationship_stage population
 --insert only 1-to-1 mappings
@@ -308,34 +304,35 @@ WHERE s.concept_code in
              WHERE s.concept_code = b.concept_code
                AND b.relationship_id ~* 'value')
 
-and (s.concept_code,'CDISC') NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
-
+and (s.concept_code,'CDISC') 
+        NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
 ;
 
--- 8 Working with replacement mappings
+-- 8. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9 Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11 Add mapping from deprecated to fresh concepts for 'Maps to value'
+--11. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---12 Final clean-up
+--12. Final clean-up
 DROP TABLE source;
 
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -18,6 +18,7 @@
 **************************************************************************/
 --1. Update the concept_relationship_manual table
 CREATE TABLE concept_relationship_manual_bu as (SELECT * FROM concept_relationship_manual);
+INSERT INTO concept_relationship_manual (SELECT * FROM concept_relationship_manual_bu);
 TRUNCATE TABLE dev_ICD10CN.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -116,4 +117,31 @@ UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relatio
  -- Minor manual updates
 INSERT INTO concept_relationship_manual VALUES ('J68.001', '205237003', 'ICD10CN', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
 
-
+INSERT INTO concept_relationship_manual VALUES ('I62.002', '291581000119109', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.201', '433068007', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.202', '433068007', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.203', '433068007', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.204', '433068007', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.205', '433068007', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.206', '433068007', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.401', '233985008', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I71.402', '233985008', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.001', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.002', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.003', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.004', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.005', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.006', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.007', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.008', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.009', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.010', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.011', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.012', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.013', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I77.014', '439470001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('M95.402', '391986001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('M95.403', '391986001', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('M95.404', '24228002', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('X70.x00', '225052008', 'ICD10CN', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);

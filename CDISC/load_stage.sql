@@ -100,8 +100,7 @@ longest_synonyms AS (
     FROM synonyms
    WHERE rn = 1
 )
-SELECT
-distinct
+SELECT DISTINCT
     c.scui,
     c.cui,
     c.scui || COALESCE('-'||c.concept_code, '') AS concept_code,
@@ -147,7 +146,7 @@ WITH concepts AS (
         s.concept_code as concept_code
     FROM dev_cdisc.source s
     JOIN sources.meta_mrsty st ON s.cui = st.cui
-    JOIN concept_class_lookup l on st.sty = l.attribute
+    JOIN dev_cdisc.concept_class_lookup l on st.sty = l.attribute
 ),
 concepts_count AS (
     SELECT
@@ -191,30 +190,30 @@ SET domain_id = 'Unit',
 WHERE concept_code in
 (SELECT concept_code FROM dev_cdisc.source s
     JOIN sources.meta_mrdef b
-on s.cui=b.cui
-and (
+ON s.cui=b.cui
+AND (
     b.def ilike 'unit of%'
-        or b.def ilike 'a unit of%'
-                or b.def ilike 'the unit of%'
-    or b.def ilike 'a unit for%'
-       or b.def ilike 'the unit for%'
+        OR b.def ilike 'a unit of%'
+                OR b.def ilike 'the unit of%'
+    OR b.def ilike 'a unit for%'
+       OR b.def ilike 'the unit for%'
 
-       or b.def like 'A non-SI unit%'
-       or b.def like 'The non-SI unit%'
+       OR b.def like 'A non-SI unit%'
+       OR b.def like 'The non-SI unit%'
 
-    or b.def like 'A SI unit%'
-       or b.def like 'The SI unit%'
+    OR b.def like 'A SI unit%'
+       OR b.def like 'The SI unit%'
 
-            or b.def like 'A SI derived unit%'
-       or b.def like 'The SI derived unit %'
+            OR b.def like 'A SI derived unit%'
+       OR b.def like 'The SI derived unit %'
 
-        or b.def like 'The metric unit%'
-       or b.def like 'A metric unit%'
+        OR b.def like 'The metric unit%'
+       OR b.def like 'A metric unit%'
 
            or b.def like 'A traditional unit%'
-       or b.def like 'The traditional unit%'
+       OR b.def like 'The traditional unit%'
     )
-and b.sab='CDISC' )
+AND b.sab='CDISC' )
 ;
 
 -- Update domain for Measurements
@@ -225,13 +224,13 @@ WHERE concept_code in
 SELECT s.concept_code
 FROM dev_cdisc.source s
     JOIN sources.meta_mrdef b
-on s.cui=b.cui
-and (
+ON s.cui=b.cui
+AND (
     b.def ilike '%measurement of%'
-    and b.def not ilike '%unit%')
-and b.sab='CDISC'
+    AND b.def NOT ilike '%unit%')
+AND b.sab='CDISC'
 )
-and cs.domain_id <>'Measurement'
+AND cs.domain_id <>'Measurement'
 ;
 
 -- Update domain for Staging / Scales
@@ -240,16 +239,16 @@ SET domain_id = 'Measurement', concept_class_id = 'Staging / Scales'
 WHERE concept_code in
 (SELECT concept_code FROM dev_cdisc.source s
     JOIN sources.meta_mrdef b
-on s.cui=b.cui
-and (
+ON s.cui=b.cui
+AND (
     b.def ilike 'Functional Assessment of%'
-    or b.def ilike '%Questionnaire%'
-      or b.def ilike '%survey%')
-and    b.def not ilike '%unit%'
-and b.sab='CDISC'
+    OR b.def ilike '%Questionnaire%'
+      OR b.def ilike '%survey%')
+AND    b.def NOT ilike '%unit%'
+AND b.sab='CDISC'
     )
-and cs.domain_id <>'Measurement'
-and cs.concept_class_id <> 'Staging / Scales'
+AND cs.domain_id <>'Measurement'
+AND cs.concept_class_id <> 'Staging / Scales'
 ;
 
 -- Update domain and class for Social Context
@@ -259,10 +258,10 @@ WHERE concept_code in
 (SELECT concept_code
  FROM dev_cdisc.source s
 JOIN sources.meta_mrsty b
-on  s.cui=b.cui
-and b.sty= 'Population Group' )
-and cs.domain_id <> 'Observation'
-and cs.concept_class_id <> 'Social Context'
+ON  s.cui=b.cui
+AND b.sty= 'Population Group' )
+AND cs.domain_id <> 'Observation'
+AND cs.concept_class_id <> 'Social Context'
 ;
 
 -- Some manual domain changes
@@ -300,10 +299,10 @@ SELECT DISTINCT concept_code as concept_code_1,
        valid_start_date as valid_start_date,
        valid_end_date as valid_end_date,
        null as invalid_reason
-       FROM cdisc_mapped
+       FROM dev_cdisc.cdisc_mapped
     WHERE target_concept_id is not null
-    and 'manual' = all(mapping_source)
-      and target_concept_code !='No matching concept'  -- _mapped file can contatin them
+    AND 'manual' = all(mapping_source)
+      AND target_concept_code !='No matching concept'  -- _mapped file can contatin them
     and decision is true
 ORDER BY concept_code,relationship_id;
 
@@ -335,18 +334,18 @@ r.valid_start_date	AS valid_start_date,
 r.valid_end_date AS valid_end_date,
 null as invalid_reason
 FROM concept_stage s
-    JOIN cdisc_mapped r
+    JOIN dev_cdisc.cdisc_mapped r
         ON s.concept_code = r.concept_code
-and s.vocabulary_id='CDISC'
+AND s.vocabulary_id='CDISC'
 WHERE s.concept_code in
 (   SELECT  concept_code
-    FROM cdisc_mapped
-        where  decision is TRUE
-        and  'manual' != all(mapping_source)
+    FROM dev_cdisc.cdisc_mapped
+        WHERE  decision is TRUE
+        AND  'manual' != all(mapping_source)
     GROUP BY  concept_code
     HAVING count(*) = 1 -- for the 1st iteration automatic 1toM and to_value were prohibited
 )
-and (s.concept_code,'CDISC') NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
+AND (s.concept_code,'CDISC') NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
 ;
 
 --insert only 1-to-2 mappings (EAV pairs)
@@ -370,24 +369,24 @@ r.valid_start_date	AS valid_start_date,
 r.valid_end_date AS valid_end_date,
 null as invalid_reason
 FROM concept_stage s
-    JOIN cdisc_mapped r
+    JOIN dev_cdisc.cdisc_mapped r
         ON s.concept_code = r.concept_code
-and s.vocabulary_id='CDISC'
+AND s.vocabulary_id='CDISC'
 WHERE s.concept_code in
 (   SELECT  concept_code
-    FROM cdisc_mapped
-        where  decision is TRUE
-        and  'manual' != all(mapping_source)
+    FROM dev_cdisc.cdisc_mapped
+        WHERE  decision is TRUE
+        AND  'manual' != all(mapping_source)
     GROUP BY  concept_code
     HAVING count(*) = 2 -- for the 1st iteration automatic 1toM and to_value were prohibited
 )
 
     AND EXISTS(SELECT 1
-             FROM cdisc_mapped b
+             FROM dev_cdisc.cdisc_mapped b
              WHERE s.concept_code = b.concept_code
                AND b.relationship_id ~* 'value')
 
-and (s.concept_code,'CDISC') 
+AND (s.concept_code,'CDISC')
         NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
 ;
 

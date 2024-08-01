@@ -18,6 +18,7 @@
 **************************************************************************/
 -- 1. Update the concept_relationship_stage table
 CREATE TABLE concept_relationship_manual_bu as (SELECT * FROM concept_relationship_manual);
+INSERT INTO concept_relationship_manual (SELECT * FROM concept_relationship_manual_bu);
 TRUNCATE TABLE dev_CIM10.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -116,5 +117,7 @@ INSERT INTO concept_relationship_manual VALUES ('I72.2', '36184004', 'CIM10', 'S
 INSERT INTO concept_relationship_manual VALUES ('I72.6', '297176007', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('R63.0', '79890006', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
-INSERT INTO concept_relationship_manual VALUES ('Z96.5', 'OMOP5165859', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.5', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('Z96.5', '789147006', 'CIM10', 'SNOMED', 'Maps to value', '2024-08-01', '2099-12-31', null);
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'N03.30' and concept_code_2 = '197613008';
+

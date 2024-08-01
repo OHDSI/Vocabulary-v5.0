@@ -115,3 +115,9 @@ UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relatio
 
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'P05' and concept_code_2 = '18471004';
 INSERT INTO concept_relationship_manual VALUES ('P05', '267258002', 'KCD7', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
+
+INSERT INTO concept_relationship_manual VALUES ('I62.0', '291581000119109', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I72.2', '36184004', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I72.6', '297176007', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('R63.0', '79890006', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);

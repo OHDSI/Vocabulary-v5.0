@@ -121,3 +121,16 @@ INSERT INTO concept_relationship_manual VALUES ('I72.2', '36184004', 'KCD7', 'SN
 INSERT INTO concept_relationship_manual VALUES ('I72.6', '297176007', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('R63.0', '79890006', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Y20', '219328003', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K00.23', '	1744008', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K00.43', '	46557008', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K07.62', '	263033000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.13', '	40271000119102', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.40', '	1086441000119100', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.50', '	197091007', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.51', '	1086601000119100', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.80', '	1086541000119104', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.81', '	1086541000119104', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.82', '	397881000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.83', '	397881000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('K57.91', '	397881000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);

@@ -112,20 +112,9 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 ;
 
 -- Some manual fixes
---INSERT INTO concept_relationship_manual VALUES
---('Z52.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z52.80', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z52.88', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z52.88', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z95.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z95.80', '429381005', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I72.2', '36184004', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('I72.6', '297176007', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('R63.0', '79890006', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.5', 'OMOP5165859', 'CIM10', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.5', '789147006', 'CIM10', 'SNOMED', 'Maps to value', '2024-08-01', '2099-12-31', null);

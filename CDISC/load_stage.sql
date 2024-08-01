@@ -62,7 +62,7 @@ WITH concepts AS (
         l.concept_class as concept_class_id,
         NULL as standard_concept,
         s.concept_code as concept_code
-    FROM source s
+    FROM dev_cdisc.source s
     JOIN sources.meta_mrsty st ON s.cui = st.cui
     JOIN concept_class_lookup l on st.sty = l.attribute
 ),
@@ -106,7 +106,7 @@ UPDATE concept_stage
 SET domain_id = 'Unit',
     concept_class_id = 'Unit'
 WHERE concept_code in
-(SELECT concept_code FROM source s
+(SELECT concept_code FROM dev_cdisc.source s
     JOIN sources.meta_mrdef b
 on s.cui=b.cui
 and (
@@ -140,7 +140,7 @@ SET domain_id = 'Measurement', concept_class_id = 'Procedure'
 WHERE concept_code in
 (
 SELECT s.concept_code
-FROM source s
+FROM dev_cdisc.source s
     JOIN sources.meta_mrdef b
 on s.cui=b.cui
 and (
@@ -155,7 +155,7 @@ and cs.domain_id <>'Measurement'
 UPDATE concept_stage cs
 SET domain_id = 'Measurement', concept_class_id = 'Staging / Scales'
 WHERE concept_code in
-(SELECT concept_code FROM source s
+(SELECT concept_code FROM dev_cdisc.source s
     JOIN sources.meta_mrdef b
 on s.cui=b.cui
 and (
@@ -174,7 +174,7 @@ UPDATE concept_stage cs
 SET domain_id = 'Observation', concept_class_id = 'Social Context'
 WHERE concept_code in
 (SELECT concept_code
- FROM source s
+ FROM dev_cdisc.source s
 JOIN sources.meta_mrsty b
 on  s.cui=b.cui
 and b.sty= 'Population Group' )
@@ -203,7 +203,7 @@ SELECT
        synonym as synonym_name,
        'CDISC' as vocabulary_id,
        4180186 AS language_concept_id -- English
-FROM source
+FROM dev_cdisc.source
 WHERE synonym is not null;
 
 --6. concept_relationship_Manual table population
@@ -331,8 +331,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
-
---12. Final clean-up
-DROP TABLE source;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

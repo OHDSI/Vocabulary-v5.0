@@ -161,4 +161,24 @@ UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_re
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'O14.901' and concept_code_2 = '118185001';
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'R74.805' and concept_code_2 = '122444009';
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'Z88.101' and concept_code_2 = '609328004';
+INSERT INTO concept_relationship_manual VALUES ('Z96.2', 'OMOP5165859', 'ICD10CN', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.2', '118891001', 'ICD10CN', 'SNOMED', 'Maps to value', '2016-01-01', '2024-08-01', 'D');
+
+INSERT INTO concept_relationship_manual VALUES ('Z96.200', 'OMOP5165859', 'ICD10CN', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.200', '118891001', 'ICD10CN', 'SNOMED', 'Maps to value', '2016-01-01', '2024-08-01', 'D');
+
+INSERT INTO concept_relationship_manual VALUES ('Z96.201', 'OMOP5165859', 'ICD10CN', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.201', '118891001', 'ICD10CN', 'SNOMED', 'Maps to value', '2016-01-01', '2024-08-01', 'D');
+
+INSERT INTO concept_relationship_manual VALUES ('Z96.4', 'OMOP5165859', 'ICD10CN', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.4', '79537002', 'ICD10CN', 'SNOMED', 'Maps to value', '2016-01-01', '2024-08-01', 'D');
+
+INSERT INTO concept_relationship_manual VALUES ('Z96.400', 'OMOP5165859', 'ICD10CN', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.400', '79537002', 'ICD10CN', 'SNOMED', 'Maps to value', '2016-01-01', '2024-08-01', 'D');
+
+INSERT INTO concept_relationship_manual VALUES ('Z96.401', 'OMOP5165859', 'ICD10CN', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('Z96.401', '79537002', 'ICD10CN', 'SNOMED', 'Maps to value', '2016-01-01', '2024-08-01', 'D');
+
+INSERT INTO concept_relationship_manual VALUES ('X37.x00', '420101009', 'ICD10CN', 'SNOMED', 'Maps to value', '2024-08-01', '2099-12-31', null);
+INSERT INTO concept_relationship_manual VALUES ('X37', '420101009', 'ICD10CN', 'SNOMED', 'Maps to value', '2024-08-01', '2099-12-31', null);
 

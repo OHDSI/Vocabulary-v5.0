@@ -119,11 +119,8 @@ LEFT JOIN synonyms s ON c.scui = s.scui
       AND POSITION(s.str IN COALESCE(c.concept_code, '')) = 0)
 ;
 
---2. Populate cdisc_mapped with manually curated content (cdisc_refresh.sql)
---3. cdisc_mapped population with AUTO-mappings
-
---4. concept_stage table population
---4.1 concept_stage population
+--2. concept_stage table population
+--2.1 concept_stage population
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -180,7 +177,7 @@ FROM concepts c
 JOIN concepts_count cc ON c.concept_name = cc.concept_name;
 
 
---4.2  Refining of Classes/Domains
+--2.2  Refining of Classes/Domains
 --Domain cnd Classes Processing based on Definition table
 -- Update Domain for units
 -- Update Domain for units
@@ -267,13 +264,13 @@ AND cs.concept_class_id <> 'Social Context'
 -- Some manual domain changes
 UPDATE concept_stage SET domain_id = 'Observation', concept_class_id = 'Observable Entity'  WHERE concept_code in ('C156595', 'C189365', 'C17943', 'C20050');
 
---4.3 Working with concept_manual table (not yet implemented)
+--2.3 Working with concept_manual table (not yet implemented)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---5. concept_synonym_stage table population
+--3. concept_synonym_stage table population
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -288,127 +285,31 @@ SELECT
 FROM dev_cdisc.source
 WHERE synonym is not null;
 
---6. concept_relationship_Manual table population
--- concept_relationship_Manual table population
-INSERT INTO  concept_relationship_manual (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason)
-SELECT DISTINCT concept_code as concept_code_1,
-       target_concept_code as concept_code_2,
-       vocabulary_id as vocabulary_id_1,
-       target_vocabulary_id as vocabulary_id_2,
-       relationship_id as relationship_id,
-       valid_start_date as valid_start_date,
-       valid_end_date as valid_end_date,
-       null as invalid_reason
-       FROM dev_cdisc.cdisc_mapped
-    WHERE target_concept_id is not null
-    AND 'manual' = all(mapping_source)
-      AND target_concept_code !='No matching concept'  -- _mapped file can contatin them
-    and decision is true
-ORDER BY concept_code,relationship_id;
-
---6.1. working with manual relationships
+--4. concept_relationship_manual table population
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 7. concept_relationship_stage population
---insert only 1-to-1 mappings
-INSERT INTO concept_relationship_stage (
-concept_code_1,
-concept_code_2,
-vocabulary_id_1,
-vocabulary_id_2,
-relationship_id,
-valid_start_date,
-valid_end_date,
-invalid_reason)
-
-SELECT DISTINCT
-s.concept_code as concept_code_1,
-r.target_concept_code as concept_code_2,
-'CDISC' as vocabulary_id_1,
-r.target_vocabulary_id as vocabulary_id_2,
-r.relationship_id as relationship_id,
-r.valid_start_date	AS valid_start_date,
-r.valid_end_date AS valid_end_date,
-null as invalid_reason
-FROM concept_stage s
-    JOIN dev_cdisc.cdisc_mapped r
-        ON s.concept_code = r.concept_code
-AND s.vocabulary_id='CDISC'
-WHERE s.concept_code in
-(   SELECT  concept_code
-    FROM dev_cdisc.cdisc_mapped
-        WHERE  decision is TRUE
-        AND  'manual' != all(mapping_source)
-    GROUP BY  concept_code
-    HAVING count(*) = 1 -- for the 1st iteration automatic 1toM and to_value were prohibited
-)
-AND (s.concept_code,'CDISC') NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
-;
-
---insert only 1-to-2 mappings (EAV pairs)
-INSERT INTO concept_relationship_stage (
-concept_code_1,
-concept_code_2,
-vocabulary_id_1,
-vocabulary_id_2,
-relationship_id,
-valid_start_date,
-valid_end_date,
-invalid_reason)
-
-SELECT DISTINCT
-s.concept_code as concept_code_1,
-r.target_concept_code as concept_code_2,
-'CDISC' as vocabulary_id_1,
-r.target_vocabulary_id as vocabulary_id_2,
-r.relationship_id as relationship_id,
-r.valid_start_date	AS valid_start_date,
-r.valid_end_date AS valid_end_date,
-null as invalid_reason
-FROM concept_stage s
-    JOIN dev_cdisc.cdisc_mapped r
-        ON s.concept_code = r.concept_code
-AND s.vocabulary_id='CDISC'
-WHERE s.concept_code in
-(   SELECT  concept_code
-    FROM dev_cdisc.cdisc_mapped
-        WHERE  decision is TRUE
-        AND  'manual' != all(mapping_source)
-    GROUP BY  concept_code
-    HAVING count(*) = 2 -- for the 1st iteration automatic 1toM and to_value were prohibited
-)
-
-    AND EXISTS(SELECT 1
-             FROM dev_cdisc.cdisc_mapped b
-             WHERE s.concept_code = b.concept_code
-               AND b.relationship_id ~* 'value')
-
-AND (s.concept_code,'CDISC')
-        NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
-;
-
--- 8. Working with replacement mappings
+-- 5. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts
+--6. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--7. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--8. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();

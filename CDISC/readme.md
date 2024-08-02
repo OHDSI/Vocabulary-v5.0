@@ -11,7 +11,7 @@ Prerequisites:
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true, include_deprecated_rels=> true, include_synonyms=> true);
    ```
-2. Update the concept_class_lookup table for cases when new semantic attributes appear 
+2. Update the concept_class_lookup table for cases when new semantic attributes appear (https://docs.google.com/spreadsheets/d/1LeBg7hWEg-XoLp8TsyMUMW4bsXlYqCh0LpJIFqm9ajY/edit?gid=0#gid=0)
 ```sql
 SELECT DISTINCT st.sty as attribute,
        NULL::varchar as concept_class_id,

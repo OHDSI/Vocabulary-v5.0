@@ -582,3 +582,99 @@ cc.invalid_reason ,
 cc.domain_id ,
 cc.vocabulary_id
 ;
+
+--Population of the concept_relationship_manual table
+-- concept_relationship_manual table population
+INSERT INTO  concept_relationship_manual (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason)
+SELECT DISTINCT concept_code as concept_code_1,
+       target_concept_code as concept_code_2,
+       vocabulary_id as vocabulary_id_1,
+       target_vocabulary_id as vocabulary_id_2,
+       relationship_id as relationship_id,
+       valid_start_date as valid_start_date,
+       valid_end_date as valid_end_date,
+       null as invalid_reason
+       FROM dev_cdisc.cdisc_mapped
+    WHERE target_concept_id is not null
+    AND 'manual' = all(mapping_source)
+      AND target_concept_code !='No matching concept'  -- _mapped file can contain them
+    and decision is true
+ORDER BY concept_code,relationship_id;
+
+INSERT INTO concept_relationship_manual (
+concept_code_1,
+concept_code_2,
+vocabulary_id_1,
+vocabulary_id_2,
+relationship_id,
+valid_start_date,
+valid_end_date,
+invalid_reason)
+
+SELECT DISTINCT
+s.concept_code as concept_code_1,
+r.target_concept_code as concept_code_2,
+'CDISC' as vocabulary_id_1,
+r.target_vocabulary_id as vocabulary_id_2,
+r.relationship_id as relationship_id,
+r.valid_start_date	AS valid_start_date,
+r.valid_end_date AS valid_end_date,
+null as invalid_reason
+FROM concept_stage s
+    JOIN dev_cdisc.cdisc_mapped r
+        ON s.concept_code = r.concept_code
+AND s.vocabulary_id='CDISC'
+WHERE s.concept_code in
+(   SELECT  concept_code
+    FROM dev_cdisc.cdisc_mapped
+        WHERE  decision is TRUE
+        AND  'manual' != all(mapping_source)
+    GROUP BY  concept_code
+    HAVING count(*) = 1 -- for the 1st iteration automatic 1toM and to_value were prohibited
+)
+AND (s.concept_code,'CDISC') NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
+;
+
+--insert only 1-to-2 mappings (EAV pairs)
+INSERT INTO concept_relationship_manual (
+concept_code_1,
+concept_code_2,
+vocabulary_id_1,
+vocabulary_id_2,
+relationship_id,
+valid_start_date,
+valid_end_date,
+invalid_reason)
+
+SELECT DISTINCT
+s.concept_code as concept_code_1,
+r.target_concept_code as concept_code_2,
+'CDISC' as vocabulary_id_1,
+r.target_vocabulary_id as vocabulary_id_2,
+r.relationship_id as relationship_id,
+r.valid_start_date	AS valid_start_date,
+r.valid_end_date AS valid_end_date,
+null as invalid_reason
+FROM concept_stage s
+    JOIN dev_cdisc.cdisc_mapped r
+        ON s.concept_code = r.concept_code
+AND s.vocabulary_id='CDISC'
+WHERE s.concept_code in
+(   SELECT  concept_code
+    FROM dev_cdisc.cdisc_mapped
+        WHERE  decision is TRUE
+        AND  'manual' != all(mapping_source)
+    GROUP BY  concept_code
+    HAVING count(*) = 2 -- for the 1st iteration automatic 1toM and to_value were prohibited
+)
+
+    AND EXISTS(SELECT 1
+             FROM dev_cdisc.cdisc_mapped b
+             WHERE s.concept_code = b.concept_code
+               AND b.relationship_id ~* 'value')
+
+AND (s.concept_code,'CDISC')
+        NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_manual where invalid_reason is null and relationship_id like 'Maps to%')
+;
+
+

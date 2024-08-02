@@ -87,10 +87,10 @@ FROM
                     'C' as standard_concept,
                     t1.class_code as concept_code,
                     CASE
-                        WHEN active = 'NA' and t1.class_code not in (
-                                                                    select distinct replaced_by
-                                                                    from sources.atc_codes           --all codes except those for which we know actual dates
-                                                                    where replaced_by != 'NA'        --get standard 1970-2099 values.
+                        WHEN active = 'NA' AND t1.class_code not in (
+                                                                    SELECT distinct replaced_by
+                                                                    FROM sources.atc_codes           --all codes except those for which we know actual dates
+                                                                    WHERE replaced_by != 'NA'        --get standard 1970-2099 values.
                                                                     )
                         THEN TO_DATE('1970-01-01', 'YYYY-MM-DD')
                         ELSE start_date
@@ -100,9 +100,9 @@ FROM
                         WHEN active = 'NA' THEN NULL
                         ELSE active
                     END AS invalid_reason
-                from sources.atc_codes t1
+                FROM sources.atc_codes t1
                 left join dev_atc.new_adm_r t2 on t1.class_code = t2.class_code
-                where t1.active != 'C'
+                WHERE t1.active != 'C'
             ) t1;
 
 
@@ -219,7 +219,7 @@ FROM
             dev_atc.new_atc_codes_ings_for_manual
      ) t1
       JOIN devv5.concept t2
-          ON t1.concept_code_2::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
+          ON t1.concept_code_2::int = t2.concept_id AND t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
 
 --5. Insert Maps to relationships
@@ -258,7 +258,7 @@ FROM
         WHERE relationship_id in ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat')
       ) t1
       JOIN devv5.concept t2
-          ON t1.concept_code_2::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
+          ON t1.concept_code_2::int = t2.concept_id AND t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
 
 --6. Insert ATC - RxNorm relationships
@@ -294,7 +294,7 @@ SELECT
         TO_DATE('2099-12-31', 'YYYY-MM-DD') as valid_end_date,
         NULL as invalid_reason
 FROM new_unique_atc_codes_rxnorm t1
-    JOIN devv5.concept t2 ON t1.ids::int = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
+    JOIN devv5.concept t2 ON t1.ids::int = t2.concept_id AND t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
 
 --7. Insert replacement relationships
 INSERT INTO concept_relationship_stage
@@ -387,81 +387,102 @@ WHERE uppr.invalid_reason IS NULL
 		);
 
 
---TODO: Manual tables are not processed in the current iterations
-    ----- THESE TWO ARE NOT NEEDED (BUILT ABOVE FROM SCRATCH). DON'T RUN!
---  DO $_$
--- BEGIN
--- 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
--- END $_$;
---
--- ANALYZE concept_stage;
+---9. Insert all valid connections to ATC from devv5.concept_relationship (except Ings connections,
+-- because their full list in table dev_atc.new_atc_codes_ings_for_manual), which are not in stage table
+INSERT INTO concept_relationship_stage
+    (
+    concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date
+	)
+SELECT c1.concept_code,
+       c2.concept_code,
+       c1.vocabulary_id,
+       c2.vocabulary_id,
+       relationship_id,
+       cr.valid_start_date,
+       cr.valid_end_date
+FROM devv5.concept_relationship cr
+     JOIN devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC' and c1.invalid_reason is NULL
+     JOIN devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c1.invalid_reason is NULL
+WHERE cr.relationship_id like 'ATC%'
+AND cr.invalid_reason IS NULL
+AND cr.relationship_id NOT IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (select t1.atc_code,   --- Concept not in manually reviewed list of existent codes
+                                                                           'ATC - RxNorm' as relationship,
+                                                                           t2.concept_code
+                                                                  from dev_atc.existent_atc_rxnorm_to_drop t1
+                                                                         join devv5.concept t2 on t1.concept_id = t2.concept_id
+                                                                  where to_drop = 'D')
+AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT t1.concept_code_atc,   ---- Not in manually reviwed drop-list of source codes
+                                                                           'ATC - RxNorm' as relationship,
+                                                                            t2.concept_code
+                                                                    FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
+                                                                         join devv5.concept t2 on t1.concept_id_rx = t2.concept_id
+                                                                    WHERE drop = 'D')
+AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT concept_code_1,  --- Not already in concept_relationship_stage
+                                                                           relationship_id,
+                                                                           concept_code_2
+                                                                    FROM dev_atc.concept_relationship_stage
+                                                                    WHERE invalid_reason is NULL
+                                                                    AND  relationship_id like 'ATC%'
+                                                                    AND relationship_id NOT IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up'));
 
--- DO $_$
--- BEGIN
--- 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
--- END $_$;
-
-
---9. Deprecate wrong relationships
-UPDATE concept_relationship_manual
+-- 10. Deprecate ATC - RxNorm connections that were deprecated previously, but came again from sources (~420 connections)
+UPDATE concept_relationship_stage
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
-WHERE (concept_code_1, concept_code_2) IN (
-    SELECT t1.atc_code, t2.concept_code
-    FROM dev_atc.existent_atc_rxnorm_to_drop t1
-    JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id
-    WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-    AND t1.to_drop = 'D'
-)
-and vocabulary_id_1 = 'ATC'
-and vocabulary_id_2 in ('RxNorm', 'RxNorm Extension');
+WHERE (concept_code_1, relationship_id, concept_code_2) IN
+                                                        (SELECT c1.concept_code,
+                                                               cr.relationship_id,
+                                                               c2.concept_code
+                                                        FROM devv5.concept_relationship cr
+                                                             join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
+                                                             join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                        WHERE relationship_id like 'ATC%'
+                                                        AND relationship_id NOT IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+                                                        AND cr.invalid_reason = 'D')
+AND invalid_reason is NULL;
 
 
---10. Process manual relationships
+--11. Process manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---TODO: workaround
---- Drop all 'bad' connections from stage table
-UPDATE concept_relationship_stage
-SET invalid_reason = 'D',
-    valid_end_date = CURRENT_DATE
-where (concept_id_1, concept_id_2) in (
-select concept_id_atc,
-       concept_id_rx
-from dev_atc.atc_rxnorm_to_drop_in_sources
-where drop = 'D');
-
 
 ANALYZE concept_relationship_stage;
 
---11. Working with replacement mappings
+--12. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---12. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---13. Add mapping (to value) from deprecated to fresh concepts
+--14. Add mapping (to value) from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---15. Delete ambiguous 'Maps to' mappings
+--16. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DELETEAmbiguousMAPSTO();

@@ -53,13 +53,6 @@ SELECT
     rx_names
 FROM norske_result;
 ```
-* extract the [respective tsv file](https://drive.google.com/file/d/1_QOGi9foXuo6EWX3HWKDl_fwfSdQFzAF/view?usp=drive_link) into the *zindex_full* table. The file was generated using the query:
-```sql
-SELECT
-    atc,
-    targetid
-FROM zindex_full;
-```
 
 * extract the [respective tsv file](https://drive.google.com/file/d/1TRjgoZ5bownwhsPajrmyxIm7DqOLjYkQ/view?usp=drive_link) into the *atc_rxnorm_to_drop_in_sources* table. The file was generated using the query:
 ```sql
@@ -71,6 +64,14 @@ SELECT
     concept_id_rx,
     concept_name_rx
 FROM atc_rxnorm_to_drop_in_sources;
+```
+
+* extract the [respective tsv file](https://drive.google.com/file/d/1IandaQl53xWPgHgp1sJbszl89vJJVkGS/view?usp=drive_link) into the *kdc_atc* table. The file was generated using the query:
+```sql
+SELECT
+    concept_code_kdc,
+    concept_code_atc
+FROM kdc_atc;
 ```
 
 #### csv format:

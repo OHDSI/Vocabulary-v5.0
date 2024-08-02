@@ -263,7 +263,7 @@ FROM
 
 --6. Insert ATC - RxNorm relationships
 DROP TABLE IF EXISTS  new_unique_atc_codes_rxnorm;
-CREATE TABLE new_unique_atc_codes_rxnorm AS
+CREATE UNLOGGED TABLE new_unique_atc_codes_rxnorm AS
 SELECT DISTINCT class_code, ids
 FROM new_atc_codes_rxnorm
 WHERE length(class_code) = 7

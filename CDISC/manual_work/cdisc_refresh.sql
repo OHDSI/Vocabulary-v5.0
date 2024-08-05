@@ -82,7 +82,7 @@ INSERT INTO concept_relationship_manual AS mapped
 UPDATE concept_relationship_manual crm 
 SET valid_start_date = cr.valid_start_date,
     valid_end_date = current_date
-FROM cdisc_mapped m 
+FROM dev_cdisc.cdisc_mapped m
 JOIN concept c 
 ON c.concept_code = m.concept_code AND m.vocabulary_id = c.vocabulary_id
 JOIN concept_relationship cr 

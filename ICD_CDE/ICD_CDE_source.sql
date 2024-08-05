@@ -832,6 +832,42 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.5:ICD10CM'
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.6:ICD10CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.8:ICD10CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.9:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M14.6:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.1:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.3:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.9:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['535.0:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['590.1:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['735.1:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['995.92:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['301.83:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.22:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.9:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['523.9:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['640.81:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['640.91:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['647.54:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['654.31:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['664.90:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['674.02:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['675.02:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['675.12:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['675.22:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['676.22:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['676.62:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['719.25:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['761.4:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['774.31:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['800.26:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['299.0:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.2:ICD9CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.2:ICD9CM']);
+
+
+
 
 --6. Check every concept is represented in only one group
 SELECT DISTINCT

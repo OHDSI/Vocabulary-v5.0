@@ -330,7 +330,7 @@ FROM (
 				END
 		)
 	
-	UNION ALL
+	UNION
 	
 	(
 		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,

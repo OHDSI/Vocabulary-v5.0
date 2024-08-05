@@ -120,4 +120,4 @@ INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'CIM10', 'SN
 INSERT INTO concept_relationship_manual VALUES ('Z96.5', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('Z96.5', '789147006', 'CIM10', 'SNOMED', 'Maps to value', '2024-08-01', '2099-12-31', null);
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'N03.30' and concept_code_2 = '197613008';
-
+SELECT * FROM concept_relationship_stage where concept_code_1 = 'Z96.5';

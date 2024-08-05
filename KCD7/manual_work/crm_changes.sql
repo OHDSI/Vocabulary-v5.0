@@ -115,7 +115,7 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relationship_id = 'Maps to ';
 
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'P05' and concept_code_2 = '18471004';
-INSERT INTO concept_relationship_manual VALUES ('P05', '267258002', 'KCD7', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
+--INSERT INTO concept_relationship_manual VALUES ('P05', '267258002', 'KCD7', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('I62.0', '291581000119109', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('I72.2', '36184004', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('I72.6', '297176007', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
@@ -123,7 +123,6 @@ INSERT INTO concept_relationship_manual VALUES ('R63.0', '79890006', 'KCD7', 'SN
 INSERT INTO concept_relationship_manual VALUES ('X70', '225052008', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('Y20', '219328003', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 
-SELECT * FROM concept_relationship_manual where concept_code_1 = 'K57.81';
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K00.23' and concept_code_2 = '234947003';
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K00.43' and concept_code_2 = '35156002';
 UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K07.62' and concept_code_2 = '263008003';
@@ -140,3 +139,25 @@ UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_re
 INSERT INTO concept_relationship_manual VALUES ('K57.82', '397881000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('K57.83', '397881000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 INSERT INTO concept_relationship_manual VALUES ('K57.91', '397881000', 'KCD7', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.13' and concept_code_2 = '56165008';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.13' and concept_code_2 = '40271000119102';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.40' and concept_code_2 = '63532004';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.40' and concept_code_2 = '1086441000119100';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.82' and concept_code_2 = '1086541000119104';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.82' and concept_code_2 = '5211000119107';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.82' and concept_code_2 = '397881000';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.83' and concept_code_2 = '735593008';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.83' and concept_code_2 = '397881000';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.91' and concept_code_2 = '63532004';
+UPDATE concept_relationship_manual SET valid_end_date = '2024-08-01', invalid_reason = 'D' WHERE concept_code_1 = 'K57.91' and concept_code_2 = '397881000';
+
+
+
+
+
+
+
+
+
+
+

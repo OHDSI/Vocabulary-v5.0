@@ -112,3 +112,12 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 
 UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relationship_id = 'Maps to ';
 
+--Minor manual changes
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = 'S63.134S' AND concept_code_2 = '14817008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = 'S63.135S' AND concept_code_2 = '14817008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = 'S63.136S' AND concept_code_2 = '14817008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = 'S63.144S' AND concept_code_2 = '14817008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = 'S63.145S' AND concept_code_2 = '14817008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = 'S63.146S' AND concept_code_2 = '14817008';
+
+

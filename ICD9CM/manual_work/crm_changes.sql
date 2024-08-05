@@ -109,4 +109,47 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
     )
 ;
 
+INSERT INTO concept_relationship_manual VALUES ('017.16',	'52101004',	'ICD9CM',	'SNOMED',	'Maps to value',	'2014-10-01',	'2024-08-01', 'D');
+INSERT INTO concept_relationship_manual VALUES ('017.15',	'52101004',	'ICD9CM',	'SNOMED',	'Maps to value',	'2014-10-01',	'2024-08-01', 'D');
+INSERT INTO concept_relationship_manual VALUES ('017.13',	'52101004',	'ICD9CM',	'SNOMED',	'Maps to value',	'2014-10-01',	'2024-08-01', 'D');
+INSERT INTO concept_relationship_manual VALUES ('013.66',	'52101004',	'ICD9CM',	'SNOMED',	'Maps to value',	'2014-10-01',	'2024-08-01', 'D');
+INSERT INTO concept_relationship_manual VALUES ('013.65',	'52101004',	'ICD9CM',	'SNOMED',	'Maps to value',	'2014-10-01',	'2024-08-01', 'D');
+INSERT INTO concept_relationship_manual VALUES ('013.63',	'52101004',	'ICD9CM',	'SNOMED',	'Maps to value',	'2014-10-01',	'2024-08-01', 'D');
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '523.9' AND concept_code_2 = '2556008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '640.81' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '640.81' AND concept_code_2 = '118185001';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '640.91' AND concept_code_2 = '118185001';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '640.91' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '647.54' AND concept_code_2 = '118185001';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '647.54' AND concept_code_2 = '274119009';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '647.54' AND concept_code_2 = '118213005';
+UPDATE concept_relationship_manual SET invalid_reason = null, valid_end_date = '2099-12-31' WHERE concept_code_1 = '647.54' AND concept_code_2 = '274119009';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '654.31' AND concept_code_2 = '609496007';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '654.31' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '674.02' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '674.02' AND concept_code_2 = '80113008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '675.02' AND concept_code_2 = '80113008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '675.02' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '675.12' AND concept_code_2 = '80113008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '675.12' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '675.22' AND concept_code_2 = '80113008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '675.22' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '676.22' AND concept_code_2 = '80113008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '676.22' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '719.25' AND concept_code_2 = '445304002';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '774.31' AND concept_code_2 = '206453006';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_start_date = '2024-08-01', valid_end_date = '2024-08-05' WHERE concept_code_1 = '339.2' AND concept_code_2 = '230477005';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '339.22' AND concept_code_2 = '230477005';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '676.62' AND concept_code_2 = '289256000';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '676.62' AND concept_code_2 = '80113008';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '761.4' AND concept_code_2 = '414025005';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '774.31' AND concept_code_2 = '414025005';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '800.26' AND concept_code_2 = '111593004';
+UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-08-01' WHERE concept_code_1 = '800.26' AND concept_code_2 = '419045004';
+
+
+
+
+
+
 

@@ -18,6 +18,20 @@ AND vocabulary_id_1 = 'ATC'
 AND relationship_id = 'ATC - RxNorm'
 AND vocabulary_id_2 in ('RxNorm', 'RxNorm Extension');
 
+UPDATE concept_relationship_manual
+SET invalid_reason = 'D',
+    valid_end_date = CURRENT_DATE
+WHERE (concept_code_1, concept_code_2) IN (
+    SELECT t1.concept_code_atc, t2.concept_code
+    FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
+    JOIN devv5.concept t2 ON t1.concept_id_rx = t2.concept_id
+    WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+    AND t1.drop = 'D'
+)
+AND vocabulary_id_1 = 'ATC'
+AND relationship_id = 'ATC - RxNorm'
+AND vocabulary_id_2 in ('RxNorm', 'RxNorm Extension');
+
 ---ATC - Ings
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',

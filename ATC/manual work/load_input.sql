@@ -11,7 +11,7 @@
        5. VANDF -https://github.com/OHDSI/Vocabulary-v5.0/tree/master/VANDF
        6. JMDC - https://github.com/OHDSI/Vocabulary-v5.0/tree/master/JMDC
        7. Z-index - proprietary source
-       8. Norske Drug  - Manual table, that was builded from https://www.legemiddelsok.no/ and it's processing in BuildRXE.
+       8. Norske Drug  - Manual table, was builded from https://www.legemiddelsok.no/ and processed in BuildRXE.
        9. KDC - Manual table.
 
      */
@@ -122,8 +122,8 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
                 AND t2.vocabulary_id in ('RxNorm', 'RxNorm Extension'))
 
             UNION
-            
-            
+
+
                     ------UMLS------
             (SELECT
                 t3.concept_id::int as concept_id,
@@ -276,28 +276,34 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
 
             ) t2
                 JOIN devv5.concept c on t2.concept_id = c.concept_id
-                JOIN sources.atc_codes atc on t2.class_code = atc.class_code  --ATC must be loaded to the sources schema
+                JOIN sources.atc_codes atc on t2.class_code = atc.class_code
             WHERE c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                    AND c.concept_class_id
-                                            --not in     --Do not use certain forms
---                                             ('Ingredient', 'Precise Ingredient',
---                                              'BrANDed Drug Component', 'Clinical Drug Component', 'Dose Form', 'BrAND',
---                                              'Drug', 'Dose Form Group', 'Clinical Dose Group',
---                                              'Clinical Drug Comp', 'BrANDed Drug Comp', 'BrANDed Dose Group',
---                                              'BrANDed Drug Box', 'Multiple Ingredients', 'BrANDed Pack', 'BrANDed Drug Form', 'BrANDed Pack Box',
---                                             'BrANDed Drug', 'Multiple Ingredients', 'BrAND Name','Quant BrANDed Box','Quant BrANDed Drug')
-
-                                                     not in ('BrAND Name',
-                                                    'BrANDed Drug Comp',
-                                                   'BrANDed Drug Component',
-                                                    'Clinical Dose Group',
-                                                    'Clinical Drug Comp',
-                                                   'Clinical Drug Component',
-                                                    'Dose Form',
-                                                   'Dose Form Group',
-                                                    'Ingredient',
-                                                    'Multiple Ingredients',
-                                                    'Precise Ingredient')
+                                        not in
+                                            ('Ingredient',
+                                             'Precise Ingredient',
+                                             'Multiple Ingredients'
+                                             'Brand Name',
+                                             'Brand',
+                                             'Branded Drug Comp',
+                                             'Branded Dose Group',
+                                             'Branded Drug Box',
+                                             'Branded Pack',
+                                             'Branded Drug Form',
+                                             'Branded Pack Box',
+                                             'Branded Drug',
+                                             'Branded Drug Component',
+                                             'Quant Branded Box',
+                                             'Quant Branded Drug',
+                                             'Drug',
+                                             'Clinical Drug Comp',
+                                             'Clinical Dose Group',
+                                             'Clinical Drug Component',
+                                             'Dose Form',
+                                             'Dose Form Group',
+                                             'Clinical Pack',
+                                             'Clinical Pack Box',
+                                             'Marketed Product')
 
 
             order by class_code;
@@ -319,24 +325,31 @@ FROM
                 JOIN devv5.concept c2 on ancestor_concept_id =  c2.concept_id
             WHERE
                     c2.concept_class_id
---                                         not in
---                                             ('Ingredient', 'Precise Ingredient',
---                                              'BrANDed Drug Component', 'Clinical Drug Component', 'Dose Form', 'BrAND',
---                                              'Drug', 'Dose Form Group', 'Clinical Dose Group',
---                                              'Clinical Drug Comp', 'BrANDed Drug Comp', 'BrANDed Dose Group',
---                                              'BrANDed Drug Box', 'Multiple Ingredients', 'BrANDed Pack', 'BrANDed Drug Form', 'BrANDed Pack Box',
---                                              'BrANDed Drug', 'Multiple Ingredients', 'BrAND Name','Quant BrANDed Box','Quant BrANDed Drug')
-                                        not in ('Brand Name',
-                                                    'Brand Drug Comp',
-                                                   'Brand Drug Component',
-                                                    'Clinical Dose Group',
-                                                    'Clinical Drug Comp',
-                                                   'Clinical Drug Component',
-                                                    'Dose Form',
-                                                   'Dose Form Group',
-                                                    'Ingredient',
-                                                    'Multiple Ingredients',
-                                                    'Precise Ingredient')
+                                        not in
+                                            ('Ingredient',
+                                             'Precise Ingredient',
+                                             'Multiple Ingredients'
+                                             'Brand Name',
+                                             'Brand',
+                                             'Branded Drug Comp',
+                                             'Branded Dose Group',
+                                             'Branded Drug Box',
+                                             'Branded Pack',
+                                             'Branded Drug Form',
+                                             'Branded Pack Box',
+                                             'Branded Drug',
+                                             'Branded Drug Component',
+                                             'Quant Branded Box',
+                                             'Quant Branded Drug',
+                                             'Drug',
+                                             'Clinical Drug Comp',
+                                             'Clinical Dose Group',
+                                             'Clinical Drug Component',
+                                             'Dose Form',
+                                             'Dose Form Group',
+                                             'Clinical Pack',
+                                             'Clinical Pack Box',
+                                             'Marketed Product')
 
 
                     AND c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
@@ -356,24 +369,31 @@ SELECT
                 JOIN devv5.concept c2 on ca.descendant_concept_id =  c2.concept_id
             WHERE
                     c2.concept_class_id
---                                             not in
---                                             ('Ingredient', 'Precise Ingredient',
---                                              'Brand Drug Component', 'Clinical Drug Component', 'Dose Form', 'Brand',
---                                              'Drug', 'Dose Form Group', 'Clinical Dose Group',
---                                              'Clinical Drug Comp', 'Brand Drug Comp', 'Brand Dose Group',
---                                              'Brand Drug Box', 'Multiple Ingredients', 'Brand Pack', 'Brand Drug Form', 'Brand Pack Box',
---                                             'Brand Drug', 'Multiple Ingredients', 'Brand Name','Quant Brand Box','Quant Brand Drug')
-                                                not in ('Brand Name',
-                                                    'Brand Drug Comp',
-                                                   'Brand Drug Component',
-                                                    'Clinical Dose Group',
-                                                    'Clinical Drug Comp',
-                                                   'Clinical Drug Component',
-                                                    'Dose Form',
-                                                   'Dose Form Group',
-                                                    'Ingredient',
-                                                    'Multiple Ingredients',
-                                                    'Precise Ingredient')
+                                        not in
+                                            ('Ingredient',
+                                             'Precise Ingredient',
+                                             'Multiple Ingredients'
+                                             'Brand Name',
+                                             'Brand',
+                                             'Branded Drug Comp',
+                                             'Branded Dose Group',
+                                             'Branded Drug Box',
+                                             'Branded Pack',
+                                             'Branded Drug Form',
+                                             'Branded Pack Box',
+                                             'Branded Drug',
+                                             'Branded Drug Component',
+                                             'Quant Branded Box',
+                                             'Quant Branded Drug',
+                                             'Drug',
+                                             'Clinical Drug Comp',
+                                             'Clinical Dose Group',
+                                             'Clinical Drug Component',
+                                             'Dose Form',
+                                             'Dose Form Group',
+                                             'Clinical Pack',
+                                             'Clinical Pack Box',
+                                             'Marketed Product')
 
                     AND c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                     AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
@@ -501,7 +521,6 @@ SELECT
 FROM dev_atc.class_ATC_RXN_huge_fin t1
 JOIN devv5.concept_relationship cr ON t1.ids = cr.concept_id_1
     AND t1.concept_class_id in ('Clinical Drug', 'Clinical Drug Form', 'Quant Clinical Drug')
-
     AND cr.relationship_id = 'RxNorm is a'
 JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id
     AND t2.invalid_reason IS NULL
@@ -517,92 +536,95 @@ SELECT DISTINCT *
 
 --9. Taking step aside AND adding relationships to all related forms through Dose Form Groups
 --Eg. Adding relationships to Oral Capsules if relationships to Oral Tablets exist
---DROP TABLE IF EXISTS  step_aside_source;
--- CREATE TABLE step_aside_source as
---     SELECT DISTINCT t1.concept_id,
---                                             t1.concept_name,
---                                             array_agg(t5.concept_id ORDER BY t5.concept_name)   AS array_ing_id,
---                                             array_agg(t5.concept_name ORDER BY t5.concept_name) AS array_ing,
---                                             t2.concept_id                                       AS dose_form_id,
---                                             t2.concept_name                                     AS dose_form_name,
---                                             t3.concept_id                                       AS dose_form_group_id,
---                                             t3.concept_name                                     AS dose_form_group_name,
---                                             t4.concept_id                                       AS potential_dose_form_id,
---                                             t4.concept_name                                     AS potential_dose_form_name
---                             FROM devv5.concept t1
---                                      --Dose Form
---                                      JOIN devv5.concept_relationship cr
---                                           on cr.concept_id_1 = t1.concept_id AND
---                                              t1.concept_class_id = 'Clinical Drug Form' AND
---                                              cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
---                                      JOIN devv5.concept t2
---                                           on cr.concept_id_2 = t2.concept_id AND t2.invalid_reason is null AND
---                                              t2.concept_class_id in ('Dose Form')
---                                 --Dose Form Group
---                                      JOIN devv5.concept_relationship cr2 on cr2.concept_id_1 = t2.concept_id AND
---                                                                             cr2.relationship_id = 'RxNorm is a' AND
---                                                                             cr2.invalid_reason is null
---                                      JOIN devv5.concept t3
---                                           on cr2.concept_id_2 = t3.concept_id AND t3.invalid_reason is null AND
---                                              t3.concept_class_id = 'Dose Form Group'
---                                 --all potential forms in the group
---                                      JOIN devv5.concept_relationship cr3 on cr3.concept_id_1 = t3.concept_id AND
---                                                                             cr3.relationship_id =
---                                                                             'RxNorm inverse is a' AND
---                                                                             cr3.invalid_reason is null
---                                      JOIN devv5.concept t4
---                                           on cr3.concept_id_2 = t4.concept_id AND t4.invalid_reason is null AND
---                                              t4.concept_class_id = 'Dose Form'
---
---                                 --Ingredients
---                                      JOIN devv5.concept_relationship cr4
---                                           on cr4.concept_id_1 = t1.concept_id AND
---                                              t1.concept_class_id = 'Clinical Drug Form' AND
---                                              cr4.relationship_id = 'RxNorm has ing' AND cr4.invalid_reason IS NULL
---                                      JOIN devv5.concept t5
---                                           on cr4.concept_id_2 = t5.concept_id AND t5.invalid_reason is null AND
---                                              t5.concept_class_id = 'Ingredient'
---
+DROP TABLE IF EXISTS  step_aside_source;
+CREATE TABLE step_aside_source as
+    SELECT DISTINCT t1.concept_id,
+                                            t1.concept_name,
+                                            array_agg(t5.concept_id ORDER BY t5.concept_name)   AS array_ing_id,
+                                            array_agg(t5.concept_name ORDER BY t5.concept_name) AS array_ing,
+                                            t2.concept_id                                       AS dose_form_id,
+                                            t2.concept_name                                     AS dose_form_name,
+                                            t3.concept_id                                       AS dose_form_group_id,
+                                            t3.concept_name                                     AS dose_form_group_name,
+                                            t4.concept_id                                       AS potential_dose_form_id,
+                                            t4.concept_name                                     AS potential_dose_form_name
+                            FROM devv5.concept t1
+                                     --Dose Form
+                                     JOIN devv5.concept_relationship cr
+                                          on cr.concept_id_1 = t1.concept_id AND t1.concept_class_id = 'Clinical Drug Form'
+                                                                             AND cr.relationship_id = 'RxNorm has dose form'
+                                                                             AND cr.invalid_reason IS NULL
+                                                                             AND t1.concept_id in (SELECT distinct ids
+                                                                                                   FROM dev_atc.class_ATC_RXN_huge_fin__    --Source table
+                                                                                                   WHERE concept_class_id = 'Clinical Drug Form')
+                                     JOIN devv5.concept t2
+                                          on cr.concept_id_2 = t2.concept_id AND t2.invalid_reason is null AND
+                                             t2.concept_class_id in ('Dose Form')
+                                --Dose Form Group
+                                     JOIN devv5.concept_relationship cr2 on cr2.concept_id_1 = t2.concept_id AND
+                                                                            cr2.relationship_id = 'RxNorm is a' AND
+                                                                            cr2.invalid_reason is null
+                                     JOIN devv5.concept t3
+                                          on cr2.concept_id_2 = t3.concept_id AND t3.invalid_reason is null AND
+                                             t3.concept_class_id = 'Dose Form Group'
+                                --all potential forms in the group
+                                     JOIN devv5.concept_relationship cr3 on cr3.concept_id_1 = t3.concept_id AND
+                                                                            cr3.relationship_id =
+                                                                            'RxNorm inverse is a' AND
+                                                                            cr3.invalid_reason is null
+                                     JOIN devv5.concept t4
+                                          on cr3.concept_id_2 = t4.concept_id AND t4.invalid_reason is null AND
+                                             t4.concept_class_id = 'Dose Form'
+
+                                --Ingredients
+                                     JOIN devv5.concept_relationship cr4
+                                          on cr4.concept_id_1 = t1.concept_id AND
+                                             t1.concept_class_id = 'Clinical Drug Form' AND
+                                             cr4.relationship_id = 'RxNorm has ing' AND cr4.invalid_reason IS NULL
+                                     JOIN devv5.concept t5
+                                          on cr4.concept_id_2 = t5.concept_id AND t5.invalid_reason is null AND
+                                             t5.concept_class_id = 'Ingredient'
+
 --                             WHERE t1.concept_id in (SELECT distinct ids
 --                                                     FROM dev_atc.class_ATC_RXN_huge_fin__    --Source table
 --                                                     WHERE concept_class_id = 'Clinical Drug Form')
---                               --filter out not useful dose form groups
---                               AND t3.concept_id NOT IN (
---                                 36217216 --Pill
---                                 )
---
---                             GROUP BY t1.concept_id, t1.concept_name, t2.concept_id, t2.concept_name, t3.concept_id,
---                                      t3.concept_name, t4.concept_id, t4.concept_name;
+                              --filter out not useful dose form groups
+                              WHERE  t3.concept_id NOT IN (
+                                36217216 --Pill
+                                )
 
---     DROP TABLE IF EXISTS  step_aside_target;
---     CREATE TABLE step_aside_target as
---     SELECT distinct t1.concept_id,
---                                             t1.concept_name,
---                                             array_agg(t5.concept_id ORDER BY t5.concept_name)   AS array_ing_id,
---                                             array_agg(t5.concept_name ORDER BY t5.concept_name) AS array_ing,
---                                             t2.concept_id                                       AS dose_form_id,
---                                             t2.concept_name                                     AS dose_form_name
---                             FROM devv5.concept t1
---                                      --Dose Form
---                                      JOIN devv5.concept_relationship cr
---                                           on cr.concept_id_1 = t1.concept_id AND
---                                              t1.concept_class_id = 'Clinical Drug Form' AND
---                                              cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
---                                      JOIN devv5.concept t2
---                                           on cr.concept_id_2 = t2.concept_id AND t2.invalid_reason is null AND
---                                              t2.concept_class_id in ('Dose Form')
---
---                                 --Ingredients
---                                      JOIN devv5.concept_relationship cr4
---                                           on cr4.concept_id_1 = t1.concept_id AND
---                                              t1.concept_class_id = 'Clinical Drug Form' AND
---                                              cr4.relationship_id = 'RxNorm has ing' AND cr4.invalid_reason IS NULL
---                                      JOIN devv5.concept t5
---                                           on cr4.concept_id_2 = t5.concept_id AND t5.invalid_reason is null AND
---                                              t5.concept_class_id = 'Ingredient'
---
---                             GROUP BY t1.concept_id, t1.concept_name, t2.concept_id, t2.concept_name;
---
+                            GROUP BY t1.concept_id, t1.concept_name, t2.concept_id, t2.concept_name, t3.concept_id,
+                                     t3.concept_name, t4.concept_id, t4.concept_name;
+
+    DROP TABLE IF EXISTS  step_aside_target;
+    CREATE TABLE step_aside_target as
+    SELECT distinct t1.concept_id,
+                                            t1.concept_name,
+                                            array_agg(t5.concept_id ORDER BY t5.concept_name)   AS array_ing_id,
+                                            array_agg(t5.concept_name ORDER BY t5.concept_name) AS array_ing,
+                                            t2.concept_id                                       AS dose_form_id,
+                                            t2.concept_name                                     AS dose_form_name
+                            FROM devv5.concept t1
+                                     --Dose Form
+                                     JOIN devv5.concept_relationship cr
+                                          on cr.concept_id_1 = t1.concept_id AND
+                                             t1.concept_class_id = 'Clinical Drug Form' AND
+                                             cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
+                                     JOIN devv5.concept t2
+                                          on cr.concept_id_2 = t2.concept_id AND t2.invalid_reason is null AND
+                                             t2.concept_class_id in ('Dose Form')
+
+                                --Ingredients
+                                     JOIN devv5.concept_relationship cr4
+                                          on cr4.concept_id_1 = t1.concept_id AND
+                                             t1.concept_class_id = 'Clinical Drug Form' AND
+                                             cr4.relationship_id = 'RxNorm has ing' AND cr4.invalid_reason IS NULL
+                                     JOIN devv5.concept t5
+                                          on cr4.concept_id_2 = t5.concept_id AND t5.invalid_reason is null AND
+                                             t5.concept_class_id = 'Ingredient'
+
+                            GROUP BY t1.concept_id, t1.concept_name, t2.concept_id, t2.concept_name;
+
 drop table if exists atc_step_aside_final;
 create table atc_step_aside_final as
 SELECT
@@ -635,7 +657,7 @@ FROM dev_atc.class_ATC_RXN_huge_fin__ t1
      WHERE (t1.class_code, t2.target_concept_id) NOT IN --- remove all 'bad' mappings according manual check
                                   (
                                    SELECT concept_code_atc,
-                                          concept_id_rx
+                                          concept_id_rx::INT
                                    FROM dev_atc.atc_rxnorm_to_drop_in_sources
                                    WHERE drop = 'D')
 
@@ -650,7 +672,7 @@ UNION
      WHERE (class_code, ids) NOT IN  --- remove all 'bad' mappings according manual check
                                   (
                                    SELECT concept_code_atc,
-                                          concept_id_rx
+                                          concept_id_rx::INT
                                    FROM dev_atc.atc_rxnorm_to_drop_in_sources
                                    WHERE drop = 'D')
      )
@@ -659,12 +681,12 @@ UNION
 -------------------------------------------------------------
 
 --11. Clean up the temporary tables
-DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
---DROP TABLE IF EXISTS step_aside_source;
---DROP TABLE IF EXISTS step_aside_target;
-DROP TABLE IF EXISTS atc_step_aside_final;
-DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
-DROP TABLE IF EXISTS class_ATC_RXN_huge_fin;
-DROP TABLE IF EXISTS class_ATC_RXN_huge_temp;
-DROP TABLE IF EXISTS class_ATC_RXN_huge_ancestor_temp;
-DROP TABLE IF EXISTS class_ATC_RXN_huge;
+-- DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
+-- DROP TABLE IF EXISTS step_aside_source;
+-- DROP TABLE IF EXISTS step_aside_target;
+-- DROP TABLE IF EXISTS atc_step_aside_final;
+-- DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
+-- DROP TABLE IF EXISTS class_ATC_RXN_huge_fin;
+-- DROP TABLE IF EXISTS class_ATC_RXN_huge_temp;
+-- DROP TABLE IF EXISTS class_ATC_RXN_huge_ancestor_temp;
+-- DROP TABLE IF EXISTS class_ATC_RXN_huge;

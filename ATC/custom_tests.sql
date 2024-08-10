@@ -223,3 +223,46 @@ from dev_atc.concept c
 where lower(cs1.concept_synonym_name) is distinct from  lower(cs2.concept_synonym_name)
 
 ;
+
+
+--- Number of one_component drugs for combo codes
+WITH CTE_2 as (
+with CTE as (SELECT
+    c1.concept_code,
+    c1.concept_name,
+    c2.concept_name as secondary,
+    count(c3.concept_name) as n_ings
+FROM
+    dev_atc.concept_relationship cr
+    join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id
+                          and c1.vocabulary_id = 'ATC'
+                          and length(c1.concept_code) = 7
+                          and c1.invalid_reason is NULL
+                          and cr.invalid_reason is NULL
+                          and cr.relationship_id = 'ATC - RxNorm'
+    join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id
+                          and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                          and c2.concept_class_id = 'Clinical Drug Form'
+                          and c2.invalid_reason is NULL
+    join dev_atc.concept_relationship cr2 on cr.concept_id_2 = cr2.concept_id_1
+                          and cr2.relationship_id = 'RxNorm has ing'
+    join dev_atc.concept c3 on cr2.concept_id_2 = c3.concept_id
+group by c1.concept_code, c1.concept_name, c2.concept_name)
+
+select
+concept_code,
+concept_name,
+CASE WHEN n_ings = 1 then 1
+     ELSE 0 end as one_ing,
+CASE WHEN n_ings > 1 then 1
+     ELSE 0 end as multi_ing
+from CTE)
+
+SELECT
+    concept_code,
+    concept_name,
+    SUM(one_ing) as one_ing,
+    SUM(multi_ing) as multi_ing
+FROM CTE_2
+group by concept_code, concept_name
+order by concept_code;

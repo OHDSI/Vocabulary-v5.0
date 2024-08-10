@@ -68,10 +68,21 @@ SELECT
         invalid_reason
 FROM
             (
+                WITH CTE as  ---Subquery to add 4th lvl class name before uninformative 5th class names combinations, various, various combinations
+                    (
+                        select
+                            atc_1.class_code as class_code,
+                            lower(atc_2.class_name) || ' - ' || atc_1.class_name as combo_name
+                        from sources.atc_codes atc_1
+                             join sources.atc_codes atc_2 on left(atc_1.class_code,5) = atc_2.class_code
+                                                          and lower(atc_1.class_name) in ('combinations', 'various', 'various combinations')
+                                                          and length(atc_1.class_code) = 7)
                 select
                     DISTINCT NULL::int as concept_id,
                     CASE
-                        WHEN active = 'NA' or active = 'C' THEN t1.class_name
+                        WHEN (active = 'NA' or active = 'C') and t1.class_name not in ('combinations', 'various', 'various combinations') THEN t1.class_name   --- If not D and U and not in list ('combinations', 'various', 'various combinations')
+                        WHEN (active = 'NA' or active = 'C') and t1.class_name in ('combinations', 'various', 'various combinations') THEN t3.combo_name --- If name in ('combinations', 'various', 'various combinations')
+                        WHEN (active = 'D' or active = 'U') and t1.class_name in ('combinations', 'various', 'various combinations') THEN '[' || active || '] ' || t3.combo_name --- If D or U and name in ('combinations', 'various', 'various combinations')
                         ELSE '[' || active || '] ' || t1.class_name
                     END AS name,
                     t2.new as adm_r,
@@ -102,6 +113,7 @@ FROM
                     END AS invalid_reason
                 FROM sources.atc_codes t1
                 left join dev_atc.new_adm_r t2 on t1.class_code = t2.class_code
+                left join CTE t3 on t1.class_code = t3.class_code
                 WHERE t1.active != 'C'
             ) t1;
 
@@ -159,7 +171,7 @@ FROM
                            WHEN adm_r = 'Inhal' THEN 'Inhal'
                            WHEN adm_r = 'intravesical' THEN 'Intravesical'
                            WHEN adm_r = 'R' THEN 'Rectal Product'
-                           WHEN adm_r = 'implant' THEN 'Implan'
+                           WHEN adm_r = 'implant' THEN 'Implant'
                            END                                     AS product
                 FROM
                     sources.atc_codes
@@ -422,7 +434,7 @@ AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT t1.conc
                                                                            'ATC - RxNorm' as relationship,
                                                                             t2.concept_code
                                                                     FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
-                                                                         join devv5.concept t2 on t1.concept_id_rx = t2.concept_id
+                                                                         join devv5.concept t2 on t1.concept_id_rx::INT = t2.concept_id
                                                                     WHERE drop = 'D')
 AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT concept_code_1,  --- Not already in concept_relationship_stage
                                                                            relationship_id,
@@ -448,8 +460,44 @@ WHERE (concept_code_1, relationship_id, concept_code_2) IN
                                                         AND cr.invalid_reason = 'D')
 AND invalid_reason is NULL;
 
+-- 11. COVID-19 Manual mapping. Kill all ATC - RxNorm that came from sources (because they are not representative
+-- while they are on Clinical Drug Form level)
+UPDATE concept_relationship_stage
+SET invalid_reason = 'D',
+    valid_end_date = CURRENT_DATE
+where (concept_code_1,concept_code_2) in
+                                    (SELECT concept_code_atc,
+                                           c1.concept_code as concept_code_rxnorm
+                                    FROM covid19_atc_rxnorm_manual cov
+                                         join devv5.concept c1 on cov.concept_id = c1.concept_id
+                                                                      and c1.vocabulary_id in ('RxNorm','RxNorm Extension')
+                                                                      and cov.to_drop = 'D');
+--- and add manually mapped (on clinical Drugs)
 
---11. Process manual relationships
+INSERT INTO concept_relationship_stage
+    (
+    concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date
+	)
+SELECT
+    concept_code_atc AS concept_code_1,
+	c1.concept_code AS concept_code_2,
+	'ATC' AS vocabulary_id_1,
+	c1.vocabulary_id AS vocabulary_id_2,
+	'ATC - RxNorm' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM covid19_atc_rxnorm_manual cov
+    JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id
+        AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
+        AND cov.to_drop IS NULL;
+
+--12. Process manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
@@ -458,31 +506,31 @@ END $_$;
 
 ANALYZE concept_relationship_stage;
 
---12. Working with replacement mappings
+--13. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---13. Add mapping from deprecated to fresh concepts
+--14. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---14. Add mapping (to value) from deprecated to fresh concepts
+--15. Add mapping (to value) from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---16. Delete ambiguous 'Maps to' mappings
+--17. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DELETEAmbiguousMAPSTO();

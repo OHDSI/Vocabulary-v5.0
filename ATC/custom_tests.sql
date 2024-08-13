@@ -264,3 +264,143 @@ SELECT
 FROM CTE_2
 group by concept_code, concept_name
 order by concept_code;
+
+
+--- New ATC - RxNorm Links
+select c1.vocabulary_id,
+       count(*)
+from dev_atc.concept_relationship cr
+     join dev_atc.concept c1 on cr.concept_id_2 = c1.concept_id
+where relationship_id = 'ATC - RxNorm'
+and (cr.concept_id_1, cr.concept_id_2) not in (select
+                                                     concept_id_1,
+                                                     concept_id_2
+                                                 from devv5.concept_relationship
+                                                 where relationship_id = 'ATC - RxNorm'
+                                                 and invalid_reason is null)
+and cr.invalid_reason is null
+group by c1.vocabulary_id;
+
+--- deprecated links
+select c1.vocabulary_id,
+       count(*)
+from devv5.concept_relationship cr
+     join devv5.concept c1 on cr.concept_id_2 = c1.concept_id
+where relationship_id = 'ATC - RxNorm'
+and (cr.concept_id_1, cr.concept_id_2) not in (select
+                                             concept_id_1,
+                                             concept_id_2
+                                         from dev_atc.concept_relationship
+                                         where relationship_id = 'ATC - RxNorm'
+                                               AND invalid_reason IS NULL)
+AND cr.invalid_reason IS NULL
+group by c1.vocabulary_id;
+
+
+
+
+---------- Check of accordance of ATC_Code - Dose Forms
+
+-- DROP TABLE IF EXISTS root_forms_for_check;
+-- create table root_forms_for_check as   ---- Take actual roots from current dev_atc.concept
+-- select
+--     trim(t5.new) as coalesce,
+--     string_agg(distinct t3.concept_name, ',')
+-- from
+--     dev_atc.concept t1
+--     join dev_atc.concept_relationship cr on t1.concept_id = cr.concept_id_1 and t1.invalid_reason is null
+--                                                                           and cr.invalid_reason is null
+--                                                                           and cr.relationship_id = 'ATC - RxNorm'
+--                                                                           and t1.concept_class_id = 'ATC 5th'
+--     join dev_atc.new_adm_r t5 on t1.concept_code = t5.class_code
+--     join dev_atc.concept t2 on cr.concept_id_2 = t2.concept_id and t2.invalid_reason is null
+--                                                              and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+--                                                              and t2.concept_class_id = 'Clinical Drug Form'
+--     join dev_atc.concept_relationship cr2 on cr2.concept_id_1 = t2.concept_id and cr2.invalid_reason is Null
+--                                                                             and cr2.relationship_id = 'RxNorm has dose form'
+--     join dev_atc.concept t3 on cr2.concept_id_2 = t3.concept_id and t3.invalid_reason is NULL
+--
+-- group by  t5.new;
+--
+-- select *
+--     from dev_atc.root_forms_for_check;
+
+---- Here is manual curated list of adm.r - Dose Forms from previous query.
+DROP TABLE IF EXISTS root_forms_for_check;
+CREATE TABLE root_forms_for_check as
+    SELECT
+        coalesce,
+        string_agg(concept_name, ',')
+        FROM all_adm_r_filter
+        group by coalesce
+        ;
+
+DROP TABLE IF EXISTS temp_check;
+create table temp_check as
+select
+    c1.concept_id as atc_concept_id,
+    c1.concept_code as atc_concept_code,
+    c1.concept_name as atc_concept_name,
+    trim(split_part(c1.concept_name, ';', 2)) as root,
+    c3.concept_name as rxnorm_form,
+    c2.concept_id as rxnorm_concept_id,
+    c2.concept_name as rxnorm_concept_name,
+    string_agg
+from dev_atc.concept_relationship t1
+     join dev_atc.concept c1 on t1.concept_id_1=c1.concept_id
+                                    and length(c1.concept_code) = 7
+                                    and c1.vocabulary_id = 'ATC'
+                                    and c1.invalid_reason is NULL
+                                    and t1.invalid_reason is NULL
+     join dev_atc.concept c2 on t1.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                --and c2.concept_class_id = 'Clinical Drug Form'
+                                                                and t1.relationship_id = 'ATC - RxNorm'
+                                                                and t1.invalid_reason is NULL
+                                                                and c2.invalid_reason is NULL
+     join dev_atc.root_forms_for_check t2 on trim(split_part(c1.concept_name, ';', 2)) = trim(t2.coalesce)
+     join dev_atc.concept_relationship cr on t1.concept_id_2 = cr.concept_id_1 and cr.relationship_id = 'RxNorm has dose form'
+     join dev_atc.concept c3 on c3.concept_id = cr.concept_id_2 and c3.vocabulary_id in ('RxNorm', 'RxNorm Extension');
+
+DROP TABLE IF EXISTS temp_check_results;
+create table temp_check_results as
+    SELECT
+    atc_concept_id,
+    atc_concept_code,
+    atc_concept_name,
+    root,
+    rxnorm_form,
+    rxnorm_concept_id,
+    rxnorm_concept_name,
+    string_agg,
+    CASE
+        WHEN rxnorm_form ILIKE ANY (string_to_array(string_agg, ',')) THEN 'NO'
+        ELSE 'YES'
+    END AS for_check
+FROM
+    dev_atc.temp_check;
+
+drop table if exists temp_check_results_only_yes;
+create table temp_check_results_only_yes as
+select
+    distinct atc_concept_id,
+    atc_concept_code,
+    atc_concept_name,
+    root,
+    rxnorm_form,
+    rxnorm_concept_name,
+    rxnorm_concept_id
+from dev_atc.temp_check_results
+where for_check = 'YES';
+
+select distinct atc_concept_id,
+       atc_concept_code,
+       atc_concept_name,
+       root,
+       NULL as drop,
+       rxnorm_form,
+       rxnorm_concept_id,
+       rxnorm_concept_name
+FROM dev_atc.temp_check_results_only_yes
+where rxnorm_form  != 'Pack'
+order by root, rxnorm_form;
+

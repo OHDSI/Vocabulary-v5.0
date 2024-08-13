@@ -220,9 +220,7 @@ select c.concept_id,
 from dev_atc.concept c
     join dev_atc.concept_synonym cs1 on c.concept_id = cs1.concept_id and c.vocabulary_id = 'ATC' and length(concept_code) = 7
     join devv5.concept_synonym cs2 on c.concept_id = cs2.concept_id
-where lower(cs1.concept_synonym_name) is distinct from  lower(cs2.concept_synonym_name)
-
-;
+where lower(cs1.concept_synonym_name) is distinct from  lower(cs2.concept_synonym_name);
 
 
 --- Number of one_component drugs for combo codes

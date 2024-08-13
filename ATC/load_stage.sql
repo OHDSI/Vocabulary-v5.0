@@ -37,7 +37,6 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
-
 --3. Populate concept_stage
 INSERT INTO concept_stage
             (
@@ -52,6 +51,7 @@ INSERT INTO concept_stage
                 valid_end_date,
                 invalid_reason
             )
+
 SELECT
         t1.concept_id,
         CASE
@@ -61,7 +61,8 @@ SELECT
         domain_id,
         vocabulary_id,
         concept_class_id,
-        standard_concept,
+        CASE WHEN left(t1.name,3) not in ('[U]', '[D]') THEN 'C'
+            ELSE NULL END AS standard_concept,
         concept_code,
         valid_start_date,
         valid_end_date,
@@ -95,7 +96,7 @@ FROM
                         WHEN length(t1.class_code) = 5 then 'ATC 4th'
                         WHEN length(t1.class_code) = 7 then 'ATC 5th'
                     END AS concept_class_id,
-                    'C' as standard_concept,
+                    'C' as stc,
                     t1.class_code as concept_code,
                     CASE
                         WHEN active = 'NA' AND t1.class_code not in (
@@ -428,13 +429,13 @@ AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (select t1.atc_
                                                                            'ATC - RxNorm' as relationship,
                                                                            t2.concept_code
                                                                   from dev_atc.existent_atc_rxnorm_to_drop t1
-                                                                         join devv5.concept t2 on t1.concept_id = t2.concept_id
+                                                                         join devv5.concept t2 on t1.concept_id = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                                                                   where to_drop = 'D')
-AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT t1.concept_code_atc,   ---- Not in manually reviwed drop-list of source codes
-                                                                           'ATC - RxNorm' as relationship,
-                                                                            t2.concept_code
+AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT DISTINCT t1.concept_code_atc,   ---- Not in manually reviwed drop-list of source codes
+                                                                                   'ATC - RxNorm' as relationship,
+                                                                                    t2.concept_code
                                                                     FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
-                                                                         join devv5.concept t2 on t1.concept_id_rx::INT = t2.concept_id
+                                                                         join devv5.concept t2 on t1.concept_id_rx::INT = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                                                                     WHERE drop = 'D')
 AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT concept_code_1,  --- Not already in concept_relationship_stage
                                                                            relationship_id,
@@ -474,6 +475,7 @@ where (concept_code_1,concept_code_2) in
                                                                       and cov.to_drop = 'D');
 --- and add manually mapped (on clinical Drugs)
 
+
 INSERT INTO concept_relationship_stage
     (
     concept_code_1,
@@ -496,6 +498,7 @@ FROM covid19_atc_rxnorm_manual cov
     JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id
         AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
         AND cov.to_drop IS NULL;
+
 
 --12. Process manual relationships
 DO $_$

@@ -656,10 +656,9 @@ FROM dev_atc.class_ATC_RXN_huge_fin__ t1
 
      WHERE (t1.class_code, t2.target_concept_id) NOT IN --- remove all 'bad' mappings according manual check
                                   (
-                                   SELECT concept_code_atc,
-                                          concept_id_rx::INT
-                                   FROM dev_atc.atc_rxnorm_to_drop_in_sources
-                                   WHERE drop = 'D')
+                                   select distinct concept_code_atc, concept_id_rx
+                                    from dev_atc.atc_rxnorm_to_drop_in_sources
+                                    where drop = 'D')
 
 ) t1
 
@@ -671,22 +670,20 @@ UNION
      FROM dev_atc.class_ATC_RXN_huge_fin__
      WHERE (class_code, ids) NOT IN  --- remove all 'bad' mappings according manual check
                                   (
-                                   SELECT concept_code_atc,
-                                          concept_id_rx::INT
-                                   FROM dev_atc.atc_rxnorm_to_drop_in_sources
-                                   WHERE drop = 'D')
+                                   select distinct concept_code_atc, concept_id_rx
+                                    from dev_atc.atc_rxnorm_to_drop_in_sources
+                                    where drop = 'D')
      )
 ;
-
 -------------------------------------------------------------
 
 --11. Clean up the temporary tables
--- DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
--- DROP TABLE IF EXISTS step_aside_source;
--- DROP TABLE IF EXISTS step_aside_target;
--- DROP TABLE IF EXISTS atc_step_aside_final;
--- DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
--- DROP TABLE IF EXISTS class_ATC_RXN_huge_fin;
--- DROP TABLE IF EXISTS class_ATC_RXN_huge_temp;
--- DROP TABLE IF EXISTS class_ATC_RXN_huge_ancestor_temp;
--- DROP TABLE IF EXISTS class_ATC_RXN_huge;
+DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
+DROP TABLE IF EXISTS step_aside_source;
+DROP TABLE IF EXISTS step_aside_target;
+DROP TABLE IF EXISTS atc_step_aside_final;
+DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
+DROP TABLE IF EXISTS class_ATC_RXN_huge_fin;
+DROP TABLE IF EXISTS class_ATC_RXN_huge_temp;
+DROP TABLE IF EXISTS class_ATC_RXN_huge_ancestor_temp;
+DROP TABLE IF EXISTS class_ATC_RXN_huge;

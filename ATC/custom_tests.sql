@@ -404,3 +404,54 @@ FROM dev_atc.temp_check_results_only_yes
 where rxnorm_form  != 'Pack'
 order by root, rxnorm_form;
 
+
+
+-------- Compare of counts different concept_class_id's connected to ATC
+SELECT t1.dev_atc_cr,
+       t1.dev_atc_atccid,
+       t1.dev_atc_cid,
+       t1.dev_atc_count,
+       t2.devv5_count,
+       t2.devv5_cid,
+       t2.dev_atc_atccid,
+       t2.devv5_cr
+FROM
+(select
+    cr.relationship_id as dev_atc_cr,
+    c1.concept_class_id as dev_atc_atccid,
+    c2.concept_class_id as dev_atc_cid,
+    count(*) as dev_atc_count
+from dev_atc.concept_relationship cr
+     join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id
+                             and cr.invalid_reason is null
+                             and c1.invalid_reason is null
+                             and c1.vocabulary_id = 'ATC'
+     join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id
+                             and cr.invalid_reason is null
+                             and c2.invalid_reason is null
+                             and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+group by cr.relationship_id, c1.concept_class_id, c2.concept_class_id) t1
+
+FULL JOIN
+
+(select
+    cr.relationship_id as devv5_cr,
+    c1.concept_class_id as dev_atc_atccid,
+    c2.concept_class_id as devv5_cid,
+    count(*) as devv5_count
+from devv5.concept_relationship cr
+     join devv5.concept c1 on cr.concept_id_1 = c1.concept_id
+                             and cr.invalid_reason is null
+                             and c1.invalid_reason is null
+                             and c1.vocabulary_id = 'ATC'
+     join devv5.concept c2 on cr.concept_id_2 = c2.concept_id
+                             and cr.invalid_reason is null
+                             and c2.invalid_reason is null
+                             and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+group by cr.relationship_id, c1.concept_class_id, c2.concept_class_id) t2
+
+on t1.dev_atc_cr = t2.devv5_cr
+       and t1.dev_atc_atccid = t2.dev_atc_atccid
+       and t1.dev_atc_cid = t2.devv5_cid
+
+ORDER BY t1.dev_atc_cr, t1.dev_atc_cid;

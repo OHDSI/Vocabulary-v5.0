@@ -2,7 +2,6 @@
 --current selection of domains and concept_classes is based on a current state of OHDSI vocabs
 SELECT c.domain_id, c.concept_class_id, count(c.concept_id)
 FROM devv5.concept c
-
 WHERE (c.domain_id = 'Unit' AND c.concept_class_id NOT IN ('Canonical Unit', 'Unit'))
         OR (c.domain_id = 'Visit' AND c.concept_class_id NOT IN ('Visit'))
         OR (c.domain_id = 'Type Concept' AND c.concept_class_id NOT IN ('Type Concept'))
@@ -22,12 +21,9 @@ WHERE (c.domain_id = 'Unit' AND c.concept_class_id NOT IN ('Canonical Unit', 'Un
         OR (c.domain_id = 'Plan Stop Reason' AND c.concept_class_id NOT IN ('Plan Stop Reason'))
         OR (c.domain_id = 'Payer' AND c.concept_class_id NOT IN ('Payer'))
         OR (c.domain_id = 'Plan' AND c.concept_class_id NOT IN ('Plan'))
-
 --TODO: proceed with other domains
-
-GROUP BY domain_id, concept_class_id;
-
-
+GROUP BY domain_id, concept_class_id
+;
 
 --Check if new domains in standard concepts appear outside of these vocabularies
 SELECT c.vocabulary_id, c.domain_id, count(c.concept_id) AS counts
@@ -38,7 +34,6 @@ GROUP BY vocabulary_id, domain_id
 ORDER BY vocabulary_id, counts DESC
 ;
 
-
 --Text matching if measurements are assigned Measurement domain
 --1203
 SELECT count(*)
@@ -46,7 +41,6 @@ FROM devv5.concept c
 WHERE standard_concept ='S'
 AND domain_id != 'Measurement'
 AND concept_name ILIKE '%measurement%';
-
 
 --Number of Standard procedures that have a Measurement (not necessarily Standard) with a same name and not mapped to them
 --160
@@ -66,7 +60,6 @@ WHERE NOT EXISTS (SELECT 1
     AND sub.domain_id = 'Procedure')
 ;
 
-
 --Number of Standard Measurements that have a Procedure with a same name and not mapped to them
 --345
 SELECT COUNT(DISTINCT c2.concept_id)
@@ -85,13 +78,12 @@ WHERE NOT EXISTS (SELECT 1
     AND sub.domain_id = 'Measurement')
 ;
 
-
 -- Presumably, concepts that represent ingredients of drugs should be drugs (SNOMED check)
-SELECT c.*
-FROM concept c
-JOIN concept_relationship cr
+SELECT DISTINCT c.*
+FROM devv5.concept c
+JOIN devv5.concept_relationship cr
     ON cr.concept_id_1 = c.concept_id
-JOIN concept cc
+JOIN devv5.concept cc
     ON cc.concept_id = cr.concept_id_2
 WHERE cr.relationship_id = 'Prec ingredient of' AND cr.invalid_reason IS NULL
 AND cc.domain_id = 'Drug'
@@ -124,11 +116,9 @@ AND c.domain_id not in ('Drug', 'Provider')
 AND vocabulary_id != 'AMIS' -- in German
 ORDER BY vocabulary_id, domain_id, standard_concept, concept_name
 ;
+
 --here's much more optimized query
---it returns so many 
---reactions to drug, 
---measurement of drugs, 
---similarly sounding things Entire alveolar epit*helium* -> helium: this can be fixed by adding spaces or symbols around the ingredient name
+--it returns so many reactions to drug, measurement of drugs, similarly sounding things Entire alveolar epit*helium* -> helium: this can be fixed by adding spaces or symbols around the ingredient name
 -- not sure it worth to look at all these exclusions
 create table inged_domain_check as
 select c2.concept_id as checked_concept_id, c2.concept_name as checked_concept_name,
@@ -140,6 +130,7 @@ and c2.standard_concept ='S'
 and c2.domain_id not in ('Drug', 'Regimen')
 --and c2.vocabulary_id ='SNOMED' -- you can analyze one particular vocabulary
 ;
+
 --modification of it, that looks at source procedure vocabularies, returns 271 concepts, so can be easily reviewed
 --it assess the mapping of concepts, but technically it's the same in this case
 --! \\d is a redshift dialect, use \d in PG
@@ -161,9 +152,6 @@ and  c.concept_name ~*'^Administration|administered through|^Introduction of |pe
 --or c.concept_name ~* '\\d mg|units|ml|meg|mcg|millicurie|gram|grams|million|cc'
 order by c.vocabulary_id , c.concept_code 
 ;
-
-
-
 
 --concept is present in drug_strength but has not Drug domain
 SELECT * FROM concept c

@@ -1,5 +1,4 @@
 -- Rule: every non-S concept should be mapped to Standard, or mapped to 0
-
 -- Distribution of concepts by vocabulary and domains which are non-standard without valid mapping
 SELECT
     c.domain_id,
@@ -33,10 +32,7 @@ ORDER BY
    c.vocabulary_id,
    concept_count DESC;
 
-
-
 -- Concepts in selected vocabulary and domain which are non-standard without valid mapping
-
 SELECT *
 FROM
     devv5.concept AS c
@@ -62,7 +58,6 @@ WHERE
 
 
 -- Patrick’s version of QC check:
-
 --insert into vocabqc (check_type, check_result, check_count)
 select 'orphan concepts: no valid non-standard concepts have niether a map to >=1 standard nor map to 0 (No matching concept)' as check_type,
   case when num_concepts = 0 then 'Pass' else 'Fail' end as check_result,
@@ -95,5 +90,5 @@ from
 
   ) t1
 
-) t2;
-
+) t2
+;

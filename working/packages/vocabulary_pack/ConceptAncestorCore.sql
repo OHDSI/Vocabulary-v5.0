@@ -54,7 +54,7 @@ BEGIN
 			c2.vocabulary_id = ANY (iVocabularies)
 			OR iVocabularies IS NULL
 			)
-	WHERE (pIncludeInvalidReason OR r.invalid_reason IS NULL);
+	WHERE r.invalid_reason IS NULL;
 
 	CREATE INDEX idx_temp_ca_base$ ON temporary_ca_base$ (ancestor_concept_id) INCLUDE (descendant_concept_id, levels_of_separation) WITH (FILLFACTOR=100);
 	ANALYZE temporary_ca_base$;
@@ -158,7 +158,7 @@ BEGIN
 			SELECT c_int.vocabulary_id
 			FROM concept_relationship cr_int
 			JOIN concept c_int ON c_int.concept_id = cr_int.concept_id_1
-			WHERE (pIncludeInvalidReason OR cr_int.invalid_reason IS NULL)
+			WHERE r_int.invalid_reason IS NULL
 			)
 		AND (pIncludeInvalidReason OR c.invalid_reason IS NULL)
 		AND (pIncludeNonStandard OR c.standard_concept IS NOT NULL);

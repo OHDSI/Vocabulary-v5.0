@@ -294,10 +294,10 @@ BEGIN
 END $_$;
 
 --14. Add mapping from deprecated to fresh concepts for 'Maps to value'
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
+--DO $_$
+--BEGIN
+--	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+--END $_$;
 
 --15. Update domain_id for ICD9CM
 UPDATE concept_stage cs

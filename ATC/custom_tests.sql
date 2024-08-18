@@ -1,4 +1,151 @@
----- What new ATC - RxNorm connections appeared for every code compared to the old version
+/***** 
+Pass-Fail checks
+*******/
+
+-- new ATC should not have fewer concepts compared to old ATC
+drop table if exists atc_checks;
+create temp table atc_checks
+    as
+    with a as (select count(*) as old_cnt, 'ATC count' as check_group
+           from devv5.concept c1
+    where c1.vocabulary_id = 'ATC'),
+b as (
+    select count(*) as new_cnt, 'ATC count' as check_group
+     from dev_atc.concept c1
+    where c1.vocabulary_id = 'ATC')
+select *, case when new_cnt>=old_cnt then 'P' else 'F' end as result
+from a
+    join b using (check_group);
+
+-- new ATC should not have fewer mappings compared to old ATC
+with a as (select count(*) as old_cnt, 'ATC-ingredient Maps to count' as check_group
+           from devv5.concept c1
+                    join devv5.concept_relationship cr1 on c1.concept_id = cr1.concept_id_1
+               and c1.vocabulary_id = 'ATC' and c1.concept_class_id = 'ATC 5th'
+               and cr1.invalid_reason is null
+               and cr1.relationship_id = 'Maps to'
+           ),
+     b as (
+         select count(*) as new_cnt, 'ATC-ingredient Maps to count' as check_group
+         from dev_atc.concept c1
+                  join dev_atc.concept_relationship cr1 on c1.concept_id = cr1.concept_id_1
+             and c1.vocabulary_id = 'ATC' and c1.concept_class_id = 'ATC 5th'
+             and cr1.invalid_reason is null
+             and cr1.relationship_id = 'Maps to')
+insert into atc_checks
+select *, case when new_cnt>=old_cnt then 'P' else 'F' end as result
+from a
+         join b using (check_group);
+
+-- There should be no links that are both valid and invalid
+insert into atc_checks
+select check_group,null, cnt, case when cnt=0 then 'P' else 'F' end as result
+from
+(select count(*) as cnt, 'Valid and invalid link count' as check_group
+from dev_atc.concept_relationship cr
+         join dev_atc.concept c on c.concept_id = cr.concept_id_1 and c.concept_class_id = 'ATC 5th'
+         join dev_atc.concept_relationship cr2 on cr2.concept_id_1 = cr.concept_id_1
+    and cr2.relationship_id = cr.relationship_id
+    and cr2.concept_id_2 = cr.concept_id_2 and cr.invalid_reason is null and cr2.invalid_reason is not null) a ;
+
+--- There should be no links that are are both pr/sec or lat/up
+insert into atc_checks
+select check_group,null, cnt, case when cnt=0 then 'P' else 'F' end as result
+    from
+(select count(*) as cnt, 'Ingredients assigned different links' as check_group
+from dev_atc.concept_relationship cr
+         join dev_atc.concept c on c.concept_id = cr.concept_id_1 and c.concept_class_id = 'ATC 5th'
+         join dev_atc.concept_relationship cr2 on cr2.concept_id_1 = cr.concept_id_1
+    and cr2.relationship_id != cr.relationship_id
+    and cr.relationship_id in ('ATC - RxNorm sec up','ATC - RxNorm sec lat','ATC - RxNorm pr up','ATC - RxNorm pr lat')
+    and  cr2.relationship_id in ('ATC - RxNorm sec up','ATC - RxNorm sec lat','ATC - RxNorm pr up','ATC - RxNorm pr lat')
+    and cr2.concept_id_2 = cr.concept_id_2 and cr.invalid_reason is null and cr2.invalid_reason is  null) a;
+
+-- No RxNorm drugs that have 1 ingredient should be assigned combo ATC code
+WITH CTE_2 as (
+    with CTE as (SELECT
+                     c1.concept_code,
+                     c1.concept_name,
+                     c2.concept_name as secondary,
+                     count(c3.concept_name) as n_ings
+                 FROM
+                     dev_atc.concept_relationship cr
+                         join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id
+                         and c1.vocabulary_id = 'ATC' and c1.concept_class_id = 'ATC 5th'
+                         and c1.invalid_reason is NULL
+                         and cr.invalid_reason is NULL
+                         and cr.relationship_id = 'ATC - RxNorm'
+                         join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id
+                         and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                         and c2.concept_class_id = 'Clinical Drug Form'
+                         and c2.invalid_reason is NULL
+                         join dev_atc.concept_relationship cr2 on cr.concept_id_2 = cr2.concept_id_1
+                         and cr2.relationship_id = 'RxNorm has ing'
+                         join devv5.concept c3 on cr2.concept_id_2 = c3.concept_id
+                 group by c1.concept_code, c1.concept_name, c2.concept_name)
+
+    select
+        concept_code,
+        concept_name,
+        CASE WHEN n_ings = 1 then 1
+             ELSE 0 end as one_ing,
+        CASE WHEN n_ings > 1 then 1
+             ELSE 0 end as multi_ing
+    from CTE),
+     CTE_3 as (
+         SELECT
+             concept_code,
+             concept_name,
+             SUM(one_ing) as one_ing,
+             SUM(multi_ing) as multi_ing
+         FROM CTE_2
+         group by concept_code, concept_name
+         order by concept_code),
+cte_4 as (
+    SELECT *
+    FROM CTE_3
+    WHERE concept_name LIKE '%combinations%' AND one_ing>0
+    UNION
+    SELECT *
+    FROM CTE_3
+    WHERE concept_name LIKE '% and %' AND one_ing>0 -- excludes things where form is not specified (doesn't have ';' ) b/c haven't figured out better regexp
+    )
+insert into atc_checks
+select 'Rx mono drug assigned to ATC combo' as group,null, count(concept_code),
+       case when count(concept_code)=0 then 'P' else 'F' end
+from cte_4
+;
+
+-- custom check for corticosteroids
+with rxnorm as (
+-- get corticosteroid ingredients from ATC and then their kids taht are injectable
+    select c2.*
+    from dev_atc.concept_ancestor ca
+             join dev_atc.concept c on c.concept_id = ca.descendant_concept_id and c.concept_class_id = 'Ingredient'
+        and ancestor_concept_id in (21602723)
+             join dev_atc.concept_ancestor ca2 on c.concept_id = ca2.ancestor_concept_id
+             join dev_atc.concept c2 on c2.concept_id = ca2.descendant_concept_id
+        and c2.concept_name ~ 'Injec' --and c2.vocabulary_id = 'RxNorm'
+)
+insert
+into atc_checks
+select 'missing corticosteroids in descendants', null, count(*), case when count(*) = 0 then 'P' else 'F' end
+from rxnorm r
+where r.concept_id not in (
+    -- get systemic cordicosteroids through ATC
+    select c.concept_id as atc_id
+    from dev_atc.concept_ancestor ca
+             join dev_atc.concept c on c.concept_id = ca.descendant_concept_id
+    where ancestor_concept_id in (21602745, 21602723));
+
+
+/***** 
+Checks that require examination
+*******/
+
+-- BLOCK: New codes and relationships
+
+-- Examine new ATC - RxNorm relationship per each ATC code
 
 WITH
     CTE_old as(
@@ -11,7 +158,7 @@ WITH
 --                        count(*) as count_old
                 from devv5.concept_relationship cr
                      join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                              and length(c1.concept_code) = 7
+                                                                              and c1.concept_class_id = 'ATC 5th'
                      join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                                                                               and cr.relationship_id = 'ATC - RxNorm'),
     CTE_new as(
@@ -24,7 +171,7 @@ WITH
 --                        count(*) as count_new
                 from dev_atc.concept_relationship cr
                      join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                              and length(c1.concept_code) = 7
+                                                                              and c1.concept_class_id = 'ATC 5th'
                      join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                                                                               and cr.relationship_id = 'ATC - RxNorm')
 
@@ -38,73 +185,7 @@ from CTE_new new left join CTE_old as old on new.concept_code = old.concept_code
 where old.concept_code is NULL or old.id_old is NULL
 group by new.concept_code, new.concept_name;
 
------ What ATC - RxNorm disappeared after refreshment
-
-WITH
-    CTE_old as(
-                select c1.concept_code,
-                       c1.concept_name,
-                       c2.concept_id as id_old,
-                       c2.concept_name as name_old
---                        string_agg(c2.concept_id::VARCHAR, ' |') as ids_old,
---                        string_agg(c2.concept_name, ' |') as names_old,
---                        count(*) as count_old
-                from devv5.concept_relationship cr
-                     join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                              and length(c1.concept_code) = 7
-                     join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                                                              and cr.relationship_id = 'ATC - RxNorm'),
-    CTE_new as(
-                select c1.concept_code,
-                       c1.concept_name,
-                       c2.concept_id as id_new,
-                       c2.concept_name as name_new
---                        string_agg(c2.concept_id::VARCHAR, ' |') as ids_new,
---                        string_agg(c2.concept_name, ' |') as names_new,
---                        count(*) as count_new
-                from dev_atc.concept_relationship cr
-                     join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                              and length(c1.concept_code) = 7
-                     join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                                                              and cr.relationship_id = 'ATC - RxNorm')
-
-select old.concept_code,
-       old.concept_name,
-       string_agg(new.id_new::varchar, ' |') as ids_new,
-       string_agg(new.name_new, ' |') as names_new,
-       count(*) as new_count
-from  CTE_old old left join CTE_new new on old.concept_code = new.concept_code
-                                             and old.id_old = new.id_new
-where new.concept_code is NULL or new.id_new is NULL
-group by old.concept_code, old.concept_name;
-
-
---- What ATC - RxNorm connections are deprecated after update and which are de-depricated
-
-SELECT
-    c1.concept_id,
-    c1.concept_code,
-    c1.concept_name,
-    old.relationship_id,
-    c2.concept_code,
-    c2.concept_id,
-    c2.concept_name,
-    c2.concept_code,
-    old.invalid_reason AS old_invalid_reason,
-    new.invalid_reason AS new_invalid_reason
-FROM
-    devv5.concept_relationship AS old JOIN dev_atc.concept_relationship AS new
-                                            ON
-                                                old.concept_id_1 = new.concept_id_1
-                                                AND old.concept_id_2 = new.concept_id_2
-                                                AND old.relationship_id = new.relationship_id
-    JOIN dev_atc.concept c1 on old.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC' and c1.invalid_reason is null
-    JOIN dev_atc.concept c2 on old.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c2.invalid_reason is null
-WHERE
-    old.relationship_id IN ('ATC - RxNorm')
-    AND old.invalid_reason IS DISTINCT FROM new.invalid_reason;
-
----- What new ATC - Ings connections appeared for every code compared to the old version
+-- Examine new ATC - ingredient relationships (includes new ATC codes)
 
 WITH
     CTE_old as(
@@ -115,7 +196,7 @@ WITH
                        c2.concept_name as name_old
                 from devv5.concept_relationship cr
                      join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                              and length(c1.concept_code) = 7
+                                                                              and c1.concept_class_id = 'ATC 5th'
                      join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                                                                               and cr.relationship_id in ('ATC - RxNorm pr lat',
                                                                                                         'ATC - RxNorm sec lat',
@@ -129,7 +210,7 @@ WITH
                        c2.concept_name as name_new
                 from dev_atc.concept_relationship cr
                      join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                              and length(c1.concept_code) = 7
+                                                                              and c1.concept_class_id = 'ATC 5th'
                      join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                                                                               and cr.relationship_id in ('ATC - RxNorm pr lat',
                                                                                                         'ATC - RxNorm sec lat',
@@ -141,89 +222,14 @@ select new.concept_code,
        string_agg(new.id_new::varchar, ' |') as ids_new,
        string_agg(new.name_new, ' |') as names_new,
        count(*) as new_count
-from CTE_new new left join CTE_old as old on new.concept_code = old.concept_code
+from CTE_new new left join CTE_old old on new.concept_code = old.concept_code
                                              and new.id_new = old.id_old
                                              and new.relationship_id = old.relationship_id
 where old.concept_code is NULL or old.id_old is NULL
 group by new.concept_code, new.concept_name, new.relationship_id;
 
----- What old ATC - Ings connections we loose after update
+--- Number of one and multi-component drugs per ATC code
 
-select c1.concept_code,
-       c1.concept_name,
-       cr.relationship_id,
-       c2.concept_id as id_old,
-       c2.concept_name as name_old
-from devv5.concept_relationship cr
-     join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                              and length(c1.concept_code) = 7
-     join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                                              and cr.relationship_id in ('ATC - RxNorm pr lat',
-                                                                                         'ATC - RxNorm sec lat',
-                                                                                         'ATC - RxNorm pr up',
-                                                                                         'ATC - RxNorm sec up')
-WHERE (cr.concept_id_1, cr.relationship_id, cr.concept_id_2) not in
-        (
-        select cr.concept_id_1,
-               cr.relationship_id,
-               cr.concept_id_2
-        from dev_atc.concept_relationship cr
-             join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                                        and length(c1.concept_code) = 7
-             join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                                                        and cr.relationship_id in ('ATC - RxNorm pr lat',
-                                                                                                   'ATC - RxNorm sec lat',
-                                                                                                   'ATC - RxNorm pr up',
-                                                                                                   'ATC - RxNorm sec up')
-
-            );
-
---- What ATC - Ings connections are deprecated after update and which are dedepricated
-
-SELECT
-    c1.concept_id,
-    c1.concept_name,
-    old.relationship_id,
-    c2.concept_code,
-    c2.concept_id,
-    c2.concept_name,
-    c2.concept_code,
-    old.invalid_reason AS old_invalid_reason,
-    new.invalid_reason AS new_invalid_reason
-FROM
-    devv5.concept_relationship AS old JOIN dev_atc.concept_relationship AS new
-                                            ON
-                                                old.concept_id_1 = new.concept_id_1
-                                                AND old.concept_id_2 = new.concept_id_2
-                                                AND old.relationship_id = new.relationship_id
-    JOIN devv5.concept c1 on old.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC' and c1.invalid_reason is NUll
-    JOIN devv5.concept c2 on old.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c2.invalid_reason is NULL
-WHERE
-    old.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
-    AND old.invalid_reason IS DISTINCT FROM new.invalid_reason;
-
-------- Change of concept_names
-select c1.concept_code,
-       c1.concept_name as new_name,
-       c2.concept_name as old_name
-from dev_atc.concept c1
-     left join devv5.concept c2 on c1.concept_id = c2.concept_id and c1.vocabulary_id = 'ATC' and length(c1.concept_code) = 7
-where c1.concept_name IS DISTINCT FROM  c2.concept_name;
-
-
----- Change of synonyms
-
-select c.concept_id,
-       c.concept_code,
-       cs1.concept_synonym_name as new_synonym,
-       cs2.concept_synonym_name as old_synonym
-from dev_atc.concept c
-    join dev_atc.concept_synonym cs1 on c.concept_id = cs1.concept_id and c.vocabulary_id = 'ATC' and length(concept_code) = 7
-    join devv5.concept_synonym cs2 on c.concept_id = cs2.concept_id
-where lower(cs1.concept_synonym_name) is distinct from  lower(cs2.concept_synonym_name);
-
-
---- Number of one_component drugs for combo codes
 WITH CTE_2 as (
 with CTE as (SELECT
     c1.concept_code,
@@ -234,7 +240,7 @@ FROM
     dev_atc.concept_relationship cr
     join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id
                           and c1.vocabulary_id = 'ATC'
-                          and length(c1.concept_code) = 7
+                          and c1.concept_class_id = 'ATC 5th'
                           and c1.invalid_reason is NULL
                           and cr.invalid_reason is NULL
                           and cr.relationship_id = 'ATC - RxNorm'
@@ -264,39 +270,6 @@ SELECT
 FROM CTE_2
 group by concept_code, concept_name
 order by concept_code;
-
-
---- New ATC - RxNorm Links
-select c1.vocabulary_id,
-       count(*)
-from dev_atc.concept_relationship cr
-     join dev_atc.concept c1 on cr.concept_id_2 = c1.concept_id
-where relationship_id = 'ATC - RxNorm'
-and (cr.concept_id_1, cr.concept_id_2) not in (select
-                                                     concept_id_1,
-                                                     concept_id_2
-                                                 from devv5.concept_relationship
-                                                 where relationship_id = 'ATC - RxNorm'
-                                                 and invalid_reason is null)
-and cr.invalid_reason is null
-group by c1.vocabulary_id;
-
---- deprecated links
-select c1.vocabulary_id,
-       count(*)
-from devv5.concept_relationship cr
-     join devv5.concept c1 on cr.concept_id_2 = c1.concept_id
-where relationship_id = 'ATC - RxNorm'
-and (cr.concept_id_1, cr.concept_id_2) not in (select
-                                             concept_id_1,
-                                             concept_id_2
-                                         from dev_atc.concept_relationship
-                                         where relationship_id = 'ATC - RxNorm'
-                                               AND invalid_reason IS NULL)
-AND cr.invalid_reason IS NULL
-group by c1.vocabulary_id;
-
-
 
 
 ---------- Check of accordance of ATC_Code - Dose Forms
@@ -331,7 +304,7 @@ CREATE TABLE root_forms_for_check as
     SELECT
         coalesce,
         string_agg(concept_name, ',')
-        FROM all_adm_r_filter
+        FROM dev_atc.all_adm_r_filter
         group by coalesce
         ;
 
@@ -348,7 +321,7 @@ select
     string_agg
 from dev_atc.concept_relationship t1
      join dev_atc.concept c1 on t1.concept_id_1=c1.concept_id
-                                    and length(c1.concept_code) = 7
+                                    and c1.concept_class_id = 'ATC 5th'
                                     and c1.vocabulary_id = 'ATC'
                                     and c1.invalid_reason is NULL
                                     and t1.invalid_reason is NULL
@@ -405,8 +378,125 @@ where rxnorm_form  != 'Pack'
 order by root, rxnorm_form;
 
 
+-- BLOCK: Lost or deprecated codes and relationships
 
--------- Compare of counts different concept_class_id's connected to ATC
+-- Examine ATC - RxNorm relationships that are getting deprecated
+
+WITH
+    CTE_old as(
+                select c1.concept_code,
+                       c1.concept_name,
+                       c2.concept_id as id_old,
+                       c2.concept_name as name_old
+--                        string_agg(c2.concept_id::VARCHAR, ' |') as ids_old,
+--                        string_agg(c2.concept_name, ' |') as names_old,
+--                        count(*) as count_old
+                from devv5.concept_relationship cr
+                     join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
+                                                                              and c1.concept_class_id = 'ATC 5th'
+                     join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                              and cr.relationship_id = 'ATC - RxNorm'),
+    CTE_new as(
+                select c1.concept_code,
+                       c1.concept_name,
+                       c2.concept_id as id_new,
+                       c2.concept_name as name_new
+--                        string_agg(c2.concept_id::VARCHAR, ' |') as ids_new,
+--                        string_agg(c2.concept_name, ' |') as names_new,
+--                        count(*) as count_new
+                from dev_atc.concept_relationship cr
+                     join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
+                                                                              and c1.concept_class_id = 'ATC 5th'
+                     join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                              and cr.relationship_id = 'ATC - RxNorm')
+
+select old.concept_code,
+       old.concept_name,
+       string_agg(old.id_old::varchar, ' |') as ids_old,
+       string_agg(old.name_old, ' |') as names_old,
+       count(*) as old_count
+from  CTE_old old left join CTE_new new on old.concept_code = new.concept_code
+                                             and old.id_old = new.id_new
+where new.concept_code is NULL or new.id_new is NULL
+group by old.concept_code, old.concept_name;
+
+
+-- Examine ATC - RxNorm relationships that are getting deprecated, detailed view
+
+SELECT
+    c1.concept_id,
+    c1.concept_code,
+    c1.concept_name,
+    old.relationship_id,
+    c2.concept_code,
+    c2.concept_id,
+    c2.concept_name,
+    c2.concept_code,
+    old.invalid_reason AS old_invalid_reason,
+    new.invalid_reason AS new_invalid_reason
+FROM
+    devv5.concept_relationship AS old JOIN dev_atc.concept_relationship AS new
+                                            ON
+                                                old.concept_id_1 = new.concept_id_1
+                                                AND old.concept_id_2 = new.concept_id_2
+                                                AND old.relationship_id = new.relationship_id
+    JOIN dev_atc.concept c1 on old.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC' and c1.invalid_reason is null
+    JOIN dev_atc.concept c2 on old.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c2.invalid_reason is null
+WHERE
+    old.relationship_id IN ('ATC - RxNorm')
+    AND old.invalid_reason IS DISTINCT FROM new.invalid_reason;
+
+
+
+-- Examine old ATC - ingredient relationships that are getting deprecated
+SELECT
+    c1.concept_id,
+    c1.concept_name,
+    old.relationship_id,
+    c2.concept_code,
+    c2.concept_id,
+    c2.concept_name,
+    c2.concept_code,
+    old.invalid_reason AS old_invalid_reason,
+    new.invalid_reason AS new_invalid_reason
+FROM
+    devv5.concept_relationship AS old JOIN dev_atc.concept_relationship AS new
+                                            ON
+                                                old.concept_id_1 = new.concept_id_1
+                                                AND old.concept_id_2 = new.concept_id_2
+                                                AND old.relationship_id = new.relationship_id
+    JOIN devv5.concept c1 on old.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC' and c1.invalid_reason is NUll
+    JOIN devv5.concept c2 on old.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c2.invalid_reason is NULL
+WHERE
+    old.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+    AND old.invalid_reason IS DISTINCT FROM new.invalid_reason;
+
+
+-- BLOCK: other changes
+
+-- Change of concept_names
+select c1.concept_code,
+       c1.concept_name as new_name,
+       c2.concept_name as old_name
+from dev_atc.concept c1
+     left join devv5.concept c2 on c1.concept_id = c2.concept_id and c1.vocabulary_id = 'ATC' and c1.concept_class_id = 'ATC 5th'
+where c1.concept_name IS DISTINCT FROM c2.concept_name;
+
+
+--- Change of synonyms
+select c.concept_id,
+       c.concept_code,
+       cs1.concept_synonym_name as new_synonym,
+       cs2.concept_synonym_name as old_synonym
+from dev_atc.concept c
+    join dev_atc.concept_synonym cs1 on c.concept_id = cs1.concept_id and c.vocabulary_id = 'ATC' and concept_class_id = 'ATC 5th'
+    join devv5.concept_synonym cs2 on c.concept_id = cs2.concept_id
+where lower(cs1.concept_synonym_name) is distinct from  lower(cs2.concept_synonym_name);
+
+
+
+
+-- Compare of counts different concept_class_id's connected to ATC
 SELECT t1.dev_atc_cr,
        t1.dev_atc_atccid,
        t1.dev_atc_cid,
@@ -455,3 +545,5 @@ on t1.dev_atc_cr = t2.devv5_cr
        and t1.dev_atc_cid = t2.devv5_cid
 
 ORDER BY t1.dev_atc_cr, t1.dev_atc_cid;
+
+

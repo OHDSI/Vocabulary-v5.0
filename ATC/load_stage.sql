@@ -515,6 +515,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
+
 --14. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN

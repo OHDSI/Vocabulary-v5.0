@@ -250,6 +250,7 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
 
             UNION
 
+
                 ---- Add existent in devv5.codes (to use step_aside_approach for them)
             (
                 select c2.concept_id,

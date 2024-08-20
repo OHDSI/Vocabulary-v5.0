@@ -59,8 +59,9 @@ AND relationship_id in ('ATC - RxNorm pr lat',
                         'ATC - RxNorm sec up')
 AND invalid_reason is NULL;
 
---This step is needed to deprecate wrong connections, that are stored in devv5.concept_relationship.
--- without placing them into manual table, they will be automatically added again during generic_update.
+--This step is needed to deprecate wrong connections
+
+--- ATC - RxNorm
 INSERT INTO concept_relationship_manual
     (
     concept_code_1,
@@ -118,7 +119,7 @@ AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
                                                                     and relationship_id = 'ATC - RxNorm')
 ;
 
---- Deprecate wrong INGS mappings in stage table
+--- ATC - Ings
 INSERT INTO concept_relationship_manual
     (
     concept_code_1,
@@ -157,6 +158,7 @@ where (t1.concept_code, cr.relationship_id, t2.concept_code) not in
        FROM CTE as t1
                 join devv5.concept t2 on t1.concept_id = t2.concept_id
        )
+
 AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
                                                                     SELECT concept_code_1,
                                                                            relationship_id,

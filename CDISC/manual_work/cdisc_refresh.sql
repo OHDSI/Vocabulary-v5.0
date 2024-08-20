@@ -8,14 +8,15 @@ CREATE TABLE cdisc_mapped
     vocabulary_id VARCHAR (20)  DEFAULT 'CDISC',
     sty VARCHAR, -- semantic type form NCImetha
     mapability VARCHAR, -- -OMOP mapability of source code e.g.: FoN - flavor of null;NOmop - non omop use-case; NULL - mappable (voc_metadata extension)
+    mapping_tool VARCHAR, --OMOP Rel reviewer_id - email (voc_metadata extension)
     relationship_id VARCHAR (20), --OMOP Rel
-    relationship_id_predicate VARCHAR (20),  --OMOP Rel Predicate (voc_metadata extension)
+    relationship_predicate_id VARCHAR (20),  --OMOP Rel Predicate (voc_metadata extension)
     mapping_source VARCHAR [], -- Origin of Mapping
     mapping_path VARCHAR [], -- For non-manual sources the array with codes in a chain
     decision  boolean,
     confidence FLOAT,  --OMOP Rel Confidence (voc_metadata extension)
-    mapper_id VARCHAR,  --OMOP Rel mapper_id - email (voc_metadata extension)
-    reviewer_id VARCHAR, --OMOP Rel reviewer_id - email (voc_metadata extension)
+    mapper VARCHAR,  --OMOP Rel mapper_id - email (voc_metadata extension)
+    reviewer VARCHAR, --OMOP Rel reviewer_id - email (voc_metadata extension)
     valid_start_date date, --OMOP Rel valid_start_date
     valid_end_date date, --OMOP Rel valid_end_date
     invalid_reason VARCHAR,  --OMOP Rel invalid_reason

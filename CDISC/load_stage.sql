@@ -304,17 +304,18 @@ CREATE TABLE cdisc_automapped
     sty VARCHAR, -- semantic type form NCImetha
     mapability VARCHAR, -- -OMOP mapability of source code e.g.: FoN - flavor of null;NOmop - non omop use-case; NULL - mappable (voc_metadata extension)
     relationship_id VARCHAR (20), --OMOP Rel
-    relationship_id_predicate VARCHAR (20),  --OMOP Rel Predicate (voc_metadata extension)
+    relationship_predicate_id VARCHAR (20),  --OMOP Rel Predicate (voc_metadata extension)
     mapping_source VARCHAR [], -- Origin of Mapping
     mapping_path VARCHAR [], -- For non-manual sources the array with codes in a chain
     decision  boolean,
     confidence FLOAT,  --OMOP Rel Confidence (voc_metadata extension)
-    mapper_id VARCHAR,  --OMOP Rel mapper_id - email (voc_metadata extension)
-    reviewer_id VARCHAR, --OMOP Rel reviewer_id - email (voc_metadata extension)
+    mapper VARCHAR,  --OMOP Rel mapper_id - email (voc_metadata extension)
+    reviewer VARCHAR, --OMOP Rel reviewer_id - email (voc_metadata extension)
     valid_start_date date, --OMOP Rel valid_start_date
     valid_end_date date, --OMOP Rel valid_end_date
     invalid_reason VARCHAR,  --OMOP Rel invalid_reason
     comments VARCHAR, --technical comments on mapping
+    mapping_tool VARCHAR, --OMOP Rel reviewer_id - email (voc_metadata extension)
     target_concept_id BIGINT,
     target_concept_code VARCHAR (50),
     target_concept_name VARCHAR (255),
@@ -326,8 +327,8 @@ CREATE TABLE cdisc_automapped
 ;
 
 -- Mapping to standard using SNOMED
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -338,13 +339,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -383,8 +384,8 @@ cc.vocabulary_id
 ;
 
 -- Mapping to standard using LOINC
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -395,13 +396,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-    'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+    'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -440,8 +441,8 @@ cc.vocabulary_id
 ;
 
 --Mapping to S using ICD10
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -452,13 +453,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -498,8 +499,8 @@ cc.vocabulary_id
 
 
 --Mapping to S using HCPCS
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -510,13 +511,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -556,8 +557,8 @@ cc.vocabulary_id
 
 
 --Mapping to S using CPT4
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -568,13 +569,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -614,8 +615,8 @@ cc.vocabulary_id
 
 
 --Mapping to S using MedDRA
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -626,13 +627,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -671,8 +672,8 @@ cc.vocabulary_id
 ;
 
 --Mapping to S using HemOnc
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -683,13 +684,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -728,8 +729,8 @@ cc.vocabulary_id
 ;
 
 --Mapping to RxNorm
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -740,13 +741,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 cr.relationship_id       as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-NCIm',':',s.sab),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', s.code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'NCI-metathesaurus' as mapper_id,
-'Unreviewed'  as reviewer_id,
+'NCI-metathesaurus' as mapper,
+'Unreviewed'  as reviewer,
 (SELECT   TO_DATE(substring(sver FROM 1 FOR 4) || '-' || substring(sver FROM 6 FOR 2) || '-01','YYYY-MM-DD') FROM sources.meta_mrsab WHERE rsab = 'CDISC' LIMIT 1) as valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -785,8 +786,8 @@ cc.vocabulary_id
 ;
 
 --Mapping to non-Defined standard by name-match (OMOP)
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -797,13 +798,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 'Maps to'     as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-OMOP-name_match',':', cc.vocabulary_id),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', cc.concept_code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'Unreviewed'as mapper_id,
-'Unreviewed'  as reviewer_id,
+'Unreviewed'as mapper,
+'Unreviewed'  as reviewer,
 CURRENT_DATE	AS  valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,
@@ -843,8 +844,8 @@ cc.vocabulary_id
 
 
 --Mapping to non-Defined standard by synonym name-match (OMOP)
-INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
-                          mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
+INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_predicate_id,
+                          mapping_source, mapping_path, decision, confidence, mapper, reviewer, valid_start_date,
                           valid_end_date, invalid_reason, comments, target_concept_id, target_concept_code,
                           target_concept_name, target_concept_class, target_standard_concept, target_invalid_reason,
                           target_domain_id, target_vocabulary_id)
@@ -855,13 +856,13 @@ m.concept_name,
 string_agg(DISTINCT st.sty, '|') as sty,
 NULL as mapability,
 'Maps to'     as relationship_id,
-NULL as relationship_id_predicate,
+NULL as relationship_predicate_id,
 string_to_array(CONCAT('Auto-OMOP-synonym_match',':', cc.vocabulary_id),':','NULL') as mapping_source,
 ARRAY_AGG(DISTINCT CONCAT( m.concept_code, ' > ', cc.concept_code)) as mapping_path,
 TRUE as decision,
 1 as confidence,
-'Unassigned'  as mapper_id,
-'Unreviewed'  as reviewer_id,
+'Unassigned'  as mapper,
+'Unreviewed'  as reviewer,
 CURRENT_DATE	AS valid_start_date,
 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 NULL as invalid_reason,

@@ -1,4 +1,3 @@
-
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -15,10 +14,10 @@
 * limitations under the License.
 * 
 * Authors: Mikita Salavei, Dmitry Dymshyts, Denys Kaduk, Timur Vakhitov, Christian Reich
-* Date: 2022
+* Date: 2024
 **************************************************************************/
 
--- 1. Update latest_update field to new date
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -29,7 +28,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -145,7 +144,7 @@ AS (
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -182,7 +181,7 @@ AS (
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -214,7 +213,7 @@ AS (
 			--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
-			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic )procedure'
+			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
 			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
@@ -298,77 +297,88 @@ SET domain_id = 'Condition'
 WHERE domain_id IS NULL;
 
 --5. Create internal hierarchical relationships
-INSERT INTO  concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT soc_code AS concept_code_1,
-          hlgt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.soc_hlgt_comp
-   UNION ALL
-   SELECT hlgt_code AS concept_code_1,
-          hlt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.hlgt_hlt_comp
-   UNION ALL
-   SELECT hlt_code AS concept_code_1,
-          pt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.hlt_pref_comp
-   UNION ALL
-   SELECT pt_code AS concept_code_1,
-          llt_code AS concept_code_2,
-          'MedDRA' AS vocabulary_id_1,
-          'MedDRA' AS vocabulary_id_2,
-          'Subsumes' AS relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'MedDRA'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM SOURCES.low_level_term
-    WHERE llt_currency = 'Y' AND llt_code <> pt_code;
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT soc_code AS concept_code_1,
+	hlgt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.soc_hlgt_comp
 
+UNION ALL
 
--- 6. Working with concept_manual table
+SELECT hlgt_code AS concept_code_1,
+	hlt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.hlgt_hlt_comp
+
+UNION ALL
+
+SELECT hlt_code AS concept_code_1,
+	pt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.hlt_pref_comp
+
+UNION ALL
+
+SELECT pt_code AS concept_code_1,
+	llt_code AS concept_code_2,
+	'MedDRA' AS vocabulary_id_1,
+	'MedDRA' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MedDRA'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM SOURCES.low_level_term
+WHERE llt_currency = 'Y'
+	AND llt_code <> pt_code;
+
+--6. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
--- 7. Append result to concept_relationship_stage table
+--7. Append result to concept_relationship_stage table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 8. Working with replacement mappings
+--8. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
@@ -378,6 +388,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
 --10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -392,37 +403,21 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
--- 12. Insert 'MedDRA-SNOMED eq' mappings to crs in order to deprecate those having valid 'Maps to'
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c.concept_code,
-	c2.concept_code,
-	c.vocabulary_id,
-	c2.vocabulary_id,
-	cr.relationship_id,
-	cr.valid_start_date,
-	CURRENT_DATE,
-	'D'
-FROM concept_relationship cr
-JOIN concept c ON c.concept_id = cr.concept_id_1
-	AND c.vocabulary_id = 'MedDRA'
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-WHERE cr.relationship_id = 'MedDRA - SNOMED eq'
-	AND cr.invalid_reason IS NULL
-	AND EXISTS (
+--12. Make all LLT and PT concepts without valid 'Maps to' links non-standard
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
-		WHERE crs_int.concept_code_1 = c.concept_code
-			AND crs_int.vocabulary_id_1 = c.vocabulary_id
-			AND crs_int.relationship_id = 'Maps to'
+		WHERE crs_int.concept_code_1 = cs.concept_code
+			AND crs_int.vocabulary_id_1 = cs.vocabulary_id
+			AND crs_int.relationship_id LIKE 'Maps to%'
 			AND crs_int.invalid_reason IS NULL
-		);
+		)
+	AND cs.concept_class_id IN (
+		'PT',
+		'LLT'
+		)
+	AND cs.standard_concept IS NOT NULL;
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

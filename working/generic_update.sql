@@ -4,7 +4,14 @@ RETURNS void AS
 $BODY$
 BEGIN
 	--1. Prerequisites:
-	--1.1 Check stage tables for incorrect rows
+	--1.1 Check vocabulary table, at least one vocabulary must have the latest_update field set
+	PERFORM FROM vocabulary WHERE latest_update IS NOT NULL LIMIT 1;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'At least one vocabulary must have the latest_update field set'
+			USING HINT = 'Forgot to execute SetLatestUpdate?';
+	END IF;
+
+	--1.2 Check stage tables for incorrect rows
 	DO $$
 	DECLARE
 	z TEXT;
@@ -20,10 +27,10 @@ BEGIN
 		END IF;
 	END $$;
 
-	--1.2 Start logging manual work
+	--1.3 Start logging manual work
 	PERFORM admin_pack.LogManualChanges();
 	
-	--1.3 Clear concept_id's just in case
+	--1.4 Clear concept_id's just in case
 	UPDATE concept_stage
 	SET concept_id = NULL
 	WHERE concept_id IS NOT NULL;
@@ -77,12 +84,10 @@ BEGIN
 
 	--Remove trailing escape character (\)
 	UPDATE concept_stage
-	SET concept_name = TRIM(TRAILING '\' FROM concept_name)
+	SET concept_name = RTRIM(concept_name, $c$\$c$)
 	WHERE concept_name LIKE '%\\';
 
 	--7. Clearing the synonym_name
-	--Need to use DELETE+'ON CONFLICT DO NOTHING' to avoid violating the unique constraint "idx_pk_css"
-
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	WITH del
 	AS (
@@ -144,7 +149,7 @@ BEGIN
 		)
 	INSERT INTO concept_synonym_stage
 	SELECT d.synonym_concept_id,
-		TRIM(TRAILING '\' FROM d.synonym_name) AS synonym_name,
+		RTRIM(d.synonym_name, $c$\$c$) AS synonym_name,
 		d.synonym_concept_code,
 		d.synonym_vocabulary_id,
 		d.language_concept_id
@@ -181,8 +186,10 @@ BEGIN
 			)
 	FROM concept_stage cs
 	JOIN vocabulary v USING (vocabulary_id)
-	WHERE c.* IS DISTINCT FROM cs.*
-		AND c.concept_id = cs.concept_id;
+	WHERE c.concept_id = cs.concept_id
+		AND ROW(c.concept_name, c.domain_id, c.concept_class_id, c.standard_concept, c.valid_start_date, c.valid_end_date, c.invalid_reason)
+		IS DISTINCT FROM
+		ROW(cs.concept_name, cs.domain_id, cs.concept_class_id, cs.standard_concept, cs.valid_start_date, cs.valid_end_date, cs.invalid_reason);
 
 	--9. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
@@ -190,97 +197,37 @@ BEGIN
 	--20180523: new rule for some vocabularies, see http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
 	--20200730 added ICD10PCS
 	--9.1. Update the concept for 'regular' vocabularies
-	UPDATE concept c SET
-		invalid_reason = 'D',
+	UPDATE concept c
+	SET invalid_reason = 'D',
 		standard_concept = NULL,
-		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
-	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
-	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-	AND c.invalid_reason IS NULL -- not already deprecated
-	AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
-		WHEN c.vocabulary_id = 'SNOMED' THEN 1
-		WHEN c.vocabulary_id = 'LOINC' THEN 1
-		WHEN c.vocabulary_id = 'ICD9CM' THEN 1
-		WHEN c.vocabulary_id = 'ICD10' THEN 1
-		WHEN c.vocabulary_id = 'RxNorm' THEN 1
-		WHEN c.vocabulary_id = 'NDFRT' THEN 1
-		WHEN c.vocabulary_id = 'VANDF' THEN 1
-		WHEN c.vocabulary_id = 'VA Class' THEN 1
-		WHEN c.vocabulary_id = 'ATC' THEN 1
-		WHEN c.vocabulary_id = 'NDC' THEN 0
-		WHEN c.vocabulary_id = 'SPL' THEN 0
-		WHEN c.vocabulary_id = 'MedDRA' THEN 1
-		WHEN c.vocabulary_id = 'Read' THEN 1
-		WHEN c.vocabulary_id = 'ICD10CM' THEN 1
-		WHEN c.vocabulary_id = 'GPI' THEN 1
-		WHEN c.vocabulary_id = 'OPCS4' THEN 1
-		WHEN c.vocabulary_id = 'MeSH' THEN 1
-		WHEN c.vocabulary_id = 'GCN_SEQNO' THEN 1
-		WHEN c.vocabulary_id = 'ETC' THEN 1
-		WHEN c.vocabulary_id = 'Indication' THEN 1
-		WHEN c.vocabulary_id = 'DA_France' THEN 0
-		WHEN c.vocabulary_id = 'DPD' THEN 1
-		WHEN c.vocabulary_id = 'NFC' THEN 1
-		WHEN c.vocabulary_id = 'EphMRA ATC' THEN 1
-		WHEN c.vocabulary_id = 'dm+d' THEN 1
-		WHEN c.vocabulary_id = 'RxNorm Extension' THEN 0
-		WHEN c.vocabulary_id = 'Gemscript' THEN 1
-		WHEN c.vocabulary_id = 'Cost Type' THEN 1
-		WHEN c.vocabulary_id = 'BDPM' THEN 1
-		WHEN c.vocabulary_id = 'AMT' THEN 1
-		WHEN c.vocabulary_id = 'GRR' THEN 0
-		WHEN c.vocabulary_id = 'CVX' THEN 1
-		WHEN c.vocabulary_id = 'LPD_Australia' THEN 0
-		WHEN c.vocabulary_id = 'PPI' THEN 0
-		WHEN c.vocabulary_id = 'ICDO3' THEN 1
-		WHEN c.vocabulary_id = 'CDT' THEN 1
-		WHEN c.vocabulary_id = 'ISBT' THEN 0
-		WHEN c.vocabulary_id = 'ISBT Attributes' THEN 0
-		WHEN c.vocabulary_id = 'GGR' THEN 1
-		WHEN c.vocabulary_id = 'LPD_Belgium' THEN 1
-		WHEN c.vocabulary_id = 'APC' THEN 1
-		WHEN c.vocabulary_id = 'KDC' THEN 0
-		WHEN c.vocabulary_id = 'SUS' THEN 1
-		WHEN c.vocabulary_id = 'CDM' THEN 0
-		WHEN c.vocabulary_id = 'SNOMED Veterinary' THEN 1
-		WHEN c.vocabulary_id = 'OSM' THEN 1
-		WHEN c.vocabulary_id = 'US Census' THEN 1
-		WHEN c.vocabulary_id = 'HemOnc' THEN 1
-		WHEN c.vocabulary_id = 'NAACCR' THEN 1
-		WHEN c.vocabulary_id = 'JMDC' THEN 0
-		WHEN c.vocabulary_id = 'KCD7' THEN 1
-		WHEN c.vocabulary_id = 'CTD' THEN 1
-		WHEN c.vocabulary_id = 'EDI' THEN 1
-		WHEN c.vocabulary_id = 'Nebraska Lexicon' THEN 1
-		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
-		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
-		WHEN c.vocabulary_id = 'CAP' THEN 1
-		WHEN c.vocabulary_id = 'OMOP Extension' THEN 0
-		WHEN c.vocabulary_id = 'CIM10' THEN 1
-		WHEN c.vocabulary_id = 'NCCD' THEN 0
-		WHEN c.vocabulary_id = 'CIViC' THEN 1
-		WHEN c.vocabulary_id = 'CGI' THEN 1
-		WHEN c.vocabulary_id = 'ClinVar' THEN 0
-		WHEN c.vocabulary_id = 'JAX' THEN 0
-		WHEN c.vocabulary_id = 'NCIt' THEN 0
-		WHEN c.vocabulary_id = 'HGNC' THEN 0
-		WHEN c.vocabulary_id = 'ICD10GM' THEN 1
-		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 0
-		WHEN c.vocabulary_id = 'CCAM' THEN 1
-		WHEN c.vocabulary_id = 'SOPT' THEN 1
-		WHEN c.vocabulary_id = 'OMOP Invest Drug' THEN 1
-		WHEN c.vocabulary_id = 'COSMIC' THEN 1
-		ELSE 0 -- in default we will not deprecate
-	END = 1
-	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
+		valid_end_date = v.latest_update - 1
+	FROM vocabulary v
+	WHERE c.vocabulary_id = v.vocabulary_id
+		AND COALESCE(v.vocabulary_params ->> 'is_full', '0') = '1' --all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (in default we will not deprecate)
+		AND NOT (COALESCE(v.vocabulary_params ->> 'special_deprecation', '0') = '1')
+		AND v.latest_update IS NOT NULL --only for current vocabularies
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_stage cs
+			WHERE cs.concept_id = c.concept_id
+				AND cs.vocabulary_id = c.vocabulary_id
+			) --if concept missing from concept_stage
+		AND c.invalid_reason IS NULL;--not already deprecated
 
 	--9.2. Update the concept for 'special' vocabs
-	UPDATE concept c SET
-		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
-	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
-	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-	AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') -- not already deprecated
-	AND c.vocabulary_id IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
+	UPDATE concept c
+	SET valid_end_date = v.latest_update - 1
+	FROM vocabulary v
+	WHERE c.vocabulary_id = v.vocabulary_id
+		AND v.vocabulary_params ->> 'special_deprecation' = '1'
+		AND v.latest_update IS NOT NULL --only for current vocabularies
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_stage cs
+			WHERE cs.concept_id = c.concept_id
+				AND cs.vocabulary_id = c.vocabulary_id
+			) --if concept missing from concept_stage
+		AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD');--not already deprecated
 
 	--10. Add new concepts from concept_stage
 	--Create sequence after last valid one
@@ -358,18 +305,18 @@ BEGIN
 		AND c2.vocabulary_id = crs.vocabulary_id_2;
 
 	UPDATE concept_relationship_stage crs
-	SET concept_id_1 = c1.concept_id,
-		concept_id_2 = c2.concept_id
-	FROM concept c1,
-		concept c2
-	WHERE c1.concept_code = crs.concept_code_1
-		AND c1.vocabulary_id = crs.vocabulary_id_1
-		AND c2.concept_code = crs.concept_code_2
-		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND (
-			crs.concept_id_1 IS NULL
-			OR crs.concept_id_2 IS NULL
-			);
+	SET concept_id_1 = c.concept_id
+	FROM concept c
+	WHERE c.concept_code = crs.concept_code_1
+		AND c.vocabulary_id = crs.vocabulary_id_1
+		AND crs.concept_id_1 IS NULL;
+
+	UPDATE concept_relationship_stage crs
+	SET concept_id_2 = c.concept_id
+	FROM concept c
+	WHERE c.concept_code = crs.concept_code_2
+		AND c.vocabulary_id = crs.vocabulary_id_2
+		AND crs.concept_id_2 IS NULL;
 
 	/****************************************
 	* Update the concept_relationship table *
@@ -399,11 +346,8 @@ BEGIN
 		crs.valid_end_date,
 		crs.invalid_reason
 	FROM concept_relationship_stage crs
-	JOIN relationship r ON r.relationship_id = crs.relationship_id
-	LEFT JOIN concept_relationship_stage i ON crs.concept_id_1 = i.concept_id_2
-		AND crs.concept_id_2 = i.concept_id_1
-		AND r.reverse_relationship_id = i.relationship_id
-	WHERE i.concept_id_1 IS NULL;
+	JOIN relationship r USING (relationship_id)
+	ON CONFLICT DO NOTHING;
 
 	CREATE INDEX idx_crs_ids_generic_temp ON concept_relationship_stage (
 		concept_id_1,
@@ -427,110 +371,123 @@ BEGIN
 	--The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with the other vocab
 
 	--Do the deprecation
-	WITH relationships
-	AS (
-		SELECT *
-		FROM UNNEST(ARRAY [
-			'Concept replaced by',
-			'Concept same_as to',
-			'Concept alt_to to',
-			'Concept was_a to',
-			'Maps to',
-			'CPT4 - SNOMED cat', -- AVOC-4022
-			'CPT4 - SNOMED eq' -- AVOC-4022
-			]) AS relationship_id
-		),
-	vocab_combinations
-	AS (
-		--Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except 'Maps' to and replacement relationships
-		--Also excludes manual mappings from concept_relationship_manual
-		SELECT DISTINCT s0.vocabulary_id_1,
-			s0.vocabulary_id_2,
-			s0.relationship_id,
-			-- One of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use GREATEST to get one non-null date
-			GREATEST(v1.latest_update, v2.latest_update) AS max_latest_update
-		FROM (
+	--Prepare temp table vocab_combinations$
+	CREATE UNLOGGED TABLE vocab_combinations$ AS
+		WITH relationships AS (
+				SELECT *
+				FROM UNNEST(ARRAY [
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to',
+				'Maps to',
+				'CPT4 - SNOMED cat', -- AVOC-4022
+				'CPT4 - SNOMED eq' -- AVOC-4022
+				]) AS relationship_id
+				)
+	--Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except 'Maps' to and replacement relationships
+	--Also excludes manual mappings from concept_relationship_manual
+	SELECT DISTINCT s0.vocabulary_id_1,
+		s0.vocabulary_id_2,
+		s0.relationship_id,
+		-- One of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use GREATEST to get one non-null date
+		GREATEST(v1.latest_update, v2.latest_update) AS max_latest_update
+	FROM (
+		SELECT concept_code_1,
+			concept_code_2,
+			vocabulary_id_1,
+			vocabulary_id_2,
+			relationship_id
+		FROM concept_relationship_stage
+		
+		EXCEPT
+		
+		(
 			SELECT concept_code_1,
 				concept_code_2,
 				vocabulary_id_1,
 				vocabulary_id_2,
 				relationship_id
-			FROM concept_relationship_stage
+			FROM concept_relationship_manual
 			
-			EXCEPT
+			UNION ALL
 			
-			(
-				SELECT concept_code_1,
-					concept_code_2,
-					vocabulary_id_1,
-					vocabulary_id_2,
-					relationship_id
-				FROM concept_relationship_manual
-				
-				UNION ALL
-				
-				--Add reverse mappings for exclude
-				SELECT concept_code_2,
-					concept_code_1,
-					vocabulary_id_2,
-					vocabulary_id_1,
-					reverse_relationship_id
-				FROM concept_relationship_manual
-				JOIN relationship USING (relationship_id)
-				)
-			) AS s0
-		JOIN vocabulary v1 ON v1.vocabulary_id = s0.vocabulary_id_1
-		JOIN vocabulary v2 ON v2.vocabulary_id = s0.vocabulary_id_2
-		WHERE s0.vocabulary_id_1 NOT IN (
-				'SPL',
-				'RxNorm Extension',
-				'CDM'
-				)
-			AND s0.vocabulary_id_2 NOT IN (
-				'SPL',
-				'RxNorm Extension',
-				'CDM'
-				)
-			AND s0.relationship_id NOT IN (
-				SELECT relationship_id
-				FROM relationships
-				
-				UNION ALL
-				
-				SELECT reverse_relationship_id
-				FROM relationships
-				JOIN relationship USING (relationship_id)
-				)
-			AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
-		)
-	UPDATE concept_relationship d
-	SET valid_end_date = vc.max_latest_update - 1,
-		invalid_reason = 'D'
-	--Whether the combination of vocab1, vocab2 and relationship exists (in subquery)
+			--Add reverse mappings
+			SELECT concept_code_2,
+				concept_code_1,
+				vocabulary_id_2,
+				vocabulary_id_1,
+				reverse_relationship_id
+			FROM concept_relationship_manual
+			JOIN relationship USING (relationship_id)
+			)
+		) AS s0
+	JOIN vocabulary v1 ON v1.vocabulary_id = s0.vocabulary_id_1
+	JOIN vocabulary v2 ON v2.vocabulary_id = s0.vocabulary_id_2
+	WHERE s0.vocabulary_id_1 NOT IN (
+			'SPL',
+			'RxNorm Extension',
+			'CDM'
+			)
+		AND s0.vocabulary_id_2 NOT IN (
+			'SPL',
+			'RxNorm Extension',
+			'CDM'
+			)
+		AND s0.relationship_id NOT IN (
+			SELECT relationship_id
+			FROM relationships
+			
+			UNION ALL
+			
+			SELECT reverse_relationship_id
+			FROM relationships
+			JOIN relationship USING (relationship_id)
+			)
+		AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL;
+
+	ANALYZE vocab_combinations$;
+
+	--prepare temp table concept_relationship_upd$
+	--this table will be used to update the "main" table concept_relationship and the only reason it is created is to take advantage of PG concurrency (parallel workers)
+	CREATE UNLOGGED TABLE concept_relationship_upd$ AS
+	--Whether the combination of vocab1, vocab2 and relationship exists (in vocab_combinations$)
 	--(intended to be covered by this particular vocab udpate)
 	--And both concepts exist (don't deprecate relationships of deprecated concepts)
-	FROM concept c1,
-		concept c2,
-		vocab_combinations vc
-	WHERE c1.concept_id = d.concept_id_1
-		AND c2.concept_id = d.concept_id_2
+	SELECT cr.concept_id_1,
+		cr.concept_id_2,
+		cr.relationship_id,
+		vc.max_latest_update
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 		AND c2.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-		AND c1.vocabulary_id = vc.vocabulary_id_1
-		AND c2.vocabulary_id = vc.vocabulary_id_2
-		AND d.relationship_id = vc.relationship_id
-		--And the record is currently fresh and not already deprecated
-		AND d.invalid_reason IS NULL
+	JOIN vocab_combinations$ vc ON vc.vocabulary_id_1 = c1.vocabulary_id
+		AND vc.vocabulary_id_2 = c2.vocabulary_id
+		AND vc.relationship_id = cr.relationship_id
+	LEFT JOIN concept_relationship_stage crs ON crs.concept_id_1 = cr.concept_id_1
+		AND crs.concept_id_2 = cr.concept_id_2
+		AND crs.relationship_id = cr.relationship_id
+	WHERE cr.invalid_reason IS NULL --And the record is currently fresh and not already deprecated
 		--And it was started before or equal the release date
-		AND d.valid_start_date <= vc.max_latest_update
+		AND cr.valid_start_date <= vc.max_latest_update
 		--And it is missing from the new concept_relationship_stage
-		AND NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs
-			WHERE crs.concept_id_1 = d.concept_id_1
-				AND crs.concept_id_2 = d.concept_id_2
-				AND crs.relationship_id = d.relationship_id
-			);
+		AND crs.concept_id_1 IS NULL;
+
+	ANALYZE concept_relationship_upd$;
+
+	--update 'main' table from a temporary table
+	UPDATE concept_relationship cr
+	SET valid_end_date = crt.max_latest_update - 1,
+		invalid_reason = 'D'
+	FROM concept_relationship_upd$ crt
+	WHERE cr.concept_id_1 = crt.concept_id_1
+		AND cr.concept_id_2 = crt.concept_id_2
+		AND cr.relationship_id = crt.relationship_id;
+
+	--clean up
+	DROP TABLE vocab_combinations$, concept_relationship_upd$;
 
 	--17. Deprecate old 'Maps to', 'Maps to value' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 	--part 1 (direct mappings)
@@ -644,13 +601,7 @@ BEGIN
 		crs.valid_end_date,
 		crs.invalid_reason
 	FROM concept_relationship_stage crs
-	WHERE NOT EXISTS (
-			SELECT 1
-			FROM concept_relationship cr_int
-			WHERE cr_int.concept_id_1 = crs.concept_id_1
-				AND cr_int.concept_id_2 = crs.concept_id_2
-				AND cr_int.relationship_id = crs.relationship_id
-			);
+	ON CONFLICT DO NOTHING;
 
 	/*********************************************************
 	* Update the correct invalid reason in the concept table *
@@ -701,29 +652,30 @@ BEGIN
 	--Since they work outside the _stage tables, they will be restricted to the vocabularies worked on
 
 	--21. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S'
-	WITH to_be_upserted AS (
-		SELECT c.concept_id, v.latest_update, lat.relationship_id 
-		FROM concept c,	vocabulary v, LATERAL (SELECT CASE WHEN GENERATE_SERIES=1 then 'Maps to' ELSE 'Mapped from' END AS relationship_id FROM GENERATE_SERIES(1,2)) lat
-		WHERE v.vocabulary_id = c.vocabulary_id AND v.latest_update IS NOT NULL AND c.standard_concept = 'S' AND invalid_reason IS NULL
-	),
-	to_be_updated AS (
-		UPDATE concept_relationship cr
-		SET invalid_reason = NULL, valid_end_date = TO_DATE ('20991231', 'yyyymmdd')
-		FROM to_be_upserted up
-		WHERE cr.invalid_reason IS NOT NULL
-		AND cr.concept_id_1 = up.concept_id AND cr.concept_id_2 = up.concept_id AND cr.relationship_id = up.relationship_id
-		RETURNING cr.*
-	)
-		INSERT INTO concept_relationship
-		SELECT tpu.concept_id, tpu.concept_id, tpu.relationship_id, tpu.latest_update, TO_DATE ('20991231', 'yyyymmdd'), NULL 
-		FROM to_be_upserted tpu 
-		WHERE (tpu.concept_id, tpu.concept_id, tpu.relationship_id) 
-		NOT IN (
-			SELECT up.concept_id_1, up.concept_id_2, up.relationship_id FROM to_be_updated up
-			UNION ALL
-			SELECT cr_int.concept_id_1, cr_int.concept_id_2, cr_int.relationship_id FROM concept_relationship cr_int 
-			WHERE cr_int.concept_id_1=cr_int.concept_id_2 AND cr_int.relationship_id IN ('Maps to','Mapped from')
-		);
+	INSERT INTO concept_relationship AS cr
+	SELECT c.concept_id AS concept_id_1,
+		c.concept_id AS concept_id_2,
+		r.relationship_id,
+		v.latest_update AS valid_start_date,
+		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+		NULL AS invalid_reason
+	FROM concept c
+	JOIN vocabulary v ON v.vocabulary_id = c.vocabulary_id
+		AND v.latest_update IS NOT NULL
+	CROSS JOIN (
+		SELECT 'Maps to' AS relationship_id
+		
+		UNION ALL
+		
+		SELECT 'Mapped from'
+		) r
+	WHERE c.standard_concept = 'S'
+		AND c.invalid_reason IS NULL
+	ON CONFLICT ON CONSTRAINT xpk_concept_relationship
+	DO UPDATE
+	SET valid_end_date = excluded.valid_end_date,
+		invalid_reason = excluded.invalid_reason
+	WHERE cr.invalid_reason IS NOT NULL;
 
 	--22. 'Maps to' or 'Maps to value' relationships should not exist where
 	--a) the source concept has standard_concept = 'S', unless it is to self
@@ -1117,22 +1069,11 @@ BEGIN
 		vocabulary_id_v4,
 		vocabulary_id_v5
 		)
-	SELECT rownum + (
-			SELECT MAX(vocabulary_id_v4)
-			FROM vocabulary_conversion
-			) AS rn,
-		a [rownum] AS vocabulary_id
-	FROM (
-		SELECT a,
-			GENERATE_SERIES(1, ARRAY_UPPER(a, 1)) AS rownum
-		FROM (
-			SELECT ARRAY(SELECT vocabulary_id FROM vocabulary
-				
-				EXCEPT
-					
-					SELECT vocabulary_id_v5 FROM vocabulary_conversion) AS a
-			) AS s1
-		) AS s2;
+	SELECT -1,
+		v.vocabulary_id
+	FROM vocabulary v
+	WHERE v.latest_update IS NOT NULL
+	ON CONFLICT DO NOTHING;
 
 	--33. Update latest_update on vocabulary_conversion
 	UPDATE vocabulary_conversion vc
@@ -1141,9 +1082,12 @@ BEGIN
 	WHERE v.latest_update IS NOT NULL
 		AND v.vocabulary_id = vc.vocabulary_id_v5;
 
-	--34. Drop column latest_update
-	ALTER TABLE vocabulary DROP COLUMN latest_update;
-	ALTER TABLE vocabulary DROP COLUMN dev_schema_name;
+	--34. Clean up
+	UPDATE vocabulary
+	SET latest_update = NULL,
+		dev_schema_name = NULL
+	WHERE latest_update IS NOT NULL;
+
 	DROP INDEX idx_crs_ids_generic_temp;
 
 	--35. Final analysing for base tables
@@ -1159,8 +1103,4 @@ BEGIN
 END;
 $BODY$
 LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER
-COST 100
 SET client_min_messages = error;

@@ -17,7 +17,7 @@
 * Date: 2020
 **************************************************************************/
 
---ds_stage: 7
+--ds_stage: 8
 --internal_relationship_stage: 2
 --drug_concept_stage: 3
 --relationship_to_concept: 2
@@ -42,6 +42,23 @@ FROM (
 	SELECT drug_concept_code, 'Redundant box_size equal to 1 in ds_stage', 'ds_stage'
 	FROM ds_stage
 	WHERE box_size = 1
+	
+	UNION ALL
+
+	-- please review all drugs with 1ml in denominator to ensure that the packaging really contains only 1 ml of solution.
+	-- if not, or if the actual volume of solution is unknown, update to NULL
+	SELECT drug_concept_code, '1 ml in denominator needs to be reviewed', 'ds_stage'
+	FROM ds_stage ds
+	JOIN relationship_to_concept rc ON rc.concept_code_1 = ds.denominator_unit -- finding the unit
+	WHERE denominator_value = 1 AND rc.concept_id_2 = 8587
+	AND drug_concept_code NOT IN (
+    SELECT irs.concept_code_1
+    FROM internal_relationship_stage irs
+             JOIN relationship_to_concept rc2 ON rc2.concept_code_1 = irs.concept_code_2
+        AND rc2.concept_id_2 IN (46234466, 46234468, 44784844, 19095914, 19082106, 19095915,
+                                43563502, 46275062, 19082103, 19082104, 46234469,
+                                46234467) -- excluding injectable forms that legitimately can be 1 ml
+)
 	
 	UNION ALL
 	

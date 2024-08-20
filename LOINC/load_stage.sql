@@ -1202,12 +1202,12 @@ CREATE UNLOGGED TABLE sn_attr AS
 				ORDER BY f.id,
 					f.effectivetime DESC -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
 				) AS s0
-			WHERE statusid = 900000000000073002
+			WHERE statusid = '900000000000073002'
 			
 			UNION ALL
 			
 			SELECT '41598000' AS concept_code,
-				900000000000073002 AS statusid --This union is needed to take Estrogen component
+				'900000000000073002' AS statusid --This union is needed to take Estrogen component
 			)
 
 SELECT zz.*
@@ -1516,11 +1516,63 @@ WITH ax_1 AS (
 			AND x1.sn_code NOT IN (
 				'401020005' --Urinary cortisol analysis
 				) --to exclude additional codes
+	        AND z3.lc_code NOT IN (
+	            '51540-3', --Cladosporium herbarum IgG Ab [Presence] in Serum
+	            '19726-9', --Aspergillus fumigatus IgG Ab [Presence] in Serum
+	            '51538-7' --Cladosporium herbarum IgG Ab [Presence] in Serum
+            )
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
 				) -- exclude duplicates
 		),
+	-- AXIS 2.1: get 2-attribute Measurements (Component+Specimen) ONLY for DIALYSAT specimen
+	ax_21 AS (
+			SELECT DISTINCT z3.lc_code,
+				z3.lc_name,
+				x2.sn_code,
+				x2.sn_name
+			FROM sn_attr x1 -- X1 - SNOMED attribute pool
+			JOIN lc_attr z1 -- Z1 - LOINC attribute pool
+				ON z1.attr_code = x1.attr_code -- common Component
+				AND z1.relationship_id = 'Has component'
+			JOIN sn_attr x2 ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
+			JOIN lc_attr z2 ON z2.attr_code = '418377002'
+				AND x2.attr_code = '258454002' -- common Site -- DIALYSIS only
+				AND z2.relationship_id IN (
+					'Has dir proc site',
+					'Inheres in'
+					) -- given by the source relationships indicating SNOMED Specimens
+			JOIN lc_attr z3 ON z3.lc_code = z2.lc_code
+				AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
+			WHERE x1.relationship_id = 'Has component'
+				AND x2.relationship_id = 'Has specimen'
+				AND x1.sn_code IN (
+					SELECT sn_attr_int.sn_code
+					FROM sn_attr sn_attr_int
+					WHERE sn_attr_int.sn_code IN (
+							SELECT sn_code
+							FROM sn_attr
+							WHERE attr_code IN (
+									'258454002', --Dialysate specimen
+									'119360007' --Dialysis fluid specimen
+									)
+							)
+					GROUP BY sn_attr_int.sn_code
+					HAVING COUNT(*) > 1
+					) /*to restrict SNOMED attribute pool*/
+				AND x1.sn_code NOT IN (
+					'401020005' --Urinary cortisol analysis
+					)
+				AND z3.lc_code NOT IN (
+					SELECT ax_1_int.lc_code
+					FROM ax_1 ax_1_int
+					)
+				AND z3.lc_code NOT IN (
+					SELECT ax_2_int.lc_code
+					FROM ax_2 ax_2_int
+					) -- exclude duplicates
+			),
 	-- AXIS 3: get 2-attribute Measurements (Component+Specimen) ONLY for Acellular blood (serum or plasma) specimen
 	ax_3 AS (
 		SELECT DISTINCT z2.lc_code,
@@ -1545,17 +1597,22 @@ WITH ax_1 AS (
 				GROUP BY sn_attr_int.sn_code
 				HAVING COUNT(*) = 2
 				) /*to restrict SNOMED attribute pool*/
-	    AND x1.sn_code NOT IN ('401093002', --Haemophilus influenzae B IgG measurement
-	                            '9954002' --Serologic test for rubella
-	                          ) --to exclude additional codes
+			AND x1.sn_code NOT IN (
+				'401093002', --Haemophilus influenzae B IgG measurement
+				'9954002' --Serologic test for rubella
+				) --to exclude additional codes
 			AND z2.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
-			)
+				)
 			AND z2.lc_code NOT IN (
 				SELECT ax_2_int.lc_code
 				FROM ax_2 ax_2_int
-			) -- exclude duplicates
+				)
+			AND z2.lc_code NOT IN (
+				SELECT ax_21_int.lc_code
+				FROM ax_21 ax_21_int
+				) -- exclude duplicates
 		),
 	-- AXIS 4: get 2-attribute Measurements (Component+Scale)
 	ax_4 AS (
@@ -1608,7 +1665,30 @@ WITH ax_1 AS (
 				'271232007', --Serum lipase measurement
 				'281105001', --Fecal lipase measurement
 				'166776003', --Serum/plasma protein test
-				'166809004' --Electrophoresis: paraprotein
+				'166809004', --Electrophoresis: paraprotein
+				'54381000237109', --Sodium molar concentration in blood
+				'791921000000101', --Partial pressure of oxygen in umbilical cord venous blood
+				'791911000000107', --pH of umbilical cord venous blood
+				'791971000000102', --pH of umbilical cord arterial blood
+				'736730002', --Partial pressure of carbon dioxide in umbilical cord arterial blood
+				'736785003', --Partial pressure of carbon dioxide in umbilical cord venous blood
+				'55701000237103', --Potassium molar concentration in blood
+				'54661000237106', --Magnesium molar concentration in blood
+				'143431000237107', --Clinical chemistry electrolyte observable
+			     '1285329004', --Lactate in umbilical cord blood
+			    '372461000119109', --Lactate in blood
+			    '372451000119107', --Lactate in whole blood
+			    '364321000119106', --Detection of Legionella pneumophila antigen in urine
+			    '364351000119103', --Detection of Streptococcus pneumoniae antigen in urine
+			    '364301000119102', --Detection of Helicobacter pylori antigen in stool
+			    '373211000119100', --Giardia lamblia antigen by enzyme immunoassay
+			    '374451000119101', --Rheumatoid factor in serum
+			    '364061000119103', --Presence of Streptococcus agalactiae in genital system by organism specific culture
+			    '364571000119101', --Alanine transaminase in serum
+			    '11461000237104', --Alkaline phosphatase enzyme activity in fluid
+			    '364681000119104', --Benzodiazepine in urine by confirmatory technique
+			    '372361000119104', --Low density lipoprotein cholesterol by direct assay
+			    '365451000119108' --Smooth muscle actin immunoglobulin G antibody
 				) -- to exclude codes with additional axises
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
@@ -1618,6 +1698,10 @@ WITH ax_1 AS (
 				SELECT ax_2_int.lc_code
 				FROM ax_2 ax_2_int
 				)
+			AND z1.lc_code NOT IN (
+				SELECT ax_21_int.lc_code
+				FROM ax_21 ax_21_int
+			)
 			AND z1.lc_code NOT IN (
 				SELECT ax_3_int.lc_code
 				FROM ax_3 ax_3_int
@@ -1636,6 +1720,11 @@ WITH ax_1 AS (
 		
 		SELECT *
 		FROM ax_2
+
+		UNION ALL
+
+		SELECT *
+		FROM ax_21
 		
 		UNION ALL
 		
@@ -1719,7 +1808,821 @@ WHERE NOT (
 		AND sn_name NOT ILIKE '%quantitative%'
 		);
 
---21. Build hierarchical links 'Is a' from LOINC Lab Tests to SNOMED Measurements with the use of LOINC Component - SNOMED Attribute name similarity in CONCEPT_RELATIONSHIP_STAGE
+--21. Build hierarchical links 'Is a' from LOINC Lab Tests to SNOMED Measurements with the use of the LOINC Ontology source (2024.02)
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+WITH resulting_table AS (
+		--table with snomed measurements with attributes
+		WITH snomed_attr AS (
+				SELECT DISTINCT si.alternateidentifier AS loinc_code, --loinc_code of the real concept
+					c.concept_name, --loinc name of the real concept
+					c2.concept_id AS snomed_id,
+					--potential target
+					c2.concept_code AS snomed_code,
+					c2.concept_name AS snomed_name,
+					--attributes of the potential target
+					c1.concept_code AS component_code,
+					c1.concept_name AS component_name,
+					c3.concept_code AS specimen_code,
+					c3.concept_name AS specimen_name,
+					c4.concept_code AS method_code,
+					c4.concept_name AS method_name,
+					c5.concept_code AS property_code,
+					c5.concept_name AS property_name,
+					c6.concept_code AS scale_code,
+					c6.concept_name AS scale_name,
+					c7.concept_code AS time_code,
+					c7.concept_name AS time_name
+				FROM dev_loinc.snomed_relationship_full sr
+				JOIN dev_loinc.snomed_identifier_full si ON si.referencedcomponentid = sr.sourceid
+				LEFT JOIN concept_stage c ON c.concept_code = si.alternateidentifier
+					AND c.vocabulary_id = 'LOINC'
+				LEFT JOIN concept c1 ON c1.concept_code = sr.destinationid
+					AND c1.vocabulary_id = 'SNOMED'
+				JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+					AND cr.relationship_id = 'Component of'
+					AND cr.invalid_reason IS NULL
+				JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+					AND c2.vocabulary_id = 'SNOMED'
+					AND c2.invalid_reason IS NULL
+				LEFT JOIN concept_relationship cr1 ON cr1.concept_id_1 = c2.concept_id
+					AND cr1.relationship_id IN (
+						'Has specimen',
+						'Has direct site'
+						)
+					AND cr1.invalid_reason IS NULL
+				LEFT JOIN concept c3 ON c3.concept_id = cr1.concept_id_2
+					AND c3.vocabulary_id = 'SNOMED'
+				LEFT JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id
+					AND cr2.relationship_id = 'Has method'
+					AND cr2.invalid_reason IS NULL
+				LEFT JOIN concept c4 ON c4.concept_id = cr2.concept_id_2
+					AND c4.vocabulary_id = 'SNOMED'
+				LEFT JOIN concept_relationship cr3 ON cr3.concept_id_1 = c2.concept_id
+					AND cr3.relationship_id = 'Has property'
+					AND cr3.invalid_reason IS NULL
+				LEFT JOIN concept c5 ON c5.concept_id = cr3.concept_id_2
+					AND c5.vocabulary_id = 'SNOMED'
+				LEFT JOIN concept_relationship cr4 ON cr4.concept_id_1 = c2.concept_id
+					AND cr4.relationship_id = 'Has scale type'
+					AND cr4.invalid_reason IS NULL
+				LEFT JOIN concept c6 ON c6.concept_id = cr4.concept_id_2
+					AND c6.vocabulary_id = 'SNOMED'
+				LEFT JOIN concept_relationship cr5 ON cr5.concept_id_1 = c2.concept_id
+					AND cr5.relationship_id = 'Has time aspect'
+					AND cr5.invalid_reason IS NULL
+				LEFT JOIN concept c7 ON c7.concept_id = cr5.concept_id_2
+					AND c7.vocabulary_id = 'SNOMED'
+				WHERE sr.typeid <> '116680003' --Is a
+					AND c.concept_code NOT IN (
+						SELECT concept_code_1
+						FROM concept_relationship_stage
+						WHERE relationship_id = 'Is a'
+							AND invalid_reason IS NULL
+							AND vocabulary_id_2 = 'SNOMED'
+						)
+				),
+			--table with loinc measurements with attributes
+			loinc_attr AS (
+				SELECT DISTINCT si.alternateidentifier AS loinc_code, --loinc_code of the real concept
+					c.concept_name, --loinc name of the real concept
+					--loinc attributes
+					c1.concept_code AS component_code,
+					c1.concept_name AS component_name,
+					c2.concept_code AS specimen_code,
+					c2.concept_name AS specimen_name,
+					c3.concept_code AS method_code,
+					c3.concept_name AS method_name,
+					c4.concept_code AS property_code,
+					c4.concept_name AS property_name,
+					c5.concept_code AS scale_code,
+					c5.concept_name AS scale_name,
+					c6.concept_code AS time_code,
+					c6.concept_name AS time_name
+				FROM dev_loinc.snomed_relationship_full sr
+				JOIN dev_loinc.snomed_identifier_full si ON si.referencedcomponentid = sr.sourceid
+					AND sr.typeid = '246093002' --Component
+				LEFT JOIN concept_stage c ON c.concept_code = si.alternateidentifier
+					AND c.vocabulary_id = 'LOINC'
+				LEFT JOIN concept c1 ON c1.concept_code = sr.destinationid
+					AND c1.vocabulary_id = 'SNOMED'
+				LEFT JOIN dev_loinc.snomed_relationship_full sr1 ON sr1.sourceid = sr.sourceid
+					AND sr1.typeid IN (
+						'370133003',
+						'704319004',
+						'704327008'
+						) --Specimen
+				LEFT JOIN concept c2 ON c2.concept_code = sr1.destinationid
+					AND c2.vocabulary_id = 'SNOMED'
+				LEFT JOIN dev_loinc.snomed_relationship_full sr2 ON sr2.sourceid = sr.sourceid
+					AND sr2.typeid = '246501002' --Method
+				LEFT JOIN concept c3 ON c3.concept_code = sr2.destinationid
+					AND c3.vocabulary_id = 'SNOMED'
+				LEFT JOIN dev_loinc.snomed_relationship_full sr3 ON sr3.sourceid = sr.sourceid
+					AND sr3.typeid = '370130000' --Property
+				LEFT JOIN concept c4 ON c4.concept_code = sr3.destinationid
+					AND c4.vocabulary_id = 'SNOMED'
+				LEFT JOIN dev_loinc.snomed_relationship_full sr4 ON sr4.sourceid = sr.sourceid
+					AND sr4.typeid = '370132008' --Scale
+				LEFT JOIN concept c5 ON c5.concept_code = sr4.destinationid
+					AND c5.vocabulary_id = 'SNOMED'
+				LEFT JOIN dev_loinc.snomed_relationship_full sr5 ON sr5.sourceid = sr.sourceid
+					AND sr5.typeid = '370134009'
+				LEFT JOIN concept c6 ON c6.concept_code = sr5.destinationid
+					AND c6.vocabulary_id = 'SNOMED'
+				WHERE sr.typeid <> '116680003' --Is a
+					--take Lab Test that don't have 'Is a' link to SNOMED
+					AND c.concept_code NOT IN (
+						SELECT concept_code_1
+						FROM concept_relationship_stage
+						WHERE relationship_id = 'Is a'
+							AND invalid_reason IS NULL
+							AND vocabulary_id_2 = 'SNOMED'
+						)
+				),
+			--full attributes match
+			ax1 AS (
+				SELECT t.loinc_code AS concept_code,
+					t.concept_name AS concept_name,
+					t.snomed_code AS target_concept_code,
+					t.snomed_name AS target_concept_name,
+					t.component_code AS target_component_code,
+					t.component_name AS target_component_name,
+					t.specimen_code AS target_specimen_code,
+					t.specimen_name AS target_specimen_name,
+					t.method_code AS target_method_code,
+					t.method_name AS target_method_name,
+					t.property_code AS target_property_code,
+					t.property_name AS target_property_name,
+					t.scale_code AS target_scale_code,
+					t.scale_name AS target_scale_name,
+					t.time_code AS target_time_code,
+					t.time_name AS target_time_name,
+					t1.component_code,
+					t1.component_name,
+					t1.specimen_code,
+					t1.specimen_name,
+					t1.method_code,
+					t1.method_name,
+					t1.property_code,
+					t1.property_name,
+					t1.scale_code,
+					t1.scale_name,
+					t1.time_code,
+					t1.time_name
+				FROM snomed_attr t
+				JOIN loinc_attr t1 USING (
+						loinc_code,
+						component_code,
+						specimen_code,
+						method_code,
+						property_code,
+						scale_code,
+						time_code
+						)
+				),
+			--Component + Specimen + Scale
+			ax2 AS (
+				SELECT t.loinc_code AS concept_code,
+					t.concept_name AS concept_name,
+					t.snomed_code AS target_concept_code,
+					t.snomed_name AS target_concept_name,
+					t.component_code AS target_component_code,
+					t.component_name AS target_component_name,
+					t.specimen_code AS target_specimen_code,
+					t.specimen_name AS target_specimen_name,
+					t.method_code AS target_method_code,
+					t.method_name AS target_method_name,
+					t.property_code AS target_property_code,
+					t.property_name AS target_property_name,
+					t.scale_code AS target_scale_code,
+					t.scale_name AS target_scale_name,
+					t.time_code AS target_time_code,
+					t.time_name AS target_time_name,
+					t1.component_code,
+					t1.component_name,
+					t1.specimen_code,
+					t1.specimen_name,
+					t1.method_code,
+					t1.method_name,
+					t1.property_code,
+					t1.property_name,
+					t1.scale_code,
+					t1.scale_name,
+					t1.time_code,
+					t1.time_name
+				FROM snomed_attr t
+				JOIN loinc_attr t1 USING (
+						loinc_code,
+						component_code,
+						specimen_code,
+						scale_code
+						)
+				--prevent wrong matching based on Property
+				WHERE (
+						t.property_code IS NULL
+						OR t1.property_code IS NULL
+						OR t.property_code = t1.property_code
+						)
+					AND t.snomed_code NOT IN
+                        ('444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+                        '443833006' --Quantitative measurement of cannabinoids in urine using GC-MS
+                            )
+				),
+			--Component + Specimen + Property + Time
+			ax3 AS (
+				SELECT t.loinc_code AS concept_code,
+					t.concept_name AS concept_name,
+					t.snomed_code AS target_concept_code,
+					t.snomed_name AS target_concept_name,
+					t.component_code AS target_component_code,
+					t.component_name AS target_component_name,
+					t.specimen_code AS target_specimen_code,
+					t.specimen_name AS target_specimen_name,
+					t.method_code AS target_method_code,
+					t.method_name AS target_method_name,
+					t.property_code AS target_property_code,
+					t.property_name AS target_property_name,
+					t.scale_code AS target_scale_code,
+					t.scale_name AS target_scale_name,
+					t.time_code AS target_time_code,
+					t.time_name AS target_time_name,
+					t1.component_code,
+					t1.component_name,
+					t1.specimen_code,
+					t1.specimen_name,
+					t1.method_code,
+					t1.method_name,
+					t1.property_code,
+					t1.property_name,
+					t1.scale_code,
+					t1.scale_name,
+					t1.time_code,
+					t1.time_name
+				FROM snomed_attr t
+				JOIN loinc_attr t1 USING (
+						loinc_code,
+						component_code,
+						specimen_code,
+						property_code,
+						time_code
+						)
+				),
+			--loinc_code + Method
+			ax4 AS (
+				SELECT t.loinc_code AS concept_code,
+					t.concept_name AS concept_name,
+					t.snomed_code AS target_concept_code,
+					t.snomed_name AS target_concept_name,
+					t.component_code AS target_component_code,
+					t.component_name AS target_component_name,
+					t.specimen_code AS target_specimen_code,
+					t.specimen_name AS target_specimen_name,
+					t.method_code AS target_method_code,
+					t.method_name AS target_method_name,
+					t.property_code AS target_property_code,
+					t.property_name AS target_property_name,
+					t.scale_code AS target_scale_code,
+					t.scale_name AS target_scale_name,
+					t.time_code AS target_time_code,
+					t.time_name AS target_time_name,
+					t1.component_code,
+					t1.component_name,
+					t1.specimen_code,
+					t1.specimen_name,
+					t1.method_code,
+					t1.method_name,
+					t1.property_code,
+					t1.property_name,
+					t1.scale_code,
+					t1.scale_name,
+					t1.time_code,
+					t1.time_name
+				FROM snomed_attr t
+				JOIN loinc_attr t1 USING (
+						loinc_code,
+						method_code
+						)
+				),
+			--Property + Component + Specimen
+			ax5 AS (
+				SELECT DISTINCT ON (s0.concept_code) s0.*
+				FROM (
+					SELECT t.loinc_code AS concept_code,
+						t.concept_name AS concept_name,
+						t.snomed_code AS target_concept_code,
+						t.snomed_name AS target_concept_name,
+						t.component_code AS target_component_code,
+						t.component_name AS target_component_name,
+						t.specimen_code AS target_specimen_code,
+						t.specimen_name AS target_specimen_name,
+						t.method_code AS target_method_code,
+						t.method_name AS target_method_name,
+						t.property_code AS target_property_code,
+						t.property_name AS target_property_name,
+						t.scale_code AS target_scale_code,
+						t.scale_name AS target_scale_name,
+						t.time_code AS target_time_code,
+						t.time_name AS target_time_name,
+						t1.component_code,
+						t1.component_name,
+						t1.specimen_code,
+						t1.specimen_name,
+						t1.method_code,
+						t1.method_name,
+						t1.property_code,
+						t1.property_name,
+						t1.scale_code,
+						t1.scale_name,
+						t1.time_code,
+						t1.time_name,
+						--to choose concept with the more SNOMED Subsumes than others
+						COUNT(cr.concept_id_2) OVER (
+							PARTITION BY t.loinc_code,
+							t.concept_name,
+							t.snomed_code,
+							t.snomed_name,
+							t.component_code,
+							t.component_name,
+							t.specimen_code,
+							t.specimen_name,
+							t.method_code,
+							t.method_name,
+							t.property_code,
+							t.property_name,
+							t.scale_code,
+							t.scale_name,
+							t.time_code,
+							t.time_name,
+							t1.component_code,
+							t1.component_name,
+							t1.specimen_code,
+							t1.specimen_name,
+							t1.method_code,
+							t1.method_name,
+							t1.property_code,
+							t1.property_name,
+							t1.scale_code,
+							t1.scale_name,
+							t1.time_code,
+							t1.time_name
+							) AS snomed_subsumes_cnt,
+						t.snomed_id
+					FROM snomed_attr t
+					JOIN loinc_attr t1 USING (
+							loinc_code,
+							component_code,
+							specimen_code,
+							property_code
+							)
+					LEFT JOIN concept_relationship cr ON cr.concept_id_1 = t.snomed_id
+						AND cr.relationship_id = 'Subsumes'
+						AND cr.invalid_reason IS NULL
+					--exclude rows that already have hierarchy
+					WHERE t.loinc_code NOT IN (
+							SELECT concept_code
+							FROM ax2
+							)
+						--prevent wrong matching based on Method
+						AND (
+							t1.method_code IS NOT NULL
+							OR (
+								t1.method_code IS NULL
+								AND t.snomed_name !~* 'automated|immunoassay|immunoflourescence|immunosorbent'
+								)
+							)
+						AND snomed_code NOT IN
+                            ('444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+                             '364301000119102', --Detection of Helicobacter pylori antigen in stool
+                            '443833006' --Quantitative measurement of cannabinoids in urine using GC-MS
+                                )
+					) s0
+				ORDER BY s0.concept_code,
+					s0.snomed_subsumes_cnt DESC,
+					s0.snomed_id
+				),
+			-- Component + Specimen
+			ax6 AS (
+				SELECT DISTINCT ON (s0.concept_code) s0.*
+				FROM (
+					SELECT t.loinc_code AS concept_code,
+						t.concept_name AS concept_name,
+						t.snomed_code AS target_concept_code,
+						t.snomed_name AS target_concept_name,
+						t.component_code AS target_component_code,
+						t.component_name AS target_component_name,
+						t.specimen_code AS target_specimen_code,
+						t.specimen_name AS target_specimen_name,
+						t.method_code AS target_method_code,
+						t.method_name AS target_method_name,
+						t.property_code AS target_property_code,
+						t.property_name AS target_property_name,
+						t.scale_code AS target_scale_code,
+						t.scale_name AS target_scale_name,
+						t.time_code AS target_time_code,
+						t.time_name AS target_time_name,
+						t1.component_code,
+						t1.component_name,
+						t1.specimen_code,
+						t1.specimen_name,
+						t1.method_code,
+						t1.method_name,
+						t1.property_code,
+						t1.property_name,
+						t1.scale_code,
+						t1.scale_name,
+						t1.time_code,
+						t1.time_name,
+						--to choose concept with the more SNOMED Subsumes than others
+						COUNT(cr.concept_id_2) OVER (
+							PARTITION BY t.loinc_code,
+							t.concept_name,
+							t.snomed_code,
+							t.snomed_name,
+							t.component_code,
+							t.component_name,
+							t.specimen_code,
+							t.specimen_name,
+							t.method_code,
+							t.method_name,
+							t.property_code,
+							t.property_name,
+							t.scale_code,
+							t.scale_name,
+							t.time_code,
+							t.time_name,
+							t1.component_code,
+							t1.component_name,
+							t1.specimen_code,
+							t1.specimen_name,
+							t1.method_code,
+							t1.method_name,
+							t1.property_code,
+							t1.property_name,
+							t1.scale_code,
+							t1.scale_name,
+							t1.time_code,
+							t1.time_name
+							) AS snomed_subsumes_cnt,
+						t.snomed_id
+					FROM snomed_attr t
+					JOIN loinc_attr t1 ON t.loinc_code = t1.loinc_code
+						AND t.component_code = t1.component_code
+						AND t.specimen_code = t1.specimen_code
+					LEFT JOIN concept_relationship cr ON cr.concept_id_1 = t.snomed_id
+						AND relationship_id = 'Subsumes'
+						AND invalid_reason IS NULL
+					--exclude rows that already have hierarchy
+					WHERE t.loinc_code NOT IN (
+							SELECT concept_code
+							FROM ax2
+							)
+						AND t.loinc_code NOT IN (
+							SELECT concept_code
+							FROM ax5
+							)
+						--prevent wrong matching based on Property
+						AND (
+							t.property_code IS NULL
+							OR t1.property_code IS NULL
+							OR t.property_code = t1.property_code
+							)
+						--prevent wrong matching based on Scale
+						AND (
+							t.scale_code IS NULL
+							OR t1.scale_code IS NULL
+							OR t.scale_code = t1.scale_code
+							)
+						--prevent wrong matching based on Method
+						AND (
+							t1.method_code IS NOT NULL
+							OR (
+								t1.method_code IS NULL
+								AND snomed_name !~* 'automated|immunoassay|immunoflourescence|immunosorbent'
+								)
+							)
+						AND t.snomed_code NOT IN (
+							'104193001', --Bacterial culture, urine, with colony count
+							'104230007', --Bacterial culture, urine, by commercial kit
+							'104194007', --Bacterial culture, urine, with organism identification
+							'395030005', --Skin biopsy C3 level
+							'104309001', --Cytomegalovirus IgM antibody assay
+							'313604004', --Cytomegalovirus IgG antibody measurement
+							'57321000237104', --Fractional TRP (tubular reabsorption of phosphate)
+							'444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+						    '993431000000100', --Haemoglobin electrophoresis
+						    '392372009' --Norway spruce specific IgE antibody measurement
+							)
+						AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
+						AND regexp_replace(t.concept_name, '[^0-9]', '', 'g') = regexp_replace(t.snomed_name, '[^0-9]', '', 'g')
+					) s0
+				ORDER BY s0.concept_code,
+					s0.snomed_subsumes_cnt DESC,
+					s0.snomed_id
+				),
+			-- Component + Property
+			ax7 AS (
+				SELECT t.loinc_code AS concept_code,
+					t.concept_name AS concept_name,
+					snomed_code AS target_concept_code,
+					snomed_name AS target_concept_name,
+					t.component_code AS target_component_code,
+					t.component_name AS target_component_name,
+					t.specimen_code AS target_specimen_code,
+					t.specimen_name AS target_specimen_name,
+					t.method_code AS target_method_code,
+					t.method_name AS target_method_name,
+					t.property_code AS target_property_code,
+					t.property_name AS target_property_name,
+					t.scale_code AS target_scale_code,
+					t.scale_name AS target_scale_name,
+					t.time_code AS target_time_code,
+					t.time_name AS target_time_name,
+					t1.component_code,
+					t1.component_name,
+					t1.specimen_code,
+					t1.specimen_name,
+					t1.method_code,
+					t1.method_name,
+					t1.property_code,
+					t1.property_name,
+					t1.scale_code,
+					t1.scale_name,
+					t1.time_code,
+					t1.time_name
+				FROM snomed_attr t
+				JOIN loinc_attr t1 USING (
+						loinc_code,
+						component_code,
+						property_code
+						)
+				--exclude rows that already have hierarchy
+				WHERE t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax2
+						)
+					AND t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax5
+						)
+					AND t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax6
+						)
+					--prevent wrong matching based on Specimen and match similar Specimens
+					AND (
+						t.specimen_code IS NULL
+						OR t1.specimen_code IS NULL
+						OR t.specimen_code = t1.specimen_code
+						OR (
+							t.specimen_code ILIKE '%serum%'
+							AND t1.specimen_code ILIKE '%serum%'
+							)
+						OR (
+							t.specimen_code ~* 'phar|Sputum|Bronchoalveolar'
+							AND t1.specimen_code ~* 'throat|respiratory|phar'
+							)
+						OR (
+							t.specimen_code ILIKE '%blood%'
+							AND t1.specimen_code ILIKE '%blood%'
+							)
+						OR (
+							t.specimen_code ILIKE '%urine%'
+							AND t1.specimen_code ILIKE '%urine%'
+							)
+						OR (
+							t.specimen_code ILIKE '%plasma%'
+							AND t1.specimen_code ILIKE '%plasma%'
+							)
+						OR (
+							t.specimen_code ILIKE '%fluid%'
+							AND t1.specimen_code ILIKE '%fluid%'
+							)
+						OR (
+							t.specimen_code ILIKE '%Naso%'
+							AND t1.specimen_code ILIKE '%nose%'
+							)
+						OR (
+							t.specimen_code ~* 'Serum|Plasma'
+							AND t1.specimen_code ILIKE '%spot%'
+							)
+						OR (
+							t.specimen_code ~* 'dial|fluid'
+							AND t1.specimen_code ILIKE '%Dialysate%'
+							)
+						)
+					AND snomed_code NOT IN (
+						'50271000237107', --HCV (hepatitis C virus) antibody in oral fluid qualitative result
+						'444264005'
+						) --Quantitative measurement of gastrin in fasting serum or plasma specimen
+			    AND snomed_name !~* 'by deoxyribonucleic acid microarray analysis'
+				)/*,
+			--Component
+			--TODO: can be implemented. Also only match on the loinc_code level can be done
+			ax8 AS (
+				SELECT t.loinc_code AS concept_code,
+					t.concept_name AS concept_name,
+					t.snomed_code AS target_concept_code,
+					t.snomed_name AS target_concept_name,
+					t.component_code AS target_component_code,
+					t.component_name AS target_component_name,
+					t.specimen_code AS target_specimen_code,
+					t.specimen_name AS target_specimen_name,
+					t.method_code AS target_method_code,
+					t.method_name AS target_method_name,
+					t.property_code AS target_property_code,
+					t.property_name AS target_property_name,
+					t.scale_code AS target_scale_code,
+					t.scale_name AS target_scale_name,
+					t.time_code AS target_time_code,
+					t.time_name AS target_time_name,
+					t1.component_code,
+					t1.component_name,
+					t1.specimen_code,
+					t1.specimen_name,
+					t1.method_code,
+					t1.method_name,
+					t1.property_code,
+					t1.property_name,
+					t1.scale_code,
+					t1.scale_name,
+					t1.time_code,
+					t1.time_name -- com
+				FROM snomed_attr t
+				JOIN loinc_attr t1 USING (
+						loinc_code,
+						component_code
+						)
+				--exclude rows that already have hierarchy
+				WHERE t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax2
+						)
+					AND t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax5
+						)
+					AND t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax6
+						)
+					AND t.loinc_code NOT IN (
+						SELECT concept_code
+						FROM ax7
+						)
+				)*/
+		SELECT *
+		FROM ax1
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax2
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax3
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax4
+		
+		UNION ALL
+		
+		SELECT concept_code,
+			concept_name,
+			target_concept_code,
+			target_concept_name,
+			target_component_code,
+			target_component_name,
+			target_specimen_code,
+			target_specimen_name,
+			target_method_code,
+			target_method_name,
+			target_property_code,
+			target_property_name,
+			target_scale_code,
+			target_scale_name,
+			target_time_code,
+			target_time_name,
+			component_code,
+			component_name,
+			specimen_code,
+			specimen_name,
+			method_code,
+			method_name,
+			property_code,
+			property_name,
+			scale_code,
+			scale_name,
+			time_code,
+			time_name
+		FROM ax5
+		
+		UNION ALL
+		
+		SELECT concept_code,
+			concept_name,
+			target_concept_code,
+			target_concept_name,
+			target_component_code,
+			target_component_name,
+			target_specimen_code,
+			target_specimen_name,
+			target_method_code,
+			target_method_name,
+			target_property_code,
+			target_property_name,
+			target_scale_code,
+			target_scale_name,
+			target_time_code,
+			target_time_name,
+			component_code,
+			component_name,
+			specimen_code,
+			specimen_name,
+			method_code,
+			method_name,
+			property_code,
+			property_name,
+			scale_code,
+			scale_name,
+			time_code,
+			time_name
+		FROM ax6
+		--exlude wrong matching
+		WHERE target_concept_code NOT IN (
+				SELECT target_concept_code
+				FROM ax6
+				WHERE property_name = 'Presence'
+					AND target_concept_name ILIKE '%level%'
+				)
+			AND target_concept_code NOT IN (
+				SELECT target_concept_code
+				FROM ax6
+				WHERE property_name <> 'Presence'
+					AND target_concept_name ILIKE '%screening%'
+				)
+			AND (
+				concept_name,
+				target_concept_name
+				) NOT IN (
+				SELECT concept_name,
+					target_concept_name
+				FROM ax6
+				WHERE concept_name ILIKE '%manual%'
+					AND target_concept_name ILIKE '%automated%'
+				)
+			AND (
+				concept_name,
+				target_concept_name
+				) NOT IN (
+				SELECT concept_name,
+					target_concept_name
+				FROM ax6
+				WHERE concept_name NOT ILIKE '%automated%'
+					AND target_concept_name ILIKE '%automated%'
+				)
+		
+		UNION ALL
+		
+		SELECT *
+		FROM ax7
+		/*UNION ALL
+
+		SELECT *
+		FROM ax8*/
+		)
+SELECT rt.concept_code AS concept_code_1,
+	rt.target_concept_code AS concept_code_2,
+	'LOINC' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM resulting_table rt
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC' -- get valid_start_date
+--TODO: to-many comes from ax7, can be improved by window function + maybe something else
+WHERE rt.concept_code NOT IN (
+		SELECT rt_int.concept_code
+		FROM resulting_table rt_int
+		GROUP BY rt_int.concept_code
+		HAVING COUNT(*) > 1
+		)
+ON CONFLICT DO NOTHING;
+
+--22. Build hierarchical links 'Is a' from LOINC Lab Tests to SNOMED Measurements with the use of LOINC Component - SNOMED Attribute name similarity in concept_relationship_stage
 ANALYZE concept_relationship_stage;
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1747,6 +2650,10 @@ JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 	AND cs1.standard_concept = 'S'
 	AND cs1.invalid_reason IS NULL
 	AND cs1.concept_name !~* 'susceptibility|protein\.monoclonal' -- susceptibility may have property other than 'Susc'
+	AND cs1.concept_code NOT IN ('26760-9', '70144-1', '70145-8', '20413-1', '42860-7', '70143-3',
+	                            '26760-9', '70144-1', '70145-8', '16243-8', '16542-3', '16543-1',
+                                '26856-5', '27024-9', '33282-5', '33561-2', '48942-7', '50338-3',
+                                '59160-2', '8170-3', '8176-0')
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
@@ -1774,14 +2681,14 @@ WHERE crs.relationship_id = 'Has component'
 	AND crs.vocabulary_id_2 = 'LOINC'
 	AND crs.invalid_reason IS NULL;
 
---22. drop temporary links (currently, the source does not support the LOINC-SNOMED refsets, so we do not have to add such links to CDM)
+--23. Drop temporary links (currently, the source does not support the LOINC-SNOMED refsets, so we do not have to add such links to CDM)
 DELETE
 FROM concept_relationship_stage
 WHERE vocabulary_id_1 = 'LOINC'
 	AND vocabulary_id_2 = 'SNOMED'
 	AND relationship_id <> 'Is a';
 
---23. Build 'LOINC - CPT4 eq' relationships (mappings) from LOINC Measurements to CPT4 Measurements or Procedures with the use of a 'sources.cpt_mrsmap' table (mappings)
+--24. Build 'LOINC - CPT4 eq' relationships (mappings) from LOINC Measurements to CPT4 Measurements or Procedures with the use of a 'sources.cpt_mrsmap' table (mappings)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1804,7 +2711,7 @@ FROM sources.cpt_mrsmap l,
 	vocabulary v
 WHERE v.vocabulary_id = 'LOINC';
 
---24. Build 'Concept replaced by' relationships for updated LOINC concepts and deprecate already existing replacing mappings with the use of a 'sources.map_to' table
+--25. Build 'Concept replaced by' relationships for updated LOINC concepts and deprecate already existing replacing mappings with the use of a 'sources.map_to' table
 --TODO: Consider using 1-to-many source mappings as "Maps to"
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1860,7 +2767,7 @@ WHERE c1.concept_id = r.concept_id_1
 	AND mt.map_to = c1.concept_code
 	AND mt.loinc = c2.concept_code;
 
---25. Add LOINC Document Ontology concepts with the use of a 'sources.loinc_documentontology' table to the concept_stage
+--26. Add LOINC Document Ontology concepts with the use of a 'sources.loinc_documentontology' table to the concept_stage
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -1897,7 +2804,7 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';-- decision to exclude LP173061-5 '{Settings}' and LP187187-2 '{Role}' PartNames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}.
 
---26. Makes deprecated "Maps to" relationships for concepts that was Non-Standard and became Standard
+--27. Makes deprecated "Maps to" relationships for concepts that was Non-Standard and became Standard
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1937,7 +2844,7 @@ WHERE c1.vocabulary_id = 'LOINC'
 				)
 		);
 
---27. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
+--28. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1972,7 +2879,7 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';
 
---28. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
+--29. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -2279,7 +3186,7 @@ JOIN sources.loinc_grouploincterms lgt ON lgt.groupid = lg.groupid -- table with
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 WHERE lgt.category IS NOT NULL;
 
---28.1 Update radiology Group Domains
+--30 Update radiology Group Domains
 UPDATE concept_stage cs
 SET domain_id = 'Procedure'
 FROM sources.loinc_group lg
@@ -2296,7 +3203,7 @@ WHERE cs.concept_code IN (
 		'LG51409-7' --MR|Kidney|Guidance for percutaneous biopsy|Any Laterality
 		);
 
---29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
+--31. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -2337,7 +3244,7 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 JOIN concept_stage cs1 ON cs1.concept_code = lg.parentgroupid -- LOINC Group Category code
 JOIN concept_stage cs2 ON cs2.concept_code = lg.groupid;-- LOINC Group code
 
---30. Add LOINC Group Categories and Groups to the concept_synonym_stage
+--32. Add LOINC Group Categories and Groups to the concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -2361,7 +3268,7 @@ SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
 	4180186 AS language_concept_id -- English
 FROM sources.loinc_parentgroupattributes lpga;-- table with descriptions of LOINC Group Categories
 
---31. Add Chinese language synonyms (AVOF-2231) from UMLS
+--33. Add Chinese language synonyms (AVOF-2231) from UMLS
 INSERT INTO concept_synonym_stage (
 	synonym_name,
 	synonym_concept_code,
@@ -2376,37 +3283,43 @@ FROM concept_stage cs
 JOIN sources.mrconso m ON m.code = cs.concept_code
 	AND m.sab = 'LNC-ZH-CN';
 
---32. Working with manual mappings
+--34. Working with manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---33. Working with replacement mappings
+--35. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---34. Add mapping from deprecated to fresh concepts
+--36. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---35. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--37. Add mapping (to value) from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--38. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---36. Delete ambiguous 'Maps to' mappings
+--39. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---37. Build reverse relationships. This is necessary for the next point.
+--40. Build reverse relationships. This is necessary for the next point.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -2438,7 +3351,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---38. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
+--41. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -2481,7 +3394,7 @@ WHERE a.vocabulary_id = 'LOINC'
 			AND crs_int.relationship_id = r.relationship_id
 		);
 
---39. Clean up
+--42. Clean up
 DROP TABLE sn_attr, lc_attr;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

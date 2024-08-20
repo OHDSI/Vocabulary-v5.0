@@ -407,7 +407,7 @@ begin
       execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER FORCE NULL loinc_num, component, property, time_aspct, system, scale_typ, method_typ, class, versionlastchanged, 
          chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, relatednames2, shortname, 
          order_obs, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, example_ucum_units, status_reason, 
-         status_text, change_reason_public, common_test_rank, common_order_rank, common_si_test_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
+         status_text, change_reason_public, common_test_rank, common_order_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
          versionfirstreleased, validhl7attachmentrequest, displayname';
       alter table sources.loinc ADD COLUMN vocabulary_date date;
       alter table sources.loinc ADD COLUMN vocabulary_version VARCHAR (200);
@@ -816,7 +816,7 @@ begin
       truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
       alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
       execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
-      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
+      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason HEADER';
       execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id,valid_start_date,valid_end_date,invalid_reason HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
@@ -867,6 +867,52 @@ begin
       --execute 'COPY sources.civic_variantsummaries (variant_id,variant_civic_url,gene,entrez_id,variant,summary,variant_groups,chromosome,start,stop,reference_bases,variant_bases,representative_transcript,ensembl_version,reference_build,chromosome2,start2,stop2,representative_transcript2,variant_types,hgvs_expressions,last_review_date,civic_variant_evidence_score,allele_registry_id,clinvar_ids,variant_aliases,assertion_ids,assertion_civic_urls,is_flagged) FROM '''||pVocabularyPath||'variantsummaries.tsv'' delimiter E''\t'' csv quote E''\b'' HEADER';
       --update sources.civic_variantsummaries set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       PERFORM sources_archive.AddVocabularyToArchive('CIViC', ARRAY['civic_variantsummaries'], COALESCE(pVocabularyDate,current_date), 'archive.civic_version', 10);
+  when 'META' THEN
+      truncate table sources.meta_mrconso, sources.meta_mrhier, sources.meta_mrmap, sources.meta_mrsmap, sources.meta_mrsat, sources.meta_mrrel, sources.meta_mrsty, sources.meta_mrdef, sources.meta_mrsab, sources.meta_ncimeme;
+      drop index sources.idx_meta_mrsat_cui;
+      drop index sources.idx_meta_mrconso_code;
+      drop index sources.idx_meta_mrconso_cui;
+      drop index sources.idx_meta_mrconso_aui;
+      drop index sources.idx_meta_mrconso_sab_tty;
+      drop index sources.idx_meta_mrconso_scui;
+      drop index sources.idx_meta_mrsty_cui;
+      drop index sources.idx_meta_mrdef_sab_cui;
+      drop index sources.idx_meta_ncimeme_conceptcode;
+
+      execute 'COPY sources.meta_mrconso FROM '''||pVocabularyPath||'MRCONSO.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrhier FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-10 --delimiter="|" "'||pVocabularyPath||'MRHIER.RRF" '' delimiter '','' csv';
+      execute 'COPY sources.meta_mrmap FROM '''||pVocabularyPath||'MRMAP.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsmap FROM '''||pVocabularyPath||'MRSMAP.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsat FROM '''||pVocabularyPath||'MRSAT.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrrel FROM '''||pVocabularyPath||'MRREL.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsty FROM '''||pVocabularyPath||'MRSTY.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrdef FROM '''||pVocabularyPath||'MRDEF.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_mrsab (vcui, rcui, vsab, rsab, son, sf, sver, vstart, vend, imeta, rmeta, slc, scc, srl, tfr, cfr, cxty, ttyl, atnl, lat, cenc, curver, sabin, ssn, scit, vocabulary_date) FROM '''||pVocabularyPath||'MRSAB.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.meta_ncimeme FROM '''||pVocabularyPath||'NCIMEME.txt'' delimiter ''|'' csv quote E''\b''';
+      update sources.meta_mrsab set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+            
+      create index idx_meta_mrsat_cui on sources.meta_mrsat (cui);
+      create index idx_meta_mrconso_code on sources.meta_mrconso (code);
+      create index idx_meta_mrconso_cui on sources.meta_mrconso (cui);
+      create index idx_meta_mrconso_aui on sources.meta_mrconso (aui);
+      create index idx_meta_mrconso_sab_tty on sources.meta_mrconso (sab,tty);
+      create index idx_meta_mrconso_scui on sources.meta_mrconso (scui);
+      create index idx_meta_mrsty_cui on sources.meta_mrsty (cui);
+      create index idx_meta_mrdef_sab_cui on sources.meta_mrdef (sab,cui);
+      create index idx_meta_ncimeme_conceptcode on sources.meta_ncimeme (conceptcode);
+      
+      analyze sources.meta_mrconso;
+      analyze sources.meta_mrhier;
+      analyze sources.meta_mrmap;
+      analyze sources.meta_mrsmap;
+      analyze sources.meta_mrsat;
+      analyze sources.meta_mrrel;
+      analyze sources.meta_mrsty;
+      analyze sources.meta_mrdef;
+      analyze sources.meta_mrsab;
+      analyze sources.meta_ncimeme;
+      
+      PERFORM sources_archive.AddVocabularyToArchive('META', ARRAY['meta_mrconso','meta_mrhier','meta_mrmap','meta_mrsmap','meta_mrsat','meta_mrrel','meta_mrsty','meta_mrdef','meta_mrsab','meta_ncimeme'], COALESCE(pVocabularyDate,current_date), 'archive.meta_version', 5);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

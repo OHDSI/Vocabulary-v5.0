@@ -8,7 +8,7 @@
 - Working directory, e.g. dev_icd10cm
 
 #### Sequence of actions
-1. Download the latest ICD-10-CM version ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/YYYY
+1. Download the latest ICD-10-CM version from https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/
 2. Unzip the file ICD10CM_FYYYYY_code_descriptions.zip, extract icd10cm_order_YYYY.txt and rename to icd10cm.txt
 3. Run [create_source_tables.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/ICD10CM/create_source_tables.sql)
 4. Run in devv5 (with fresh vocabulary date and version, e.g. according "The 2018 ICD-10-CM codes are to be used from October 1, 2017 through September 30, 2018" so 20171001): 
@@ -19,13 +19,11 @@ SELECT sources.load_input_tables('ICD10CM',TO_DATE('20170428','YYYYMMDD'),'ICD10
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 ```
-6. As described in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables, which exist by default in the dev schema after the FastRecreate.
-   If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
-7. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/ICD10CM/load_stage.sql) for the first time to define problems in mapping.
+6. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/ICD10CM/load_stage.sql) for the first time to define problems in mapping.
    Note: Load_stage generates list of the relationships that need to be checked and modified by the medical coder and after uploading this data to server load_stage continues making proper relationships using this manually created table
-8. Perform manual work described in manual_work folder
-9. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/ICD10CM/load_stage.sql) for the second time to refresh ICD10CM
-10. Run generic_update: 
+7. Perform manual work described in manual_work folder
+8. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/ICD10CM/load_stage.sql) for the second time to refresh ICD10CM
+9. Run generic_update: 
 ```sql
 SELECT devv5.GenericUpdate();
 ```

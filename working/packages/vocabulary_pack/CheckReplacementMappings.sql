@@ -10,6 +10,8 @@ $BODY$
 	5. Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
 */
 BEGIN
+	ANALYZE concept_relationship_stage;
+
 	--Delete duplicate replacement mappings (one concept has multiply target concepts)
 	DELETE
 	FROM concept_relationship_stage

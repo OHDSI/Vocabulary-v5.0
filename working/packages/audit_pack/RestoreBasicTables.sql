@@ -11,7 +11,8 @@ DECLARE
 	pTables TEXT[]:=ARRAY['concept','concept_relationship','concept_synonym','drug_strength','pack_content','relationship','vocabulary','vocabulary_conversion','concept_class','domain'];
 	pExcludeTables TEXT[]:=ARRAY['base_concept_manual', 'base_concept_relationship_manual', 'base_concept_synonym_manual'];
 	t TEXT;
-	pCreateDDL TEXT;
+	pCreateDDLFK TEXT;
+	pCreateDDLIdx TEXT;
 BEGIN
 	IF iLogID IS NULL THEN
 		RAISE EXCEPTION 'Please specify the LogID';
@@ -25,6 +26,10 @@ BEGIN
 
 	IF pTruncate_id IS NOT NULL THEN
 		RAISE EXCEPTION 'There was a TRUNCATE operation (log_id=%) after the specified LogID (%), can not restore. Please choose another LogID',pTruncate_id,iLogID;
+	END IF;
+
+	IF iLogID=pCurrent_max_log_id THEN
+		RAISE EXCEPTION 'There is no data to restore, because the log_id you selected is the maximum for the log table';
 	END IF;
 
 	IF pDevv5 THEN
@@ -162,7 +167,10 @@ BEGIN
 	END IF;
 
 	RAISE NOTICE 'Disabling constraints...';
-	SELECT * INTO pCreateDDL FROM vocabulary_pack.DropFKConstraints(pTables);
+	SELECT * INTO pCreateDDLFK FROM vocabulary_pack.DropFKConstraints(pTables);
+
+	RAISE NOTICE 'Dropping indexes...';
+	SELECT * INTO pCreateDDLIdx FROM vocabulary_pack.DropIndexes (pTables, ARRAY['idx_concept_synonym_id','u_pack_content']/*not PK, but used as PK*/);
 
 	RAISE NOTICE 'Restoring tables...';
 	FOR r IN (SELECT * FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables) ORDER BY log_id DESC) LOOP
@@ -215,15 +223,15 @@ BEGIN
 				AND cs.language_concept_id=(r.new_row->>'language_concept_id')::INT4;
 
 			ELSIF r.table_name='vocabulary' THEN
-				IF r.old_row ? 'dev_schema_name' OR r.new_row ? 'dev_schema_name' THEN
-					CONTINUE; --skip ALTER TABLE from SetLatestUpdate
-				END IF;
-				
 				UPDATE vocabulary v SET
-					(vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id)=
-					(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id)
+					(vocabulary_id,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id, vocabulary_params)=
+					(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id, j.vocabulary_params)
 				FROM JSONB_POPULATE_RECORD(NULL::vocabulary, r.old_row) j
-				WHERE v.vocabulary_id=(r.new_row->>'vocabulary_id');
+				WHERE v.vocabulary_id=(r.new_row->>'vocabulary_id')
+				--skip changes from latest_update/dev_schema_name fields
+				AND ROW(v.vocabulary_id,v.vocabulary_name,v.vocabulary_reference,v.vocabulary_version,v.vocabulary_concept_id, v.vocabulary_params)
+				IS DISTINCT FROM
+				ROW(j.vocabulary_id,j.vocabulary_name,j.vocabulary_reference,j.vocabulary_version,j.vocabulary_concept_id, j.vocabulary_params);
 
 			ELSIF r.table_name='relationship' THEN
 				UPDATE relationship rel SET
@@ -281,10 +289,30 @@ BEGIN
 			END IF;
 		END IF;
 	END LOOP;
+
+	--special fix for the vocabulary_params field, because this field did not exist before log_id=44436537, then we always restore the current value from devv5
+	IF iLogID < 44436537 THEN
+		UPDATE vocabulary v
+		SET vocabulary_params = v5.vocabulary_params
+		FROM devv5.vocabulary v5
+		WHERE v.vocabulary_id = v5.vocabulary_id
+			AND v5.vocabulary_params IS NOT NULL;
+	END IF;
+
 	RAISE NOTICE '100%% of rows were processed';
 
 	RAISE NOTICE 'Enabling constraints...';
-	EXECUTE pCreateDDL;
+	EXECUTE pCreateDDLFK;
+
+	RAISE NOTICE 'Enabling indexes...';
+	EXECUTE pCreateDDLIdx;
+
+
+	RAISE NOTICE 'Collecting statistics...';
+	FOREACH t IN ARRAY pTables LOOP
+		EXECUTE FORMAT('ANALYZE %I',t);
+	END LOOP;
+
 
 	IF pDevv5 THEN
 		FOREACH t IN ARRAY pTables LOOP
@@ -292,6 +320,50 @@ BEGIN
 		END LOOP;
 		RAISE NOTICE 'Deleting obsolete log records...';
 		DELETE FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables);
+
+		--update concept_id_1/2 in the base_concept_relationship_manual, if the concepts no longer exist in the base tables
+		RAISE NOTICE 'Fixing base_concept_relationship_manual...';
+		UPDATE base_concept_relationship_manual base_crm
+		SET concept_id_1 = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_crm.concept_code_1
+					AND c_int.vocabulary_id = base_crm.vocabulary_id_1
+				)
+			AND base_crm.concept_id_1 <> 0;
+
+		UPDATE base_concept_relationship_manual base_crm
+		SET concept_id_2 = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_crm.concept_code_2
+					AND c_int.vocabulary_id = base_crm.vocabulary_id_2
+				)
+			AND base_crm.concept_id_2 <> 0;
+
+		--same for base_concept_manual
+		UPDATE base_concept_manual base_cm
+		SET concept_id = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_cm.concept_code
+					AND c_int.vocabulary_id = base_cm.vocabulary_id
+				)
+			AND base_cm.concept_id <> 0;
+
+		--same for base_concept_synonym_manual
+		UPDATE base_concept_synonym_manual base_csm
+		SET concept_id = 0
+		WHERE NOT EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = base_csm.synonym_concept_code
+					AND c_int.vocabulary_id = base_csm.synonym_vocabulary_id
+				)
+			AND base_csm.concept_id <> 0;
 	END IF;
 
 	RAISE NOTICE 'Restoring complete';

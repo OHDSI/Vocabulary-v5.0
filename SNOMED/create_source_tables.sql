@@ -20,11 +20,11 @@
 DROP TABLE IF EXISTS SOURCES.SCT2_CONCEPT_FULL_MERGED;
 CREATE TABLE SOURCES.SCT2_CONCEPT_FULL_MERGED
 (
-   ID                 BIGINT,
+   ID                 TEXT,
    EFFECTIVETIME      VARCHAR (8),
-   ACTIVE             INTEGER,
-   MODULEID           BIGINT,
-   STATUSID           BIGINT,
+   ACTIVE             INT2,
+   MODULEID           TEXT,
+   STATUSID           TEXT,
    VOCABULARY_DATE    DATE,
    VOCABULARY_VERSION VARCHAR (200)
 );
@@ -32,30 +32,30 @@ CREATE TABLE SOURCES.SCT2_CONCEPT_FULL_MERGED
 DROP TABLE IF EXISTS SOURCES.SCT2_DESC_FULL_MERGED;
 CREATE TABLE SOURCES.SCT2_DESC_FULL_MERGED
 (
-   ID                   BIGINT,
+   ID                   TEXT,
    EFFECTIVETIME        VARCHAR (8),
-   ACTIVE               INTEGER,
-   MODULEID             BIGINT,
-   CONCEPTID            BIGINT,
+   ACTIVE               INT2,
+   MODULEID             TEXT,
+   CONCEPTID            TEXT,
    LANGUAGECODE         VARCHAR (2),
-   TYPEID               BIGINT,
-   TERM                 VARCHAR (256),
-   CASESIGNIFICANCEID   BIGINT
+   TYPEID               TEXT,
+   TERM                 TEXT,
+   CASESIGNIFICANCEID   TEXT
 );
 
 DROP TABLE IF EXISTS SOURCES.SCT2_RELA_FULL_MERGED;
 CREATE TABLE SOURCES.SCT2_RELA_FULL_MERGED
 (
-   ID                     BIGINT,
+   ID                     TEXT,
    EFFECTIVETIME          VARCHAR (8),
-   ACTIVE                 INTEGER,
-   MODULEID               BIGINT,
-   SOURCEID               BIGINT,
-   DESTINATIONID          BIGINT,
-   RELATIONSHIPGROUP      INTEGER,
-   TYPEID                 BIGINT,
-   CHARACTERISTICTYPEID   BIGINT,
-   MODIFIERID             BIGINT
+   ACTIVE                 INT2,
+   MODULEID               TEXT,
+   SOURCEID               TEXT,
+   DESTINATIONID          TEXT,
+   RELATIONSHIPGROUP      INT4,
+   TYPEID                 TEXT,
+   CHARACTERISTICTYPEID   TEXT,
+   MODIFIERID             TEXT
 );
 
 DROP TABLE IF EXISTS SOURCES.DER2_CREFSET_ASSREFFULL_MERGED;
@@ -63,11 +63,11 @@ CREATE TABLE SOURCES.DER2_CREFSET_ASSREFFULL_MERGED
 (
     ID                         VARCHAR(256),
     EFFECTIVETIME              VARCHAR(8),
-    ACTIVE                     INTEGER,
-    MODULEID                   BIGINT,
-    REFSETID                   BIGINT,
-    REFERENCEDCOMPONENTID      BIGINT,
-    TARGETCOMPONENT            BIGINT
+    ACTIVE                     INT2,
+    MODULEID                   TEXT,
+    REFSETID                   TEXT,
+    REFERENCEDCOMPONENTID      TEXT,
+    TARGETCOMPONENT            TEXT
 );
 
 DROP TABLE IF EXISTS SOURCES.DER2_SREFSET_SIMPLEMAPFULL_INT;
@@ -75,10 +75,10 @@ CREATE TABLE SOURCES.DER2_SREFSET_SIMPLEMAPFULL_INT
 (
     ID                         VARCHAR(256),
     EFFECTIVETIME              VARCHAR(8),
-    ACTIVE                     INTEGER,
-    MODULEID                   BIGINT,
-    REFSETID                   BIGINT,
-    REFERENCEDCOMPONENTID      BIGINT,
+    ACTIVE                     INT2,
+    MODULEID                   TEXT,
+    REFSETID                   TEXT,
+    REFERENCEDCOMPONENTID      TEXT,
     MAPTARGET                  VARCHAR(8)
 );
 
@@ -87,11 +87,11 @@ CREATE TABLE SOURCES.DER2_CREFSET_LANGUAGE_MERGED
 (
     ID                         VARCHAR(256),
     EFFECTIVETIME              VARCHAR(8),
-    ACTIVE                     INTEGER,
-    MODULEID                   BIGINT,
-    REFSETID                   BIGINT,
-    REFERENCEDCOMPONENTID      BIGINT,
-    ACCEPTABILITYID            BIGINT,
+    ACTIVE                     INT2,
+    MODULEID                   TEXT,
+    REFSETID                   TEXT,
+    REFERENCEDCOMPONENTID      TEXT,
+    ACCEPTABILITYID            TEXT,
     SOURCE_FILE_ID             VARCHAR(10)
 );
 
@@ -100,10 +100,10 @@ CREATE TABLE SOURCES.DER2_SSREFSET_MODULEDEPENDENCY_MERGED
 (
     ID                         VARCHAR(256),
     EFFECTIVETIME              VARCHAR(8),
-    ACTIVE                     INTEGER,
-    MODULEID                   BIGINT,
-    REFSETID                   BIGINT,
-    REFERENCEDCOMPONENTID      BIGINT,
+    ACTIVE                     INT2,
+    MODULEID                   TEXT,
+    REFSETID                   TEXT,
+    REFERENCEDCOMPONENTID      TEXT,
     SOURCEEFFECTIVETIME        DATE,
     TARGETEFFECTIVETIME        DATE
 );
@@ -113,10 +113,10 @@ CREATE TABLE SOURCES.DER2_IISSSCCREFSET_EXTENDEDMAPFULL_US
 (
     ID                         VARCHAR(256),
     EFFECTIVETIME              VARCHAR(8),
-    ACTIVE                     INTEGER,
-    MODULEID                   BIGINT,
-    REFSETID                   BIGINT,
-    REFERENCEDCOMPONENTID      BIGINT,
+    ACTIVE                     INT2,
+    MODULEID                   TEXT,
+    REFSETID                   TEXT,
+    REFERENCEDCOMPONENTID      TEXT,
     MAPGROUP                   INT2,
     MAPPRIORITY                TEXT,
     MAPRULE                    TEXT,
@@ -131,11 +131,11 @@ CREATE TABLE SOURCES.DER2_CREFSET_ATTRIBUTEVALUE_FULL_MERGED
 (
    ID                         VARCHAR(256),
    EFFECTIVETIME              VARCHAR (8),
-   ACTIVE                     INTEGER,
-   MODULEID                   BIGINT,
-   REFSETID                   BIGINT,
-   REFERENCEDCOMPONENTID      BIGINT,
-   VALUEID                    BIGINT
+   ACTIVE                     INT2,
+   MODULEID                   TEXT,
+   REFSETID                   TEXT,
+   REFERENCEDCOMPONENTID      TEXT,
+   VALUEID                    TEXT
 );
 
 CREATE INDEX idx_concept_merged_id ON SOURCES.SCT2_CONCEPT_FULL_MERGED (ID);

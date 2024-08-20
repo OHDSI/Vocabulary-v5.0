@@ -250,7 +250,31 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
 
             UNION
 
+                ---- Add existent in devv5.codes (to use step_aside_approach for them)
+            (
+                select c2.concept_id,
+                       c1.concept_code,
+                       'devv5' as source
+                from devv5.concept_relationship cr
+                     join devv5.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
+                                                                              and c1.invalid_reason is NULL
+                     join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and cr.relationship_id = 'ATC - RxNorm'
+                                                                              and cr.invalid_reason is NULL
+                                                                              and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                              and c2.invalid_reason is NULL
+                WHERE (c1.concept_code, c2.concept_id) not in
+                                                            (select atc_code, concept_id
+                                                            from dev_atc.existent_atc_rxnorm_to_drop
+                                                            where to_drop = 'D')
+                OR
+                    (c1.concept_code, c2.concept_id) not in
+                                                            (select concept_code_atc, concept_id_rx
+                                                            from dev_atc.atc_rxnorm_to_drop_in_sources
+                                                            where drop = 'D')
 
+             )
+
+            UNION
                     ------DPD------
             (
 

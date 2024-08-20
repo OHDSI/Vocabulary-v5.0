@@ -445,6 +445,8 @@ AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT concept
                                                                     AND  relationship_id like 'ATC%'
                                                                     AND relationship_id NOT IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up'));
 
+
+
 -- 10. Deprecate ATC - RxNorm connections that were deprecated previously, but came again from sources (~420 connections)
 UPDATE concept_relationship_stage
 SET invalid_reason = 'D',
@@ -474,8 +476,6 @@ where (concept_code_1,concept_code_2) in
                                                                       and c1.vocabulary_id in ('RxNorm','RxNorm Extension')
                                                                       and cov.to_drop = 'D');
 --- and add manually mapped (on clinical Drugs)
-
-
 INSERT INTO concept_relationship_stage
     (
     concept_code_1,

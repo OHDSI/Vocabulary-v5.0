@@ -1,3 +1,8 @@
+--! This is the first integration of ATC into the OMOP Vocabularies
+--! The code is outdated, left here for the backward compatibility
+
+/*
+
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences AND Informatics (OHDSI)
 *
@@ -1910,3 +1915,6 @@ END $_$;
 
 DELETE FROM concept_relationship_stage
 WHERE vocabulary_id_1='SNOMED' AND vocabulary_id_2 = 'RxNorm';
+
+
+ */

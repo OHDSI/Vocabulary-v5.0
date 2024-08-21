@@ -21,18 +21,6 @@ SELECT
     names
 FROM new_atc_codes_ings_for_manual
 ```
-* extract the [respective tsv file](https://drive.google.com/file/d/1HF944a-_jZdlPsSu8lF1C102bri7TANf/view?usp=drive_link) into the *existent_atc_rxnorm_to_drop* table. The file was generated using the query:
-```sql
-SELECT
-    atc_code,
-    atc_name,
-    root,
-    concept_id,
-    to_drop,
-    concept_name,
-    to_check
-FROM existent_atc_rxnorm_to_drop;
-```
 
 * extract the [respective tsv file](https://drive.google.com/file/d/1Jg66E71VUQlCF-jArg0ag3izrN2Tshsd/view?usp=drive_link) into the *bdpm_atc_codes* table. The file was generated using the query:
 ```sql
@@ -54,6 +42,14 @@ SELECT
 FROM norske_result;
 ```
 
+* extract the [respective tsv file](https://drive.google.com/file/d/1IandaQl53xWPgHgp1sJbszl89vJJVkGS/view?usp=drive_link) into the *kdc_atc* table. The file was generated using the query:
+```sql
+SELECT
+    concept_code_kdc,
+    concept_code_atc
+FROM kdc_atc;
+```
+
 * extract the [respective tsv file](https://drive.google.com/file/d/1TRjgoZ5bownwhsPajrmyxIm7DqOLjYkQ/view?usp=drive_link) into the *atc_rxnorm_to_drop_in_sources* table. The file was generated using the query:
 ```sql
 SELECT
@@ -66,12 +62,17 @@ SELECT
 FROM atc_rxnorm_to_drop_in_sources;
 ```
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1IandaQl53xWPgHgp1sJbszl89vJJVkGS/view?usp=drive_link) into the *kdc_atc* table. The file was generated using the query:
+* extract the [respective tsv file](https://drive.google.com/file/d/1HF944a-_jZdlPsSu8lF1C102bri7TANf/view?usp=drive_link) into the *existent_atc_rxnorm_to_drop* table. The file was generated using the query:
 ```sql
 SELECT
-    concept_code_kdc,
-    concept_code_atc
-FROM kdc_atc;
+    atc_code,
+    atc_name,
+    root,
+    concept_id,
+    to_drop,
+    concept_name,
+    to_check
+FROM existent_atc_rxnorm_to_drop;
 ```
 
 #### csv format:

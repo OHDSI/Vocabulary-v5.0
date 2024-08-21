@@ -1,6 +1,5 @@
 /**************************************************************************
-    this script updates manual tables according to manual checks and
-    deprecates wrong mappings
+    This script updates manual tables and deprecates wrong mappings
 **************************************************************************/
 
 ---ATC - RxNorm
@@ -59,7 +58,7 @@ AND relationship_id in ('ATC - RxNorm pr lat',
                         'ATC - RxNorm sec up')
 AND invalid_reason is NULL;
 
---This step is needed to deprecate wrong connections
+--This step is needed to deprecate wrong relationships
 
 --- ATC - RxNorm
 INSERT INTO concept_relationship_manual
@@ -101,7 +100,7 @@ WHERE
     OR
 
     (t1.concept_code, t2.concept_code) IN
-                                           (SELECT DISTINCT t1.concept_code_atc, ---- Or in manually reviwed drop-list of source codes
+                                           (SELECT DISTINCT t1.concept_code_atc, ---- Or in manually reviewed drop-list of source codes
                                                             t2.concept_code
                                             FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
                                                      join devv5.concept t2

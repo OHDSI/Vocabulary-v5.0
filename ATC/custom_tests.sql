@@ -36,6 +36,7 @@ FROM a
          JOIN b USING (check_group);
 
 -- There should be no links that are both valid and invalid
+--TODO: Always true (constraint)
 INSERT INTO atc_checks
 SELECT check_group, NULL, cnt, CASE WHEN cnt = 0 THEN 'P' ELSE 'F' END AS result
 FROM (SELECT COUNT(*) AS cnt, 'Valid and invalid link count' AS check_group
@@ -116,7 +117,7 @@ FROM cte_4
 
 -- custom check for corticosteroids
 WITH rxnorm AS (
--- get corticosteroid ingredients from ATC and then their kids taht are injectable
+-- get corticosteroid ingredients from ATC and then their kids that are injectable
     SELECT c2.*
     FROM dev_atc.concept_ancestor ca
              JOIN dev_atc.concept c ON c.concept_id = ca.descendant_concept_id AND c.concept_class_id = 'Ingredient'

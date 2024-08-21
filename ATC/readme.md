@@ -7,23 +7,18 @@
 - Working directory dev_atc.
 
 1. Prepare the working environment using the content of *manual_work* folder
-2. Run *load_input.sql* that populates the table with ATC - RxNorm connections from different sources, that do not need
-manual control (dmd, grr, umls, vandf, jmdc, dpd) and sources, that need some manual preparations bpdm (don't have ATC codes in source files,
-need to be grabbed separately), z-index (manual table), Norway drug bank https://www.legemiddelsok.no/ (doesn't have connection to RxN, RxNE, need to be
-boilered). KDC (manual table). And for sure not all ATC - RxNorm conditions have a good quality and
-the manual review is needed. For these reasons we are using the table atc_rxnorm_to_drop_in_sources, that contains all wrong connections,
-that came from sources. The manual tables should be prepared separately and uploaded into DB.
-3. Run *updating_manual_tables.sql* to modify concept_manual and concept_relationships_manual tables.
-4. Run *load_stage.sql* which populates the **staging tables** of **concept_stage, concept_relationship_stage**, and **concept_synonym_stage**
+2. Run *load_input.sql* that populates a temporary table with ATC - RxNorm relationships from various sources, including the group of sourced processed fully automatically: dmd, grr, vandf, jmdc, dpd, sources, that require some manual corrections: bpdm, Z-index, Norway Drug Bank and KDC. The whole list of the sources with the descriptions is available from the [ATC documentation](https://github.com/OHDSI/Vocabulary-v5.0/wiki/Vocab.-ATC). The ATC - RxNorm relationships, collected from the above-mentioned sources, are subject to the semi-automatic review. The results of the review are incorporated into the atc_rxnorm_to_drop_in_sources table (manual_work folder). 
+3. Run *update_manual_tables.sql* to modify concept_manual and concept_relationships_manual tables.
+4. Run *load_stage.sql*
 5. Run *generic_update.sql*
     ```sql
     SELECT devv5.genericupdate();
     ```
-6. Perform **post-processing**:
+6. Perform *post-processing*, which builds hierarchical relationships:
     ```sql
     DO $_$
     BEGIN
         PERFORM VOCABULARY_PACK.pConceptAncestor(IS_SMALL=>TRUE);
     END $_$;
     ```
-7. Upgrading process is finished
+7. Enjoy the results!

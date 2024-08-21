@@ -1,3 +1,7 @@
+This is the first integration of ATC into the OMOP Vocabularies. 
+
+The code is outdated, left here for the backward compatibility
+
 Update of ATC
 
 Prerequisites:

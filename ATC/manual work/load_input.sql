@@ -5,13 +5,13 @@
     /* Sources for building table
 
        1. dm+d - https://github.com/OHDSI/Vocabulary-v5.0/blob/master/dmd/load_stage.sql#L445
-       2. BDPM - https://github.com/OHDSI/Vocabulary-v5.0/tree/master/BDPM + Manual table, that contains ATC codes, builded on data from official site https://base-donnees-publique.medicaments.gouv.fr/telechargement.php
+       2. BDPM - https://github.com/OHDSI/Vocabulary-v5.0/tree/master/BDPM + Manual table, that contains ATC codes, built on data from the official site https://base-donnees-publique.medicaments.gouv.fr/telechargement.php
        3. GRR - https://github.com/OHDSI/Vocabulary-v5.0/tree/master/GRR
        4. UMLS - https://github.com/OHDSI/Vocabulary-v5.0/tree/master/UMLS
        5. VANDF -https://github.com/OHDSI/Vocabulary-v5.0/tree/master/VANDF
        6. JMDC - https://github.com/OHDSI/Vocabulary-v5.0/tree/master/JMDC
        7. Z-index - proprietary source
-       8. Norske Drug  - Manual table, was builded from https://www.legemiddelsok.no/ and processed in BuildRXE.
+       8. Norske Drug  - Manual table, built from https://www.legemiddelsok.no/ and processed in BuildRXE.
        9. KDC - Manual table.
 
      */
@@ -216,14 +216,14 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
 --                         FROM dev_atc.z_index
 
                     SELECT targetid, atc, 'z-index' as source
-                      FROM dev_atc.zindex_full      --TODO: Proprietary data
+                      FROM dev_atc.zindex_full
 
                     )
 
             UNION
 
 
-                    ------Norske Drug Bank------   --TODO: Manual table
+                    ------Norske Drug Bank------
             (
                 SELECT rx_ids,
                        atc_code,

@@ -1,16 +1,17 @@
 ### STEP 1 of the ATC refresh/deployment: work with manual tables
 * run *create_manual_tables.sql*
-* extract the [respective tsv files](https://drive.google.com/drive/u/0/folders/1RwWqj3mgP9CdEt56dIA2aLI1EzCczrBP) into newly created tables.
+* extract the [respective сsv files](https://drive.google.com/drive/u/0/folders/1RwWqj3mgP9CdEt56dIA2aLI1EzCczrBP) into newly created tables.
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1qZTvHquYpDg2FKpXF_Aoht8ne0ty7Cod/view?usp=drive_link) into the *ned_adm_r* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/1fr1ZvUl16ytBDXIqoej8_i8EqlKQK9jO/view?usp=drive_link) into the *ned_adm_r* table. The file was generated using the query:
 ```sql
-SELECT class_code,
+SELECT 
+       class_code,
        class_name,
        old,
        new
 FROM new_adm_r
 ```
-* extract the [respective tsv file](https://drive.google.com/file/d/1D0P-Fd2DKam9Xs8nyUwzNrSBVWcJ7TwO/view?usp=drive_link) into the *new_atc_codes_ings_for_manual* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/15nqYISdr097mRHowTiHTqC53vSInYeZ7/view?usp=drive_link) into the *new_atc_codes_ings_for_manual* table. The file was generated using the query:
 ```sql
 SELECT
     source,
@@ -22,14 +23,15 @@ SELECT
 FROM new_atc_codes_ings_for_manual
 ```
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1Jg66E71VUQlCF-jArg0ag3izrN2Tshsd/view?usp=drive_link) into the *bdpm_atc_codes* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/1vS1VWJTfK6ARy6i64J_VZ9jVh61r_U4Y/view?usp=drive_link) into the *bdpm_atc_codes* table. The file was generated using the query:
 ```sql
-SELECT id,
+SELECT 
+       id,
        atc_code
 FROM bdpm_atc_codes;
 ```
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1b9GpMVF6nVdqTaHRVqngL4oS9lrln3Py/view?usp=drive_link) into the *norske_result* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/1IU6q-QqFONzKfg1VYs4zfxdSL9N67QNL/view?usp=drive_link) into the *norske_result* table. The file was generated using the query:
 ```sql
 SELECT
     concept_id,
@@ -42,15 +44,21 @@ SELECT
 FROM norske_result;
 ```
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1IandaQl53xWPgHgp1sJbszl89vJJVkGS/view?usp=drive_link) into the *kdc_atc* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/1v0LIAdBCAIZrf81gtGfRQZEysakNE1Ja/view?usp=drive_link) into the *kdc_atc* table. The file was generated using the query:
 ```sql
 SELECT
-    concept_code_kdc,
-    concept_code_atc
+    concept_code,
+    concept_code_2,
+    vocabulary_id,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason
 FROM kdc_atc;
 ```
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1TRjgoZ5bownwhsPajrmyxIm7DqOLjYkQ/view?usp=drive_link) into the *atc_rxnorm_to_drop_in_sources* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/1cLRKh3HpJJ917mcMaUUTJbHqh7B6t_Am/view?usp=drive_link) into the *atc_rxnorm_to_drop_in_sources* table. The file was generated using the query:
 ```sql
 SELECT
     concept_id_atc,
@@ -62,7 +70,7 @@ SELECT
 FROM atc_rxnorm_to_drop_in_sources;
 ```
 
-* extract the [respective tsv file](https://drive.google.com/file/d/1HF944a-_jZdlPsSu8lF1C102bri7TANf/view?usp=drive_link) into the *existent_atc_rxnorm_to_drop* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/file/d/1BIlGZiFtr1W-tyj-cnLXq4f2s9DIZVfn/view?usp=drive_link) into the *existent_atc_rxnorm_to_drop* table. The file was generated using the query:
 ```sql
 SELECT
     atc_code,
@@ -74,9 +82,30 @@ SELECT
     to_check
 FROM existent_atc_rxnorm_to_drop;
 ```
+* extract the [respective сsv file](https://drive.google.com/file/d/1BIlGZiFtr1W-tyj-cnLXq4f2s9DIZVfn/view?usp=drive_link) into the *covid19_atc_rxnorm_manual* table. The file was generated using the query:
+```sql
+SELECT
+    concept_code_atc,
+    to_drop,
+    concept_id,
+    concept_name
+FROM covid19_atc_rxnorm_manual;
+```
+* extract the [respective сsv file](https://drive.google.com/file/d/1AvzKNjcq_XUr40rH0FCHnuVrVJ0aS6RW/view?usp=drive_link) into the *gcs_manual_curated* table. The file was generated using the query:
+```sql
+SELECT
+    concept_id,
+    concept_name,
+    vocabulary_id,
+    ings,
+    string_agg,
+    atc_code
+FROM gcs_manual_curated;
+```
+
 
 #### csv format:
-- delimiter: ','
+- delimiter: '\t'
 - encoding: 'UTF8'
 - header: ON
 - decimal symbol: '.'

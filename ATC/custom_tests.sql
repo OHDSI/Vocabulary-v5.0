@@ -137,6 +137,8 @@ WHERE r.concept_id NOT IN (
              JOIN dev_atc.concept c ON c.concept_id = ca.descendant_concept_id
     WHERE ancestor_concept_id IN (21602745, 21602723));
 
+select *
+from atc_checks;
 
 /*****
 Checks that require examination

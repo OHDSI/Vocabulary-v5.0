@@ -276,6 +276,18 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
              )
 
             UNION
+            (
+                    -----Manual GCS-----
+                    SELECT
+                        concept_id,
+                        unnest(string_to_array(trim(atc_code), ',')) AS atc_code,
+                        'manual_gcs' as source
+                    FROM
+                        dev_atc.gcs_manual_curated
+
+            )
+
+            UNION
                     ------DPD------
             (
 

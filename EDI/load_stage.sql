@@ -41,7 +41,7 @@ SET concept_code = '0'||concept_code
 WHERE domain_id = 'Drug' and length(concept_code)=8;
 
 --3. Create concept_stage
-INSERT INTO dev_edi.concept_stage (
+INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
 	vocabulary_id,
@@ -143,6 +143,5 @@ SELECT e.concept_code,
 	4175771 AS language_concept_id -- Korean
 FROM sources.edi_data e
 WHERE LOWER(TRIM(e.concept_name)) <> LOWER(TRIM(e.concept_synonym));
-
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -88,3 +88,24 @@ and cc.domain_id in (:your_domains)
 and c.domain_id <> cc.domain_id
 and c.concept_name not like '%...%'
 order by c.concept_name, c.domain_id, c.concept_class_id, c.vocabulary_id;
+
+-- 2.3 Number of post-coordinated concepts across the OHDSI vocabularies
+select distinct vocabulary_id,
+                count(distinct concept_id) as count
+from concept c
+where exists (
+       select 1
+       from concept_relationship cr
+       where c.concept_id = cr.concept_id_1
+       and cr.relationship_id = 'Maps to'
+       and cr.invalid_reason is null
+)
+and exists (
+       select 1
+       from concept_relationship cr
+       where c.concept_id = cr.concept_id_1
+       and cr.relationship_id = 'Maps to value'
+       and cr.invalid_reason is null
+)
+group by vocabulary_id
+order by count desc;

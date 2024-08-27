@@ -370,3 +370,35 @@ SELECT * FROM to_check where source_code not in (SELECT DISTINCT source_code FRO
 SELECT * FROM icd_cde_source where source_code = '010.03';
 
 
+--Basic QA
+--All concepts from the group have the same mapping:
+--! NB devv5, dev_icd10.icd_cde_source are used in the current implementation, correct schemas accordingly
+with groups AS 
+    (
+        SELECT DISTINCT s.source_code, s.source_vocabulary_id, c.concept_id, s.group_id
+        FROM dev_icd10.icd_cde_source s 
+        JOIN devv5.concept c 
+        ON (c.concept_code, c.vocabulary_id) = (s.source_code, s.source_vocabulary_id)
+    ),
+    
+    mapping_groups AS 
+    (
+        SELECT cr.concept_id_1, g.group_id, 
+               array_agg(cr.relationship_id ORDER BY cr.concept_id_2) AS map_rel,
+               array_agg(cr.concept_id_2 ORDER BY cr.concept_id_2) AS map_id
+        FROM devv5.concept_relationship cr
+        JOIN groups g
+            ON g.concept_id = cr.concept_id_1 
+            AND cr.invalid_reason IS NULL AND cr.relationship_id IN ('Maps to', 'Maps to value')
+        GROUP BY cr.concept_id_1, group_id
+    )
+
+SELECT concept_id_1, group_id, map_rel, map_id
+FROM mapping_groups mg
+WHERE EXISTS(
+    SELECT 1 FROM mapping_groups mg1 
+    WHERE mg.group_id = mg1.group_id
+    AND (mg1.map_rel, mg1.map_id) != (mg.map_rel, mg.map_id)
+          )
+
+ORDER BY group_id;

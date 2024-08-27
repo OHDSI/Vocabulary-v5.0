@@ -112,7 +112,7 @@ AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
                                                                     SELECT concept_code_1,
                                                                            relationship_id,
                                                                            concept_code_2
-                                                                    from dev_atc.concept_relationship_manual
+                                                                    from concept_relationship_manual
                                                                     where vocabulary_id_1 = 'ATC'
                                                                     and vocabulary_id_2 in ('RxNorm', 'RxNorm Extension')
                                                                     and relationship_id = 'ATC - RxNorm')
@@ -162,7 +162,7 @@ AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
                                                                     SELECT concept_code_1,
                                                                            relationship_id,
                                                                            concept_code_2
-                                                                    from dev_atc.concept_relationship_manual
+                                                                    from concept_relationship_manual
                                                                     where vocabulary_id_1 = 'ATC'
                                                                     and vocabulary_id_2 in ('RxNorm', 'RxNorm Extension')
                                                                     and relationship_id in ('ATC - RxNorm pr lat',

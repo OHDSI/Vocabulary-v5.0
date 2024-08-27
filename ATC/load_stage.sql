@@ -267,7 +267,7 @@ FROM
             class_name,
             relationship_id,
             unnest(string_to_array(ids, ', ')) as concept_code_2
-        FROM new_atc_codes_ings_for_manual
+        FROM dev_atc.new_atc_codes_ings_for_manual
         WHERE relationship_id in ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat')
       ) t1
       JOIN devv5.concept t2
@@ -440,7 +440,7 @@ AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT DISTINC
 AND (c1.concept_code,cr.relationship_id, c2.concept_code) NOT IN (SELECT concept_code_1,  --- Not already in concept_relationship_stage
                                                                            relationship_id,
                                                                            concept_code_2
-                                                                    FROM dev_atc.concept_relationship_stage
+                                                                    FROM concept_relationship_stage
                                                                     WHERE invalid_reason is NULL
                                                                     AND  relationship_id like 'ATC%'
                                                                     AND relationship_id NOT IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up'));
@@ -471,7 +471,7 @@ SET invalid_reason = 'D',
 where (concept_code_1,concept_code_2) in
                                     (SELECT concept_code_atc,
                                            c1.concept_code as concept_code_rxnorm
-                                    FROM covid19_atc_rxnorm_manual cov
+                                    FROM dev_atc.covid19_atc_rxnorm_manual cov
                                          join devv5.concept c1 on cov.concept_id = c1.concept_id
                                                                       and c1.vocabulary_id in ('RxNorm','RxNorm Extension')
                                                                       and cov.to_drop = 'D');
@@ -494,7 +494,7 @@ SELECT
 	'ATC - RxNorm' AS relationship_id,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
-FROM covid19_atc_rxnorm_manual cov
+FROM dev_atc.covid19_atc_rxnorm_manual cov
     JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id
         AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
         AND cov.to_drop IS NULL;

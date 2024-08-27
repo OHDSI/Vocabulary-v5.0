@@ -242,7 +242,7 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
                         'KDC'
                     FROM
                         dev_atc.kdc_atc atc
-                                JOIN devv5.concept t1 on atc.concept_code = t1.concept_code AND t1.vocabulary_id = 'KDC'
+                                JOIN devv5.concept t1 on atc.concept_code::VARCHAR = t1.concept_code AND t1.vocabulary_id = 'KDC'
                                 JOIN devv5.concept t2 on atc.concept_code_2 = t2.concept_code AND t2.vocabulary_id = 'ATC'
                                 JOIN devv5.concept_relationship cr on t1.concept_id = cr.concept_id_1 AND cr.relationship_id = 'Maps to'
                                 JOIN devv5.concept t3 on cr.concept_id_2 = t3.concept_id AND t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
@@ -309,7 +309,6 @@ CREATE TABLE class_ATC_RXN_huge_temp AS   -- without ancestor
                     AND cr.relationship_id = 'Maps to'
                     AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
              )
-
 
             ) t2
                 JOIN devv5.concept c on t2.concept_id = c.concept_id

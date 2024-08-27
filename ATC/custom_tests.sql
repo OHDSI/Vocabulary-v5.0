@@ -542,3 +542,35 @@ FROM (SELECT cr.relationship_id  AS dev_atc_cr,
          AND t1.dev_atc_cid = t2.devv5_cid
 
 ORDER BY t1.dev_atc_cr, t1.dev_atc_cid;
+
+
+--- Home many combo drugs come to ATC mono codes
+
+SELECT
+    concept_code,
+    count (concept_id)
+FROM (SELECT c1.concept_code,
+             c1.concept_name,
+             c2.concept_id,
+             c2.concept_name
+      FROM dev_atc.concept_relationship cr
+               JOIN dev_atc.concept c1 ON cr.concept_id_1 = c1.concept_id
+          AND c1.vocabulary_id = 'ATC'
+          AND c1.invalid_reason IS NULL
+          AND cr.invalid_reason IS NULL
+          AND cr.relationship_id = 'ATC - RxNorm'
+          AND c1.concept_code IN (SELECT concept_code
+                                  FROM dev_atc.concept
+                                  WHERE vocabulary_id = 'ATC'
+                                    AND concept_class_id = 'ATC 5th'
+                                    AND concept_name !~* '(and|comb|various|comp)')
+               JOIN dev_atc.concept c2 ON cr.concept_id_2 = c2.concept_id
+          AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+          AND c2.invalid_reason IS NULL
+               JOIN dev_atc.concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id
+          AND cr2.invalid_reason IS NULL
+          AND cr2.relationship_id = 'RxNorm has ing'
+      GROUP BY c1.concept_code, c1.concept_name, c2.concept_id, c2.concept_name
+      HAVING COUNT(cr2.concept_id_2) > 1) t1
+GROUP BY concept_code
+ORDER BY count desc;

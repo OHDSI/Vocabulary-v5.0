@@ -450,7 +450,7 @@ SELECT
     t1.class_code as class_code,
     t1.class_name as class_name
 FROM
-    dev_atc.class_ATC_RXN_huge_temp t1
+    class_ATC_RXN_huge_temp t1
     JOIN devv5.concept_relationship cr ON t1.concept_id = cr.concept_id_1 AND cr.relationship_id = 'RxNorm is a'
     JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id AND t2.invalid_reason IS NULL
                                                              AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
@@ -501,7 +501,7 @@ SELECT
     t2.concept_id as ids,
     t2.concept_name as names,
     'RxNorm_is_a' as source
-FROM dev_atc.class_ATC_RXN_huge t1
+FROM class_ATC_RXN_huge t1
 JOIN devv5.concept_relationship cr ON t1.ids = cr.concept_id_1
     AND cr.relationship_id = 'RxNorm is a'
 JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id
@@ -538,7 +538,7 @@ UNION
 
 
 --7. Add RxNorm is a relationships
-INSERT INTO dev_atc.class_ATC_RXN_huge_fin (
+INSERT INTO class_ATC_RXN_huge_fin (
     class_code,
     class_name,
     relationship_id,
@@ -555,7 +555,7 @@ SELECT
     cr.concept_id_2::INT as ids,
     t2.concept_name as names,
     'RxNorm_is_a' as source
-FROM dev_atc.class_ATC_RXN_huge_fin t1
+FROM class_ATC_RXN_huge_fin t1
 JOIN devv5.concept_relationship cr ON t1.ids = cr.concept_id_1
     AND t1.concept_class_id in ('Clinical Drug', 'Clinical Drug Form', 'Quant Clinical Drug')
     AND cr.relationship_id = 'RxNorm is a'
@@ -565,10 +565,10 @@ JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id
 
 
 --8. Create final version of the table
-DROP TABLE IF EXISTS dev_atc.class_ATC_RXN_huge_fin__;
-CREATE TABLE dev_atc.class_ATC_RXN_huge_fin__ as
+DROP TABLE IF EXISTS class_ATC_RXN_huge_fin__;
+CREATE TABLE class_ATC_RXN_huge_fin__ as
 SELECT DISTINCT *
-    FROM dev_atc.class_ATC_RXN_huge_fin;
+    FROM class_ATC_RXN_huge_fin;
 
 
 --9. Taking step aside AND adding relationships to all related forms through Dose Form Groups
@@ -592,7 +592,7 @@ CREATE TABLE step_aside_source as
                                                                              AND cr.relationship_id = 'RxNorm has dose form'
                                                                              AND cr.invalid_reason IS NULL
                                                                              AND t1.concept_id in (SELECT distinct ids
-                                                                                                   FROM dev_atc.class_ATC_RXN_huge_fin__    --Source table
+                                                                                                   FROM class_ATC_RXN_huge_fin__    --Source table
                                                                                                    WHERE concept_class_id = 'Clinical Drug Form')
                                      JOIN devv5.concept t2
                                           on cr.concept_id_2 = t2.concept_id AND t2.invalid_reason is null AND
@@ -688,7 +688,7 @@ FROM
        t2.target_concept_id as ids,
        t2.target_concept_name as names,
        t1.source || ' - aside' as source
-FROM dev_atc.class_ATC_RXN_huge_fin__ t1
+FROM class_ATC_RXN_huge_fin__ t1
      JOIN atc_step_aside_final t2 on t1.ids = t2.source_concept_id AND t1.concept_class_id = 'Clinical Drug Form'
 
      WHERE (t1.class_code, t2.target_concept_id) NOT IN --- remove all 'bad' mappings according manual check
@@ -704,7 +704,7 @@ UNION
     (
      SELECT
          *
-     FROM dev_atc.class_ATC_RXN_huge_fin__
+     FROM class_ATC_RXN_huge_fin__
      WHERE (class_code, ids) NOT IN  --- remove all 'bad' mappings according manual check
                                   (
                                    select distinct concept_code_atc, concept_id_rx

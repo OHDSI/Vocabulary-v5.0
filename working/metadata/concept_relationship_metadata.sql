@@ -142,7 +142,6 @@ ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
 
 -- --MedDRA Rel_Meta Integration
-
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
 with tab_array as(
 SELECT concept_id_1,

@@ -79,3 +79,64 @@ WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
 AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
+
+--CDISC Rel_Meta Integration
+INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
+SELECT DISTINCT
+       concept_id_1,
+       concept_id_2,
+       relationship_id,
+       relationship_predicate_id,
+       relationship_group,
+       mapping_source,
+       confidence,
+       mapping_tool,
+       mapper,
+       reviewer
+FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_code_1,c.vocabulary_id as vocabulary_id_1,c.concept_name as concept_name_1,cr.relationship_id,cc.concept_id as concept_id_2,cc.concept_code as concept_code_2,cc.vocabulary_id as vocabulary_id_2,cc.concept_name as concept_name_2,
+                      REPLACE(SPLIT_PART(a.mapping_source[1], '-', 1), 'Auto', 'AM-lib') || '_U' AS mapping_tool,
+                      NULL   as mapper,
+                      NULL as reviewer,
+                      a.confidence,
+                      REPLACE(SPLIT_PART(a.mapping_source[1], '-', 2), 'OMOP', 'OHDSI')         AS mapping_source,
+                     NULL  as relationship_group,a.relationship_predicate_id
+      FROM dev_cdisc.cdisc_automapped a
+               JOIN devv5.concept c
+                    ON c.concept_code = a.concept_code
+                        AND c.vocabulary_id = 'CDISC'
+             JOIN devv5.concept_relationship cr
+                    ON c.concept_id = cr.concept_id_1
+                        AND cr.relationship_id in ('Maps to','Maps to value')
+          and cr.invalid_reason IS NULL
+             JOIN devv5.concept cc
+      on cc.concept_id=cr.concept_id_2
+      and cc.concept_code=a.target_concept_code
+      and cc.vocabulary_id=a.target_vocabulary_id
+      and a.relationship_id=cr.relationship_id
+
+UNION ALL
+
+      SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_code_1,c.vocabulary_id as vocabulary_id_1,c.concept_name as concept_name_1,cr.relationship_id,cc.concept_id as concept_id_2,cc.concept_code as concept_code_2,cc.vocabulary_id as vocabulary_id_2,cc.concept_name as concept_name_2,
+                      REPLACE(SPLIT_PART(a.mapping_source[1], '-', 1), 'manual', 'MM') || '_C' AS mapping_tool,
+                      a.mapper,
+                      a.reviewer,
+                      coalesce(a.confidence,0.5) as confidence,
+                    NULL   AS mapping_source,
+                     NULL  as relationship_group,a.relationship_predicate_id
+      FROM dev_cdisc.cdisc_mapped a
+               JOIN devv5.concept c
+                    ON c.concept_code = a.concept_code
+                        AND c.vocabulary_id = 'CDISC'
+                JOIN devv5.concept_relationship cr
+                    ON c.concept_id = cr.concept_id_1
+                        AND cr.relationship_id in ('Maps to','Maps to value')
+          and cr.invalid_reason IS NULL
+             JOIN devv5.concept cc
+      on cc.concept_id=cr.concept_id_2
+      and cc.concept_code=a.target_concept_code
+      and cc.vocabulary_id=a.target_vocabulary_id
+      and a.relationship_id=cr.relationship_id
+      )
+    AS cdisc_concept_relationship_meta_bypass
+ORDER BY concept_id_1,relationship_id,concept_id_2
+;

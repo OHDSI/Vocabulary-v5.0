@@ -1,5 +1,5 @@
 -- DDL:
---TRUNCATE TABLE concept_relationship_metadata;
+--DROP TABLE concept_relationship_metadata;
 CREATE TABLE concept_relationship_metadata (
     concept_id_1 int NOT NULL,
     concept_id_2 int NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE concept_relationship_metadata (
     relationship_predicate_id VARCHAR(20),
 	relationship_group INT,
 mapping_source VARCHAR(255),
-confidence INT,
+confidence FLOAT,
 mapping_tool VARCHAR(50),
 mapper VARCHAR(50),
 reviewer VARCHAR(50),
@@ -58,3 +58,24 @@ JOIN devv5.concept c ON (cc.concept_code_1, cc.vocabulary_id_1) = (c.concept_cod
 JOIN devv5.concept c1 ON (cc.concept_code_2, cc.vocabulary_id_2) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr ON (c.concept_id, c1.concept_id, cc.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
 WHERE cr.invalid_reason is null;
+
+-- Insert for SNOMED:
+INSERT INTO concept_relationship_metadata
+SELECT cr.concept_id_1 as concept_id_1,
+       cr.concept_id_2 as concept_id_2,
+       cr.relationship_id as relationship_id,
+       m.relationship_id_predicate as relationship_predicate_id,
+       null as relationship_group,
+       m.mapping_source as mapping_source,
+       m.confidence::float as confidence,
+       m.mapping_tool as mapping_tool,
+       m.mapper_id as mapper,
+       m.reviewer_id as reviewer
+FROM dev_snomed.snomed_mapped m
+JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
+JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
+JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
+WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
+AND cr.invalid_reason IS NULL
+AND m.cr_invalid_reason is null
+AND m.relationship_id_predicate IS NOT NULL;

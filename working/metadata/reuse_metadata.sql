@@ -1,9 +1,21 @@
+-- DDL for a table with reused concepts:
+CREATE TABLE reused_concepts
+(
+       concept_id INT,
+       concept_code VARCHAR(20),
+	   old_concept_name VARCHAR(255),
+	   new_concept_name VARCHAR(255),
+	   vocabulary_id VARCHAR(50),
+	   reused_code_effdate DATE
+)
+;
+
 -- concept_metadata DDL:
 CREATE TABLE concept_meta_bypass
 (
 concept_id INT,
 reuse_status JSONB,
-concept_type varchar(20),
+concept_type VARCHAR(20),
 phi_status boolean NOT NULL DEFAULT FALSE,
     FOREIGN KEY (concept_id)
     REFERENCES concept (concept_id)
@@ -12,23 +24,29 @@ phi_status boolean NOT NULL DEFAULT FALSE,
 
 -- Insert example:
 INSERT INTO concept_meta_bypass (concept_id, reuse_status)
-VALUES (
-  2718917,
-  '[
-    { "reuse_type": "true_reuse",
-      "reuse_cycle": [
-        { "concept_name": "Vincristine sulfate, 5 mg",
-          "valid_start_date": "1994-01-01",
-          "valid_end_date": "2010-12-31"
-        },
-        { "concept_name": "Injection, teclistamab-cqyv, 0.5 mg",
-          "valid_start_date": "2023-07-01",
-          "valid_end_date": "2099-12-31"
-        }
-      ]
-    }
-  ]'::jsonb
-);
+SELECT
+    rr.concept_id,
+    jsonb_build_array(
+        jsonb_build_object(   'reuse_type', 'true reuse',
+            'reuse_cycle', jsonb_build_array(
+                jsonb_build_object(
+                    'concept_name', rr.new_concept_name,
+                    'valid_start_date', rr.reused_code_effdate,
+                    'valid_end_date', '2099-12-31'
+                ),
+                            jsonb_build_object(
+                    'concept_name', c.concept_name,
+                    'valid_start_date', c.valid_start_date,
+                    'valid_end_date',c.valid_end_date
+                )
+
+            )
+        )
+    )
+FROM
+    reused_concepts rr
+JOIN concept c ON rr.concept_id = c.concept_id
+;
 
 -- JSON parsing:
  WITH data AS (
@@ -48,4 +66,5 @@ SELECT
 FROM
   data
 ORDER BY
-  concept_id, valid_start_date;
+  concept_id, valid_start_date
+ ;

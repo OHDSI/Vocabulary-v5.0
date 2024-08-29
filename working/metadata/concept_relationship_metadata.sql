@@ -324,17 +324,20 @@ WHERE mapping_tool IN ('ManualMapping');
 --Set emails of reviewer
 UPDATE concept_relationship_metadata AS b
     SET reviewer = CASE
-               WHEN trim(a.reviewer) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
-               WHEN trim(a.reviewer) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
-               WHEN trim(a.reviewer) ='MS' THEN 'mikita.salavei@odysseusinc.com'
-               WHEN trim(a.reviewer) ='JC' THEN 'janice.cruz@odysseusinc.com'
-               WHEN trim(a.reviewer) ='VK' THEN 'vlad.korsik@odysseusinc.com'
-               WHEN trim(a.reviewer) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
-               WHEN trim(a.reviewer)  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
-               WHEN trim(a.reviewer) ='YK'  then 'yuri.korin@odysseusinc.com'
-               WHEN trim(a.reviewer) ='IZ'  then 'iryna.zherko@odysseusinc.com'
-               WHEN trim(a.reviewer) ='MK'  then 'maria.khitrun@odysseusinc.com'
-               WHEN trim(a.reviewer) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='MS' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='JC' THEN 'janice.cruz@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
+               WHEN upper(trim(a.reviewer))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='YK'  then 'yuri.korin@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='IZ'  then 'iryna.zherko@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
+               WHEN length(trim(a.reviewer)) = 0 then NULL
+        ELSE a.reviewer
               END
 from concept_relationship_metadata a
 where a.concept_id_1=b.concept_id_1
@@ -349,17 +352,20 @@ UPDATE concept_relationship_metadata
 --Set emails of reviewer
 UPDATE concept_relationship_metadata AS b
     SET mapper = CASE
-               WHEN trim(a.mapper) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
-               WHEN trim(a.mapper) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
-               WHEN trim(a.mapper) ='MS' THEN 'mikita.salavei@odysseusinc.com'
-               WHEN trim(a.mapper) ='JC' THEN 'janice.cruz@odysseusinc.com'
-               WHEN trim(a.mapper) ='VK' THEN 'vlad.korsik@odysseusinc.com'
-               WHEN trim(a.mapper) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
-               WHEN trim(a.mapper)  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
-               WHEN trim(a.mapper) ='YK'  then 'yuri.korin@odysseusinc.com'
-               WHEN trim(a.mapper) ='IZ'  then 'iryna.zherko@odysseusinc.com'
-               WHEN trim(a.mapper) ='MK'  then 'maria.khitrun@odysseusinc.com'
-               WHEN trim(a.mapper) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='MS' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='JC' THEN 'janice.cruz@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
+               WHEN upper(trim(a.mapper))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='YK'  then 'yuri.korin@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='IZ'  then 'iryna.zherko@odysseusinc.com'
+                WHEN upper(trim(a.mapper)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
+               WHEN length(trim(a.mapper)) = 0 then NULL
+               ELSE a.mapper
               END
 from concept_relationship_metadata a
 where a.concept_id_1=b.concept_id_1

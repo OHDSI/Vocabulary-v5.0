@@ -76,12 +76,12 @@ FROM dev_atc.concept_ancestor ca
 WHERE (c1.concept_id, c2.concept_id) NOT IN (
                                             SELECT c1.concept_id,
                                                    c2.concept_id
-                                            FROM dev_atatur.concept_ancestor ca
-                                                 JOIN dev_atatur.concept c1 on ca.ancestor_concept_id = c1.concept_id
+                                            FROM devv5.concept_ancestor ca
+                                                 JOIN devv5.concept c1 on ca.ancestor_concept_id = c1.concept_id
                                                                             and c1.vocabulary_id = 'ATC'
                                                                             and c1.concept_class_id = 'ATC 5th'
                                                                             and c1.invalid_reason is NULL
-                                                 JOIN dev_atatur.concept c2 on ca.descendant_concept_id = c2.concept_id
+                                                 JOIN devv5.concept c2 on ca.descendant_concept_id = c2.concept_id
                                                                             and c2.vocabulary_id in ('RxNorm','RxNorm Extension')
                                                                             and c2.invalid_reason is NULL);
 
@@ -121,12 +121,12 @@ WHERE (c1.concept_id, c2.concept_id) NOT IN (
        c2.concept_id,
        c2.concept_name,
        c2.concept_class_id
-FROM dev_atatur.concept_ancestor ca
-     JOIN dev_atatur.concept c1 on ca.ancestor_concept_id = c1.concept_id
+FROM devv5.concept_ancestor ca
+     JOIN devv5.concept c1 on ca.ancestor_concept_id = c1.concept_id
                                 and c1.vocabulary_id = 'ATC'
                                 and c1.concept_class_id = 'ATC 5th'
                                 and c1.invalid_reason is NULL
-     JOIN dev_atatur.concept c2 on ca.descendant_concept_id = c2.concept_id
+     JOIN devv5.concept c2 on ca.descendant_concept_id = c2.concept_id
                                 and c2.vocabulary_id in ('RxNorm','RxNorm Extension')
                                 and c2.invalid_reason is NULL
 WHERE (c1.concept_id, c2.concept_id) NOT IN (

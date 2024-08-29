@@ -42,7 +42,7 @@ where cov.to_drop is null;
 
 -- vaccines, insulins
 insert into class_to_drug
-select distinct cs.concept_code, cs.concept_name, c.concept_id, c.concept_name, c.concept_class_id, 1 as order
+select distinct cs.concept_code, cs.concept_name, c.concept_id, c.concept_name, c.concept_class_id, 1 as concept_order
 from dev_atc.concept_stage cs
          join dev_atc.concept_relationship_stage crs on crs.concept_code_1=cs.concept_code
     and cs.concept_class_id = 'ATC 5th'
@@ -56,7 +56,7 @@ where cs.concept_code in (select class_code from dev_atc.class_to_drug_manual)
 -- Scenario 2 & 3, mono: Ingredient A
 -- 3847 ATCs and 17K Rx
 insert into class_to_drug
-select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 2 as order
+select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 2 as concept_order
 from dev_atc.concept_stage cs
     join dev_atc.concept_relationship_stage crs on crs.concept_code_1=cs.concept_code
                                                 and cs.concept_class_id = 'ATC 5th'
@@ -100,7 +100,7 @@ and exists (select * from dev_atc.concept_relationship_stage crs3
 -- scenario 4, combo: Ingredient A + Ingredient B
 -- 214 ATC, 500 Rx
 insert into class_to_drug
-select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 3 as order
+select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 3 as concept_order
 from dev_atc.concept_stage cs
      join dev_atc.concept_relationship_stage crs on crs.concept_code_1=cs.concept_code
         and cs.concept_class_id = 'ATC 5th'
@@ -150,7 +150,7 @@ where not exists (select * from dev_atc.concept_relationship_stage crs2
 -- takes precedence because it is in fact Ingredient A + Ingredient B
 -- ~20 ATC, 6K Rx
 insert into class_to_drug
-select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 5 as order
+select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 5 as concept_order
 from dev_atc.concept_stage cs
          join dev_atc.concept_relationship_stage crs on crs.concept_code_1=cs.concept_code
     and cs.concept_class_id = 'ATC 5th'
@@ -164,7 +164,7 @@ where (cs.concept_name  like '%combinations of %' or cs.concept_name  like '%in 
 -- scenario 6, combo: Ingredient A + group B
 -- if there is an extra ingredient beyond a and group b also goes here
 insert into class_to_drug
-select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 6 as order
+select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 6 as concept_order
 from dev_atc.concept_stage cs
     join dev_atc.concept_relationship_stage crs on crs.concept_code_1=cs.concept_code
         and cs.concept_class_id = 'ATC 5th'
@@ -183,7 +183,7 @@ where exists (select * from dev_atc.concept_relationship_stage crs2
 
 -- everything else
 insert into class_to_drug
-select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 7 as order
+select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 7 as concept_order
 from dev_atc.concept_stage cs
          join dev_atc.concept_relationship_stage crs on crs.concept_code_1=cs.concept_code
     and cs.concept_class_id = 'ATC 5th'

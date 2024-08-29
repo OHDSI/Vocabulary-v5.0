@@ -60,7 +60,7 @@ FROM (SELECT COUNT(*) AS cnt, 'Ingredients assigned different links' AS check_gr
               ('ATC - RxNorm sec up', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm pr lat')
           AND cr2.concept_id_2 = cr.concept_id_2 AND cr.invalid_reason IS NULL AND cr2.invalid_reason IS NULL) a;
 
--- No RxNorm drugs that have 1 ingredient should be assigned combo ATC code
+-- No RxNorm drugs that have 1 ingredient should not be assigned combo ATC code
 WITH CTE_2 AS (WITH CTE AS (SELECT c1.concept_code,
                                    c1.concept_name,
                                    c2.concept_name        AS secondary,

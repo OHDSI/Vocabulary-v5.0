@@ -23,8 +23,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ATC',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.rxnatomarchive LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.rxnatomarchive LIMIT 1),
+	pVocabularyDate			=> (select vocabulary_date from sources.atc_codes limit 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version from sources.atc_codes limit 1),
 	pVocabularyDevSchema	=> 'DEV_ATC'
 );
 END $_$;

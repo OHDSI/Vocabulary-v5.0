@@ -28,9 +28,13 @@ SELECT cr.concept_id_1 as concept_id_1,
        when cc.predicate_id = 'broadMatch'
               then 'up' end as relationship_predicate_id,
        null as relationship_group,
-       cc.mapping_source as mapping_source,
+     CASE WHEN   cc.mapping_source ~* 'manual|new snomed' then NULL
+         WHEN   cc.mapping_source ~* 'OMOP|OHDSI' then 'OHDSI'
+         ELSE cc.mapping_source end as mapping_source,
        cc.confidence as confidence,
-       cc.mapping_tool as mapping_tool,
+          CASE WHEN   cc.mapping_source ~* 'manual|new snomed' then 'MM_C'
+         WHEN   cc.mapping_source ~* 'OMOP|OHDSI' then 'AM-lib_C'
+         ELSE cc.mapping_tool end as  mapping_tool,
        null as mapper,
        null as reviewer
 FROM dev_test4.cc_mapping cc
@@ -41,17 +45,32 @@ WHERE cr.invalid_reason is null;
 
 
 --ICDs
-INSERT INTO concept_relationship_metadata
+INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
+SELECT concept_id_1,
+       concept_id_2,
+       relationship_id,
+       relationship_predicate_id[array_length(relationship_predicate_id,1)],
+       relationship_group::int,
+     CASE WHEN  'manual' = ANY(mapping_source)  and  'UMLS/NCIm' != all(mapping_source) then NULL
+          WHEN  array_length(mapping_source,1)>1  and  'UMLS/NCIm' = ANY(mapping_source) then 'OHDSI+UMLS/NCIm'
+          ELSE 'OHDSI' end as mapping_source,
+       confidence::float,
+         CASE WHEN  'manual' = ANY(mapping_source)  and  'UMLS/NCIm' != all(mapping_source)  then 'MM_C'
+            else 'AM-lib_C' end as mapping_tool,
+       mapper[array_length(mapper,1)],
+       reviewer[array_length(reviewer,1)]
+FROM
+            (
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
-       p.relationship_id_predicate as relationship_predicate_id,
-       NULL as relationship_group,
-       (array_agg (DISTINCT s.mappings_origin)) as mapping_source,
-       NULL as confidence,
+      array_remove((array_agg (DISTINCT CASE WHEN length(trim(p.relationship_id_predicate))=0 then null else p.relationship_id_predicate end)),NULL) as relationship_predicate_id,
+       NULL::int as relationship_group,
+       array_remove( (array_agg (DISTINCT s.mappings_origin)),NULL) as mapping_source,
+       NULL::float as confidence,
        NULL as mapping_tool,
-       CASE WHEN p.mapper = '' THEN NULL ELSE p.mapper END as mapper,
-       CASE WHEN p.reviewer = '' THEN NULL ELSE p.reviewer END as reviewer
+      array_remove((array_agg (distinct replace(p.mapper,'Mapper: ',''))),NULL)  as mapper,
+      array_remove((array_agg (distinct replace(p.reviewer,'Reviewer: ',''))),NULL)  as reviewer
 FROM devv5.concept_relationship cr
 JOIN devv5.concept c ON cr.concept_id_1 = c.concept_id
 JOIN dev_icd10.icd_cde_proc p ON p.source_code = c.concept_code AND p.source_vocabulary_id = c.vocabulary_id
@@ -61,10 +80,8 @@ WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
 AND cr.invalid_reason IS NULL
 GROUP BY cr.concept_id_1,
          cr.concept_id_2,
-         cr.relationship_id,
-         p.relationship_id_predicate,
-         p.mapper,
-         p.reviewer;
+         cr.relationship_id) As tab
+;
 
 
 --SNOMED
@@ -78,7 +95,7 @@ SELECT cr.concept_id_1 as concept_id_1,
        m.confidence::float as confidence,
        m.mapping_tool as mapping_tool,
        m.mapper_id as mapper,
-       m.reviewer_id as reviewer
+      CASE WHEN  m.reviewer_id = 'N/A' then NULL else  m.reviewer_id END as reviewer
 FROM dev_snomed.snomed_mapped m
 JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
 JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
@@ -173,14 +190,14 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping))='python+chatgpt' then 'AM-tool_C'
                        else 'AM-lib_C' end AS mapping_tool,
                      CASE WHEN length(trim(a.mapper_id))=0  then NULL
-                          WHEN trim(a.mapper_id) ='DB'  then 'dmitry.buralkin@odysseusinc.com'
-                         WHEN trim(a.mapper_id) ='MS'  then 'mikita.salavei@odysseusinc.com'
-                         WHEN trim(a.mapper_id) ='EP'  then 'yauheni.paulenkovich@odysseusinc.com'
+                         WHEN trim(a.mapper_id) ='DB'  then 'dmitry.buralkin@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'MS'  then 'mikita.salavei@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'EP'  then 'yauheni.paulenkovich@odysseusinc.com'
                          WHEN trim(a.mapper_id) ='JC'  then 'janice.cruz@odysseusinc.com'
-                         WHEN trim(a.mapper_id) ='VK'  then 'vlad.korsik@odysseusinc.com'
-                         WHEN trim(a.mapper_id) ='OZ'  then 'oleg.zhuk@odysseusinc.com'
-                         WHEN trim(a.mapper_id) ='OT'  then 'tetiana.orlova@odysseusinc.com'
-                         WHEN trim(a.mapper_id) ='YK'  then 'yuri.korin@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'VK'  then 'vlad.korsik@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'OZ'  then 'oleg.zhuk@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'OT'  then 'tetiana.orlova@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'YK'  then 'yuri.korin@odysseusinc.com'
                                  else replace(a.mapper_id,'Mapper: ','') END  as mapper,
                        CASE WHEN length(trim(coalesce(a.reviewer_id,'')))=0 then 'vocabulary team'
                            WHEN a.reviewer_id like 'Value:%'  OR a.reviewer_id like '%mikita.salavei@odysseusinc.com' OR a.reviewer_id = 'MS' then 'mikita.salavei@odysseusinc.com'
@@ -192,7 +209,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping))='python+chatgpt' then 'NLP+LLM'
                         WHEN lower(trim(origin_of_mapping)) ~*'man|meddra_mapped|maual' then NULL
                         WHEN lower(trim(origin_of_mapping)) ~*'MedDRA-SNOMED eq' then 'OHDSI'
-                       ELSE a.origin_of_mapping    END  AS mapping_source,
+                       ELSE replace(a.origin_of_mapping,',','+')    END  AS mapping_source,
                      NULL::int  as relationship_group,
                         CASE WHEN lower(trim(a.relationship_id_predicate)) ='downhill' then 'down'
                              WHEN lower(trim(a.relationship_id_predicate)) ='uphill' then 'up' else a.relationship_id_predicate END as relationship_predicate_id
@@ -237,9 +254,11 @@ SELECT cr.concept_id_1 as concept_id_1,
        cr.relationship_id as relationship_id,
        m.relationship_id_predicate as relationship_predicate_id,
        null as relationship_group,
-       m.mapping_source as mapping_source,
+       CASE WHEN m.mapping_source = 'manual mapping' then NULL else m.mapping_source end as mapping_source,
        m.confidence::float as confidence,
-       m.mapping_tool as mapping_tool,
+     CASE WHEN m.mapping_source = 'manual mapping' and m.mapping_source !~* 'UMLS|NCIm|OMOP|OHDSI'  then 'MM_C'
+         WHEN m.mapping_source ~* 'UMLS|NCIm|OMOP|OHDSI' then 'AM-lib_C'
+         else m.mapping_tool end  as mapping_tool,
        m.mapper_id as mapper,
        m.reviewer_id as reviewer
 FROM dev_cpt4.cpt4_mapped m
@@ -259,9 +278,11 @@ SELECT cr.concept_id_1 as concept_id_1,
        cr.relationship_id as relationship_id,
        m.relationship_id_predicate as relationship_predicate_id,
        null as relationship_group,
-       m.mapping_source as mapping_source,
+      CASE WHEN m.mapping_source = 'manual mapping' then NULL else m.mapping_source end as mapping_source,
        m.confidence::float as confidence,
-       m.mapping_tool as mapping_tool,
+     CASE WHEN m.mapping_source = 'manual mapping' and m.mapping_source !~* 'UMLS|NCIm|OMOP|OHDSI'  then 'MM_C'
+         WHEN m.mapping_source ~* 'UMLS|NCIm|OMOP|OHDSI' then 'AM-lib_C'
+         else m.mapping_tool end  as mapping_tool,
        m.mapper_id as mapper,
        m.reviewer_id as reviewer
 FROM dev_hcpcs.hcpcs_mapped m
@@ -287,6 +308,10 @@ SET mapping_tool = NULL
 WHERE length(trim(mapping_tool)) = 0;
 
 UPDATE concept_relationship_metadata
+SET mapping_source = 'Community Contribution'
+WHERE mapping_tool IN ('Atlas, Databricks, and human');
+
+UPDATE concept_relationship_metadata
 SET mapping_tool = 'MM_U'
 WHERE mapping_tool IN ('Atlas, Databricks, and human');
 
@@ -295,9 +320,56 @@ SET mapping_tool = 'MM_C'
 WHERE mapping_tool IN ('ManualMapping');
 
 
+--Set emails of reviewer
+UPDATE concept_relationship_metadata AS b
+    SET reviewer = CASE
+               WHEN trim(a.reviewer) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
+               WHEN trim(a.reviewer) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
+               WHEN trim(a.reviewer) ='MS' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN trim(a.reviewer) ='JC' THEN 'janice.cruz@odysseusinc.com'
+               WHEN trim(a.reviewer) ='VK' THEN 'vlad.korsik@odysseusinc.com'
+               WHEN trim(a.reviewer) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
+               WHEN trim(a.reviewer)  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
+               WHEN trim(a.reviewer) ='YK'  then 'yuri.korin@odysseusinc.com'
+               WHEN trim(a.reviewer) ='IZ'  then 'iryna.zherko@odysseusinc.com'
+               WHEN trim(a.reviewer) ='MK'  then 'maria.khitrun@odysseusinc.com'
+               WHEN trim(a.reviewer) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
+              END
+from concept_relationship_metadata a
+where a.concept_id_1=b.concept_id_1
+and a.concept_id_2=b.concept_id_2
+and a.relationship_id=b.relationship_id;
 
---TODO: Present mappers and reviewers the following way
---Irina Zherko
+UPDATE concept_relationship_metadata
+    SET reviewer = initcap(replace(split_part(reviewer,'@',1),'.',' '));
 
---TODO: Present organisations as mapping sources
---{functions_updated,UMLS/NCIm} = OHDSI/UMLS/NCIm
+
+
+--Set emails of reviewer
+UPDATE concept_relationship_metadata AS b
+    SET mapper = CASE
+               WHEN trim(a.mapper) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
+               WHEN trim(a.mapper) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
+               WHEN trim(a.mapper) ='MS' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN trim(a.mapper) ='JC' THEN 'janice.cruz@odysseusinc.com'
+               WHEN trim(a.mapper) ='VK' THEN 'vlad.korsik@odysseusinc.com'
+               WHEN trim(a.mapper) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
+               WHEN trim(a.mapper)  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
+               WHEN trim(a.mapper) ='YK'  then 'yuri.korin@odysseusinc.com'
+               WHEN trim(a.mapper) ='IZ'  then 'iryna.zherko@odysseusinc.com'
+               WHEN trim(a.mapper) ='MK'  then 'maria.khitrun@odysseusinc.com'
+               WHEN trim(a.mapper) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
+              END
+from concept_relationship_metadata a
+where a.concept_id_1=b.concept_id_1
+and a.concept_id_2=b.concept_id_2
+and a.relationship_id=b.relationship_id;
+
+UPDATE concept_relationship_metadata
+    SET mapper = initcap(replace(split_part(mapper,'@',1),'.',' '));
+
+SELECT *
+FROM concept_relationship_metadata;
+
+
+--TODO @Iryna --fix ICD-env!!! (duplication is here)

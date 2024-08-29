@@ -244,6 +244,7 @@ JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_cod
 JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
 WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
+      AND (cr.concept_id_1, cr.concept_id_2, cr.relationship_id) NOT IN (SELECT concept_id_1, concept_id_2, relationship_id FROM concept_relationship_metadata)
 AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
@@ -265,6 +266,7 @@ JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_cod
 JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
 WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
+      AND (cr.concept_id_1, cr.concept_id_2, cr.relationship_id) NOT IN (SELECT concept_id_1, concept_id_2, relationship_id FROM concept_relationship_metadata)
 AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;

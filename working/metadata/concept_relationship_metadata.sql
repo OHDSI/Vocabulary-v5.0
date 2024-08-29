@@ -15,8 +15,6 @@ CREATE TABLE concept_relationship_metadata (
     REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id)
 );
 
-ALTER TABLE concept_relationship_metadata ADD CONSTRAINT xpk_concept_relationship_metadata PRIMARY KEY (concept_id_1,concept_id_2,relationship_id);
-
 -- Community contribution:
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,

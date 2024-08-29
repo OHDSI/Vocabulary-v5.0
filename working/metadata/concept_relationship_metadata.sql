@@ -15,7 +15,10 @@ CREATE TABLE concept_relationship_metadata (
     REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id)
 );
 
--- Community contribution
+ALTER TABLE concept_relationship_metadata ADD CONSTRAINT xpk_concept_relationship_metadata 
+    PRIMARY KEY (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer);
+
+--Community contribution
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -37,7 +40,7 @@ JOIN devv5.concept_relationship cr ON (c.concept_id, c1.concept_id, cc.relations
 WHERE cr.invalid_reason is null;
 
 
--- ICDs
+--ICDs
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -270,3 +273,31 @@ WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
 AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
+
+
+--relationship_predicate_id
+UPDATE concept_relationship_metadata
+SET relationship_predicate_id = NULL 
+WHERE length(trim(relationship_predicate_id)) = 0;
+
+
+--mapping_tool
+UPDATE concept_relationship_metadata
+SET mapping_tool = NULL 
+WHERE length(trim(mapping_tool)) = 0;
+
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'MM_U'
+WHERE mapping_tool IN ('Atlas, Databricks, and human');
+
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'MM_C'
+WHERE mapping_tool IN ('ManualMapping');
+
+
+
+--TODO: Present mappers and reviewers the following way
+--Irina Zherko
+
+--TODO: Present organisations as mapping sources
+--{functions_updated,UMLS/NCIm} = OHDSI/UMLS/NCIm

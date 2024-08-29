@@ -15,7 +15,7 @@ CREATE TABLE concept_relationship_metadata (
     REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id)
 );
 
--- Community contribution:
+-- Community contribution
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -37,7 +37,7 @@ JOIN devv5.concept_relationship cr ON (c.concept_id, c1.concept_id, cc.relations
 WHERE cr.invalid_reason is null;
 
 
--- ICDs:
+-- ICDs
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -64,7 +64,7 @@ GROUP BY cr.concept_id_1,
          p.reviewer;
 
 
---SNOMED:
+--SNOMED
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -102,11 +102,11 @@ SELECT DISTINCT
        reviewer
 FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_code_1,c.vocabulary_id as vocabulary_id_1,c.concept_name as concept_name_1,cr.relationship_id,cc.concept_id as concept_id_2,cc.concept_code as concept_code_2,cc.vocabulary_id as vocabulary_id_2,cc.concept_name as concept_name_2,
                       REPLACE(SPLIT_PART(a.mapping_source[1], '-', 1), 'Auto', 'AM-lib') || '_U' AS mapping_tool,
-                      NULL   as mapper,
+                      NULL as mapper,
                       NULL as reviewer,
                       a.confidence,
                       REPLACE(SPLIT_PART(a.mapping_source[1], '-', 2), 'OMOP', 'OHDSI')         AS mapping_source,
-                     NULL  as relationship_group,a.relationship_predicate_id
+                     NULL::int as relationship_group,a.relationship_predicate_id
       FROM dev_cdisc.cdisc_automapped a
                JOIN devv5.concept c
                     ON c.concept_code = a.concept_code
@@ -128,8 +128,8 @@ UNION ALL
                       a.mapper,
                       a.reviewer,
                       coalesce(a.confidence,0.5) as confidence,
-                    NULL   AS mapping_source,
-                     NULL  as relationship_group,a.relationship_predicate_id
+                     NULL AS mapping_source,
+                     NULL::int as relationship_group,a.relationship_predicate_id
       FROM dev_cdisc.cdisc_mapped a
                JOIN devv5.concept c
                     ON c.concept_code = a.concept_code
@@ -156,7 +156,7 @@ SELECT concept_id_1,
        concept_id_2,
        relationship_id,
        array_agg(trim(relationship_predicate_id)) as relationship_predicate_id,
-       array_agg(trim(relationship_group))  as relationship_group,
+       NULL as relationship_group,
       array_agg(trim(mapping_source))  as mapping_source  ,
        array_agg(trim(confidence))  as confidence,
      array_agg(trim(mapping_tool))  as mapping_tool  ,
@@ -190,7 +190,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping)) ~*'man|meddra_mapped|maual' then NULL
                         WHEN lower(trim(origin_of_mapping)) ~*'MedDRA-SNOMED eq' then 'OHDSI'
                        ELSE a.origin_of_mapping    END  AS mapping_source,
-                     NULL  as relationship_group,
+                     NULL::int  as relationship_group,
                         CASE WHEN lower(trim(a.relationship_id_predicate)) ='downhill' then 'down'
                              WHEN lower(trim(a.relationship_id_predicate)) ='uphill' then 'up' else a.relationship_id_predicate END as relationship_predicate_id
       FROM dev_meddra.meddra_environment a
@@ -217,12 +217,11 @@ SELECT DISTINCT concept_id_1,
                 concept_id_2,
                 relationship_id,
                ( relationship_predicate_id )[ARRAY_LENGTH(s.relationship_predicate_id, 1)] as relationship_predicate_id ,
-                (relationship_group)[ARRAY_LENGTH(s.relationship_group, 1)] as relationship_group,
+                NULL::int as relationship_group,
              (mapping_source)[ARRAY_LENGTH(s.mapping_source, 1)] as    mapping_source,
-                (confidence)[ARRAY_LENGTH(s.confidence, 1)] as     confidence,
+                (confidence)[ARRAY_LENGTH(s.confidence, 1)]::float as     confidence,
                  (mapping_tool)[ARRAY_LENGTH(s.mapping_tool, 1)] as     mapping_tool,
                   (mapper)[ARRAY_LENGTH(s.mapper, 1)] as     mapper,
                 (reviewer)[ARRAY_LENGTH(s.reviewer, 1)] as     reviewer
 FROM tab_array s
 ORDER BY concept_id_1,relationship_id,concept_id_2
-;

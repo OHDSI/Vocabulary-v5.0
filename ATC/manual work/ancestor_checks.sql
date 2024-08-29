@@ -141,22 +141,6 @@ WHERE (c1.concept_id, c2.concept_id) NOT IN (
                                                                             and c2.vocabulary_id in ('RxNorm','RxNorm Extension')
                                                                             and c2.invalid_reason is NULL);
 
----- Example of deprecated connection and it's apperance in ancestor table. why?
-SELECT c1.concept_id,
-       c2.concept_id,
-       c1.concept_code,
-       c1.concept_name,
-       c2.concept_name,
-       cr.*
-FROM dev_atatur.concept_relationship cr
-        join dev_atatur.concept c1 on cr.concept_id_1 = c1.concept_id and c1.vocabulary_id = 'ATC'
-                                                            and c1.concept_code = 'A04AA03'
-        join dev_atatur.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
-
-
-select *
-from dev_atatur.concept_ancestor
-where (ancestor_concept_id,descendant_concept_id) = (21600495,35857811);
 
 ----- See what links we have in CR table, and don't have in CA.
 SELECT c.concept_id, c.concept_code, c.concept_name,

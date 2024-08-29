@@ -20,14 +20,14 @@ ALTER TABLE concept_relationship_metadata ADD CONSTRAINT xpk_concept_relationshi
 
 --Community contribution
 INSERT INTO concept_relationship_metadata
-SELECT cr.concept_id_1 as concept_id_1,
+SELECT DISTINCT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
        case WHEN cc.predicate_id = 'exactMatch'
               then 'eq'
        when cc.predicate_id = 'broadMatch'
               then 'up' end as relationship_predicate_id,
-       null as relationship_group,
+       null::int as relationship_group,
      CASE WHEN   cc.mapping_source ~* 'manual|new snomed' then NULL
          WHEN   cc.mapping_source ~* 'OMOP|OHDSI' then 'OHDSI'
          ELSE cc.mapping_source end as mapping_source,
@@ -140,6 +140,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
       and cc.concept_code=a.target_concept_code
       and cc.vocabulary_id=a.target_vocabulary_id
       and a.relationship_id=cr.relationship_id
+      where c.concept_code NOT IN (SELECT concept_code from dev_cdisc.cdisc_mapped)
 
 UNION ALL
 
@@ -209,7 +210,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping))='python+chatgpt' then 'NLP+LLM'
                         WHEN lower(trim(origin_of_mapping)) ~*'man|meddra_mapped|maual' then NULL
                         WHEN lower(trim(origin_of_mapping)) ~*'MedDRA-SNOMED eq' then 'OHDSI'
-                       ELSE replace(a.origin_of_mapping,',','+')    END  AS mapping_source,
+                       ELSE replace(trim(a.origin_of_mapping),',','+')    END  AS mapping_source,
                      NULL::int  as relationship_group,
                         CASE WHEN lower(trim(a.relationship_id_predicate)) ='downhill' then 'down'
                              WHEN lower(trim(a.relationship_id_predicate)) ='uphill' then 'up' else a.relationship_id_predicate END as relationship_predicate_id

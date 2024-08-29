@@ -174,31 +174,33 @@ AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
-WHERE (concept_code_1, concept_code_2) in (select source_code_atc, source_code_rx from drop_maps_to);
+WHERE
+    relationship_id = 'Maps to'
+    and (concept_code_1, concept_code_2) in (select source_code_atc, source_code_rx from drop_maps_to);
 
 --- Maps to to drop
-INSERT INTO concept_relationship_manual
-    (
-    concept_code_1,
-    concept_code_2,
-    vocabulary_id_1,
-    vocabulary_id_2,
-    relationship_id,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason
-	)
-select t2.concept_code,
-       t3.concept_code,
-       t2.vocabulary_id,
-       t3.vocabulary_id,
-       'Maps to' as relationship_id,
-        TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-        CURRENT_DATE as date,
-        'D' as invalid
-from drop_maps_to t1
-     join devv5.concept t2 on t1.source_code_atc = t2.concept_code
-                            and t2.vocabulary_id = 'ATC'
-     join devv5.concept t3 on t1.source_code_rx = t3.concept_code
-                            and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-WHERE (t2.concept_code, t3.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual);
+-- INSERT INTO concept_relationship_manual
+--     (
+--     concept_code_1,
+--     concept_code_2,
+--     vocabulary_id_1,
+--     vocabulary_id_2,
+--     relationship_id,
+--     valid_start_date,
+--     valid_end_date,
+--     invalid_reason
+-- 	)
+-- select t2.concept_code,
+--        t3.concept_code,
+--        t2.vocabulary_id,
+--        t3.vocabulary_id,
+--        'Maps to' as relationship_id,
+--         TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+--         CURRENT_DATE as date,
+--         'D' as invalid
+-- from drop_maps_to t1
+--      join devv5.concept t2 on t1.source_code_atc = t2.concept_code
+--                             and t2.vocabulary_id = 'ATC'
+--      join devv5.concept t3 on t1.source_code_rx = t3.concept_code
+--                             and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+-- WHERE (t2.concept_code, t3.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual);

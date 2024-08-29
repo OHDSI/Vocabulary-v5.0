@@ -271,14 +271,15 @@ FROM
         WHERE relationship_id in ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat')
       ) t1
       JOIN devv5.concept t2
-          ON t1.concept_code_2::int = t2.concept_id AND t2.vocabulary_id in ('RxNorm', 'RxNorm Extension');
+          ON t1.concept_code_2::int = t2.concept_id AND t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+WHERE (class_code, t2.concept_code) not in (select source_code_atc, source_code_rx from drop_maps_to);
 
 
 --6. Insert ATC - RxNorm relationships
 DROP TABLE IF EXISTS  new_unique_atc_codes_rxnorm;
 CREATE UNLOGGED TABLE new_unique_atc_codes_rxnorm AS
 SELECT DISTINCT class_code, ids
-FROM new_atc_codes_rxnorm
+FROM dev_atc.new_atc_codes_rxnorm
 WHERE length(class_code) = 7
 AND concept_class_id = 'Clinical Drug Form';
 

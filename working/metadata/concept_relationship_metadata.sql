@@ -16,6 +16,7 @@ reviewer VARCHAR(50),
 );
 
 -- ICDs insert:
+INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
@@ -24,20 +25,18 @@ SELECT cr.concept_id_1 as concept_id_1,
        (array_agg (DISTINCT s.mappings_origin)) as mapping_source,
        null as confidence,
        null as mapping_tool,
-       p.mapper as mapper,
-       p.reviewer as reviewer
+       null as mapper,
+       null as reviewer
 FROM devv5.concept_relationship cr
 JOIN devv5.concept c ON cr.concept_id_1 = c.concept_id
 JOIN dev_icd10.icd_cde_proc p ON p.source_code = c.concept_code AND p.source_vocabulary_id = c.vocabulary_id
-LEFT JOIN icd_cde_source s ON p.source_code = s.source_code and p.source_vocabulary_id = s.source_vocabulary_id
+LEFT JOIN dev_icd10.icd_cde_source s ON p.source_code = s.source_code and p.source_vocabulary_id = s.source_vocabulary_id
 WHERE cr.relationship_id in ('Maps to', 'Maps to value')
 AND cr.invalid_reason is null
 GROUP BY cr.concept_id_1,
          cr.concept_id_2,
          cr.relationship_id,
-         p.relationship_id_predicate,
-         p.mapper,
-         p.reviewer;
+         p.relationship_id_predicate;
 
 -- CC insert:
 INSERT INTO concept_relationship_metadata
@@ -219,24 +218,3 @@ SELECT DISTINCT concept_id_1,
 FROM tab_array s
 ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
-
--- Insert from mapped table:
-INSERT INTO concept_relationship_metadata
-SELECT cr.concept_id_1 as concept_id_1,
-       cr.concept_id_2 as concept_id_2,
-       cr.relationship_id as relationship_id,
-       m.relationship_id_predicate as relationship_predicate_id,
-       null as relationship_group,
-       m.mapping_source as mapping_source,
-       m.confidence::float as confidence,
-       m.mapping_tool as mapping_tool,
-       m.mapper_id as mapper,
-       m.reviewer_id as reviewer
-FROM :mapping_table m
-JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
-JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
-JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
-WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
-AND cr.invalid_reason IS NULL
-AND m.cr_invalid_reason is null
-AND m.relationship_id_predicate IS NOT NULL;

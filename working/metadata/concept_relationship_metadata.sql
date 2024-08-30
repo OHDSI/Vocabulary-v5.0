@@ -210,7 +210,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping))='python+chatgpt' then 'NLP+LLM'
                         WHEN lower(trim(origin_of_mapping)) ~*'man|meddra_mapped|maual' then NULL
                         WHEN lower(trim(origin_of_mapping)) ~*'MedDRA-SNOMED eq' then 'OHDSI'
-                       ELSE replace(trim(a.origin_of_mapping),',','+')    END  AS mapping_source,
+                       ELSE  UPPER(trim(replace(trim(replace(a.origin_of_mapping,' ','')),',','+')))   END  AS mapping_source,
                      NULL::int  as relationship_group,
                         CASE WHEN lower(trim(a.relationship_id_predicate)) ='downhill' then 'down'
                              WHEN lower(trim(a.relationship_id_predicate)) ='uphill' then 'up' else a.relationship_id_predicate END as relationship_predicate_id
@@ -247,6 +247,15 @@ SELECT DISTINCT concept_id_1,
 FROM tab_array s
 ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
+
+UPDATE concept_relationship_metadata
+SET mapping_source = replace(mapping_source,'MEDDRA-ICD10-SNOMED','RefSet:MedDRA-ICD10+OHDSI')
+WHERE mapping_source like '%MEDDRA-ICD10-SNOMED%';
+
+UPDATE concept_relationship_metadata
+SET mapping_source = replace(replace(mapping_source,'MEDDRA_SNOMED','RefSet:MEDDRA_SNOMED'),'SNOMED_MEDDRA','RefSet:SNOMED_MEDDRA')
+WHERE mapping_source like '%MEDDRA_SNOMED+SNOMED_MEDDRA%';
+
 
 -- CPT4:
 INSERT INTO concept_relationship_metadata
@@ -332,7 +341,7 @@ UPDATE concept_relationship_metadata AS b
                WHEN upper(trim(a.reviewer)) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
                WHEN upper(trim(a.reviewer))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='YK'  then 'yuri.korin@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) ='IZ'  then 'iryna.zherko@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='IZ'  then 'irina.zherko@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
@@ -360,7 +369,7 @@ UPDATE concept_relationship_metadata AS b
                WHEN upper(trim(a.mapper)) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
                WHEN upper(trim(a.mapper))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='YK'  then 'yuri.korin@odysseusinc.com'
-               WHEN upper(trim(a.mapper)) ='IZ'  then 'iryna.zherko@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='IZ'  then 'irina.zherko@odysseusinc.com'
                 WHEN upper(trim(a.mapper)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
@@ -379,4 +388,4 @@ SELECT *
 FROM concept_relationship_metadata;
 
 
---TODO @Iryna --fix ICD-env!!! (duplication is here)
+--TODO @irina --fix ICD-env!!! (duplication is here)

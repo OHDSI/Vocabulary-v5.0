@@ -109,20 +109,3 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
-
-UPDATE concept_relationship_manual SET relationship_id = 'Maps to' WHERE relationship_id = 'Maps to ';
-
-INSERT INTO concept_relationship_manual VALUES
-('Z42.8', '122465003', 'ICD10', 'SNOMED', 'Maps to',  '2024-07-29',	'2024-07-30', 'D');
-INSERT INTO concept_relationship_manual VALUES
-('Z42.8', '122465003', 'ICD10', 'SNOMED', 'Maps to value',  '2024-07-30', '2099-12-31', null);
-INSERT INTO concept_relationship_manual VALUES
-('Z42.1', '33496007', 'ICD10', 'SNOMED', 'Maps to',  '2024-07-29',	'2024-07-30', 'D');
-INSERT INTO concept_relationship_manual VALUES
-('Z42.1', '33496007', 'ICD10', 'SNOMED', 'Maps to value',  '2024-07-30', '2099-12-31', null);
-
-INSERT INTO concept_relationship_manual VALUES
-('I33', '56819008', 'ICD10', 'SNOMED', 'Maps to',  '2024-07-30', '2099-12-31', null);
-
-
-SELECT * FROM concept_relationship_manual;

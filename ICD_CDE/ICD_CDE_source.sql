@@ -1,29 +1,34 @@
-CREATE TABLE icd_cde_source_backup_2_20_2024 as SELECT * FROM icd_cde_source;
-
---Backup before update from _mapped
-CREATE TABLE icd_cde_source_backup_6_17_2024 as SELECT * FROM icd_cde_source;
-TRUNCATE TABLE icd_cde_source;
-INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_17_2024);
-
---Backup after update from _mapped
-CREATE TABLE icd_cde_source_backup_6_25_2024 as SELECT * FROM icd_cde_source;
-TRUNCATE TABLE icd_cde_source;
-INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_25_2024);
-
---Backup after external sources insert
-CREATE TABLE icd_cde_source_backup_6_30_2024 as SELECT * FROM icd_cde_source;
-TRUNCATE TABLE icd_cde_source;
-INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_30_2024);
-
-CREATE TABLE icd_cde_source_backup_7_26_2024 as SELECT * FROM icd_cde_source;
-TRUNCATE TABLE icd_cde_source;
-INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_26_2024);
-
---backup new ICD10CM
-DROP TABLE icd_cde_source_backup_7_30_2024;
-CREATE TABLE icd_cde_source_backup_7_30_2024 as SELECT * FROM icd_cde_source;
-TRUNCATE TABLE icd_cde_source;
-INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_30_2024);
+--CREATE TABLE icd_cde_source_backup_2_20_2024 as SELECT * FROM icd_cde_source;
+--
+----Backup before update from _mapped
+--CREATE TABLE icd_cde_source_backup_6_17_2024 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_17_2024);
+--
+----Backup after update from _mapped
+--CREATE TABLE icd_cde_source_backup_6_25_2024 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_25_2024);
+--
+----Backup after external sources insert
+--CREATE TABLE icd_cde_source_backup_6_30_2024 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_6_30_2024);
+--
+--CREATE TABLE icd_cde_source_backup_7_26_2024 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_26_2024);
+--
+----backup new ICD10CM
+--DROP TABLE icd_cde_source_backup_7_30_2024;
+--CREATE TABLE icd_cde_source_backup_7_30_2024 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_7_30_2024);
+--
+----Backup before update from _mapped (08.2024)
+--CREATE TABLE icd_cde_source_backup_8_28_2024 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_8_28_2024);
 
 --1. СDE source insertion
 DROP TABLE dev_icd10.icd_cde_source;
@@ -865,8 +870,45 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['299.0:ICD9CM']
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.2:ICD9CM']);
 SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.2:ICD9CM']);
-
-
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F53.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['L03.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M05.39:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F10.9:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M70.12:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G56.4:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.51:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.52:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G31.0:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Q61.0:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M25.43:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S02.60:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['O91.0:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['N44:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['W83:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['X91:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Y20:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M21.95:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['K35.32:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.00:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.07:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.03:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.06:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z52.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.11:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['O08:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S42.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S12.00:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S12.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S42.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S12.00:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.00:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.01:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['R75:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M24.02:ICD10CM']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['P52.4:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['P52.6:ICD10']);
 
 
 --6. Check every concept is represented in only one group
@@ -1096,7 +1138,7 @@ having count (group_name) = 1)
 AND array_length(mappings_origin, 1)>2;
 
 --ADD UPDATE OF ICD_CDE_SOURCE ON icd_cde_ext_sources TABLE
---Update rel_invalid_reason, valid_start_date, valid_end_date fields for declined candidates
+--Update rel_invalid_reason, valid_start_date, valid_end_date fields for candidates
 UPDATE icd_cde_ext_sources SET
 decision_date = current_date
 WHERE decision = '1';
@@ -1623,6 +1665,7 @@ SELECT * FROM for_manual_review_upd;
 --DROP TABLE icd_cde_mapped;
 --TRUNCATE TABLE icd_cde_mapped;
 --CREATE TABLE icd_cde_mapped_feb_back_30_7 AS SELECT * FROM icd_cde_mapped;
+--CREATE TABLE icd_cde_mapped_feb_back_8_28_2024 AS SELECT * FROM icd_cde_mapped;
 INSERT INTO icd_cde_mapped (SELECT * FROM icd_cde_mapped_feb_back_30_7);
 CREATE TABLE icd_cde_mapped
 (
@@ -1640,7 +1683,7 @@ relationship_id_predicate varchar,
 decision int,
 decision_date date,
 comments varchar,
-target_concept_id int,
+target_concept_id bigint,
 target_concept_code varchar,
 target_concept_name varchar,
 target_concept_class_id varchar,
@@ -1648,15 +1691,29 @@ target_standard_concept varchar,
 target_invalid_reason varchar,
 target_domain_id varchar,
 target_vocabulary_id varchar,
-mapper_id varchar,
+mapper_id text,
+rev_id text,
 rel_invalid_reason varchar,
 valid_start_date  date,
 valid_end_date  date);
 
+--Update mapper and reviewer fields
 DELETE FROM icd_cde_mapped WHERE group_code is null;
+UPDATE icd_cde_mapped_ext SET mapper_id = 'TO' WHERE mapper_id = 'Mapper: tetiana.orlova@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'JC' WHERE mapper_id = 'Mapper: janice.cruz@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'IZ' WHERE mapper_id = 'Mapper: irina.zherko@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'MK' WHERE mapper_id = 'Mapper: maria.khitrun@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'TS' WHERE mapper_id = 'Mapper: tatiana.skugarevskaya@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'IZ' WHERE rev_id = 'Reviewer: irina.zherko@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'MK' WHERE rev_id = 'Reviewer: maria.khitrun@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'TS' WHERE rev_id = 'Reviewer: tatiana.skugarevskaya@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'TO' WHERE rev_id = 'Reviewer: tetiana.orlova@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'JC' WHERE rev_id = 'Reviewer: janice.cruz@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = null WHERE rev_id = 'Reviewer: 0';
 
 --DROP TABLE icd_cde_mapped_ext;
 --TRUNCATE TABLE icd_cde_mapped_ext;
+--CREATE TABLE icd_cde_mapped_ext_back_28_8_2024 AS SELECT * FROM icd_cde_mapped_ext;
 CREATE TABLE icd_cde_mapped_ext
 (
 group_name varchar,
@@ -1682,13 +1739,24 @@ target_invalid_reason varchar,
 target_domain_id varchar,
 target_vocabulary_id varchar,
 mapper_id varchar,
+rev_id text,
 rel_invalid_reason varchar,
 valid_start_date  date,
 valid_end_date  date);
 
-SELECT * FROM icd_cde_mapped_ext;
-
+--Update mapper and reviewer fields
 DELETE FROM icd_cde_mapped_ext WHERE group_code is null;
+UPDATE icd_cde_mapped_ext SET mapper_id = 'TO' WHERE mapper_id = 'Mapper: tetiana.orlova@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'JC' WHERE mapper_id = 'Mapper: janice.cruz@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'IZ' WHERE mapper_id = 'Mapper: irina.zherko@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'MK' WHERE mapper_id = 'Mapper: maria.khitrun@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET mapper_id = 'TS' WHERE mapper_id = 'Mapper: tatiana.skugarevskaya@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'IZ' WHERE rev_id = 'Reviewer: irina.zherko@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'MK' WHERE rev_id = 'Reviewer: maria.khitrun@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'TS' WHERE rev_id = 'Reviewer: tatiana.skugarevskaya@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'TO' WHERE rev_id = 'Reviewer: tetiana.orlova@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = 'JC' WHERE rev_id = 'Reviewer: janice.cruz@odysseusinc.com';
+UPDATE icd_cde_mapped_ext SET rev_id = null WHERE rev_id = 'Reviewer: 0';
 
 INSERT INTO icd_cde_mapped (
     SELECT * FROM icd_cde_mapped_ext
@@ -1709,20 +1777,37 @@ WHERE target_invalid_reason = 'Valid';
 
 --Update rel_invalid_reason, valid_start_date, valid_end_date fields for declined candidates
 UPDATE icd_cde_mapped SET
-decision_date = '2024-02-29'
+decision_date = '2024-07-29'
 WHERE decision in ('0', '1');
 
 UPDATE icd_cde_mapped SET
-valid_start_date = '2024-02-29',
+valid_start_date = '2024-07-29',
 valid_end_date = '2099-12-31'
 WHERE decision = '1'
 AND mappings_origin in ('without mapping', 'manual');
 
-UPDATE icd_cde_mapped SET relationship_id = 'Maps to' WHERE relationship_id = 'Maps to ';
-
 --13. Create final table with mappings
-CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
-TRUNCATE TABLE icd_cde_proc;
+--CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_28_8_2024 as (SELECT * FROM icd_cde_proc);
+--TRUNCATE TABLE icd_cde_proc;
+--DROP TABLE icd_cde_proc;
+CREATE TABLE icd_cde_proc (
+    source_code varchar,
+    source_code_description varchar,
+    source_vocabulary_id varchar,
+    relationship_id varchar,
+    relationship_id_predicate varchar,
+    target_concept_id int,
+    target_concept_code varchar,
+    target_concept_name varchar,
+    target_concept_class_id varchar,
+    target_standard_concept varchar,
+    target_invalid_reason varchar,
+    target_domain_id varchar,
+    target_vocabulary_id varchar,
+    mapper varchar,
+    reviewer varchar
+);
 INSERT INTO icd_cde_proc (source_code,
                           source_code_description,
                           source_vocabulary_id,
@@ -1735,7 +1820,9 @@ INSERT INTO icd_cde_proc (source_code,
                           target_standard_concept,
                           target_invalid_reason,
                           target_domain_id,
-                          target_vocabulary_id)
+                          target_vocabulary_id,
+                          mapper,
+                          reviewer)
 SELECT DISTINCT
 s.source_code as source_code,
 s.source_code_description as source_code_description,
@@ -1749,7 +1836,9 @@ m.target_concept_class_id,
 m.target_standard_concept,
 m.target_invalid_reason,
 m.target_domain_id,
-m.target_vocabulary_id
+m.target_vocabulary_id,
+m.mapper_id,
+m.rev_id
 FROM icd_cde_source s JOIN icd_cde_mapped m
 ON s.group_name = m.group_name
 and m.decision = '1'
@@ -1797,7 +1886,7 @@ SET mappings_origin = 'manual',
     rel_invalid_reason = m.rel_invalid_reason,
     valid_start_date = m.valid_start_date,
     valid_end_date = m.valid_end_date,
-    target_concept_id = m.target_concept_id,
+    target_concept_id = m.target_concept_id::int,
     target_concept_code = m.target_concept_code,
     target_concept_name = m.target_concept_name,
     target_concept_class_id = m.target_concept_class_id,
@@ -1853,7 +1942,7 @@ SELECT
     m.decision_date,
     m.relationship_id,
     m.relationship_id_predicate,
-    m.target_concept_id,
+    m.target_concept_id :: int,
     m.target_concept_code,
     m.target_concept_name,
     m.target_concept_class_id,
@@ -1889,7 +1978,7 @@ INSERT INTO icd_cde_source(
     source_code_description,
     source_vocabulary_id,
     group_name,
-    group_id,
+    --group_id,
     medium_group_id,
     broad_group_id,
     for_review,
@@ -1914,7 +2003,7 @@ SELECT DISTINCT sr.source_code,
         sr.source_code_description,
         sr.source_vocabulary_id,
         m.group_name,
-        m.group_id,
+        --s.group_id,
         m.medium_group_id,
         m.broad_group_id,
         m.for_review,
@@ -1928,7 +2017,7 @@ SELECT DISTINCT sr.source_code,
         END AS decision_date,
         m.relationship_id,
         m.relationship_id_predicate,
-        m.target_concept_id,
+        m.target_concept_id :: int,
         m.target_concept_code,
         m.target_concept_name,
         m.target_concept_class_id,
@@ -1950,14 +2039,14 @@ AND (m.mappings_origin = 'manual' OR NOT EXISTS (
         WHERE src.group_name = m.group_name
           AND src.source_code = sr.source_code
           AND src.source_vocabulary_id = sr.source_vocabulary_id
-          AND src.target_concept_id = m.target_concept_id
+          AND src.target_concept_id = m.target_concept_id::int
     ));
 
 WITH rec_for_source as(
     SELECT DISTINCT sr.source_code,
                       sr.source_code_description,
                       sr.source_vocabulary_id,
-                      m.target_concept_id,
+                      m.target_concept_id::int,
                       m.decision_date
     FROM dev_icd10.icd_cde_mapped m
     JOIN (SELECT DISTINCT s.source_code_description,
@@ -1966,7 +2055,7 @@ WITH rec_for_source as(
                             s.source_vocabulary_id,
                             s.target_concept_id
             FROM dev_icd10.icd_cde_source s) sr ON m.group_name = sr.group_name AND
-                                                   m.target_concept_id = sr.target_concept_id
+                                                   m.target_concept_id::int = sr.target_concept_id::int
     WHERE m.decision = 1
       --AND m.group_id = 39774
 )
@@ -1984,7 +2073,7 @@ FROM rec_for_source rs
 WHERE  t.source_code = rs.source_code AND
        t.source_code_description = rs.source_code_description AND
        t.source_vocabulary_id = rs.source_vocabulary_id AND
-       t.target_concept_id = rs.target_concept_id;
+       t.target_concept_id::int = rs.target_concept_id::int;
 
 -- 14.3 Add concepts, which are not represented in the initial table
 INSERT INTO icd_cde_source
@@ -2039,21 +2128,3 @@ SELECT DISTINCT
        m.valid_end_date,
        m.mappings_origin
 FROM concepts c LEFT JOIN icd_cde_mapped m ON c.group_name = m.group_name;
-
-
-SELECT * FROM icd_cde_source where source_vocabulary_id = 'ICD10GM';
-
-SELECT DISTINCT s.target_concept_id, s.target_concept_code, s.target_concept_name, c.concept_id, c.concept_code, c.concept_name FROM icd_cde_source s
-JOIN concept c on s.target_concept_id = c.concept_id
-AND s.target_vocabulary_id = c.vocabulary_id
-WHERE s.target_concept_code != c.concept_code --250
-
-UNION
-
-SELECT DISTINCT s.target_concept_id, s.target_concept_code, s.target_concept_name, c.concept_id, c.concept_code, c.concept_name FROM icd_cde_source s
-JOIN concept c on s.target_concept_code = c.concept_code
-AND s.target_vocabulary_id = c.vocabulary_id
-WHERE s.target_concept_id != c.concept_id; --269
-
-
-

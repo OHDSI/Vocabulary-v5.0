@@ -37,7 +37,7 @@ SELECT DISTINCT
        c.vocabulary_id as target_vocabulary_id,
        c.valid_start_date as target_valid_end_date,
        c.valid_end_date as target_valid_end_date
-FROM dev_icd10.concept_relationship_stage crs
+FROM dev_icd10cn.concept_relationship_stage crs
 LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code
                            AND crs.vocabulary_id_2 = c.vocabulary_id
 --AND c.standard_concept = 'S'

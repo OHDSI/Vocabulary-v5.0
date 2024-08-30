@@ -111,15 +111,7 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
- -- Minor manual updates
-INSERT INTO concept_relationship_manual VALUES ('S02.60', '207753003', 'ICD10GM', 'SNOMED', 'Maps to', '2024-07-30', '2099-12-31', null);
-INSERT INTO concept_relationship_manual VALUES ('Z96.5', '789147006', 'ICD10GM', 'SNOMED', 'Maps to', '2024-01-01', '2024-07-30', 'D');
-INSERT INTO concept_relationship_manual VALUES ('Z96.5', '789147006', 'ICD10GM', 'SNOMED', 'Maps to value', '2024-07-30', '2099-12-31', null);
-UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-07-30' WHERE concept_code_1 = 'G94.30' and concept_code_2 = '81308009';
-UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-07-30' WHERE concept_code_1 = 'N13.60' and concept_code_2 = '43064006';
-UPDATE concept_relationship_manual SET invalid_reason = 'D', valid_end_date = '2024-07-30' WHERE concept_code_1 = 'N13.65' and concept_code_2 = '43064006';
 
-INSERT INTO concept_relationship_manual VALUES ('Z29.22', '1287783000', 'ICD10GM', 'SNOMED', 'Maps to', '2024-08-01', '2099-12-31', null);
 
 --2. Update the concept_manual table to add translations for newly added concepts
 --TRUNCATE concept_manual;

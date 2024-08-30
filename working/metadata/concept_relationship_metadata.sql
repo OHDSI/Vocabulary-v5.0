@@ -306,6 +306,8 @@ AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
 
+
+
 --relationship_predicate_id
 UPDATE concept_relationship_metadata
 SET relationship_predicate_id = NULL 
@@ -317,10 +319,18 @@ UPDATE concept_relationship_metadata
 SET mapping_tool = NULL 
 WHERE length(trim(mapping_tool)) = 0;
 
+
+--relationship_predicate_id
+UPDATE concept_relationship_metadata
+SET relationship_predicate_id = NULL
+WHERE length(trim(relationship_predicate_id)) = 0;
+
+--Mapping source UPD
 UPDATE concept_relationship_metadata
 SET mapping_source = 'Community Contribution'
 WHERE mapping_tool IN ('Atlas, Databricks, and human');
 
+--Mapping tool UPD
 UPDATE concept_relationship_metadata
 SET mapping_tool = 'MM_U'
 WHERE mapping_tool IN ('Atlas, Databricks, and human');
@@ -328,6 +338,22 @@ WHERE mapping_tool IN ('Atlas, Databricks, and human');
 UPDATE concept_relationship_metadata
 SET mapping_tool = 'MM_C'
 WHERE mapping_tool IN ('ManualMapping');
+
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'MM_U'
+WHERE mapping_tool ='MM_C'
+and mapper is NULL
+and reviewer is NULL
+;
+
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'MM_U'
+WHERE mapping_tool ='MM_C'
+and (mapper is NOT NULL
+OR reviewer is NOT NULL)
+and relationship_predicate_id is NULL
+;
+
 
 
 --Set emails of reviewer

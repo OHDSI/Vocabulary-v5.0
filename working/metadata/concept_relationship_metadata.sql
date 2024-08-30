@@ -1,22 +1,24 @@
 -- DDL:
 --DROP TABLE concept_relationship_metadata;
 CREATE TABLE concept_relationship_metadata (
-    concept_id_1 int NOT NULL,
-    concept_id_2 int NOT NULL,
-    relationship_id varchar(20) NOT NULL,
-    relationship_predicate_id VARCHAR(20),
-    relationship_group INT,
-    mapping_source VARCHAR(255),
-    confidence FLOAT,
-    mapping_tool VARCHAR(50),
-    mapper VARCHAR(50),
-    reviewer VARCHAR(50),
-    FOREIGN KEY (concept_id_1, concept_id_2, relationship_id)
-    REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id)
+concept_id_1 int NOT NULL,
+concept_id_2 int NOT NULL,
+relationship_id varchar(20) NOT NULL,
+relationship_predicate_id VARCHAR(20),
+relationship_group INT,
+mapping_source VARCHAR(50),
+confidence FLOAT,
+mapping_tool VARCHAR(50),
+mapper VARCHAR(50),
+reviewer VARCHAR(50),
+FOREIGN KEY (concept_id_1, concept_id_2, relationship_id)
+REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
+CONSTRAINT chk_relationship_predicate_id
+CHECK (relationship_predicate_id IN ('eq', 'up', 'down')),
+CONSTRAINT xpk_concept_relationship_metadata
+UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
 );
 
-ALTER TABLE concept_relationship_metadata ADD CONSTRAINT xpk_concept_relationship_metadata 
-    UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer);
 
 --Community contribution
 INSERT INTO concept_relationship_metadata
@@ -120,11 +122,19 @@ SELECT DISTINCT
        mapping_tool,
        mapper,
        reviewer
-FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_code_1,c.vocabulary_id as vocabulary_id_1,c.concept_name as concept_name_1,cr.relationship_id,cc.concept_id as concept_id_2,cc.concept_code as concept_code_2,cc.vocabulary_id as vocabulary_id_2,cc.concept_name as concept_name_2,
+FROM (SELECT DISTINCT c.concept_id     AS concept_id_1,
+                      c.concept_code   AS concept_code_1,
+                      c.vocabulary_id  AS vocabulary_id_1,
+                      c.concept_name   AS concept_name_1,
+                      cr.relationship_id,
+                      cc.concept_id    AS concept_id_2,
+                      cc.concept_code  AS concept_code_2,
+                      cc.vocabulary_id AS vocabulary_id_2,
+                      cc.concept_name  AS concept_name_2,
                       REPLACE(SPLIT_PART(a.mapping_source[1], '-', 1), 'Auto', 'AM-lib') || '_U' AS mapping_tool,
                       NULL as mapper,
                       NULL as reviewer,
-                      a.confidence,
+                      NULL::float as confidence,
                       REPLACE(SPLIT_PART(a.mapping_source[1], '-', 2), 'OMOP', 'OHDSI')         AS mapping_source,
                      NULL::int as relationship_group,a.relationship_predicate_id
       FROM dev_cdisc.cdisc_automapped a
@@ -184,8 +194,7 @@ SELECT concept_id_1,
           array_agg(trim(mapper))  as mapper  ,
         array_agg(trim(reviewer))  as reviewer
 FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_code_1,c.vocabulary_id as vocabulary_id_1,c.concept_name as concept_name_1,cr.relationship_id,cc.concept_id as concept_id_2,cc.concept_code as concept_code_2,cc.vocabulary_id as vocabulary_id_2,cc.concept_name as concept_name_2,
-                   CASE WHEN lower(trim(origin_of_mapping))='manual' then 'MM_C'
-                       WHEN lower(trim(origin_of_mapping)) like '%meddra_mapped%' then 'MM_C'
+                   CASE WHEN lower(trim(origin_of_mapping)) IN ('manual','meddra_mapped') then 'MM_C'
                         WHEN lower(trim(origin_of_mapping))='python' then 'AM-tool_C'
                         WHEN lower(trim(origin_of_mapping))='chatgpt' then 'AM-tool_C'
                         WHEN lower(trim(origin_of_mapping))='python+chatgpt' then 'AM-tool_C'
@@ -210,7 +219,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping))='python+chatgpt' then 'NLP+LLM'
                         WHEN lower(trim(origin_of_mapping)) ~*'man|meddra_mapped|maual' then NULL
                         WHEN lower(trim(origin_of_mapping)) ~*'MedDRA-SNOMED eq' then 'OHDSI'
-                       ELSE  UPPER(trim(replace(trim(replace(a.origin_of_mapping,' ','')),',','+')))   END  AS mapping_source,
+                       ELSE  UPPER(trim(replace(trim(replace(replace(a.origin_of_mapping,'meddra_mapped','OHDSI'),' ','')),',','+')))   END  AS mapping_source,
                      NULL::int  as relationship_group,
                         CASE WHEN lower(trim(a.relationship_id_predicate)) ='downhill' then 'down'
                              WHEN lower(trim(a.relationship_id_predicate)) ='uphill' then 'up' else a.relationship_id_predicate END as relationship_predicate_id
@@ -354,6 +363,22 @@ OR reviewer is NOT NULL)
 and relationship_predicate_id is NULL
 ;
 
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'AM-lib_U'
+WHERE mapping_tool ='AM-lib_C'
+and mapper is NULL
+and reviewer is NULL
+;
+
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'AM-lib_U'
+WHERE mapping_tool ='AM-lib_C'
+and (mapper is NOT NULL
+OR reviewer is NOT NULL)
+and relationship_predicate_id is NULL
+and confidence is NULL
+;
+
 
 
 --Set emails of reviewer
@@ -411,7 +436,11 @@ UPDATE concept_relationship_metadata
     SET mapper = initcap(replace(split_part(mapper,'@',1),'.',' '));
 
 SELECT *
-FROM concept_relationship_metadata;
+FROM concept_relationship_metadata
+ORDER BY concept_id_1,relationship_id,concept_id_2
+
+
 
 
 --TODO @irina --fix ICD-env!!! (duplication is here)
+--TODO @Masha -- add mapping source where possible

@@ -16,7 +16,7 @@ CREATE TABLE concept_relationship_metadata (
 );
 
 ALTER TABLE concept_relationship_metadata ADD CONSTRAINT xpk_concept_relationship_metadata 
-    PRIMARY KEY (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer);
+    UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer);
 
 --Community contribution
 INSERT INTO concept_relationship_metadata

@@ -1,13 +1,16 @@
 -- DDL:
 --DROP TABLE concept_metadata;
-CREATE TABLE concept_metadata (
-    concept_id int NOT NULL,
-    concept_category VARCHAR(20),
-    reuse_status     VARCHAR(20),
-    --CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'J')),
+CREATE TABLE concept_metadata
+(
+    concept_id       int NOT NULL,
+    concept_category varchar(20),
+    reuse_status     varchar(20),
+    CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'J')),
+    CONSTRAINT chk_reuse_status CHECK (reuse_status IS NULL OR reuse_status IN ('RF', 'RP', 'R')),
     FOREIGN KEY (concept_id)
-    REFERENCES devv5.concept (concept_id)
-
+    REFERENCES concept (concept_id),
+    CONSTRAINT xpk_concept_metadata
+    UNIQUE (concept_id)
 );
 
 --Reused codes insertion
@@ -16,7 +19,7 @@ CREATE TABLE concept_metadata (
 INSERT INTO concept_metadata (concept_id,reuse_status)
 SELECT DISTINCT
     c.concept_id,
-   'P' as reuse_status
+   'RP' as reuse_status
 FROM
     dev_test4.reused_concepts rr
     JOIN concept c
@@ -73,3 +76,70 @@ UNION ALL
 SELECT flag, concept_id, concept_category, concept_name, vocabulary_id
 FROM junk_direct_rule_based
 ) as tab
+;
+
+-- Metadata attribute
+
+--Apparent metadata
+INSERT INTO concept_metadata (concept_id,concept_category)
+SELECT DISTINCT concept_id, 'M' as concept_category
+FROM devv5.concept
+where domain_id='Metadata'
+	ON CONFLICT ON CONSTRAINT xpk_concept_metadata
+	DO UPDATE
+	SET concept_category = concept_metadata.concept_category
+	WHERE ROW (concept_metadata.concept_category)
+	IS DISTINCT FROM
+	ROW (excluded.concept_category)
+	;
+
+
+-- Attributes attribute
+--Drug metadata
+INSERT INTO concept_metadata (concept_id,concept_category)
+SELECT DISTINCT concept_id, 'A' as concept_category
+FROM devv5.concept
+where (
+concept_class_id IN (
+'AU Qualifier',
+'Supplier',
+'Trade Product',
+'Brand Name',
+'Dose Form',
+'Drug form',
+'Form',
+'Chemical Structure',
+'Pharmacokinetics',
+'Supplier'
+    )
+and domain_id='Drug')
+OR (
+concept_class_id IN (
+'LOINC Component',
+'LOINC Method',
+'LOINC Property',
+'LOINC Scale',
+'LOINC System',
+'LOINC Time')
+    )
+OR
+    (vocabulary_id IN ('SNOMED','SNOMED Veterinary','Nebraska Lexicon','OMOP Extension')
+       and concept_class_id IN ('Qualifier Value','Attribute')
+        )
+	ON CONFLICT ON CONSTRAINT xpk_concept_metadata
+	DO UPDATE
+	SET concept_category = concept_metadata.concept_category
+	WHERE ROW (concept_metadata.concept_category)
+	IS DISTINCT FROM
+	ROW (excluded.concept_category)
+	;
+;
+
+--NO DUPLICATES EXISTS
+SELECT (SELECT count(*)
+FROM concept_metadata) - (SELECT count(distinct concept_id)
+FROM concept_metadata);
+
+
+
+

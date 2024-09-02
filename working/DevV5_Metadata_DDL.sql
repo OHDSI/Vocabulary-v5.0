@@ -26,7 +26,8 @@ CREATE TABLE concept_metadata (
     reuse_status varchar(20),
     FOREIGN KEY (concept_id) REFERENCES concept (concept_id),
     CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'J')),
-    CONSTRAINT chk_reuse_status CHECK (reuse_status IN ('RF', 'RP', 'R'))
+    CONSTRAINT chk_reuse_status CHECK (reuse_status IN ('RF', 'RP', 'R')),
+    UNIQUE (concept_id)
 );
 
 -- concept_relationship_metadata
@@ -50,5 +51,6 @@ CREATE TABLE concept_relationship_metadata (
     CONSTRAINT chk_relationship_group 
         CHECK (relationship_group IN (1, 2, 3)),
     CONSTRAINT chk_confidence 
-        CHECK (confidence IN (0, 1))
+        CHECK (confidence IN (0, 1)),
+    UNIQUE (concept_id_1, concept_id_2, relationship_id)
 );

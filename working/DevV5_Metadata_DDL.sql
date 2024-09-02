@@ -21,7 +21,7 @@
 DROP TABLE IF EXISTS concept_metadata;
 
 CREATE TABLE concept_metadata (
-    concept_id int NOT NULL,  
+    concept_id INT NOT NULL,  
     concept_category varchar(20),
     reuse_status varchar(20),
     FOREIGN KEY (concept_id) REFERENCES concept (concept_id),
@@ -34,13 +34,13 @@ CREATE TABLE concept_metadata (
 DROP TABLE IF EXISTS concept_relationship_metadata;
 
 CREATE TABLE concept_relationship_metadata (
-    concept_id_1 int NOT NULL,
-    concept_id_2 int NOT NULL,
+    concept_id_1 INT NOT NULL,
+    concept_id_2 INT NOT NULL,
     relationship_id varchar(20) NOT NULL,
     relationship_predicate_id VARCHAR(20),
     relationship_group INT,
     mapping_source VARCHAR(50),
-    confidence INT,
+    confidence FLOAT,
     mapping_tool VARCHAR(50),
     mapper VARCHAR(50),
     reviewer VARCHAR(50),
@@ -51,6 +51,6 @@ CREATE TABLE concept_relationship_metadata (
     CONSTRAINT chk_relationship_group 
         CHECK (relationship_group IN (1, 2, 3)),
     CONSTRAINT chk_confidence 
-        CHECK (confidence IN (0, 1)),
+        CHECK (confidence >= 0 AND confidence <= 1),
     UNIQUE (concept_id_1, concept_id_2, relationship_id)
 );

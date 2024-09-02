@@ -102,7 +102,13 @@ SELECT
     atc_code
 FROM gcs_manual_curated;
 ```
-
+* extract the [respective сsv file](https://drive.google.com/file/d/1EJslT3HQMroaDj-aMeZ9Ksc3NOCBt5di/view?usp=drive_link) into the *ned_adm_r* table. The file was generated using the query:
+```sql
+SELECT 
+    source_code_atc,
+    source_code_rx
+FROM drop_maps_to
+```
 
 #### csv format:
 - delimiter: '\t'

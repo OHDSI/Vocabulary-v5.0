@@ -86,3 +86,9 @@ CREATE TABLE gcs_manual_curated
     string_agg    TEXT,
     atc_code      TEXT
 );
+
+CREATE TABLE drop_maps_to
+(
+    source_code_atc TEXT,
+    source_code_rx  TEXT
+);

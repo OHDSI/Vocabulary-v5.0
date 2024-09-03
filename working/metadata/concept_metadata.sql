@@ -19,7 +19,7 @@ CREATE TABLE concept_metadata
 INSERT INTO concept_metadata (concept_id,reuse_status)
 SELECT DISTINCT
     c.concept_id,
-   'RP' as reuse_status
+   'RF' as reuse_status
 FROM
     dev_test4.reused_concepts rr
     JOIN concept c

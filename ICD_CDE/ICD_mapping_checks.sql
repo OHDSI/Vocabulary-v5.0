@@ -366,9 +366,6 @@ WHERE a.target_concept_id != b.target_concept_id
     AND b.relationship_id = 'Maps to'
     AND ca.descendant_concept_id IS NOT NULL));
 
-SELECT * FROM to_check where source_code not in (SELECT DISTINCT source_code FROM icd_cde_source);
-SELECT * FROM icd_cde_source where source_code = '010.03';
-
 
 --Basic QA
 --All concepts from the group have the same mapping:

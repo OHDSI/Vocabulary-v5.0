@@ -35,11 +35,6 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
--- 2-2. formatting the source_code
-UPDATE sources.edi_data
-SET concept_code = '0'||concept_code
-WHERE domain_id = 'Drug' and length(concept_code)=8;
-
 --3. Create concept_stage
 INSERT INTO concept_stage (
 	concept_name,
@@ -68,37 +63,6 @@ SELECT TRIM(SUBSTR(e.concept_name, 1, 255)) AS concept_name,
 FROM sources.edi_data e;
 
 --4. Create concept_relationship_stage only from manual source 
-
---  add mappings into concept_relationship_manual
-CREATE TABLE edi_mapped(
-source_concept_code varchar,
-source_domain_id varchar,
-source_concept_name varchar,
-target_concept_id int,
-target_concept_code varchar,
-target_concept_name varchar,
-target_concept_class varchar,
-target_domain_id varchar,
-target_vocabulary_id varchar,
-target_standard_concept varchar,
-target_invalid_reason varchar,
-valid_start_date date,
-valid_end_date date);
-
-INSERT INTO concept_relationship_manual
-SELECT
-source_concept_code AS concept_code_1,
-target_concept_code AS concept_code_2,
-'EDI' AS vocabulary_id_1,
-target_vocabulary_id AS vocabulary_id_2,
-relationship_id,
-valid_start_date,
-valid_end_date,
-target_invalid_reason AS invalid_reason
-FROM edi_mapped
-WHERE target_concept_id IS NOT NULL
-AND target_invalid_reason IS NULL;
-
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();

@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Timur Vakhitov
-* Date: 2020
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Seng Chan You, Yiju Park
+* Date: 2024
 **************************************************************************/
 
 --1. UPDATE latest_update field to new date
@@ -28,7 +28,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+-- 2-1. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -62,7 +62,7 @@ SELECT TRIM(SUBSTR(e.concept_name, 1, 255)) AS concept_name,
 		END AS invalid_reason
 FROM sources.edi_data e;
 
---4. Create concept_relationship_stage only from manual source
+--4. Create concept_relationship_stage only from manual source 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();

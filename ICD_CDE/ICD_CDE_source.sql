@@ -76,7 +76,7 @@ UPDATE icd_cde_source SET for_review = null;
 
 -- 2. Run load_stage for every Vocabulary to be included into the CDE
 -- 3. Run 'mapping_refresh' script for every Vocabulary to be included into the CDE
--- 4. Insert the whole source with existing mappings into the CDE.
+-- 4. Insert the data into the CDE.
 -- Concepts, that are not supposed to have mappings are not included
 -- If there are several mapping sources all the versions should be included, excluding duplicates within one vocabulary.
 -- Mapping duplicates between vocabularies are preserved
@@ -1564,37 +1564,37 @@ ON s.group_name = m.group_name
 and m.decision = '1'
 ;
 
-INSERT INTO icd_cde_proc (source_code,
-                          source_code_description,
-                          source_vocabulary_id,
-                          relationship_id,
-                          relationship_id_predicate,
-                          target_concept_id,
-                          target_concept_code,
-                          target_concept_name,
-                          target_concept_class_id,
-                          target_standard_concept,
-                          target_invalid_reason,
-                          target_domain_id,
-                          target_vocabulary_id)
-SELECT DISTINCT
-s.source_code as source_code,
-s.source_code_description as source_code_description,
-s.source_vocabulary_id as source_vocabulary_id,
-m.relationship_id as relationship_id,
-m.relationship_id_predicate as relationship_id_predicate,
-m.target_concept_id,
-m.target_concept_code,
-m.target_concept_name,
-m.target_concept_class_id,
-m.target_standard_concept,
-m.target_invalid_reason,
-m.target_domain_id,
-m.target_vocabulary_id
-FROM icd_cde_source s JOIN icd_cde_ext_sources m
-ON s.group_name = m.group_name
-and m.decision = '1'
-WHERE m.group_name not in (SELECT DISTINCT group_name FROM icd_cde_mapped);
+--INSERT INTO icd_cde_proc (source_code,
+--                          source_code_description,
+--                          source_vocabulary_id,
+--                          relationship_id,
+--                          relationship_id_predicate,
+--                          target_concept_id,
+--                          target_concept_code,
+--                          target_concept_name,
+--                          target_concept_class_id,
+--                          target_standard_concept,
+--                          target_invalid_reason,
+--                          target_domain_id,
+--                          target_vocabulary_id)
+--SELECT DISTINCT
+--s.source_code as source_code,
+--s.source_code_description as source_code_description,
+--s.source_vocabulary_id as source_vocabulary_id,
+--m.relationship_id as relationship_id,
+--m.relationship_id_predicate as relationship_id_predicate,
+--m.target_concept_id,
+--m.target_concept_code,
+--m.target_concept_name,
+--m.target_concept_class_id,
+--m.target_standard_concept,
+--m.target_invalid_reason,
+--m.target_domain_id,
+--m.target_vocabulary_id
+--FROM icd_cde_source s JOIN icd_cde_ext_sources m
+--ON s.group_name = m.group_name
+--and m.decision = '1'
+--WHERE m.group_name not in (SELECT DISTINCT group_name FROM icd_cde_mapped);
 
 --18. Update targets status in the initial table from mapped table
 -- 18.1. Update mappings for those without mapping

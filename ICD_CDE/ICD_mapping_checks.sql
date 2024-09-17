@@ -387,7 +387,43 @@ WHERE a.target_concept_id != b.target_concept_id
 --    );
 
 --2.Check all the community contributions were included
+with cc as
+(SELECT
+cc.source_code,
+cc.source_code_description,
+cc.source_vocabulary_id,
+string_agg(cc.relationship_id, '-' order by cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_relationship_id,
+string_agg (cc.target_concept_code, '-' order by cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_target_concept_code,
+string_agg(cc.target_concept_name, '-' order by cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_target_concept_name
+FROM dev_icd10.icd_community_contribution cc
+group by cc.source_code, cc.source_code_description, cc.source_vocabulary_id),
 
+new_map as (
+SELECT
+p.source_code,
+p.source_code_description,
+p.source_vocabulary_id,
+string_agg (p.relationship_id, '-' order by p.relationship_id, p.source_code, p.source_vocabulary_id) as p_relationship_id,
+string_agg (p.target_concept_code, '-' order by p.relationship_id, p.source_code, p.source_vocabulary_id) as p_target_concept_code,
+string_agg (p.target_concept_name, '-' order by p.relationship_id, p.source_code, p.source_vocabulary_id) as p_target_concept_name
+FROM dev_icd10.icd_cde_proc p
+WHERE (p.source_code, p.source_vocabulary_id) IN (SELECT source_code, source_vocabulary_id FROM dev_icd10.icd_community_contribution)
+group by p.source_code, p.source_code_description, p.source_vocabulary_id)
+
+SELECT DISTINCT
+a.source_code,
+a.source_code_description,
+a.source_vocabulary_id,
+a.cc_relationship_id,
+a.cc_target_concept_code,
+a.cc_target_concept_name,
+b.p_relationship_id,
+b.p_target_concept_code,
+b.p_target_concept_name
+FROM cc a LEFT JOIN new_map b
+    ON a.source_code = b.source_code
+    AND a.source_vocabulary_id = b.source_vocabulary_id
+WHERE b.p_target_concept_code is null OR b.p_target_concept_code != a.cc_target_concept_code;
 
 --3. Check after load_stage for each vocabulary
 TRUNCATE TABLE icd_mappings;
@@ -791,4 +827,68 @@ WHERE EXISTS(
 
 ORDER BY group_id;
 
---5.Check all the community contributions were included
+--4.2.Check all the community contributions were included
+WITH cc AS
+(SELECT
+cc.source_code,
+cc.source_code_description,
+cc.source_vocabulary_id,
+string_agg(cc.relationship_id, '-' order by cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_relationship_id,
+string_agg (cc.target_concept_code, '-' order by cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_target_concept_code,
+string_agg(cc.target_concept_name, '-' order by cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_target_concept_name
+FROM dev_icd10.icd_community_contribution cc
+GROUP BY cc.source_code, cc.source_code_description, cc.source_vocabulary_id),
+
+new_map AS (
+SELECT a.concept_id,
+       a.vocabulary_id,
+       a.concept_class_id,
+       a.standard_concept,
+       a.concept_code,
+       a.concept_name,
+       string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
+       string_agg (CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>' ELSE b.concept_code END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
+       string_agg (case when a.concept_id = b.concept_id THEN '<Mapped to itself>' else b.concept_name END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
+FROM concept a
+LEFT JOIN concept_relationship r ON a.concept_id = concept_id_1 and r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason is null
+LEFT JOIN concept b ON b.concept_id = concept_id_2
+WHERE (a.concept_code, a.vocabulary_id) IN (SELECT source_code, source_vocabulary_id FROM dev_icd10.icd_community_contribution)
+    --and a.invalid_reason is null --to exclude invalid concepts
+GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
+)
+,
+old_map AS (
+SELECT a.concept_id,
+       a.vocabulary_id,
+       a.concept_class_id,
+       a.standard_concept,
+       a.concept_code,
+       a.concept_name,
+       string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS relationship_agg,
+       string_agg (CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>' ELSE b.concept_code END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
+       string_agg (CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>' ELSE b.concept_name end, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg
+FROM devv5.concept a
+left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
+left join devv5.concept b on b.concept_id = concept_id_2
+where (a.concept_code, a.vocabulary_id) in (SELECT source_code, source_vocabulary_id FROM dev_icd10.icd_community_contribution)
+    --and a.invalid_reason is null --to exclude invalid concepts
+group by a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
+)
+SELECT DISTINCT
+       cc.source_code,
+       cc.source_code_description,
+       cc.source_vocabulary_id,
+       cc.cc_relationship_id,
+       cc.cc_target_concept_code,
+       cc.cc_target_concept_name,
+       a.relationship_agg as old_relat_agg,
+       a.code_agg as old_code_agg,
+       a.name_agg as old_name_agg,
+       b.relationship_agg as new_relat_agg,
+       b.code_agg as new_code_agg,
+       b.name_agg as new_name_agg
+from cc JOIN old_map a ON cc.source_code = a.concept_code AND cc.source_vocabulary_id = a.vocabulary_id
+join new_map b on cc.source_code = b.concept_code and cc.source_vocabulary_id = b.vocabulary_id AND
+                  ((coalesce (cc.cc_target_concept_code, '') != coalesce (b.code_agg, '')) or (coalesce (cc_relationship_id, '') != coalesce (b.relationship_agg, '')))
+order by cc.source_code
+;

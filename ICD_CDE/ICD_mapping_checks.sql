@@ -655,9 +655,9 @@ SELECT a.concept_id,
        string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
        string_agg (CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>' ELSE b.concept_code END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
        string_agg (case when a.concept_id = b.concept_id THEN '<Mapped to itself>' else b.concept_name END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
-FROM concept a
-LEFT JOIN concept_relationship r ON a.concept_id = concept_id_1 and r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason is null
-LEFT JOIN concept b ON b.concept_id = concept_id_2
+FROM dev_icd10.concept a
+LEFT JOIN dev_icd10.concept_relationship r ON a.concept_id = concept_id_1 and r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason is null
+LEFT JOIN dev_icd10.concept b ON b.concept_id = concept_id_2
 WHERE (a.concept_code, a.vocabulary_id) IN (SELECT source_code, source_vocabulary_id FROM dev_icd10.icd_community_contribution)
     --and a.invalid_reason is null --to exclude invalid concepts
 GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name

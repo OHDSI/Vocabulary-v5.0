@@ -319,7 +319,7 @@ rel_invalid_reason,
 valid_start_date,
 valid_end_date)
 
-with code_agg as
+WITH code_agg as
     (SELECT group_id,
     (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code))) as group_code
     FROM icd_cde_source
@@ -380,14 +380,14 @@ UPDATE icd_cde_ext_sources SET decision = '1', decision_date = current_date
 WHERE group_name in (
 SELECT group_name FROM icd_cde_ext_sources
 WHERE array_length(mappings_origin, 1) >1
-and group_id not in (
+AND group_id NOT IN (
     SELECT group_id FROM icd_cde_ext_sources
-    where relationship_id = 'Maps to value'
+    WHERE relationship_id = 'Maps to value'
     )
-and group_id in (
+AND group_id IN (
     SELECT group_id FROM icd_cde_ext_sources
     GROUP BY group_id
-    having count (group_id)=1
+    HAVING count (group_id)=1
     ))
 ;
 
@@ -412,12 +412,12 @@ WHERE group_name in (
 SELECT group_name FROM icd_cde_ext_sources
 WHERE group_id not in (
 SELECT DISTINCT group_id FROM icd_cde_ext_sources WHERE decision = '1')
-and array_length(mappings_origin, 1)>2
-and group_id not in (
+AND array_length(mappings_origin, 1)>2
+AND group_id NOT IN (
     SELECT group_id FROM icd_cde_ext_sources
-    where relationship_id = 'Maps to value')
-group by group_name
-having count (group_name) = 1)
+    WHERE relationship_id = 'Maps to value')
+GROUP BY group_name
+HAVING count (group_name) = 1)
 AND array_length(mappings_origin, 1)>2;
 
 --ADD UPDATE OF ICD_CDE_SOURCE ON icd_cde_ext_sources TABLE
@@ -462,7 +462,7 @@ WHERE  t.source_code = rs.source_code AND
 --MANUAL FILE
 -- for external mappings integration
 SELECT DISTINCT * FROM icd_cde_ext_sources es
-where group_id not in (
+WHERE group_id NOT IN (
 SELECT DISTINCT group_id FROM icd_cde_ext_sources WHERE decision = '1')
 AND group_id not in (SELECT group_id FROM icd_cde_manual)
 ;

@@ -124,14 +124,14 @@ SELECT cs.concept_code     as source_code,
        CASE WHEN c.concept_id is not null THEN 'crs' ELSE null END as mappings_origin
 FROM dev_icd10.concept_stage cs
 LEFT JOIN dev_icd10.concept_relationship_stage crs
-    on cs.concept_code = crs.concept_code_1
-    and crs.relationship_id in ('Maps to', 'Maps to value')
+    ON cs.concept_code = crs.concept_code_1
+    AND crs.relationship_id in ('Maps to', 'Maps to value')
 LEFT JOIN concept c
-    on crs.concept_code_2 = c.concept_code
-    and crs.vocabulary_id_2 = c.vocabulary_id
-where cs.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter')
-and (cs.concept_code, c.concept_id) not in (SELECT source_code, target_concept_id FROM icd_cde_source WHERE source_vocabulary_id = 'ICD10')
-and crs.concept_code_2 IS NOT NULL
+    ON crs.concept_code_2 = c.concept_code
+    AND crs.vocabulary_id_2 = c.vocabulary_id
+WHERE cs.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
+AND (cs.concept_code, c.concept_id) NOT IN (SELECT source_code, target_concept_id FROM icd_cde_source WHERE source_vocabulary_id = 'ICD10')
+AND crs.concept_code_2 IS NOT NULL
 ;
 
 --Update 'mappings_origin' flag
@@ -142,7 +142,7 @@ FROM (SELECT v1.latest_update AS lu_1, v2.latest_update AS lu_2
 			FROM concept_relationship_stage crs
 			JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1
 			JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2) d)
-OR valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
+OR valid_end_date IN (SELECT DISTINCT GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
 				FROM vocabulary v
 				WHERE v.vocabulary_id IN (
@@ -233,11 +233,11 @@ SELECT cs.concept_code     as source_code,
        CASE WHEN c.concept_id is not null THEN 'crs' ELSE null END as mappings_origin
 FROM dev_icd10cm.concept_stage cs
 LEFT JOIN dev_icd10cm.concept_relationship_stage crs
-    on cs.concept_code = crs.concept_code_1
-    and relationship_id in ('Maps to', 'Maps to value')
+    ON cs.concept_code = crs.concept_code_1
+    AND relationship_id in ('Maps to', 'Maps to value')
 LEFT JOIN concept c
-    on crs.concept_code_2 = c.concept_code
-    and crs.vocabulary_id_2 = c.vocabulary_id
+    ON crs.concept_code_2 = c.concept_code
+    AND crs.vocabulary_id_2 = c.vocabulary_id
 WHERE crs.concept_code_2 IS NOT NULL
 AND (cs.concept_code, c.concept_id) not in (SELECT source_code, target_concept_id FROM icd_cde_source WHERE source_vocabulary_id = 'ICD10CM')
 ;
@@ -743,139 +743,20 @@ WHERE icd_cde_source.source_code = grouped.source_code
 AND icd_cde_source.source_code_description = grouped.source_code_description
 AND icd_cde_source.source_vocabulary_id = grouped.source_vocabulary_id;
 
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I85.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M10.28:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M10.38:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M20.3:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['N10:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S27.80:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S67.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S92.90:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.10:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G23.2:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['H59.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I22.9:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I61.5:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M05.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M05.19:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['R65.2:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.10:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z85.21:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z85.810:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z87.11:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A49.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['B01.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['E11.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F25.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F32.9:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F60.3:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F84.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F91.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F91.2:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F98.5:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G31.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G44.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G44.3:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G80.3:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I13.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I61.6:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['K05.2:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['K29.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M06.00:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M06.32:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.02:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M66.10:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M70.11:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['N48.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Q91.3:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['R63.6:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S68.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S68.1:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['V29.2:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['V47.0:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A15.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A15.5:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['A15.6:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.2:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.4:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.5:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.6:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.8:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I72.9:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M14.6:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.1:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.3:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.9:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['535.0:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['590.1:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['735.1:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['995.92:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['301.83:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.22:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['442.9:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['523.9:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['640.81:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['640.91:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['647.54:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['654.31:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['664.90:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['674.02:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['675.02:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['675.12:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['675.22:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['676.22:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['676.62:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['719.25:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['761.4:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['774.31:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['800.26:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['299.0:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['333.71:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.2:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['339.2:ICD9CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F53.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['L03.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M05.39:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['F10.9:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M70.12:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G56.4:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.51:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M23.52:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['G31.0:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Q61.0:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M25.43:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S02.60:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['O91.0:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['N44:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['W83:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['X91:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Y20:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M21.95:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['K35.32:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.00:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.07:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.03:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.06:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M80.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['Z52.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['J96.11:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['O08:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S42.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S12.00:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S12.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S42.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S12.00:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.00:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['S72.01:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['R75:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['M24.02:ICD10CM']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['P52.4:ICD10']);
-SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['P52.6:ICD10']);
+SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I85.0:ICD10CM', 'M10.28:ICD10CM', 'M10.38:ICD10CM', 'M20.3:ICD10CM', 'N10:ICD10CM', 'S27.80:ICD10CM','S67.0:ICD10CM',
+    'S92.90:ICD10CM', 'J96.10:ICD10CM', 'G23.2:ICD10CM', 'H59.0:ICD10CM', 'I22.9:ICD10CM','I61.5:ICD10CM','M05.1:ICD10CM','M05.19:ICD10CM','R65.2:ICD10CM','S72.10:ICD10CM','Z85.21:ICD10CM',
+    'Z85.810:ICD10CM','Z87.11:ICD10CM','A49.1:ICD10CM','B01.1:ICD10CM','E11.0:ICD10CM','F25.0:ICD10CM','F32.9:ICD10CM','F60.3:ICD10CM','F84.0:ICD10CM','F91.1:ICD10CM','F91.2:ICD10CM',
+    'F98.5:ICD10CM','G31.0:ICD10CM','G44.0:ICD10CM', 'G44.3:ICD10CM','G80.3:ICD10CM','I13.1:ICD10CM','I61.6:ICD10CM','K05.2:ICD10CM','K29.0:ICD10CM','M06.00:ICD10CM','M06.32:ICD10CM',
+    'M23.01:ICD10CM','M23.02:ICD10CM','M66.10:ICD10CM','M70.11:ICD10CM','N48.1:ICD10CM','Q91.3:ICD10CM','R63.6:ICD10CM','S68.0:ICD10CM','S68.1:ICD10CM','V29.2:ICD9CM','V47.0:ICD9CM',
+    'A15.0:ICD10CM','A15.5:ICD10CM','A15.6:ICD10CM','I72.0:ICD10CM','I72.2:ICD10CM','I72.4:ICD10CM','I72.5:ICD10CM', 'I72.6:ICD10CM', 'I72.8:ICD10CM','I72.9:ICD10CM','M14.6:ICD10CM',
+    '442.1:ICD9CM','442.3:ICD9CM', '442.9:ICD9CM','535.0:ICD9CM','590.1:ICD9CM','735.1:ICD9CM', '995.92:ICD9CM', '301.83:ICD9CM','333.71:ICD9CM','333.71:ICD9CM','339.22:ICD9CM',
+    '442.9:ICD9CM','523.9:ICD9CM','640.81:ICD9CM','640.91:ICD9CM','647.54:ICD9CM','654.31:ICD9CM','664.90:ICD9CM','674.02:ICD9CM','675.02:ICD9CM','675.12:ICD9CM','675.22:ICD9CM',
+    '676.22:ICD9CM','676.62:ICD9CM','719.25:ICD9CM','761.4:ICD9CM','774.31:ICD9CM','800.26:ICD9CM','299.0:ICD9CM','333.71:ICD9CM','339.2:ICD9CM','339.2:ICD9CM','F53.0:ICD10CM',
+    'L03.0:ICD10CM','M05.39:ICD10CM','F10.9:ICD10CM','M70.12:ICD10CM','G56.4:ICD10','M23.51:ICD10','M23.52:ICD10','G31.0:ICD10','Q61.0:ICD10CM','M25.43:ICD10CM','S02.60:ICD10',
+    'O91.0:ICD10','N44:ICD10CM','W83:ICD10','X91:ICD10','Y20:ICD10','M21.95:ICD10','K35.32:ICD10CM','J96.00:ICD10CM','J96.01:ICD10CM','M80.07:ICD10CM','M80.03:ICD10CM', 'M80.06:ICD10CM',
+    'M80.01:ICD10CM', 'Z52.01:ICD10CM','J96.11:ICD10CM','O08:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S12.01:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S72.00:ICD10CM','S72.01:ICD10CM',
+    'R75:ICD10CM','M24.02:ICD10CM','P52.4:ICD10','P52.6:ICD10']);
+
 
 --11. Check every concept is represented in only one group
 SELECT DISTINCT
@@ -944,12 +825,6 @@ WHERE group_id in (
 UPDATE icd_cde_source SET for_review = '1'
 WHERE source_code in (SELECT DISTINCT source_code FROM to_check);
 
---For community contribution
---UPDATE icd_cde_source SET for_review = '1'
---WHERE group_id in (
---    SELECT group_id FROM icd_cde_source
---   WHERE mappings_origin = 'CC');
-
 --Update the status of mapping candidates from external sources
 
 --14. Table for manual mapping and review creation -- data for the exact refresh
@@ -1003,7 +878,7 @@ target_vocabulary_id
 --valid_end_date
 )
 
-with code_agg as
+WITH code_agg as
     (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code))) as group_code
     FROM icd_cde_source
     GROUP BY group_id
@@ -1199,7 +1074,7 @@ target_vocabulary_id
 --valid_end_date
 )
 
-with code_agg as
+WITH code_agg as
     (SELECT group_id, (array_agg (DISTINCT CONCAT (source_vocabulary_id || ':' || source_code))) as group_code
     FROM icd_cde_source
     GROUP BY group_id
@@ -1561,7 +1436,7 @@ m.mapper_id,
 m.rev_id
 FROM icd_cde_source s JOIN icd_cde_mapped m
 ON s.group_name = m.group_name
-and m.decision = '1'
+AND m.decision = '1'
 ;
 
 --INSERT INTO icd_cde_proc (source_code,

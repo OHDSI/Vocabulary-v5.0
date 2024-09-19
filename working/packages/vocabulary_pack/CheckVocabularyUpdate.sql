@@ -381,6 +381,12 @@ BEGIN
             THEN
                 cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'This distribution contains the NCI Metathesaurus version <strong>(\d+)</strong>'),'yyyymm');
                 cVocabVer := 'META '||to_char(cVocabDate,'yyyy-mm-dd');
+        WHEN cVocabularyName = 'EORTC'
+        THEN
+            cVocabDate := CURRENT_DATE;
+            cVocabVer := 'EORTC '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
+            cVocabOldDate := COALESCE(cVocabOldDate,cVocabSrcDate);
+            cVocabOldVer := COALESCE(cVocabOldVer,cVocabSrcVer);
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

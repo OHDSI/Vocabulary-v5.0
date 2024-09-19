@@ -1,4 +1,6 @@
--- prelim
+--Populate table clas_to_drug that is later used in XXX
+    --TODO: describe the use of the table class_to_drug
+
 drop table if exists rx;
 create temp table rx as
 select
@@ -15,6 +17,7 @@ FROM
         and cr.relationship_id = 'RxNorm has ing'
 group by c.concept_id, c.concept_code, c.concept_name
 ;
+
 insert into rx
 select     c.concept_id,
            c.concept_code,
@@ -29,7 +32,8 @@ from devv5.concept c
     where c.concept_id not in (select concept_id from rx)
 group by c.concept_id, c.concept_code, c.concept_name
 ;
--- manual: covid, vaccines, insulines
+
+-- manual: covid, vaccines, insulin
 -- covid 19
 drop table if exists class_to_drug;
 create table class_to_drug
@@ -38,9 +42,10 @@ select cs.concept_code as class_code, cs.concept_name as class_name, c.concept_i
 from dev_atc.covid19_atc_rxnorm_manual cov
 join dev_atc.concept_stage cs on cov.concept_code_atc = cs.concept_code
 join devv5.concept c on cov.concept_id = c.concept_id
-where cov.to_drop is null;
+where cov.to_drop is null
+;
 
--- vaccines, insulins
+-- vaccines, insulin
 insert into class_to_drug
 select distinct cs.concept_code, cs.concept_name, c.concept_id, c.concept_name, c.concept_class_id, 1 as concept_order
 from dev_atc.concept_stage cs
@@ -73,8 +78,10 @@ from dev_atc.concept_stage cs
 and (cs.concept_code, rx.concept_id) not in (select class_code, concept_id from class_to_drug)
 ;
 
+
+--TODO: if not needed, remove the code, if can be used in future releases, leave it as is
 /*
--- check if pr up can be included in scenario 2&3, for this rough assembly doesn't matter,
+-- check if pr up can be included in scenario 2&3, for this assembly doesn't matter,
 -- includes things like contact laxatives in combination; oral OR cocaine; otic
 select *, 2 as order
 from dev_atc.concept_stage cs
@@ -121,7 +128,8 @@ where not exists (select * from dev_atc.concept_relationship_stage crs2
   and (cs.concept_code, rx.concept_id) not in (select class_code, concept_id from class_to_drug)
 ;
 
--- 3 and 4 fixed ingredients, some of the combos are wrong but keep due to the lack of time
+-- 3 and 4 fixed ingredients, some of the combos should be improved
+    --TODO: please create a special document to describe all the potential issues to be fixed
 -- 305 Rx
 insert into class_to_drug
 select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 4 as order
@@ -147,7 +155,7 @@ where not exists (select * from dev_atc.concept_relationship_stage crs2
 ;
 
 -- scenario 5, combo of
--- takes precedence because it is in fact Ingredient A + Ingredient B
+-- takes precedence because it is Ingredient A + Ingredient B
 -- ~20 ATC, 6K Rx
 insert into class_to_drug
 select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 5 as concept_order
@@ -162,7 +170,7 @@ where (cs.concept_name  like '%combinations of %' or cs.concept_name  like '%in 
 ;
 
 -- scenario 6, combo: Ingredient A + group B
--- if there is an extra ingredient beyond a and group b also goes here
+-- if there is an extra ingredient beyond A and group B also goes here
 insert into class_to_drug
 select distinct cs.concept_code, cs.concept_name, rx.concept_id, rx.concept_name, rx.concept_class_id, 6 as concept_order
 from dev_atc.concept_stage cs

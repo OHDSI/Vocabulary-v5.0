@@ -1,5 +1,5 @@
 /**************************************************************************
-    This script updates manual tables and deprecates wrong mappings
+This script updates concept_relationship_manual and deprecates wrong mappings
 **************************************************************************/
 
 ---ATC - RxNorm

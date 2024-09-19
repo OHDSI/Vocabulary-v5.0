@@ -1,4 +1,4 @@
---- What systemic forms of GCS we now loosing
+--- What systemic forms of GCS we are now loosing
 with rxnorm as (
     select c2.*
     from devv5.concept_ancestor ca
@@ -20,7 +20,7 @@ select cnt, db_cnt, r.concept_id, concept_name, vocabulary_id
 from rxnorm r
 left join dev_anna.count_standard_aggregated cs on cs.concept_id = r.concept_id
 where r.concept_id not in (
-    -- get systemic cordicosteroids through ATC
+    -- get systemic corticosteroids through ATC
     select c.concept_id as atc_id
     from devv5.concept_ancestor ca
              join devv5.concept c on c.concept_id = ca.descendant_concept_id
@@ -50,7 +50,7 @@ select cnt, db_cnt, r.concept_id, concept_name, vocabulary_id
 from rxnorm r
 left join dev_anna.count_standard_aggregated cs on cs.concept_id = r.concept_id
 where r.concept_id not in (
-    -- get systemic cordicosteroids through ATC
+    -- get systemic corticosteroids through ATC
     select c.concept_id as atc_id
     from dev_atc.concept_ancestor ca
              join dev_atc.concept c on c.concept_id = ca.descendant_concept_id

@@ -673,4 +673,3 @@ GROUP BY
     t.concept_id_rx,
     t.concept_name_rx,
     t.ings;
-

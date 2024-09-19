@@ -1,3 +1,5 @@
+--TODO: either class_to_drug or new_class_to_drug
+
 -- prelim
 drop table if exists rx;
 create temp table rx as
@@ -15,6 +17,7 @@ FROM
         and cr.relationship_id = 'RxNorm has ing'
 group by c.concept_id, c.concept_code, c.concept_name
 ;
+
 insert into rx
 select     c.concept_id,
            c.concept_code,
@@ -29,7 +32,8 @@ from devv5.concept c
     where c.concept_id not in (select concept_id from rx)
 group by c.concept_id, c.concept_code, c.concept_name
 ;
--- manual: covid, vaccines, insulines
+
+-- manual: covid, vaccines, insulin
 -- covid 19
 drop table if exists class_to_drug;
 create temp table class_to_drug
@@ -38,9 +42,10 @@ select cs.concept_code as class_code, cs.concept_name as class_name, c.concept_i
 from dev_atc.covid19_atc_rxnorm_manual cov
 join dev_atc.concept_stage cs on cov.concept_code_atc = cs.concept_code
 join devv5.concept c on cov.concept_id = c.concept_id
-where cov.to_drop is null;
+where cov.to_drop is null
+;
 
--- vaccines, insulins
+-- vaccines, insulin
 insert into class_to_drug
 select distinct cs.concept_code, cs.concept_name, c.concept_id, c.concept_name, c.concept_class_id, 1 as order
 from dev_atc.concept_stage cs

@@ -87,7 +87,7 @@ FROM (SELECT DISTINCT CASE
                       TO_DATE('2099-12-31', 'YYYY-MM-DD')                                               AS valid_end_date,
                       NULL                                                                              AS invalid_reason
       FROM dev_eortc.eortc_questionnaires qs
-      where qs.state is NULL -- to prevent Drafts ingestion
+      where (qs.state is NULL OR qs.code = 'SBQ') -- to prevent Drafts ingestion
       ) AS tab;
 
 --CONCEPT_SYNONYM POPULATION for Questionnaires
@@ -106,7 +106,7 @@ FROM (SELECT DISTINCT CASE
                       'EORTC QLQ'                AS vocabulary_id,
                       4180186                    AS language_concept_id -- English
       FROM dev_eortc.eortc_questionnaires qs
-      where qs.state is NULL
+      where (qs.state is NULL OR qs.code = 'SBQ')
       ) AS TAB
 WHERE synonym_name IS NOT NULL
 ;
@@ -151,7 +151,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -194,7 +194,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -237,7 +237,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -279,7 +279,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -342,7 +342,7 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type LIKE '%Scale'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ) AS tab
 WHERE rating_in_section = 1
 ;
@@ -492,7 +492,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -526,7 +526,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and qs.state is NULL
+      and (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -662,7 +662,7 @@ FROM (SELECT cs.concept_name                 AS concept_name_1,
                          ON cs1.concept_code = qi.id || '-' || qs.code || '_' || qi.code::varchar
                              AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
       WHERE cs1.concept_class_id LIKE '%SCALE'
-        and qs.state is NULL
+        and (qs.state is NULL OR qs.code = 'SBQ')
         AND cs.concept_class_id IN (
                                     'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
                                     'PREVIOUS')) --filer questionnaire
@@ -698,7 +698,7 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_1,
                  qs.id = q.questionnaire_id
                       JOIN dev_eortc.eortc_question_items qi ON q.id = qi.question_id
                       JOIN concept_stage cs1 ON q.id  || '-'|| qs.code  || '_' || qi.codeprefix || q.position     = cs1.concept_code
-            WHERE qs.state is NULL
+            WHERE (qs.state is NULL OR qs.code = 'SBQ')
                AND cs.concept_class_id IN (
                                            'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
                                            'PREVIOUS') --filer questionnaire
@@ -745,7 +745,7 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_qr,
                                 ON cs1.concept_code = qi.id || '-' || qs.code || '_' || qi.code::varchar
                                     AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
              WHERE cs1.concept_class_id = 'SYMPTOM SCALE'
-               AND qs.state is NULL
+               AND (qs.state is NULL OR qs.code = 'SBQ')
                AND cs.concept_class_id IN (
                                            'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
                                            'PREVIOUS') --filer questionnaire
@@ -810,7 +810,7 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_qr,
                                 ON cs1.concept_code = qi.id || '-' || qs.code || '_' || qi.code::varchar
                                     AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
              WHERE cs1.concept_class_id != 'SYMPTOM SCALE'
-               AND  qs.state is NULL
+               AND (qs.state is NULL OR qs.code = 'SBQ')
                AND cs.concept_class_id IN (
                                            'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
                                            'PREVIOUS') --filer questionnaire
@@ -933,7 +933,7 @@ FROM (SELECT DISTINCT
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-              AND  qs.state is NULL
+              AND (qs.state is NULL OR qs.code = 'SBQ')
 ) AS tab) as cq_to_is
 ;
 
@@ -1028,7 +1028,7 @@ FROM (      SELECT
                LEFT JOIN dev_eortc.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-              AND  qs.state is NULL
+              AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 ;
 

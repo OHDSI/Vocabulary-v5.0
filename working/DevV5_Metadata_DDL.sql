@@ -48,8 +48,6 @@ CREATE TABLE concept_relationship_metadata (
         REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
     CONSTRAINT chk_relationship_predicate_id 
         CHECK (relationship_predicate_id IN ('eq', 'up', 'down')),
-    CONSTRAINT chk_relationship_group 
-        CHECK (relationship_group IN (1, 2, 3)),
     CONSTRAINT chk_confidence 
         CHECK (confidence >= 0 AND confidence <= 1),
     UNIQUE (concept_id_1, concept_id_2, relationship_id)

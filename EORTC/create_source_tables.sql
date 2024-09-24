@@ -17,74 +17,88 @@
 * Date: 2024
 **************************************************************************/
 
-DROP TABLE IF EXISTS DEV_EORTC.EORTC_QUESTIONNAIRES ;
-CREATE TABLE DEV_EORTC.EORTC_QUESTIONNAIRES 
-(
-additionalinfo	text,
-author	text,
-authorid	integer,
-chemical	text,
-code	text,
-contact	text,
-createdate	timestamp without time zone,
-description	text,
-gender	text,
-id	integer,
-iscustom	boolean,
-name	text,
-phase	integer,
-questionsstartposition	integer,
-state	text,
-type	text,
-updatedate	timestamp without time zone
+DROP TABLE IF EXISTS sources.eortc_questionnaires;
+CREATE TABLE sources.eortc_questionnaires (
+    id serial4 NOT NULL,
+    createdate TIMESTAMP NULL,
+    updatedate TIMESTAMP NULL,
+    "name" TEXT NULL,
+    code TEXT NULL,
+    "type" TEXT NULL,
+    state TEXT NULL,
+    phase INT4 NULL,
+    gender TEXT NULL,
+    chemical TEXT NULL,
+    description TEXT NULL,
+    additionalinfo TEXT NULL,
+    contact TEXT NULL,
+    iscustom BOOL NULL,
+    authorid INT4 NULL,
+    author TEXT NULL,
+    questionsstartposition INT4 NULL,
+    vocabulary_date DATE NULL,
+    vocabulary_version VARCHAR(200) NULL,
+    CONSTRAINT pk_eortc_questionnaires PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS DEV_EORTC.eortc_question_items ;
-CREATE TABLE DEV_EORTC.eortc_question_items
-(
-id	integer,
-question_id	integer,
-additionalinfo	text,
-code	text,
-codeprefix	text,
-conceptdefinition	text,
-description	text,
-direction	text,
-type	text,
-underlyingissue	text,
-createdate	timestamp without time zone,
-updatedate	timestamp without time zone
+DROP TABLE sources.eortc_questions;
+CREATE TABLE sources.eortc_questions (
+    id serial4 NOT NULL,
+    createdate TIMESTAMP NULL,
+    updatedate TIMESTAMP NULL,
+    itemid INT4 NULL,
+    "position" INT4 NULL,
+    wording TEXT NULL,
+    "comment" TEXT NULL,
+    relatedquestions _int4 NULL,
+    questionnaire_id INT4 NULL,
+    CONSTRAINT pk_eortc_questions PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS DEV_EORTC.eortc_languages ;
-CREATE TABLE DEV_EORTC.eortc_languages
-(
-code	text,
-name	text
+ALTER TABLE sources.eortc_questions 
+ADD CONSTRAINT fk_eortc_questions_questionnaire_id
+FOREIGN KEY (questionnaire_id) REFERENCES sources.eortc_questionnaires(id);
+
+DROP TABLE sources.eortc_question_items;
+CREATE TABLE sources.eortc_question_items (
+    id serial4 NOT NULL,
+    code TEXT NULL,
+    codeprefix TEXT NULL,
+    "type" TEXT NULL,
+    description TEXT NULL,
+    direction TEXT NULL,
+    underlyingissue TEXT NULL,
+    additionalinfo TEXT NULL,
+    conceptdefinition TEXT NULL,
+    createdate TIMESTAMP NULL,
+    updatedate TIMESTAMP NULL,
+    question_id INT4 NULL,
+    CONSTRAINT pk_eortc_question_items PRIMARY KEY (id)
 );
 
-DROP TABLE IF EXISTS DEV_EORTC.eortc_questions;
-CREATE TABLE DEV_EORTC.eortc_questions
-(
-comment	text,
-createdate	timestamp without time zone,
-id	integer,
-itemid	integer,
-position	integer,
-questionnaire_id	integer,
-relatedquestions	integer[],
-updatedate	timestamp without time zone,
-wording	text
+ALTER TABLE sources.eortc_question_items 
+ADD CONSTRAINT fk_eortc_question_items_question_id 
+FOREIGN KEY (question_id) REFERENCES sources.eortc_questions(id);
+
+DROP TABLE sources.eortc_languages;
+CREATE TABLE sources.eortc_languages (
+    code TEXT NOT NULL,
+    "name" TEXT NULL,
+    CONSTRAINT pk_eortc_languages PRIMARY KEY (code)
 );
 
-DROP TABLE IF EXISTS DEV_EORTC.eortc_recommended_wordings ;
-CREATE TABLE DEV_EORTC.eortc_recommended_wordings
-(
-createdate	timestamp without time zone,
-id	integer,
-item	integer,
-language	text,
-language_code	text,
-updatedate	timestamp without time zone,
-wording	text
+DROP TABLE sources.eortc_recommended_wordings;
+CREATE TABLE sources.eortc_recommended_wordings (
+    id serial4 NOT NULL,
+    item INT4 NULL,
+    "language" TEXT NULL,
+    wording TEXT NULL,
+    createdate TIMESTAMP NULL,
+    updatedate TIMESTAMP NULL,
+    language_code TEXT NULL,
+    CONSTRAINT pk_eortc_recommended_wordings PRIMARY KEY (id)
 );
+
+ALTER TABLE sources.eortc_recommended_wordings 
+ADD CONSTRAINT fk_eortc_recommended_wordings_item
+FOREIGN KEY (item) REFERENCES sources.eortc_question_items(id);

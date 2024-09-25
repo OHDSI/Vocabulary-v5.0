@@ -339,7 +339,8 @@ WHERE rx.sab = 'RXNORM'
 		'DFG',
 		'SCDG',
 		'SBDG',
-		'SY'
+		'SY',
+		'PSN'
 		)
 	AND c.vocabulary_id = 'RxNorm';
 
@@ -365,7 +366,8 @@ WHERE rx.sab = 'RXNORM'
 	AND rx.tty IN (
 		'BPCK',
 		'GPCK',
-		'SY'
+		'SY',
+		'PSN'
 		);
 
 --5. Add inner-RxNorm relationships

@@ -137,8 +137,8 @@ WHERE r.concept_id NOT IN (
              JOIN dev_atc.concept c ON c.concept_id = ca.descendant_concept_id
     WHERE ancestor_concept_id IN (21602745, 21602723));
 
-select *
-from atc_checks;
+SELECT *
+FROM atc_checks;
 
 /*****
 Checks that require examination
@@ -546,9 +546,8 @@ ORDER BY t1.dev_atc_cr, t1.dev_atc_cid;
 
 --- Home many combo drugs come to ATC mono codes
 
-SELECT
-    concept_code,
-    count (concept_id)
+SELECT concept_code,
+       COUNT(concept_id)
 FROM (SELECT c1.concept_code,
              c1.concept_name,
              c2.concept_id,
@@ -573,103 +572,91 @@ FROM (SELECT c1.concept_code,
       GROUP BY c1.concept_code, c1.concept_name, c2.concept_id, c2.concept_name
       HAVING COUNT(cr2.concept_id_2) > 1) t1
 GROUP BY concept_code
-ORDER BY count desc;
+ORDER BY count DESC;
 
 
 -- How manu GCS in clinical drug forms, that bineded to 'D07AB30', 'D07XB30'
-WITH CTE_1 AS (
-    SELECT
-        c1.concept_id AS concept_id_atc,
-        c1.concept_code AS concept_code_atc,
-        c1.concept_name AS concept_name_atc,
-        cr.relationship_id AS relationship_id,
-        c2.concept_id AS concept_id_rx,
-        c2.concept_name AS concept_name_rx,
-        c2.concept_class_id AS concept_class_rx,
-        string_agg(c3.concept_name, ',') AS ings
-    FROM
-        concept_relationship cr
-    JOIN
-        concept c1 ON cr.concept_id_1 = c1.concept_id
-        AND c1.vocabulary_id = 'ATC'
-        AND c1.invalid_reason IS NULL
-        AND cr.invalid_reason IS NULL
-        AND cr.relationship_id = 'ATC - RxNorm'
-        AND c1.concept_code IN ('D07AB30', 'D07XB30')
-    JOIN
-        concept c2 ON cr.concept_id_2 = c2.concept_id
-        AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-        AND c2.invalid_reason IS NULL
-    JOIN
-        concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id
-        AND cr2.invalid_reason IS NULL
-        AND c2.invalid_reason IS NULL
-        AND cr2.relationship_id = 'RxNorm has ing'
-    JOIN
-        concept c3 ON cr2.concept_id_2 = c3.concept_id
-    GROUP BY
-        c1.concept_id, c1.concept_code, c1.concept_name, cr.relationship_id, c2.concept_id, c2.concept_name, c2.concept_class_id
-),
-gcs_list AS (
-    SELECT UNNEST(ARRAY[
-            'betamethasone',
-    'cortisone',
-    'dexamethasone',
-    'fludrocortisone',
-    'fluocortolone',
-    'hydrocortisone',
-    'methylprednisolone',
-    'prednisolone',
-    'prednisone',
-    'prednylidene',
-    'triamcinolone',
-    'beclomethasone',
-    'budesonide',
-    'deflazacort',
-    'desonide',
-    'diflucortolone',
-    'fluocinonide',
-    'fluorometholone',
-    'fluticasone',
-    'halcinonide',
-    'mometasone',
-    'paramethasone',
-    'rimexolone',
-    'clobetasone',
-    'fluocinolone',
-    'flumethasone',
-    'alclometasone',
-    'diflorasone',
-    'desoximetasone',
-    'fluprednisolone',
-    'medrysone',
-    'tixocortol',
-    'ciclesonide',
-    'loteprednol'
-    ]) AS gcs_name
-)
-SELECT
-    t.concept_id_atc,
-    t.concept_code_atc,
-    t.concept_name_atc,
-    t.concept_id_rx,
-    t.concept_name_rx,
-    t.ings,
-    COUNT(DISTINCT gcs_name) AS gcs_count
-FROM
-    CTE_1 t
-CROSS JOIN
-    gcs_list
-WHERE
-    EXISTS (
-        SELECT 1
-        FROM unnest(string_to_array(t.ings, ',')) AS ingredient
-        WHERE ingredient = gcs_name
-    )
-GROUP BY
-    t.concept_id_atc,
-    t.concept_code_atc,
-    t.concept_name_atc,
-    t.concept_id_rx,
-    t.concept_name_rx,
-    t.ings;
+WITH CTE_1 AS (SELECT c1.concept_id                    AS concept_id_atc,
+                      c1.concept_code                  AS concept_code_atc,
+                      c1.concept_name                  AS concept_name_atc,
+                      cr.relationship_id               AS relationship_id,
+                      c2.concept_id                    AS concept_id_rx,
+                      c2.concept_name                  AS concept_name_rx,
+                      c2.concept_class_id              AS concept_class_rx,
+                      STRING_AGG(c3.concept_name, ',') AS ings
+               FROM concept_relationship cr
+                        JOIN
+                    concept c1 ON cr.concept_id_1 = c1.concept_id
+                        AND c1.vocabulary_id = 'ATC'
+                        AND c1.invalid_reason IS NULL
+                        AND cr.invalid_reason IS NULL
+                        AND cr.relationship_id = 'ATC - RxNorm'
+                        AND c1.concept_code IN ('D07AB30', 'D07XB30')
+                        JOIN
+                    concept c2 ON cr.concept_id_2 = c2.concept_id
+                        AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                        AND c2.invalid_reason IS NULL
+                        JOIN
+                    concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id
+                        AND cr2.invalid_reason IS NULL
+                        AND c2.invalid_reason IS NULL
+                        AND cr2.relationship_id = 'RxNorm has ing'
+                        JOIN
+                    concept c3 ON cr2.concept_id_2 = c3.concept_id
+               GROUP BY c1.concept_id, c1.concept_code, c1.concept_name, cr.relationship_id, c2.concept_id,
+                        c2.concept_name, c2.concept_class_id),
+     gcs_list AS (SELECT UNNEST(ARRAY [
+         'betamethasone',
+         'cortisone',
+         'dexamethasone',
+         'fludrocortisone',
+         'fluocortolone',
+         'hydrocortisone',
+         'methylprednisolone',
+         'prednisolone',
+         'prednisone',
+         'prednylidene',
+         'triamcinolone',
+         'beclomethasone',
+         'budesonide',
+         'deflazacort',
+         'desonide',
+         'diflucortolone',
+         'fluocinonide',
+         'fluorometholone',
+         'fluticasone',
+         'halcinonide',
+         'mometasone',
+         'paramethasone',
+         'rimexolone',
+         'clobetasone',
+         'fluocinolone',
+         'flumethasone',
+         'alclometasone',
+         'diflorasone',
+         'desoximetasone',
+         'fluprednisolone',
+         'medrysone',
+         'tixocortol',
+         'ciclesonide',
+         'loteprednol'
+         ]) AS gcs_name)
+SELECT t.concept_id_atc,
+       t.concept_code_atc,
+       t.concept_name_atc,
+       t.concept_id_rx,
+       t.concept_name_rx,
+       t.ings,
+       COUNT(DISTINCT gcs_name) AS gcs_count
+FROM CTE_1 t
+         CROSS JOIN
+     gcs_list
+WHERE EXISTS (SELECT 1
+              FROM UNNEST(STRING_TO_ARRAY(t.ings, ',')) AS ingredient
+              WHERE ingredient = gcs_name)
+GROUP BY t.concept_id_atc,
+         t.concept_code_atc,
+         t.concept_name_atc,
+         t.concept_id_rx,
+         t.concept_name_rx,
+         t.ings;

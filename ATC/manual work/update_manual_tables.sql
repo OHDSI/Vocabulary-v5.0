@@ -6,201 +6,153 @@ This script updates concept_relationship_manual and deprecates wrong mappings
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
-WHERE (concept_code_1, concept_code_2) IN (
-                                            SELECT t1.atc_code, t2.concept_code
-                                            FROM dev_atc.existent_atc_rxnorm_to_drop t1
-                                            JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id
-                                            WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                            AND t1.to_drop = 'D'
-                                            )
-AND vocabulary_id_1 = 'ATC'
-AND relationship_id = 'ATC - RxNorm'
-AND vocabulary_id_2 in ('RxNorm', 'RxNorm Extension');
+WHERE (concept_code_1, concept_code_2) IN (SELECT t1.atc_code,
+                                                  t2.concept_code
+                                           FROM dev_atc.existent_atc_rxnorm_to_drop t1
+                                                    JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id
+                                           WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                             AND t1.to_drop = 'D')
+  AND vocabulary_id_1 = 'ATC'
+  AND relationship_id = 'ATC - RxNorm'
+  AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension');
 
 
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
-WHERE (concept_code_1, concept_code_2) IN (
-                                        SELECT distinct t1.concept_code_atc, t2.concept_code
-                                        FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
-                                        JOIN devv5.concept t2 ON t1.concept_id_rx = t2.concept_id
-                                        WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                        AND t1.drop = 'D'
-                                    )
-AND vocabulary_id_1 = 'ATC'
-AND relationship_id = 'ATC - RxNorm'
-AND vocabulary_id_2 in ('RxNorm', 'RxNorm Extension');
+WHERE (concept_code_1, concept_code_2) IN (SELECT DISTINCT t1.concept_code_atc, t2.concept_code
+                                           FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
+                                                    JOIN devv5.concept t2 ON t1.concept_id_rx = t2.concept_id
+                                           WHERE t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                             AND t1.drop = 'D')
+  AND vocabulary_id_1 = 'ATC'
+  AND relationship_id = 'ATC - RxNorm'
+  AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension');
 
 ---ATC - Ings
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
-WHERE (concept_code_1, relationship_id, concept_code_2) not in
-                                                          (
-                                                                WITH CTE as (
-                                                                                SELECT class_code as concept_code_1,
-                                                                                       relationship_id,
-                                                                                       unnest(string_to_array(ids, ', '))::int as concept_id
-                                                                                FROM dev_atc.new_atc_codes_ings_for_manual)
-                                                                SELECT
-                                                                    t1.concept_code_1,
-                                                                    t1.relationship_id,
-                                                                    t2.concept_code as concept_code_2
-                                                                FROM CTE as t1
-                                                                     join devv5.concept t2 on t1.concept_id = t2.concept_id
-                                                          )
-AND vocabulary_id_1 = 'ATC'
-AND vocabulary_id_2 in ('RxNorm', 'RxNorm Extension')
-AND relationship_id in ('ATC - RxNorm pr lat',
-                        'ATC - RxNorm sec lat',
-                        'ATC - RxNorm pr up',
-                        'ATC - RxNorm sec up')
-AND invalid_reason is NULL;
+WHERE (concept_code_1, relationship_id, concept_code_2) NOT IN (WITH CTE AS (SELECT class_code AS concept_code_1,
+                                                                                    relationship_id,
+                                                                                    UNNEST(STRING_TO_ARRAY(ids, ', '))::INT AS concept_id
+                                                                             FROM dev_atc.new_atc_codes_ings_for_manual)
+                                                                SELECT t1.concept_code_1,
+                                                                       t1.relationship_id,
+                                                                       t2.concept_code AS concept_code_2
+                                                                FROM CTE AS t1
+                                                                         JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id)
+  AND vocabulary_id_1 = 'ATC'
+  AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension')
+  AND relationship_id IN ('ATC - RxNorm pr lat',
+                          'ATC - RxNorm sec lat',
+                          'ATC - RxNorm pr up',
+                          'ATC - RxNorm sec up')
+  AND invalid_reason IS NULL;
 
 --This step is needed to deprecate wrong relationships
 
 --- ATC - RxNorm
 INSERT INTO concept_relationship_manual
-    (
-    concept_code_1,
-    concept_code_2,
-    vocabulary_id_1,
-    vocabulary_id_2,
-    relationship_id,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason
-	)
+            (concept_code_1,
+             concept_code_2,
+             vocabulary_id_1,
+             vocabulary_id_2,
+             relationship_id,
+             valid_start_date,
+             valid_end_date,
+             invalid_reason)
 SELECT t1.concept_code,
        t2.concept_code,
        t1.vocabulary_id,
        t2.vocabulary_id,
        cr.relationship_id,
        cr.valid_start_date,
-       CURRENT_DATE as date,
-       'D' as invalid
+       CURRENT_DATE AS date,
+       'D'          AS invalid
 FROM devv5.concept_relationship cr
-     JOIN devv5.concept t1 on cr.concept_id_1 = t1.concept_id AND t1.vocabulary_id = 'ATC'
-                                                              AND length(t1.concept_code) = 7
-     JOIN devv5.concept t2 on cr.concept_id_2 = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                                              AND cr.invalid_reason IS NULL
+         JOIN devv5.concept t1 ON cr.concept_id_1 = t1.concept_id AND t1.vocabulary_id = 'ATC'
+                                                                  AND LENGTH(t1.concept_code) = 7
+         JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                                                  AND cr.invalid_reason IS NULL
 
-WHERE
-
-    (
-
+WHERE (
     (t1.concept_code, t2.concept_code) IN
-                                           (select DISTINCT t1.atc_code, --- Concept in manually reviewed list of existent codes
-                                                            t2.concept_code
-                                            from dev_atc.existent_atc_rxnorm_to_drop t1
-                                                     join devv5.concept t2
-                                                          on t1.concept_id = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                            where to_drop = 'D')
+                                        (SELECT DISTINCT t1.atc_code, --- Concept in manually reviewed list of existent codes
+                                                         t2.concept_code
+                                         FROM dev_atc.existent_atc_rxnorm_to_drop t1
+                                                  JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                         WHERE to_drop = 'D')
     OR
-
     (t1.concept_code, t2.concept_code) IN
-                                           (SELECT DISTINCT t1.concept_code_atc, ---- Or in manually reviewed drop-list of source codes
-                                                            t2.concept_code
-                                            FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
-                                                     join devv5.concept t2
-                                                          on t1.concept_id_rx::INT = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                            WHERE drop = 'D')
+                                        (SELECT DISTINCT t1.concept_code_atc, ---- Or in manually reviewed drop-list of source codes
+                                                         t2.concept_code
+                                         FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
+                                                  JOIN devv5.concept t2 ON t1.concept_id_rx::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                         WHERE drop = 'D')
     )
 
-AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
-                                                                    SELECT concept_code_1,
-                                                                           relationship_id,
-                                                                           concept_code_2
-                                                                    from concept_relationship_manual
-                                                                    where vocabulary_id_1 = 'ATC'
-                                                                    and vocabulary_id_2 in ('RxNorm', 'RxNorm Extension')
-                                                                    and relationship_id = 'ATC - RxNorm')
+  AND (t1.concept_code, cr.relationship_id, t2.concept_code) NOT IN (SELECT concept_code_1,
+                                                                            relationship_id,
+                                                                            concept_code_2
+                                                                     FROM concept_relationship_manual
+                                                                     WHERE vocabulary_id_1 = 'ATC'
+                                                                       AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension')
+                                                                       AND relationship_id = 'ATC - RxNorm')
 ;
 
 --- ATC - Ings
 INSERT INTO concept_relationship_manual
-    (
-    concept_code_1,
-    concept_code_2,
-    vocabulary_id_1,
-    vocabulary_id_2,
-    relationship_id,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason
-	)
+            (concept_code_1,
+             concept_code_2,
+             vocabulary_id_1,
+             vocabulary_id_2,
+             relationship_id,
+             valid_start_date,
+             valid_end_date,
+             invalid_reason)
 SELECT t1.concept_code,
        t2.concept_code,
        t1.vocabulary_id,
        t2.vocabulary_id,
        cr.relationship_id,
        cr.valid_start_date,
-       CURRENT_DATE as date,
-       'D' as invalid
-from devv5.concept_relationship cr
-     join devv5.concept t1 on cr.concept_id_1 = t1.concept_id and t1.vocabulary_id = 'ATC'
-                                                                    and cr.invalid_reason is NULL
-                                                                    and cr.relationship_id in ('ATC - RxNorm pr lat',
-                                                                                              'ATC - RxNorm sec lat',
-                                                                                              'ATC - RxNorm pr up',
-                                                                                              'ATC - RxNorm sec up')
-     join devv5.concept t2 on cr.concept_id_2 = t2.concept_id and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-where (t1.concept_code, cr.relationship_id, t2.concept_code) not in
-      (WITH CTE as (SELECT class_code                              as concept_code_1,
-                           relationship_id,
-                           unnest(string_to_array(ids, ', '))::int as concept_id
-                    FROM dev_atc.new_atc_codes_ings_for_manual)
-       SELECT t1.concept_code_1,
-              t1.relationship_id,
-              t2.concept_code as concept_code_2
-       FROM CTE as t1
-                join devv5.concept t2 on t1.concept_id = t2.concept_id
-       )
+       CURRENT_DATE AS date,
+       'D'          AS invalid
+FROM devv5.concept_relationship cr
+         JOIN devv5.concept t1
+              ON cr.concept_id_1 = t1.concept_id AND t1.vocabulary_id = 'ATC'
+                  AND cr.invalid_reason IS NULL
+                  AND cr.relationship_id IN ('ATC - RxNorm pr lat',
+                                             'ATC - RxNorm sec lat',
+                                             'ATC - RxNorm pr up',
+                                             'ATC - RxNorm sec up')
+         JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 
-AND (t1.concept_code, cr.relationship_id, t2.concept_code) not in (
-                                                                    SELECT concept_code_1,
-                                                                           relationship_id,
-                                                                           concept_code_2
-                                                                    from concept_relationship_manual
-                                                                    where vocabulary_id_1 = 'ATC'
-                                                                    and vocabulary_id_2 in ('RxNorm', 'RxNorm Extension')
-                                                                    and relationship_id in ('ATC - RxNorm pr lat',
-                                                                                              'ATC - RxNorm sec lat',
-                                                                                              'ATC - RxNorm pr up',
-                                                                                              'ATC - RxNorm sec up'));
+WHERE (t1.concept_code, cr.relationship_id, t2.concept_code) NOT IN (WITH CTE AS (SELECT class_code AS concept_code_1,
+                                                                                         relationship_id,
+                                                                                         UNNEST(STRING_TO_ARRAY(ids, ', '))::INT AS concept_id
+                                                                                  FROM dev_atc.new_atc_codes_ings_for_manual)
+                                                                     SELECT t1.concept_code_1,
+                                                                            t1.relationship_id,
+                                                                            t2.concept_code AS concept_code_2
+                                                                     FROM CTE AS t1
+                                                                              JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id)
+
+  AND (t1.concept_code, cr.relationship_id, t2.concept_code) NOT IN (SELECT concept_code_1,
+                                                                            relationship_id,
+                                                                            concept_code_2
+                                                                     FROM concept_relationship_manual
+                                                                     WHERE vocabulary_id_1 = 'ATC'
+                                                                       AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension')
+                                                                       AND relationship_id IN ('ATC - RxNorm pr lat',
+                                                                                               'ATC - RxNorm sec lat',
+                                                                                               'ATC - RxNorm pr up',
+                                                                                               'ATC - RxNorm sec up'));
 
 --- Maps to to drop
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
-WHERE
-    relationship_id = 'Maps to'
-    and (concept_code_1, concept_code_2) in (select source_code_atc, source_code_rx from drop_maps_to);
-
---- Maps to to drop
--- INSERT INTO concept_relationship_manual
---     (
---     concept_code_1,
---     concept_code_2,
---     vocabulary_id_1,
---     vocabulary_id_2,
---     relationship_id,
---     valid_start_date,
---     valid_end_date,
---     invalid_reason
--- 	)
--- select t2.concept_code,
---        t3.concept_code,
---        t2.vocabulary_id,
---        t3.vocabulary_id,
---        'Maps to' as relationship_id,
---         TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
---         CURRENT_DATE as date,
---         'D' as invalid
--- from drop_maps_to t1
---      join devv5.concept t2 on t1.source_code_atc = t2.concept_code
---                             and t2.vocabulary_id = 'ATC'
---      join devv5.concept t3 on t1.source_code_rx = t3.concept_code
---                             and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
--- WHERE (t2.concept_code, t3.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual);
+WHERE relationship_id = 'Maps to'
+  AND (concept_code_1, concept_code_2) IN (SELECT source_code_atc, source_code_rx FROM drop_maps_to);

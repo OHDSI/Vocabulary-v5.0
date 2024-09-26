@@ -117,8 +117,8 @@ WHERE
 select t1.CONCEPT_CODE as ndc_code
 from CODES t1;
 
----- New NDC codes, that could be added to devv5
-select *
+---- New NDC codes, that could be added
+select DISTINCT *
 from umls_ndc_codes
 where ndc_code not in (select concept_code from devv5.concept where vocabulary_id = 'NDC' and concept_class_id = '11-digit NDC');
 

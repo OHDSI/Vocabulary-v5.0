@@ -837,7 +837,7 @@ FROM --get unique and aggregated data from source
 						FROM (
 							SELECT GetDistinctDose(active_numerator_strength, active_ingred_unit, 1) AS active_numerator_strength,
 								GetDistinctDose(active_numerator_strength, active_ingred_unit, 2) AS active_ingred_unit,
-								CASE 
+								CASE
 									WHEN devv5.INSTR(productndc, '-') = 5
 										THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 									ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
@@ -1893,7 +1893,7 @@ UPDATE concept_stage cs
 SET concept_class_id = 'Device',
 	domain_id = 'Device',
 	standard_concept = 'S'
-FROM dev_ndc.ndc_manual_mapped m
+FROM ndc_manual_mapped m
 WHERE m.source_code = cs.concept_code
 	AND cs.vocabulary_id = 'NDC'
 	AND m.target_concept_id = 17;

@@ -82,3 +82,12 @@ select DISTINCT ndc_code
 from umls_ndc_codes WHERE ndc_code in
 (SELECT replace (ndc_init, '-','')
 FROM dev_atatur.not_found_ndc);
+
+
+select *
+from devv5.concept
+where vocabulary_id = 'NDC'
+and concept_code not in (
+select ndc_code
+from umls_ndc_codes)
+and concept_class_id = '11-digit NDC';

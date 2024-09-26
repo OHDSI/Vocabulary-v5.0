@@ -129,15 +129,40 @@ where vocabulary_id = 'NDC'
 and concept_class_id = '11-digit NDC'
 and concept_code not in (select * from umls_ndc_codes);
 
---- Ned codes for that we could be obtain mappings using UMLS
+--- New codes where we could be obtain mappings using UMLS
 SELECT DISTINCT ndc_code, rxnorm_concept_code
-FROM umls_ndc_codes
+FROM umls_ndc_rxnorm_mappings
 where ndc_code  not in (select concept_code
                                 from concept
                                 WHERE vocabulary_id = 'NDC')
     AND SUBSTRING(ndc_code FROM 1 FOR 10) not in (select concept_code
                                 from concept
                                 WHERE vocabulary_id = 'NDC');
+
+---- Mappings that are unique in devv5
+select c1.concept_id,
+       c1.concept_code,
+       c1.concept_name,
+       c2.concept_id,
+       c2.concept_name
+from devv5.concept_relationship cr
+join devv5.concept c1 on cr.concept_id_1 =  c1.concept_id and vocabulary_id = 'NDC' and c1. concept_class_id = '11-digit NDC'
+join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+where (c1.concept_code, c2.concept_code) not in (select ndc_code, rxnorm_concept_code from umls_ndc_rxnorm_mappings);
+
+--- Mappings that are unique for UMLS
+select DISTINCT ndc_code, rxnorm_concept_code
+from umls_ndc_rxnorm_mappings
+where (ndc_code, rxnorm_concept_code) not IN
+(
+    select
+       c1.concept_code,
+       c2.concept_code
+from devv5.concept_relationship cr
+join devv5.concept c1 on cr.concept_id_1 =  c1.concept_id and vocabulary_id = 'NDC' and c1. concept_class_id = '11-digit NDC'
+join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+    );
+
 
 --- NDC codes that could be found from Tanya's list.
 select DISTINCT ndc_code

@@ -837,19 +837,19 @@ FROM --get unique and aggregated data from source
 						FROM (
 							SELECT GetDistinctDose(active_numerator_strength, active_ingred_unit, 1) AS active_numerator_strength,
 								GetDistinctDose(active_numerator_strength, active_ingred_unit, 2) AS active_ingred_unit,
-								CASE
+								CASE 
 									WHEN devv5.INSTR(productndc, '-') = 5
 										THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 									ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-									END || CASE
+									END || CASE 
 									WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 										THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 									ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 									END AS concept_code,
 								startmarketingdate AS valid_start_date,
-								CASE
-									WHEN proprietaryname ILIKE '%diluent%'
-										THEN TRUE
+								CASE 
+									WHEN proprietaryname ILIKE '%diluent%' 
+										THEN TRUE 
 									ELSE FALSE
 									END AS is_diluent
 							FROM sources.product
@@ -904,7 +904,7 @@ FROM --get unique and aggregated data from source
 			(
 				SELECT STRING_AGG(brand_name, ', ' ORDER BY brand_name)
 				FROM (
-					SELECT DISTINCT CASE
+					SELECT DISTINCT CASE 
 							WHEN (
 									LOWER(proprietaryname) <> LOWER(nonproprietaryname)
 									OR nonproprietaryname IS NULL
@@ -990,12 +990,12 @@ FROM (
 	FROM (
 		SELECT ndc.concept_code,
 			startDate,
-			CASE
+			CASE 
 				WHEN LOWER(status) = 'active'
 					THEN TO_DATE('20991231', 'yyyymmdd')
 				ELSE endDate
 				END endDate,
-			CASE
+			CASE 
 				WHEN LOWER(status) = 'active'
 					THEN NULL
 				ELSE 'D'
@@ -1101,7 +1101,7 @@ SELECT concept_name,
 	concept_code,
 	valid_start_date,
 	valid_end_date,
-	CASE
+	CASE 
 		WHEN valid_end_date = TO_DATE('20991231', 'yyyymmdd')
 			THEN NULL
 		ELSE 'D'
@@ -1143,12 +1143,12 @@ FROM (
 			) last_rxnorm_name,
 		mp.startDate,
 		mp.ndc_code,
-		CASE
+		CASE 
 			WHEN mp.endDate = mp.max_end_date
 				THEN TO_DATE('20991231', 'yyyymmdd')
 			ELSE mp.endDate
 			END endDate,
-		CASE
+		CASE 
 			WHEN mp.endDate = mp.max_end_date
 				THEN NULL
 			ELSE 'D'
@@ -1368,12 +1368,12 @@ SELECT first_half || second_half AS concept_code_1,
 	TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
-	SELECT DISTINCT CASE
+	SELECT DISTINCT CASE 
 			WHEN devv5.INSTR(productndc, '-') = 5
 				THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 			ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 			END AS first_half,
-		CASE
+		CASE 
 			WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 				THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 			ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1388,7 +1388,7 @@ FROM (
 	JOIN vocabulary v ON v.vocabulary_id = 'NDC'
 	) AS s0;
 
---23. Add additional mapping for NDC codes
+--23. Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -1552,9 +1552,9 @@ WHERE (
 			up.vocabulary_id_2,
 			up.relationship_id
 		FROM to_be_updated up
-
+		
 		UNION ALL
-
+		
 		SELECT crs_int.concept_code_1,
 			crs_int.concept_code_2,
 			crs_int.vocabulary_id_1,
@@ -1580,11 +1580,11 @@ INSERT INTO concept_stage (
 	invalid_reason
 	)
 WITH ndc AS (
-		SELECT DISTINCT CASE
+		SELECT DISTINCT CASE 
 				WHEN devv5.INSTR(productndc, '-') = 5
 					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE
+				END || CASE 
 				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1715,11 +1715,11 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 WITH ndc AS (
-		SELECT DISTINCT CASE
+		SELECT DISTINCT CASE 
 				WHEN devv5.INSTR(productndc, '-') = 5
 					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE
+				END || CASE 
 				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1758,11 +1758,11 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 WITH ndc AS (
-		SELECT DISTINCT CASE
+		SELECT DISTINCT CASE 
 				WHEN devv5.INSTR(productndc, '-') = 5
 					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE
+				END || CASE 
 				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)

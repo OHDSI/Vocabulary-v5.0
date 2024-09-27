@@ -169,3 +169,34 @@ select DISTINCT ndc_code
 from umls_ndc_rxnorm_mappings WHERE ndc_code in
 (SELECT replace (ndc_init, '-','')
 FROM dev_atatur.not_found_ndc);
+
+
+
+---- Why are we loosing other source codes from API
+
+--- alien code - 44911038301
+--- rxnorm code - 70700012487
+select '44911038301', l1.status, l2.activeRxcui, l3.startDate, l4.endDate
+              from (
+                  select h.http_content,
+                  l.xml_element
+                  from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=44911038301',allow_redirects=>true) h
+                left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/ndcHistory', h.http_content::xml)) as xml_element) l on true
+              ) as s
+              left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/status/text()', s.http_content::xml))::varchar status) l1 on true
+              left join lateral (select unnest(xpath('/ndcHistory/activeRxcui/text()', xml_element))::varchar activeRxcui) l2 on true
+              left join lateral (select to_date(unnest(xpath('/ndcHistory/startDate/text()', xml_element))::varchar,'YYYYMM') startDate) l3 on true
+              left join lateral (select to_date(unnest(xpath('/ndcHistory/endDate/text()', xml_element))::varchar,'YYYYMM') endDate) l4 on true;
+
+
+---- Not all ALIEN codes in sources
+select *
+from sources.spl2ndc_mappings
+where ndc_code = '50349017710';
+select *
+from apigrabber.rxnorm2ndc_mappings
+where ndc_code = '50349017710';
+SELECT *
+from devv5.concept
+WHERE vocabulary_id = 'NDC'
+and concept_code = '50349017710';

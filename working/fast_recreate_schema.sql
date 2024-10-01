@@ -47,16 +47,47 @@ BEGIN
     END IF;
 
     --drop FKs
-    SELECT * INTO iCreateDDL FROM vocabulary_pack.DropFKConstraints(ARRAY ['concept','concept_relationship','concept_synonym','vocabulary','relationship','domain','concept_class','drug_strength','pack_content']);
+    SELECT * 
+      INTO iCreateDDL 
+      FROM vocabulary_pack.DropFKConstraints(ARRAY ['concept',
+                                                    'concept_relationship',
+                                                    'concept_synonym',
+                                                    'vocabulary',
+                                                    'relationship',
+                                                    'domain',
+                                                    'concept_class',
+                                                    'drug_strength',
+                                                    'pack_content',
+                                                    'concept_metadata',
+                                                    'concept_relationship_metadata']);
 
     --drop base tables
-    DROP TABLE IF EXISTS concept, concept_relationship, concept_synonym, vocabulary, relationship, drug_strength, pack_content CASCADE;
-    IF drop_concept_ancestor OR include_concept_ancestor THEN
+    DROP TABLE IF EXISTS 
+        concept,
+        concept_relationship,
+        concept_synonym,
+        vocabulary,
+        relationship,
+        drug_strength,
+        pack_content,
+        concept_metadata,
+        concept_relationship_metadata CASCADE;
+                         
+    IF drop_concept_ancestor OR include_concept_ancestor 
+    THEN
         DROP TABLE IF EXISTS concept_ancestor;
     END IF;
 
     --clear stage tables
-    TRUNCATE TABLE concept_stage, concept_relationship_stage, concept_synonym_stage, concept_class, domain, vocabulary_conversion, drug_strength_stage, pack_content_stage;
+    TRUNCATE TABLE 
+        concept_stage, 
+        concept_relationship_stage, 
+        concept_synonym_stage, 
+        concept_class, 
+        domain, 
+        vocabulary_conversion, 
+        drug_strength_stage, 
+        pack_content_stage;
 
     --fill with data
     EXECUTE FORMAT ($$
@@ -65,8 +96,12 @@ BEGIN
         INSERT INTO vocabulary_conversion SELECT * FROM %1$I.vocabulary_conversion;
         CREATE TABLE concept (LIKE %1$I.concept INCLUDING CONSTRAINTS);
         INSERT INTO concept SELECT * FROM %1$I.concept;
+        CREATE TABLE concept_metadata (LIKE %1$I.concept_metadata INCLUDING CONSTRAINTS);
+        INSERT INTO concept_metadata SELECT * FROM %1$I.concept_metadata;
         CREATE TABLE concept_relationship (LIKE %1$I.concept_relationship INCLUDING CONSTRAINTS);
         INSERT INTO concept_relationship SELECT * FROM %1$I.concept_relationship WHERE '%2$s'=TRUE OR ('%2$s'=FALSE AND invalid_reason IS NULL);
+        CREATE TABLE concept_relationship_metadata (LIKE %1$I.concept_relationship_metadata INCLUDING CONSTRAINTS);
+        INSERT INTO concept_relationship_metadata SELECT * FROM %1$I.concept_relationship_metadata;
         CREATE TABLE concept_synonym (LIKE %1$I.concept_synonym INCLUDING CONSTRAINTS);
         INSERT INTO concept_synonym SELECT * FROM %1$I.concept_synonym WHERE '%3$s'=TRUE;
         CREATE TABLE vocabulary (LIKE %1$I.vocabulary);
@@ -82,10 +117,15 @@ BEGIN
     $$, main_schema_name, include_deprecated_rels, include_synonyms, include_concept_ancestor);
 
     --manual tables are always filled from devv5
-    IF NOT preserve_manual_tables THEN
-        TRUNCATE TABLE concept_manual, concept_relationship_manual, concept_synonym_manual;
+    IF NOT preserve_manual_tables 
+    THEN
+        TRUNCATE TABLE 
+            concept_manual, 
+            concept_relationship_manual, 
+            concept_synonym_manual;
 
         ALTER TABLE concept_manual DROP CONSTRAINT IF EXISTS unique_manual_concepts;
+        
         INSERT INTO concept_manual
         SELECT concept_name,
             domain_id,
@@ -100,6 +140,7 @@ BEGIN
         WHERE concept_id <> 0;
 
         ALTER TABLE concept_relationship_manual DROP CONSTRAINT IF EXISTS unique_manual_relationships;
+        
         INSERT INTO concept_relationship_manual
         SELECT concept_code_1,
             concept_code_2,
@@ -111,9 +152,10 @@ BEGIN
             invalid_reason
         FROM devv5.base_concept_relationship_manual
         WHERE concept_id_1 <> 0
-            AND concept_id_2 <> 0;
+         AND concept_id_2 <> 0;
 
         ALTER TABLE concept_synonym_manual DROP CONSTRAINT IF EXISTS unique_manual_synonyms;
+        
         INSERT INTO concept_synonym_manual
         SELECT synonym_name,
             synonym_concept_code,
@@ -125,9 +167,17 @@ BEGIN
 
     --(re)create indexes and constraints
     ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
+    
+    -- concept_metadata
+    CREATE UNIQUE INDEX idx_unique_concept_id ON concept_metadata (concept_id);
+    
     ALTER TABLE vocabulary ADD CONSTRAINT xpk_vocabulary PRIMARY KEY (vocabulary_id);
     ALTER TABLE relationship ADD CONSTRAINT xpk_relationship PRIMARY KEY (relationship_id);
     ALTER TABLE concept_relationship ADD CONSTRAINT xpk_concept_relationship PRIMARY KEY (concept_id_1,concept_id_2,relationship_id);
+    
+    -- concept_relationship_metadata
+    CREATE UNIQUE INDEX idx_unique_concept_relationship_id ON concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id);
+    
     ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id);
     IF drop_concept_ancestor OR include_concept_ancestor THEN
         ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id);
@@ -165,7 +215,7 @@ BEGIN
     EXECUTE iCreateDDL;
 
     --analyze base tables
-    ANALYZE concept, concept_relationship, concept_synonym, drug_strength, pack_content, concept_ancestor;
+    ANALYZE concept, concept_relationship, concept_synonym, drug_strength, pack_content, concept_ancestor, concept_metadata, concept_relationship_metadata;
     --analyze manual tables
     ANALYZE concept_manual, concept_relationship_manual, concept_synonym_manual;
 END;

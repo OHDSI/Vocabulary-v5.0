@@ -8,7 +8,7 @@ DECLARE
     pTruncate_id INT4;
     pCurrentPct INT2;
     pProcessedPct INT2:=0;
-    pTables TEXT[]:=ARRAY['concept','concept_relationship','concept_synonym','drug_strength','pack_content','relationship','vocabulary','vocabulary_conversion','concept_class','domain'];
+    pTables TEXT[]:=ARRAY['concept','concept_relationship','concept_synonym','drug_strength','pack_content','relationship','vocabulary','vocabulary_conversion','concept_class','domain', 'concept_metadata', 'concept_relationship_metadata'];
     pExcludeTables TEXT[]:=ARRAY['base_concept_manual', 'base_concept_relationship_manual', 'base_concept_synonym_manual'];
     t TEXT;
     pCreateDDLFK TEXT;
@@ -158,6 +158,29 @@ BEGIN
                 WHERE vc1.* IS DISTINCT FROM vc2.*
                 LIMIT 1
             )
+
+            UNION ALL
+
+            (
+                SELECT 1
+                FROM devv5.concept_metadata cm1
+                FULL JOIN concept_metadata cm2 USING (concept_id)
+                WHERE cm1.* IS DISTINCT FROM cm2.*
+                LIMIT 1
+            )
+
+            UNION ALL
+
+            (
+                SELECT 1
+                FROM devv5.concept_relationship_metadata crm1
+                FULL JOIN concept_relationship_metadata crm2 USING (
+                        concept_id_1,
+                        concept_id_2,
+                        relationship_id)
+                WHERE crm1.* IS DISTINCT FROM crm2.*
+                LIMIT 1
+            )
         ) s0
         LIMIT 1;
 
@@ -177,8 +200,15 @@ BEGIN
         IF r.tg_operation='I' THEN --insert
             IF r.table_name='concept' THEN
                 DELETE FROM concept WHERE concept_id=(r.new_row->>'concept_id')::INT4;
+            ELSIF r.table_name='concept_metadata' THEN
+                DELETE FROM concept_metadata WHERE concept_id=(r.new_row->>'concept_id')::INT4;
             ELSIF r.table_name='concept_relationship' THEN
                 DELETE FROM concept_relationship WHERE concept_id_1=(r.new_row->>'concept_id_1')::INT4 AND concept_id_2=(r.new_row->>'concept_id_2')::INT4 AND relationship_id=r.new_row->>'relationship_id';
+            ELSIF r.table_name='concept_relationship_metadata' THEN
+                DELETE FROM concept_relationship_metadata
+                 WHERE concept_id_1 = (r.new_row->>'concept_id_1')::INT4 
+                   AND concept_id_2 = (r.new_row->>'concept_id_2')::INT4 
+                   AND relationship_id = r.new_row->>'relationship_id';
             ELSIF r.table_name='concept_synonym' THEN
                 DELETE FROM concept_synonym WHERE concept_id=(r.new_row->>'concept_id')::INT4 AND concept_synonym_name=r.new_row->>'concept_synonym_name' AND language_concept_id=(r.new_row->>'language_concept_id')::INT4;
             ELSIF r.table_name='vocabulary' THEN
@@ -205,6 +235,12 @@ BEGIN
                 FROM JSONB_POPULATE_RECORD(NULL::concept, r.old_row) j
                 WHERE c.concept_id=(r.new_row->>'concept_id')::INT4;
 
+            ELSIF r.table_name='concept_metadata' THEN
+                UPDATE concept_metadata cm SET
+                    (concept_id, concept_category, reuse_status) = (j.concept_id, j.concept_category, j.reuse_status)
+                FROM JSONB_POPULATE_RECORD(NULL::concept_metadata, r.old_row) j
+                WHERE cm.concept_id=(r.new_row->>'concept_id')::INT4;
+                
             ELSIF r.table_name='concept_relationship' THEN
                 UPDATE concept_relationship cr SET
                     (concept_id_1,concept_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason)=
@@ -213,6 +249,19 @@ BEGIN
                 WHERE cr.concept_id_1=(r.new_row->>'concept_id_1')::INT4 AND cr.concept_id_2=(r.new_row->>'concept_id_2')::INT4
                 AND cr.relationship_id=r.new_row->>'relationship_id';
 
+            ELSIF r.table_name='concept_relationship_metadata' THEN
+                UPDATE concept_relationship_metadata crm SET
+                    (concept_id_1, concept_id_2, relationship_id,
+                     relationship_predicate_id, relationship_group, mapping_source, 
+                     confidence, mapping_tool, mapper, reviewer) =
+                    (j.concept_id_1, j.concept_id_2, j.relationship_id,
+                     j.relationship_predicate_id, j.relationship_group, j.mapping_source, 
+                     j.confidence, j.mapping_tool, j.mapper, j.reviewer )
+                FROM JSONB_POPULATE_RECORD(NULL::concept_relationship_metadata, r.old_row) j
+                WHERE crm.concept_id_1 = r.new_row->>'concept_id_1')::INT4 
+                  AND crm.concept_id_2 = (r.new_row->>'concept_id_2')::INT4
+                  AND crm.relationship_id = r.new_row->>'relationship_id';
+                
             ELSIF r.table_name='concept_synonym' THEN
                 UPDATE concept_synonym cs SET
                     (concept_id,concept_synonym_name,language_concept_id)=
@@ -318,11 +367,14 @@ BEGIN
         FOREACH t IN ARRAY pTables LOOP
             EXECUTE FORMAT('ALTER TABLE %I ENABLE TRIGGER USER',t);
         END LOOP;
+        
         RAISE NOTICE 'Deleting obsolete log records...';
+        
         DELETE FROM audit.logged_actions WHERE log_id BETWEEN iLogID AND pCurrent_max_log_id AND table_name <> ALL(pExcludeTables);
 
         --update concept_id_1/2 in the base_concept_relationship_manual, if the concepts no longer exist in the base tables
         RAISE NOTICE 'Fixing base_concept_relationship_manual...';
+        
         UPDATE base_concept_relationship_manual base_crm
         SET concept_id_1 = 0
         WHERE NOT EXISTS (

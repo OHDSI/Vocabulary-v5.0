@@ -1,4 +1,5 @@
 CREATE OR REPLACE FUNCTION ai_pack.ChatGPT (
+--https://platform.openai.com/docs/api-reference/chat/create
 	pQuery TEXT,
 	pModelEngine TEXT DEFAULT 'gpt-3.5-turbo',
 	pMaxTokens INT4 DEFAULT 1024,

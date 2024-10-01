@@ -1,38 +1,25 @@
 -- Rule: every non-S concept should be mapped to Standard, or mapped to 0
 -- Distribution of concepts by vocabulary and domains which are non-standard without valid mapping
-SELECT
-    c.vocabulary_id,
-    c.domain_id,
-    c.concept_class_id,
-    COUNT(*) AS concept_count
-FROM
-    devv5.concept AS c
-WHERE
-    NOT EXISTS (
-        SELECT 1
-        FROM
-            devv5.concept_relationship AS cr
-        INNER JOIN
-            devv5.concept AS cc
-        ON cr.concept_id_2 = cc.concept_id
-        WHERE
-            cr.relationship_id LIKE 'Maps to'
-            AND cr.invalid_reason IS NULL
-            AND c.concept_id = cr.concept_id_1
-            AND c.concept_id != cr.concept_id_2
-            AND c.vocabulary_id != cc.vocabulary_id
-            AND (cc.concept_id=0 OR cc.standard_concept='S')
-    )
-    AND c.standard_concept IS NULL
-    AND c.invalid_reason IS NULL
-GROUP BY
-   c.vocabulary_id,
-   c.domain_id,
-   c.concept_class_id
-ORDER BY
-   c.domain_id,
-   c.vocabulary_id,
-   concept_count DESC;
+SELECT c.concept_class_id,
+       c.domain_id,
+       c.vocabulary_id,
+       COUNT(*) AS concept_count
+FROM concept AS c
+WHERE c.standard_concept IS NULL
+  AND c.invalid_reason IS NULL
+AND NOT EXISTS (SELECT 1
+                  FROM concept_relationship cr
+                  where cr.concept_id_1=c.concept_id
+                  and cr.relationship_id='Maps to'
+                  and cr.invalid_reason is NULL
+                )
+GROUP BY c.concept_class_id,
+         c.vocabulary_id,
+         c.domain_id
+ORDER BY concept_count DESC,
+         c.domain_id,
+         c.vocabulary_id,
+         c.concept_class_id;
 
 -- Concepts in selected vocabulary and domain which are non-standard without valid mapping
 SELECT *
@@ -95,3 +82,27 @@ from
 
 ) t2
 ;
+
+SELECT c.concept_class_id,
+       c.domain_id,
+       c.vocabulary_id,
+       COUNT(*)
+
+
+ AS concept_count
+FROM concept AS c
+WHERE c.standard_concept IS NULL
+  AND c.invalid_reason IS NULL
+AND NOT EXISTS (SELECT 1
+                  FROM concept_relationship cr
+                  where cr.concept_id_1=c.concept_id
+                  and cr.relationship_id='Maps to'
+                  and cr.invalid_reason is NULL
+                )
+GROUP BY c.concept_class_id,
+         c.vocabulary_id,
+         c.domain_id
+ORDER BY concept_count DESC,
+         c.domain_id,
+         c.vocabulary_id,
+         c.concept_class_id;

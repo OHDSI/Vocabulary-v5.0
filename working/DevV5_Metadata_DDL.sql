@@ -30,6 +30,31 @@ CREATE TABLE concept_metadata (
     UNIQUE (concept_id)
 );
 
+-- Audit triggers
+CREATE TRIGGER tg_audit_u AFTER
+UPDATE 
+ON devv5.concept_metadata 
+    FOR EACH ROW
+    WHEN ((old.* IS DISTINCT FROM new.*)) 
+    EXECUTE FUNCTION audit.f_tg_audit();
+
+CREATE TRIGGER tg_audit_id AFTER
+INSERT OR DELETE
+ON devv5.concept_metadata 
+    FOR EACH 
+    ROW EXECUTE FUNCTION audit.f_tg_audit();
+
+CREATE TRIGGER tg_audit_t AFTER
+TRUNCATE
+ON devv5.concept_metadata 
+    FOR EACH STATEMENT 
+    EXECUTE FUNCTION audit.f_tg_audit();
+
+ALTER TABLE devv5.concept_metadata OWNER TO devv5;
+GRANT ALL ON TABLE devv5.concept_metadata TO devv5;
+GRANT SELECT ON TABLE devv5.concept_metadata TO role_read_only;
+
+    
 -- concept_relationship_metadata
 DROP TABLE IF EXISTS concept_relationship_metadata;
 
@@ -52,3 +77,27 @@ CREATE TABLE concept_relationship_metadata (
         CHECK (confidence >= 0 AND confidence <= 1),
     UNIQUE (concept_id_1, concept_id_2, relationship_id)
 );
+
+-- Audit triggers
+CREATE TRIGGER tg_audit_id AFTER
+INSERT OR DELETE
+ON devv5.concept_relationship_metadata 
+    FOR EACH ROW 
+    EXECUTE FUNCTION audit.f_tg_audit();
+
+CREATE TRIGGER tg_audit_t AFTER
+TRUNCATE
+ON devv5.concept_relationship_metadata 
+    FOR EACH 
+    STATEMENT EXECUTE FUNCTION audit.f_tg_audit();
+
+CREATE TRIGGER tg_audit_u AFTER
+UPDATE
+ON devv5.concept_relationship_metadata 
+    FOR EACH ROW
+    WHEN ((old.* IS DISTINCT FROM new.*)) 
+    EXECUTE FUNCTION audit.f_tg_audit();
+
+ALTER TABLE devv5.concept_relationship_metadata OWNER TO devv5;
+GRANT ALL ON TABLE devv5.concept_relationship_metadata TO devv5;
+GRANT SELECT ON TABLE devv5.concept_relationship_metadata TO role_read_only;

@@ -104,17 +104,19 @@ with codes as
                 END
         END,
         '-', ''
-    ) AS concept_code,
+    ) AS ndc_code,
     sab,
     rxaui,
-    rxcui
+    rxcui,
+    code,
+    suppress
 FROM
     sources.rxnsat
 WHERE
     atn = 'NDC'
    -- and suppress = 'N'
     )
-select t1.CONCEPT_CODE as ndc_code
+select *
 from CODES t1;
 
 ---- New NDC codes, that could be added
@@ -200,3 +202,88 @@ SELECT *
 from devv5.concept
 WHERE vocabulary_id = 'NDC'
 and concept_code = '50349017710';
+
+
+select distinct atn
+from sources.rxnsat;
+
+--- rxlist в Load_stage NDC
+--- количество реюзнутых кодов (все у кого 2 и более NDC history)
+--- пул концептов, которых нету в сорсах, но есть в базовых таблицах
+
+
+--- 02/10/2024
+---
+
+SELECT
+    concept_code,
+    count(concept_id)
+FROM devv5.concept
+where vocabulary_id = 'NDC'
+GROUP BY concept_code having count(concept_id) > 1;
+
+-- 21220020001
+select distinct ndc_code as code
+from umls_ndc_codes
+where length(ndc_code)=11
+and sab = 'RXNORM';
+where ndc_code = '21220020001';
+
+select *
+from rxnorm_w_history_async;
+
+
+SELECT  ----25086
+    "NDC Code",
+    "NDC History",
+    LENGTH("NDC History") - LENGTH(REPLACE("NDC History", ',', '')) AS number_of_remappings
+FROM
+    rxnorm_w_history_async
+WHERE
+    "NDC History" LIKE '%,%';
+
+SELECT -------25086
+    "NDC Code",
+    "NDC History",
+    LENGTH("NDC History") - LENGTH(REPLACE("NDC History", ',', '')) AS number_of_remappings
+FROM
+    rxnorm_w_history_async
+WHERE
+    "NDC History" LIKE '%,%'
+AND "NDC Code" in (SELECT
+                        concept_code
+                    FROM devv5.concept
+                    where vocabulary_id = 'NDC');
+
+
+WITH ndc_history_split AS (
+    SELECT
+        "NDC Code",
+        regexp_split_to_table("NDC History", ',') AS ndc_history_part
+    FROM
+        rxnorm_w_history_async
+    WHERE
+        "NDC History" LIKE '%,%'
+    AND "NDC Code" IN (SELECT concept_code
+                       FROM devv5.concept
+                       WHERE vocabulary_id = 'NDC')
+),
+rxnorm_mapping AS (
+    SELECT
+        "NDC Code",
+        split_part(ndc_history_part, ':', 3) AS rxnorm_concept_code
+    FROM
+        ndc_history_split
+)
+SELECT
+    r."NDC Code",
+    string_agg(r.rxnorm_concept_code, '|||'),
+    string_agg(c.concept_name, '|||')
+FROM
+    rxnorm_mapping r
+LEFT JOIN
+    devv5.concept c
+    ON r.rxnorm_concept_code = c.concept_code
+WHERE
+    c.vocabulary_id = 'RxNorm'
+GROUP BY r."NDC Code";

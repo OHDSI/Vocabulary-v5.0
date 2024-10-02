@@ -824,7 +824,7 @@ AS (
 				THEN 'Observation'
 			WHEN concept_code = 'Q0515'
 				THEN 'Drug'
-			WHEN concept_code BETWEEN 'Q0516' AND 'Q0518'
+			WHEN concept_code BETWEEN 'Q0516' AND 'Q0520'
 				THEN 'Observation'
 			WHEN concept_code BETWEEN 'Q1001'
 					AND 'Q1005'
@@ -856,7 +856,7 @@ AS (
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4333'
+					AND 'Q4345'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010

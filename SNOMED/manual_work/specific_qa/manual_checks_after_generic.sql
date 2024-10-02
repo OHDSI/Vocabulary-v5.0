@@ -168,8 +168,8 @@ join devv5.concept c2 on
 	c1.invalid_reason is null
 join concept p on
 	p.vocabulary_id = 'SNOMED' and
-	p.concept_code :: int8 in (SELECT peak_code FROM peak WHERE
-	                                                            valid_start_date > to_date ('20220101', 'YYYYMMDD') --peaks introduced in the recent refresh
+	p.concept_code in (SELECT peak_code FROM peak WHERE
+	                                                            valid_start_date > to_date ('20230914', 'YYYYMMDD') --peaks introduced in the recent refresh
 	                                                        AND valid_end_date = to_date('20991231', 'YYYYMMDD'))   --active peaks
 join snomed_ancestor a on
 	p.concept_code = a.ancestor_concept_code::varchar and

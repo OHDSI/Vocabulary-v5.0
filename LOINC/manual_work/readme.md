@@ -58,3 +58,5 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 19.3.6 Iteratively repeat steps 19.3.2-19.3.5 if found any issues.
 
 19.3.7. Change concept_relationship_manual table according to loinc_mapped table.
+
+19.3.8. Change concept_manual if needed

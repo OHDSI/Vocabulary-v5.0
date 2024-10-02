@@ -1516,6 +1516,11 @@ WITH ax_1 AS (
 			AND x1.sn_code NOT IN (
 				'401020005' --Urinary cortisol analysis
 				) --to exclude additional codes
+	        AND z3.lc_code NOT IN (
+	            '51540-3', --Cladosporium herbarum IgG Ab [Presence] in Serum
+	            '19726-9', --Aspergillus fumigatus IgG Ab [Presence] in Serum
+	            '51538-7' --Cladosporium herbarum IgG Ab [Presence] in Serum
+            )
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -1669,7 +1674,21 @@ WITH ax_1 AS (
 				'736785003', --Partial pressure of carbon dioxide in umbilical cord venous blood
 				'55701000237103', --Potassium molar concentration in blood
 				'54661000237106', --Magnesium molar concentration in blood
-				'143431000237107' --Clinical chemistry electrolyte observable
+				'143431000237107', --Clinical chemistry electrolyte observable
+			     '1285329004', --Lactate in umbilical cord blood
+			    '372461000119109', --Lactate in blood
+			    '372451000119107', --Lactate in whole blood
+			    '364321000119106', --Detection of Legionella pneumophila antigen in urine
+			    '364351000119103', --Detection of Streptococcus pneumoniae antigen in urine
+			    '364301000119102', --Detection of Helicobacter pylori antigen in stool
+			    '373211000119100', --Giardia lamblia antigen by enzyme immunoassay
+			    '374451000119101', --Rheumatoid factor in serum
+			    '364061000119103', --Presence of Streptococcus agalactiae in genital system by organism specific culture
+			    '364571000119101', --Alanine transaminase in serum
+			    '11461000237104', --Alkaline phosphatase enzyme activity in fluid
+			    '364681000119104', --Benzodiazepine in urine by confirmatory technique
+			    '372361000119104', --Low density lipoprotein cholesterol by direct assay
+			    '365451000119108' --Smooth muscle actin immunoglobulin G antibody
 				) -- to exclude codes with additional axises
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
@@ -2013,7 +2032,10 @@ WITH resulting_table AS (
 						OR t1.property_code IS NULL
 						OR t.property_code = t1.property_code
 						)
-					AND t.snomed_code <> '444264005' --Quantitative measurement of gastrin in fasting serum or plasma specimen
+					AND t.snomed_code NOT IN
+                        ('444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+                        '443833006' --Quantitative measurement of cannabinoids in urine using GC-MS
+                            )
 				),
 			--Component + Specimen + Property + Time
 			ax3 AS (
@@ -2177,7 +2199,11 @@ WITH resulting_table AS (
 								AND t.snomed_name !~* 'automated|immunoassay|immunoflourescence|immunosorbent'
 								)
 							)
-						AND snomed_code <> '444264005' --Quantitative measurement of gastrin in fasting serum or plasma specimen
+						AND snomed_code NOT IN
+                            ('444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+                             '364301000119102', --Detection of Helicobacter pylori antigen in stool
+                            '443833006' --Quantitative measurement of cannabinoids in urine using GC-MS
+                                )
 					) s0
 				ORDER BY s0.concept_code,
 					s0.snomed_subsumes_cnt DESC,
@@ -2291,7 +2317,9 @@ WITH resulting_table AS (
 							'104309001', --Cytomegalovirus IgM antibody assay
 							'313604004', --Cytomegalovirus IgG antibody measurement
 							'57321000237104', --Fractional TRP (tubular reabsorption of phosphate)
-							'444264005' --Quantitative measurement of gastrin in fasting serum or plasma specimen
+							'444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+						    '993431000000100', --Haemoglobin electrophoresis
+						    '392372009' --Norway spruce specific IgE antibody measurement
 							)
 						AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
 						AND regexp_replace(t.concept_name, '[^0-9]', '', 'g') = regexp_replace(t.snomed_name, '[^0-9]', '', 'g')
@@ -2395,6 +2423,7 @@ WITH resulting_table AS (
 						'50271000237107', --HCV (hepatitis C virus) antibody in oral fluid qualitative result
 						'444264005'
 						) --Quantitative measurement of gastrin in fasting serum or plasma specimen
+			    AND snomed_name !~* 'by deoxyribonucleic acid microarray analysis'
 				)/*,
 			--Component
 			--TODO: can be implemented. Also only match on the loinc_code level can be done
@@ -2621,6 +2650,10 @@ JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 	AND cs1.standard_concept = 'S'
 	AND cs1.invalid_reason IS NULL
 	AND cs1.concept_name !~* 'susceptibility|protein\.monoclonal' -- susceptibility may have property other than 'Susc'
+	AND cs1.concept_code NOT IN ('26760-9', '70144-1', '70145-8', '20413-1', '42860-7', '70143-3',
+	                            '26760-9', '70144-1', '70145-8', '16243-8', '16542-3', '16543-1',
+                                '26856-5', '27024-9', '33282-5', '33561-2', '48942-7', '50338-3',
+                                '59160-2', '8170-3', '8176-0')
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int

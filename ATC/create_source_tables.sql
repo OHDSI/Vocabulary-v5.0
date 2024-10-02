@@ -1,4 +1,3 @@
-  
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -14,20 +13,22 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Darina Ivakhnenko, Dmitry Dymshyts
-* Date: 2021
+* Authors: Aliaksei Katyshou
+* Date: 2024
 **************************************************************************/
 
-DROP TABLE IF EXISTS refresh_lookup_done;
-TRUNCATE TABLE refresh_lookup_done;
-CREATE TABLE refresh_lookup_done (
-icd_code VARCHAR,
-icd_name VARCHAR,
-repl_by_relationship VARCHAR,
-repl_by_id INT,
-repl_by_code VARCHAR,
-repl_by_name VARCHAR,
-repl_by_domain VARCHAR,
-repl_by_vocabulary VARCHAR);
+DROP TABLE IF EXISTS sources.atc_codes;
 
-SELECT*FROM refresh_lookup_done;
+CREATE TABLE IF NOT EXISTS sources.atc_codes (
+    class_code      VARCHAR(7),
+    class_name      VARCHAR(255),
+    ddd             VARCHAR(10),
+    u               VARCHAR(20),
+    adm_r           VARCHAR(20),
+    note            VARCHAR(255),
+    start_date      DATE,
+    revision_date   DATE,
+    active          VARCHAR(2),
+    replaced_by     VARCHAR(7),
+    _atc_ver        VARCHAR(20)
+);

@@ -60,7 +60,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
 
     --first part, getting raw download link from page
-    select substring(http_content,'<td><a href="(.+?)">UMLS Metathesaurus Full Subset</a></td>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'<td>\s*<a[^>]*href="(.+?)".*?>\s*UMLS Metathesaurus Full Subset\s*</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     pDownloadURL:=regexp_replace(pDownloadURL, '[[:cntrl:]]+', '','g');
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     

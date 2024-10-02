@@ -816,7 +816,7 @@ begin
       truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
       alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
       execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
-      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
+      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason HEADER';
       execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id,valid_start_date,valid_end_date,invalid_reason HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
@@ -913,9 +913,49 @@ begin
       analyze sources.meta_ncimeme;
       
       PERFORM sources_archive.AddVocabularyToArchive('META', ARRAY['meta_mrconso','meta_mrhier','meta_mrmap','meta_mrsmap','meta_mrsat','meta_mrrel','meta_mrsty','meta_mrdef','meta_mrsab','meta_ncimeme'], COALESCE(pVocabularyDate,current_date), 'archive.meta_version', 5);
-  else
+    WHEN 'ATC'
+    THEN 
+        TRUNCATE TABLE sources.atc_codes;
+        
+        INSERT INTO sources.atc_codes(
+            class_code, 
+            class_name, 
+            ddd, 
+            u, 
+            adm_r, 
+            note, 
+            start_date, 
+            revision_date, 
+            active, 
+            replaced_by, 
+            _atc_ver)
+        SELECT
+            class_code::VARCHAR(7),
+            class_name::VARCHAR(255),
+            ddd::VARCHAR(10),
+            u::VARCHAR(20),
+            adm_r::VARCHAR(20),
+            note::VARCHAR(255),
+            start_date::DATE,
+            revision_date::DATE,
+            active::VARCHAR(2),
+            replaced_by::VARCHAR(7),
+            ver::VARCHAR(20)
+        FROM vocabulary_download.py_load_atc();
+        
+        UPDATE sources.atc_codes
+           SET vocabulary_date = pvocabularydate,
+               vocabulary_version = pvocabularyversion;
+        
+        PERFORM sources_archive.AddVocabularyToArchive(
+            'ATC', 
+            ARRAY['atc_codes'], 
+            COALESCE(pVocabularyDate, current_date), 
+            'archive.atc_version', 
+            10);
+  ELSE
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
-  end case;
+  END CASE;
 end;
 $body$
 LANGUAGE 'plpgsql'

@@ -1,18 +1,22 @@
--- This check returns additional SNOMED-SNOMED relationships that are created due to the SNOMED Vet input in SNOMED hierarchy
-
+-- 1.These checks returns additional SNOMED-SNOMED relationships that are created due to the SNOMED Vet input in SNOMED hierarchy
+--- Comparison of full ancestor in vet schema and manual ancestor for SNOMED, OMOP Extension,MedDRA
 select distinct
-       ca.*,
+       ca.descendant_concept_id,
+       c2.concept_name,
+       ca.ancestor_concept_id,
        c1.concept_name,
-       c2.concept_name
-from devv5.concept_ancestor ca
-join devv5.concept c1 on c1.concept_id = ca.ancestor_concept_id and c1.vocabulary_id = 'SNOMED'
-join devv5.concept c2 on c2.concept_id = ca.descendant_concept_id and c2.vocabulary_id = 'SNOMED'
+       min_levels_of_separation,
+       max_levels_of_separation
+from dev_veterinary.concept_ancestor ca
+join dev_veterinary.concept c1 on c1.concept_id = ca.ancestor_concept_id and c1.vocabulary_id = 'SNOMED'
+join dev_veterinary.concept c2 on c2.concept_id = ca.descendant_concept_id and c2.vocabulary_id = 'SNOMED'
 where (ca.ancestor_concept_id, ca.descendant_concept_id) not in (
 select ca1.ancestor_concept_id, ca1.descendant_concept_id
-from dev_veterinary.concept_ancestor ca1
-);
+from dev_mkhitrun.concept_ancestor ca1
+)
+order by descendant_concept_id, min_levels_of_separation;
 
--- This check reviews the cases where SNOMED Vet concepts is located between two SNOMED concepts on the concept_ancestor:
+-- 2. This check reviews the cases where SNOMED Vet concepts is located between two SNOMED concepts on the concept_ancestor:
 select distinct a.concept_id as ancestor_id,
                a.concept_code as ancestor_code,
                a.concept_name as ancestor_name,

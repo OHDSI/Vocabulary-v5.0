@@ -30,13 +30,12 @@ $_$
                                     WHERE qs.name = 'Core'
                                     ORDER BY TO_DATE(TO_CHAR(qs.updatedate, 'YYYY-MM-DD'), 'YYYY-MM-DD') DESC
                                     LIMIT 1),
-                pVocabularyVersion => (SELECT 'EORTC QLQ defined by ' || qs.name || ' version ' ||
-                                              TO_CHAR(qs.updatedate, 'YYYY_MM')
+                pVocabularyVersion => (SELECT 'EORTC QLQ defined by ' || qs.name || ' version ' || TO_CHAR(qs.updatedate, 'YYYY_MM')
                                        FROM sources.eortc_questionnaires qs
                                        WHERE qs.name = 'Core'
                                        ORDER BY TO_DATE(TO_CHAR(qs.updatedate, 'YYYY-MM-DD'), 'YYYY-MM-DD') DESC
                                        LIMIT 1),
-                pVocabularyDevSchema => 'sources'
+                pVocabularyDevSchema => 'DEV_EORTC'
             );
     END
 $_$;

@@ -242,6 +242,7 @@ FROM
 WHERE
     "NDC History" LIKE '%,%';
 
+create table rxnorm_ndc_reused as
 SELECT -------25086
     "NDC Code",
     "NDC History",
@@ -286,4 +287,93 @@ LEFT JOIN
     ON r.rxnorm_concept_code = c.concept_code
 WHERE
     c.vocabulary_id = 'RxNorm'
-GROUP BY r."NDC Code";
+GROUP BY r."NDC Code"
+ORDER BY length(string_agg(r.rxnorm_concept_code, '|||')) DESC;
+
+
+----- concepts, that are in dev5.concepts and not in UMLS.
+SELECT
+    concept_class_id,
+    count(*)
+FROM devv5.concept
+where vocabulary_id = 'NDC'
+and invalid_reason is NULL
+and  concept_code not in (
+                        SELECT ndc_code
+                        FROM umls_ndc_codes)
+GROUP BY concept_class_id
+;
+
+----- VANDF as source for NDC
+select replace(ndc_number,'-','') as ndc
+from vandf_ndc_codes_october24;
+
+---CVX as source
+select replace(ndc11,'-','') as ndc
+from cvx_ndc;
+
+select *
+from rxnorm_ndc_reused
+where "NDC Code" in (select replace(ndc_number,'-','') as ndc
+                            from vandf_ndc_codes_october24);
+
+select *
+from rxnorm_ndc_reused
+where "NDC Code" in (select replace(ndc11,'-','') as ndc
+                            from cvx_ndc);
+
+
+---- Reused from pack to ingredients jump.
+drop table if EXISTS ndc_rxnorm_ings;
+create table ndc_rxnorm_ings AS
+WITH ndc_history_split AS (
+    SELECT
+        "NDC Code",
+        regexp_split_to_table("NDC History", ',') AS ndc_history_part
+    FROM
+        rxnorm_w_history_async
+    WHERE
+        "NDC History" LIKE '%,%'
+    AND "NDC Code" IN (SELECT concept_code
+                       FROM devv5.concept
+                       WHERE vocabulary_id = 'NDC')
+),
+rxnorm_mapping AS (
+    SELECT
+        "NDC Code",
+        split_part(ndc_history_part, ':', 3) AS rxnorm_concept_code
+    FROM
+        ndc_history_split
+)
+SELECT
+    r."NDC Code",
+    r.RXNORM_CONCEPT_CODE,
+    string_agg(DISTINCT C3.concept_name, '|||') as ings
+FROM
+    rxnorm_mapping r
+    JOIN devv5.concept c1 on r.RXNORM_CONCEPT_CODE = c1.concept_code and c1.vocabulary_id = 'RxNorm'
+    --- This jump to Standard is needed while grabber is setted up to grab originalCUI and it
+    --- in some cases could be ramapped to another (marked as activeCUI).
+    JOIN devv5.concept_relationship cr on cr.concept_id_1 = c1.concept_id
+                                       and relationship_id = 'Maps to'
+    join devv5.concept c2 on cr.concept_id_2 = c2.concept_id and c2.standard_concept = 'S'
+    JOIN devv5.concept_ancestor ca on ca.descendant_concept_id = c2.concept_id
+    JOIN devv5.concept c3 on ca.ancestor_concept_id = c3.concept_id and c3.vocabulary_id = 'RxNorm'
+                                                                    and c3.concept_class_id = 'Ingredient'
+GROUP BY r."NDC Code", r.RXNORM_CONCEPT_CODE
+ORDER BY "NDC Code" DESC
+;
+
+create table ndc_completely_changed as
+WITH CTE as (SELECT DISTINCT "NDC Code",
+       RXNORM_CONCEPT_CODE,
+       string_agg(ings, '|') as ings
+from ndc_rxnorm_ings
+GROUP BY "NDC Code", RXNORM_CONCEPT_CODE
+ORDER BY "NDC Code")
+SELECT "NDC Code",
+       string_agg(DISTINCT ings, '|'),
+       count(DISTINCT ings)
+FROM CTE
+GROUP BY "NDC Code" HAVING count(DISTINCT ings)>1
+;

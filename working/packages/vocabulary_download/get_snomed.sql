@@ -1,66 +1,79 @@
 CREATE OR REPLACE FUNCTION vocabulary_download.get_snomed (
-iOperation text default null,
-out session_id int4,
-out last_status INT,
-out result_output text
+    iOperation TEXT default null,
+    OUT session_id INT4,
+    OUT last_status INT,
+    OUT result_output TEXT
 )
 AS
 $BODY$
 DECLARE
-pVocabularyID constant text:='SNOMED';
-pVocabulary_auth vocabulary_access.vocabulary_auth%type;
-pVocabulary_url vocabulary_access.vocabulary_url%type;
-pVocabulary_login vocabulary_access.vocabulary_login%type;
-pVocabulary_pass vocabulary_access.vocabulary_pass%type;
-pVocabularySrcDate date;
-pVocabularySrcVersion text;
-pVocabularyNewDate date;
-pVocabularyNewVersion text;
-pCookie text;
-pContent text;
-pTicket text;
-pDownloadURL text;
-pErrorDetails text;
-pVocabularyOperation text;
+    pVocabularyID CONSTANT TEXT := 'SNOMED';
+    CRLF CONSTANT TEXT:=E'\r\n';
+    
+    pVocabulary_auth vocabulary_access.vocabulary_auth%TYPE;
+    pVocabulary_url vocabulary_access.vocabulary_url%TYPE;
+    pVocabulary_login vocabulary_access.vocabulary_login%TYPE;
+    pVocabulary_pass vocabulary_access.vocabulary_pass%TYPE;
+    pVocabularySrcDate DATE;
+    pVocabularySrcVersion TEXT;
+    pVocabularyNewDate DATE;
+    pVocabularyNewVersion TEXT;
+    pCookie TEXT;
+    pContent TEXT;
+    pTicket TEXT;
+    pDownloadURL TEXT;
+    pErrorDetails TEXT;
+    pVocabularyOperation TEXT;
 /*
   possible values of pJumpToOperation:
-  ALL (default), JUMP_TO_SNOMED_INT_PREPARE, 
-  JUMP_TO_SNOMED_UK, JUMP_TO_SNOMED_UK_PREPARE, 
-  JUMP_TO_SNOMED_US, JUMP_TO_SNOMED_US_PREPARE, 
-  JUMP_TO_SNOMED_UK_DE, JUMP_TO_SNOMED_UK_DE_PREPARE, 
+  ALL (default), 
+  JUMP_TO_SNOMED_INT_PREPARE, 
+  JUMP_TO_SNOMED_UK, 
+  JUMP_TO_SNOMED_UK_PREPARE, 
+  JUMP_TO_SNOMED_US, 
+  JUMP_TO_SNOMED_US_PREPARE, 
+  JUMP_TO_SNOMED_UK_DE, 
+  JUMP_TO_SNOMED_UK_DE_PREPARE, 
   JUMP_TO_SNOMED_IMPORT
 */
-pJumpToOperation text;
-z int;
-cRet text;
-CRLF constant text:=E'\r\n';
-pSession int4;
-pVocabulary_load_path text;
+    pJumpToOperation TEXT;
+    z INT;
+    cRet TEXT;
+    pSession int4;
+    pVocabulary_load_path TEXT;
 BEGIN
-  pVocabularyOperation:='GET_SNOMED';
-  select nextval('vocabulary_download.log_seq') into pSession;
+   pVocabularyOperation:='GET_SNOMED';
+   SELECT NEXTVAL('vocabulary_download.log_seq') INTO pSession;
   
-  select new_date, new_version, src_date, src_version 
-  	into pVocabularyNewDate, pVocabularyNewVersion, pVocabularySrcDate, pVocabularySrcVersion 
-  from vocabulary_pack.CheckVocabularyUpdate(pVocabularyID);
+   SELECT new_date, new_version, src_date, src_version 
+     INTO pVocabularyNewDate, pVocabularyNewVersion, pVocabularySrcDate, pVocabularySrcVersion 
+     FROM vocabulary_pack.CheckVocabularyUpdate(pVocabularyID);
   
-  set local search_path to vocabulary_download;
+    SET LOCAL search_path TO vocabulary_download;
   
-  perform write_log (
-    iVocabularyID=>pVocabularyID,
-    iSessionID=>pSession,
-    iVocabulary_operation=>pVocabularyOperation||' started',
-    iVocabulary_status=>0
-  );
+    PERFORM write_log (
+        iVocabularyID => pVocabularyID,
+        iSessionID => pSession,
+        iVocabulary_operation => pVocabularyOperation ||' started',
+        iVocabulary_status => 0
+    );
   
-  if iOperation is null then pJumpToOperation:='ALL'; else pJumpToOperation:=iOperation; end if;
-  if iOperation not in ('ALL', 'JUMP_TO_SNOMED_INT_PREPARE', 
-    'JUMP_TO_SNOMED_UK', 'JUMP_TO_SNOMED_UK_PREPARE', 
-    'JUMP_TO_SNOMED_US' ,'JUMP_TO_SNOMED_US_PREPARE',
-    'JUMP_TO_SNOMED_UK_DE', 'JUMP_TO_SNOMED_UK_DE_PREPARE',
-    'JUMP_TO_DMD', 'JUMP_TO_DMD_PREPARE',
-    'JUMP_TO_SNOMED_IMPORT'
-  ) then raise exception 'Wrong iOperation %',iOperation; end if;
+    IF iOperation IS NULL 
+    THEN 
+        pJumpToOperation := 'ALL'; 
+    ELSE 
+        pJumpToOperation := iOperation; 
+    END IF;
+    
+    IF iOperation NOT IN ('ALL', 'JUMP_TO_SNOMED_INT_PREPARE', 
+        'JUMP_TO_SNOMED_UK', 'JUMP_TO_SNOMED_UK_PREPARE', 
+        'JUMP_TO_SNOMED_US' ,'JUMP_TO_SNOMED_US_PREPARE',
+        'JUMP_TO_SNOMED_UK_DE', 'JUMP_TO_SNOMED_UK_DE_PREPARE',
+        'JUMP_TO_DMD', 'JUMP_TO_DMD_PREPARE',
+        'JUMP_TO_SNOMED_IMPORT') 
+    THEN 
+        RAISE EXCEPTION 'Wrong iOperation %', iOperation; 
+    END IF;
   
   /*if pJumpToOperation='ALL' then 
   	if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
@@ -68,260 +81,359 @@ BEGIN
   	--if we want to partially update the SNOMED (e.g. only UK-part), then we use the old date from the main source (International release), even if it was updated
     select vocabulary_date into pVocabularyNewDate from sources.sct2_concept_full_merged limit 1;
   end if;*/
-  if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
+    IF pVocabularyNewDate IS NULL 
+    THEN 
+        RAISE EXCEPTION '% already updated', pVocabularyID; 
+    END IF;
   
-  if not pg_try_advisory_xact_lock(hashtext(pVocabularyID)) then raise exception 'Processing of % already started',pVocabularyID; end if;
+    IF NOT pg_try_advisory_xact_lock(hashtext(pVocabularyID)) 
+    THEN 
+        RAISE EXCEPTION 'Processing of % already started',pVocabularyID; 
+    END IF;
   
-  select var_value||pVocabularyID into pVocabulary_load_path from devv5.config$ where var_name='vocabulary_load_path';
+    SELECT var_value || pVocabularyID 
+      INTO pVocabulary_load_path 
+      FROM devv5.config$ 
+     WHERE var_name = 'vocabulary_load_path';
     
-  if pJumpToOperation='ALL' then
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
+    IF pJumpToOperation='ALL' 
+    THEN
+        --get credentials
+        SELECT vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, MAX(vocabulary_order) OVER()
+          INTO pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z 
+          FROM devv5.vocabulary_access 
+         WHERE vocabulary_id=pVocabularyID 
+           AND vocabulary_order=2;
     
-    --first part, getting raw download link from page
-    select substring(http_content,'<h1>Current International Edition Release</h1>.+?<a class=.+?href="(.+?)".*?><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
+        --first part, getting raw download link from page
+        SELECT SUBSTRING(http_content,'<h1>Current International Edition Release</h1>.+?<a class=.+?href="(.+?)".*?><strong>Download RF2 Files Now!</strong></a>') 
+          INTO pDownloadURL 
+          FROM py_http_get(url => pVocabulary_url);
+          
+        IF NOT COALESCE(pDownloadURL, '-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' 
+        THEN 
+            pErrorDetails := COALESCE(pDownloadURL, '-'); 
+            RAISE EXCEPTION 'pDownloadURL (raw) is not valid'; 
+        END IF;
     
-    --get the proper ticket and concatenate it with the pDownloadURL
-    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login,pDownloadURL);
-    pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
+        --get the proper ticket and concatenate it with the pDownloadURL
+        pTicket := get_umls_ticket (pVocabulary_auth, pVocabulary_login, pDownloadURL);
+        pDownloadURL := pDownloadURL || '?ticket=' || pTicket;
 
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>pVocabularyOperation||' authorization successful',
-      iVocabulary_status=>1
-    );
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => pVocabularyOperation || ' authorization successful',
+            iVocabulary_status => 1
+        );
 
-    --start downloading
-    pVocabularyOperation:='GET_SNOMED downloading';
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED downloading complete',
-      iVocabulary_status=>1
-    );
-  end if;
+        --start downloading
+        pVocabularyOperation := 'GET_SNOMED downloading';
+        
+        PERFORM run_wget (
+            iPath => pVocabulary_load_path,
+            iFilename => lower(pVocabularyID) || '.zip',
+            iDownloadLink => pDownloadURL
+        );
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED downloading complete',
+            iVocabulary_status => 1
+        );
+    END IF;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_INT_PREPARE') then
-    pJumpToOperation:='ALL';
-    --extraction
-    pVocabularyOperation:='GET_SNOMED INT prepare';
-    perform get_snomed_prepare_int (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED INT prepare complete',
-      iVocabulary_status=>1
-    );
-  end if;
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_INT_PREPARE') 
+    THEN
+        pJumpToOperation := 'ALL';
+        --extraction
+        pVocabularyOperation := 'GET_SNOMED INT prepare';
+        PERFORM get_snomed_prepare_int (
+            iPath => pVocabulary_load_path,
+            iFilename => LOWER(pVocabularyID) || '.zip'
+        );
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED INT prepare complete',
+            iVocabulary_status => 1
+        );
+    END IF;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_UK') then
-    pJumpToOperation:='ALL';
+    IF pJumpToOperation IN ('ALL', 'JUMP_TO_SNOMED_UK') 
+    THEN
+        pJumpToOperation := 'ALL';
     
-    pVocabularyOperation:='GET_SNOMED UK-part';
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
+        pVocabularyOperation := 'GET_SNOMED UK-part';
+        
+        --get credentials
+        SELECT vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, MAX(vocabulary_order) OVER()
+          INTO pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z 
+          FROM devv5.vocabulary_access 
+         WHERE vocabulary_id = pVocabularyID 
+           AND vocabulary_order = 3;
     
-    --authorization
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
-    from py_http_post(url=>pVocabulary_auth, params=>'j_username='||devv5.urlencode(pVocabulary_login)||'&j_password='||devv5.urlencode(pVocabulary_pass)||'&commit=LOG%20IN');
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;
+        --authorization
+        SELECT (SELECT VALUE 
+                  FROM json_each_text(http_headers) 
+                 WHERE LOWER(key)='set-cookie'), 
+               http_content 
+          INTO pCookie, pContent
+          FROM py_http_post(url => pVocabulary_auth, params => 'j_username=' || 
+                            devv5.urlencode(pVocabulary_login) ||
+                            '&j_password=' || devv5.urlencode(pVocabulary_pass) || '&commit=LOG%20IN');
+                        
+        IF pCookie NOT LIKE '%JSESSIONID=%' 
+        THEN pErrorDetails:=pCookie||CRLF||CRLF||pContent; 
+            RAISE EXCEPTION 'cookie %%JSESSIONID=%% not found'; 
+        END IF;
     
-    --get working download link
-    pCookie=substring(pCookie,'JSESSIONID=(.*?);');
-    select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pContent,'<div class="release-details__label">.+?<a href="(.*?)">.+');
-    
-    --start downloading
-    pVocabularyOperation:='GET_SNOMED UK-part downloading';
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL,
-      iDeleteAll=>0
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED UK-part downloading complete',
-      iVocabulary_status=>1
-    );
-  end if;
-  
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_UK_PREPARE') then
-    pJumpToOperation:='ALL';
-    --extraction
-    pVocabularyOperation:='GET_SNOMED UK prepare';
-    perform get_snomed_prepare_uk (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED UK prepare complete',
-      iVocabulary_status=>1
-    );
-  end if;
-  
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_US') then
-    pJumpToOperation:='ALL';
-    
-    pVocabularyOperation:='GET_SNOMED US-part';
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
-    
-    --first part, getting raw download link from page
-    select substring(http_content,'Current US Edition Release.+?<p><a href="(.+?\.zip)".*?>Download Now!</a></p>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
-    
-    --get the proper ticket and concatenate it with the pDownloadURL
-    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login,pDownloadURL);
-    pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
+        --get working download link
+        pCookie = SUBSTRING(pCookie, 'JSESSIONID=(.*?);');
+        
+        SELECT http_content 
+          INTO pContent 
+          FROM py_http_get(url => pVocabulary_url, cookies => '{"JSESSIONID":"' || pCookie || '"}');
 
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>pVocabularyOperation||' authorization successful',
-      iVocabulary_status=>1
-    );
+        pDownloadURL := SUBSTRING(pContent, '<div class="release-details__label">.+?<a href="(.*?)">.+');
+    
+        --start downloading
+        pVocabularyOperation:='GET_SNOMED UK-part downloading';
+        PERFORM run_wget (
+            iPath => pVocabulary_load_path,
+            iFilename => LOWER(pVocabularyID) || '.zip',
+            iDownloadLink => pDownloadURL,
+            iDeleteAll => 0
+        );
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED UK-part downloading complete',
+            iVocabulary_status => 1
+        );
+    END IF;
+  
+    IF pJumpToOperation IN ('ALL', 'JUMP_TO_SNOMED_UK_PREPARE') 
+    THEN
+        pJumpToOperation:='ALL';
+        
+        --extraction
+        pVocabularyOperation:='GET_SNOMED UK prepare';
+        
+        PERFORM get_snomed_prepare_uk (
+            iPath => pVocabulary_load_path,
+            iFilename => lower(pVocabularyID) || '.zip'
+        );
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED UK prepare complete',
+            iVocabulary_status => 1
+        );
+    END IF;
+  
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_US') 
+    THEN
+        pJumpToOperation := 'ALL';
+    
+        pVocabularyOperation := 'GET_SNOMED US-part';
+        
+        --get credentials
+        SELECT vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, MAX(vocabulary_order) OVER()
+          INTO pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z 
+          FROM devv5.vocabulary_access 
+         WHERE vocabulary_id = pVocabularyID 
+           AND vocabulary_orde r= 4;
+    
+        --first part, getting raw download link from page
+        SELECT SUBSTRING(http_content, 'Current US Edition Release.+?<p><a href="(.+?\.zip)".*?>Download Now!</a></p>')
+          INTO pDownloadURL 
+          FROM py_http_get(url => pVocabulary_url);
+          
+        IF NOT COALESCE(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' 
+        THEN 
+            pErrorDetails := COALESCE(pDownloadURL, '-'); 
+            RAISE EXCEPTION 'pDownloadURL (raw) is not valid'; 
+        END IF;
+    
+        --get the proper ticket and concatenate it with the pDownloadURL
+        pTicket := get_umls_ticket (pVocabulary_auth, pVocabulary_login, pDownloadURL);
+        
+        pDownloadURL := pDownloadURL || '?ticket=' || pTicket;
 
-    --start downloading
-    pVocabularyOperation:='GET_SNOMED US-part downloading';
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL,
-      iDeleteAll=>0
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED US-part downloading complete',
-      iVocabulary_status=>1
-    );
-  end if;
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => pVocabularyOperation || ' authorization successful',
+            iVocabulary_status => 1
+        );
+
+        --start downloading
+        pVocabularyOperation:='GET_SNOMED US-part downloading';
+        
+        PERFORM run_wget (
+            iPath => pVocabulary_load_path,
+            iFilename => lower(pVocabularyID) || '.zip',
+            iDownloadLink => pDownloadURL,
+            iDeleteAll => 0
+        );
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED US-part downloading complete',
+            iVocabulary_status => 1
+        );
+    END IF;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_US_PREPARE') then
-    pJumpToOperation:='ALL';
-    --extraction
-    pVocabularyOperation:='GET_SNOMED US prepare';
-    perform get_snomed_prepare_us (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED US prepare complete',
-      iVocabulary_status=>1
-    );
-  end if;
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_US_PREPARE') 
+    THEN
+        pJumpToOperation:='ALL';
+        
+        --extraction
+        pVocabularyOperation:='GET_SNOMED US prepare';
+        
+        PERFORM get_snomed_prepare_us (
+            iPath => pVocabulary_load_path,
+            iFilename => lower(pVocabularyID) || '.zip'
+        );
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED US prepare complete',
+            iVocabulary_status => 1
+        );
+    END IF;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_UK_DE') then
-    pJumpToOperation:='ALL';
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_UK_DE') 
+    THEN
+        pJumpToOperation := 'ALL';
     
-    pVocabularyOperation:='GET_SNOMED UK DE-part';
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=5;
+        pVocabularyOperation := 'GET_SNOMED UK DE-part';
+        
+        --get credentials
+        SELECT vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, MAX(vocabulary_order) OVER()
+          INTO pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z 
+          FROM devv5.vocabulary_access 
+         WHERE vocabulary_id = pVocabularyID 
+           AND vocabulary_order = 5;
     
-    --authorization
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
-    from py_http_post(url=>pVocabulary_auth, params=>'j_username='||devv5.urlencode(pVocabulary_login)||'&j_password='||devv5.urlencode(pVocabulary_pass)||'&commit=LOG%20IN');
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;
+        --authorization
+        SELECT (SELECT value 
+                  FROM json_each_text(http_headers) 
+                 WHERE LOWER(key) = 'set-cookie'), 
+               http_content 
+          INTO pCookie, pContent
+          FROM py_http_post(url => pVocabulary_auth, 
+                            params => 'j_username=' || devv5.urlencode(pVocabulary_login) || 
+                                      '&j_password=' || devv5.urlencode(pVocabulary_pass) || 
+                                      '&commit=LOG%20IN');
+                                      
+        IF pCookie NOT LIKE '%JSESSIONID=%' 
+        THEN 
+            pErrorDetails := pCookie || CRLF || CRLF || pContent; 
+            RAISE EXCEPTION 'cookie %%JSESSIONID=%% not found'; 
+        END IF;
     
-    --get working download link
-    pCookie=substring(pCookie,'JSESSIONID=(.*?);');
-    select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pContent,'<div class="release-details__label">.+?<a href="(.*?)">.+');
+        --get working download link
+        pCookie = SUBSTRING(pCookie,'JSESSIONID=(.*?);');
+        
+        SELECT http_content 
+          INTO pContent 
+          FROM py_http_get(url => pVocabulary_url,cookies => '{"JSESSIONID":"' || pCookie || '"}');
+          
+        pDownloadURL := SUBSTRING(pContent,'<div class="release-details__label">.+?<a href="(.*?)">.+');
     
-    --start downloading
-    pVocabularyOperation:='GET_SNOMED UK DE-part downloading';
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL,
-      iDeleteAll=>0
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED UK DE-part downloading complete',
-      iVocabulary_status=>1
-    );
-  end if;
+        --start downloading
+        pVocabularyOperation:='GET_SNOMED UK DE-part downloading';
+        PERFORM run_wget (
+            iPath => pVocabulary_load_path,
+            iFilename => lower(pVocabularyID) || '.zip',
+            iDownloadLink => pDownloadURL,
+            iDeleteAll => 0
+        );
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED UK DE-part downloading complete',
+            iVocabulary_status => 1
+        );
+    END IF;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_UK_DE_PREPARE') then
-    pJumpToOperation:='ALL';
-    --extraction
-    pVocabularyOperation:='GET_SNOMED UK DE prepare';
-    perform get_snomed_prepare_uk_de (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED UK DE prepare complete',
-      iVocabulary_status=>1
-    );
-  end if;
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_UK_DE_PREPARE') 
+    THEN
+        pJumpToOperation := 'ALL';
+        
+        --extraction
+        pVocabularyOperation := 'GET_SNOMED UK DE prepare';
+        
+        PERFORM get_snomed_prepare_uk_de (
+            iPath => pVocabulary_load_path,
+            iFilename => LOWER(pVocabularyID) || '.zip'
+        );
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED UK DE prepare complete',
+            iVocabulary_status => 1
+        );
+    END IF;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_SNOMED_IMPORT') then
-    pJumpToOperation:='ALL';
-    --finally we have all input tables, we can start importing
-    pVocabularyOperation:='GET_SNOMED load_input_tables';
-    perform sources.load_input_tables(pVocabularyID,pVocabularyNewDate,pVocabularyNewVersion);
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED load_input_tables complete',
-      iVocabulary_status=>1
-    );
-  end if;
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_IMPORT') 
+    THEN
+        pJumpToOperation:='ALL';
+        
+        --finally we have all input tables, we can start importing
+        pVocabularyOperation := 'GET_SNOMED load_input_tables';
+        
+        PERFORM sources.load_input_tables(pVocabularyID, pVocabularyNewDate, pVocabularyNewVersion);
+        
+        PERFORM write_log (
+            iVocabularyID => pVocabularyID,
+            iSessionID => pSession,
+            iVocabulary_operation => 'GET_SNOMED load_input_tables complete',
+            iVocabulary_status => 1
+        );
+    END IF;
     
-  perform write_log (
-    iVocabularyID=>pVocabularyID,
-    iSessionID=>pSession,
-    iVocabulary_operation=>'GET_SNOMED all tasks done',
-    iVocabulary_status=>3
-  );
+    PERFORM write_log (
+        iVocabularyID => pVocabularyID,
+        iSessionID => pSession,
+        iVocabulary_operation => 'GET_SNOMED all tasks done',
+        iVocabulary_status => 3
+    );
   
-  session_id:=pSession;
-  last_status:=3;
-  result_output:=to_char(pVocabularySrcDate,'YYYYMMDD')||' -> '||to_char(pVocabularyNewDate,'YYYYMMDD')||', '||pVocabularySrcVersion||' -> '||pVocabularyNewVersion;
-  return;
+    session_id := pSession;
+    last_status := 3;
+    result_output := TO_CHAR(pVocabularySrcDate,'YYYYMMDD') || ' -> ' || TO_CHAR(pVocabularyNewDate,'YYYYMMDD') || ', ' || pVocabularySrcVersion || ' -> ' || pVocabularyNewVersion;
+    
+    RETURN;
   
-  EXCEPTION WHEN OTHERS THEN
-    get stacked diagnostics cRet = pg_exception_context;
-    cRet:='ERROR: '||SQLERRM||CRLF||'CONTEXT: '||cRet;
+EXCEPTION WHEN OTHERS 
+THEN
+    GET stacked DIAGNOSTICS cRet = pg_exception_context;
+    cRet:='ERROR: ' || SQLERRM || CRLF || 'CONTEXT: ' || cRet;
     set local search_path to vocabulary_download;
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>pVocabularyOperation,
-      iVocabulary_error=>cRet,
-      iError_details=>pErrorDetails,
-      iVocabulary_status=>2
-    );
     
+    PERFORM write_log (
+        iVocabularyID => pVocabularyID,
+        iSessionID => pSession,
+        iVocabulary_operation => pVocabularyOperation,
+        iVocabulary_error => cRet,
+        iError_details => pErrorDetails,
+        iVocabulary_status => 2
+    );
+
     session_id:=pSession;
     last_status:=2;
     result_output:=cRet;
-    return;
+    
+    RETURN;
 END;
 $BODY$
 LANGUAGE 'plpgsql'

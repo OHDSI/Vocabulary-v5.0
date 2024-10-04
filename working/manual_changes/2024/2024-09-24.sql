@@ -12,5 +12,3 @@ BEGIN
     pDefines_ancestry_rev    =>0
 );
 END $_$;
-
-select * from relationship where relationship_id = 'CPT4 - SNOMED eq';

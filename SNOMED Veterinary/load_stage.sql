@@ -268,381 +268,352 @@ INSERT INTO concept_relationship_stage (
 	vocabulary_id_2,
 	relationship_id,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
+	valid_end_date
 	)
-WITH attr_rel AS (
-		SELECT s0.sourceid,
-			s0.destinationid,
-			s0.typeid,
-			REPLACE(s0.term, ' (attribute)', '') AS term
+WITH tmp_rel AS (
+		-- get relationships from latest records that are active
+		SELECT sourceid,
+			destinationid,
+			REPLACE(term, ' (attribute)', '') term
 		FROM (
-			SELECT DISTINCT ON (r.id) r.sourceid,
+			SELECT r.sourceid,
 				r.destinationid,
-				r.typeid,
 				d.term,
+				ROW_NUMBER() OVER (
+					PARTITION BY r.id ORDER BY r.effectivetime DESC,
+						d.id DESC
+					) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
 				r.active
-			FROM dev_snomed.sct2_rela_full_merged_2024v2 r
-			JOIN dev_snomed.sct2_desc_full_merged_2024v2 d ON d.conceptid = r.typeid
-			WHERE r.moduleid NOT IN (
-					'999000011000001104', --UK Drug extension
-					'999000021000001108' --UK Drug extension reference set module
-					)
-			-- get the latest in a sequence of relationships, to decide whether it is still active
-			ORDER BY r.id,
-				r.effectivetime DESC,
-				d.id DESC -- fix for AVOF-650
+			FROM (
+				/*SELECT *
+				FROM sources.sct2_rela_full_merged --use the SNOMED sources as well for 'Is a' relationships
+
+				UNION*/ --use descriptions from SNOMED, but only for Veterinarians relationships
+
+				SELECT *
+				FROM sources.vet_sct2_rela_full
+				) r
+			JOIN (
+				SELECT conceptid::VARCHAR,term,id::VARCHAR
+				FROM sources.sct2_desc_full_merged --use the SNOMED sources as well for 'Is a' relationships
+
+				UNION
+
+				SELECT conceptid,term,id
+				FROM sources.vet_sct2_desc_full
+				) d ON r.typeid = d.conceptid
 			) AS s0
-		WHERE s0.active = 1
-			AND s0.sourceid IS NOT NULL
-			AND s0.destinationid IS NOT NULL
-			AND s0.term <> 'PBCL flag true'
+		WHERE rn = 1
+			AND active = 1
+			AND sourceid IS NOT NULL
+			AND destinationid IS NOT NULL
+			AND term <> 'PBCL flag true'
 		)
---convert SNOMED to OMOP-type relationship_id
-SELECT DISTINCT sourceid AS concept_code_1,
-	destinationid AS concept_code_2,
-COALESCE(c1.vocabulary_id, 'SNOMED Veterinary') AS vocabulary_id_1,
+SELECT concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+FROM (
+	--convert SNOMED to OMOP-type relationship_id
+	SELECT DISTINCT sourceid AS concept_code_1,
+		destinationid AS concept_code_2,
+		COALESCE(c1.vocabulary_id, 'SNOMED Veterinary') AS vocabulary_id_1,
 		COALESCE(c2.vocabulary_id, 'SNOMED Veterinary') AS vocabulary_id_2,
-	CASE
-		WHEN typeid = '260507000'
-			THEN 'Has access'
-		WHEN typeid = '363715002'
-			THEN 'Has etiology'
-		WHEN typeid = '255234002'
-			THEN 'Followed by'
-		WHEN typeid = '260669005'
-			THEN 'Has surgical appr'
-		WHEN typeid = '246090004'
-			THEN 'Has asso finding'
-		WHEN typeid = '116676008'
-			THEN 'Has asso morph'
-		WHEN typeid = '363589002'
-			THEN 'Has asso proc'
-		WHEN typeid = '47429007'
-			THEN 'Finding asso with'
-		WHEN typeid = '246075003'
-			THEN 'Has causative agent'
-		WHEN typeid = '263502005'
-			THEN 'Has clinical course'
-		WHEN typeid = '246093002'
-			THEN 'Has component'
-		WHEN typeid = '363699004'
-			THEN 'Has dir device'
-		WHEN typeid = '363700003'
-			THEN 'Has dir morph'
-		WHEN typeid = '363701004'
-			THEN 'Has dir subst'
-		WHEN typeid = '42752001'
-			THEN 'Has due to'
-		WHEN typeid = '246456000'
-			THEN 'Has episodicity'
-		WHEN typeid = '260858005'
-			THEN 'Has extent'
-		WHEN typeid = '408729009'
-			THEN 'Has finding context'
-		WHEN typeid = '419066007'
-			THEN 'Using finding inform'
-		WHEN typeid = '418775008'
-			THEN 'Using finding method'
-		WHEN typeid = '363698007'
-			THEN 'Has finding site'
-		WHEN typeid = '127489000'
-			THEN 'Has active ing'
-		WHEN typeid = '363705008'
-			THEN 'Has manifestation'
-		WHEN typeid IN (
-				'411116001',
-				'411116001'
-				)
-			THEN 'Has dose form'
-		WHEN typeid = '363702006'
-			THEN 'Has focus'
-		WHEN typeid = '363713009'
-			THEN 'Has interpretation'
-		WHEN typeid = '116678009'
-			THEN 'Has meas component'
-		WHEN typeid = '116686009'
-			THEN 'Has specimen'
-		WHEN typeid = '258214002'
-			THEN 'Has stage'
-		WHEN typeid = '363710007'
-			THEN 'Has indir device'
-		WHEN typeid = '363709002'
-			THEN 'Has indir morph'
-		WHEN typeid = '309824003'
-			THEN 'Using device'
-		WHEN typeid = '363703001'
-			THEN 'Has intent'
-		WHEN typeid = '363714003'
-			THEN 'Has interprets'
-		WHEN typeid = '116680003'
-			THEN 'Is a'
-		WHEN typeid = '272741003'
-			THEN 'Has laterality'
-		WHEN typeid = '370129005'
-			THEN 'Has measurement'
-		WHEN typeid = '260686004'
-			THEN 'Has method'
-		WHEN typeid = '246454002'
-			THEN 'Has occurrence'
-		WHEN typeid in ('246100006','260908002')
-			THEN 'Has clinical course'
-		WHEN typeid = '123005000'
-			THEN 'Part of'
-		WHEN typeid IN (
-				'308489006',
-				'370135005',
-				'719722006'
-				)
-			THEN 'Has pathology'
-		WHEN typeid = '260870009'
-			THEN 'Has priority'
-		WHEN typeid = '408730004'
-			THEN 'Has proc context'
-		WHEN typeid = '405815000'
-			THEN 'Has proc device'
-		WHEN typeid = '405816004'
-			THEN 'Has proc morph'
-		WHEN typeid = '405813007'
-			THEN 'Has dir proc site'
-		WHEN typeid = '405814001'
-			THEN 'Has indir proc site'
-		WHEN typeid = '363704007'
-			THEN 'Has proc site'
-		WHEN typeid = '370130000'
-			THEN 'Has property'
-		WHEN typeid = '370131001'
-			THEN 'Has recipient cat'
-		WHEN typeid = '246513007'
-			THEN 'Has revision status'
-		WHEN typeid = '410675002'
-			THEN 'Has route of admin'
-		WHEN typeid = '370132008'
-			THEN 'Has scale type'
-		WHEN typeid = '246112005'
-			THEN 'Has severity'
-		WHEN typeid = '118171006'
-			THEN 'Has specimen proc'
-		WHEN typeid = '118170007'
-			THEN 'Has specimen source'
-		WHEN typeid = '118168003'
-			THEN 'Has specimen morph'
-		WHEN typeid = '118169006'
-			THEN 'Has specimen topo'
-		WHEN typeid = '370133003'
-			THEN 'Has specimen subst'
-		WHEN typeid = '408732007'
-			THEN 'Has relat context'
-		WHEN typeid = '424876005'
-			THEN 'Has surgical appr'
-		WHEN typeid = '408731000'
-			THEN 'Has temporal context'
-		WHEN typeid = '363708005'
-			THEN 'Occurs after'
-		WHEN typeid = '370134009'
-			THEN 'Has time aspect'
-		WHEN typeid = '425391005'
-			THEN 'Using acc device'
-		WHEN typeid = '424226004'
-			THEN 'Using device'
-		WHEN typeid = '424244007'
-			THEN 'Using energy'
-		WHEN typeid = '424361007'
-			THEN 'Using subst'
-		WHEN typeid = '255234002'
-			THEN 'Followed by'
-		WHEN typeid = '8940601000001102'
-			THEN 'Has non-avail ind'
-		WHEN typeid = '12223201000001101'
-			THEN 'Has ARP'
-		WHEN typeid = '12223101000001108'
-			THEN 'Has VRP'
-		WHEN typeid = '9191701000001107'
-			THEN 'Has trade family grp'
-		WHEN typeid = '8941101000001104'
-			THEN 'Has flavor'
-		WHEN typeid = '8941901000001101'
-			THEN 'Has disc indicator'
-		WHEN typeid = '12223501000001103'
-			THEN 'VRP has prescr stat'
-		WHEN typeid = '10362801000001104'
-			THEN 'Has spec active ing'
-		WHEN typeid = '8653101000001104'
-			THEN 'Has excipient'
-		WHEN typeid IN (
-				'732943007',
-				'10363001000001101'
-				)
-			THEN 'Has basis str subst'
-		WHEN typeid = '10362601000001103'
-			THEN 'Has VMP'
-		WHEN typeid = '10362701000001108'
-			THEN 'Has AMP'
-		WHEN typeid = '10362901000001105'
-			THEN 'Has disp dose form'
-		WHEN typeid = '8940001000001105'
-			THEN 'VMP has prescr stat'
-		WHEN typeid IN (
-				'8941301000001102',
-				'4074701000001107'
-				)
-			THEN 'Has legal category'
-		WHEN typeid = '42752001'
-			THEN 'Caused by'
-		WHEN typeid = '704326004'
-			THEN 'Has precondition'
-		WHEN typeid = '718497002'
-			THEN 'Has inherent loc'
-		WHEN typeid = '246501002'
-			THEN 'Has technique'
-		WHEN typeid = '719715003'
-			THEN 'Has relative part'
-		WHEN typeid = '704324001'
-			THEN 'Has process output'
-		WHEN typeid = '704318007'
-			THEN 'Has property type'
-		WHEN typeid = '704319004'
-			THEN 'Inheres in'
-		WHEN typeid = '704327008'
-			THEN 'Has direct site'
-		WHEN typeid = '704321009'
-			THEN 'Characterizes'
-				--added 20171116
-		WHEN typeid = '371881003'
-			THEN 'During'
-		WHEN typeid = '732947008'
-			THEN 'Has denominator unit'
-		WHEN typeid = '732946004'
-			THEN 'Has denomin value'
-		WHEN typeid = '732945000'
-			THEN 'Has numerator unit'
-		WHEN typeid = '732944001'
-			THEN 'Has numerator value'
-				--added 20180205
-		WHEN typeid = '736476002'
-			THEN 'Has basic dose form'
-		WHEN typeid = '726542003'
-			THEN 'Has disposition'
-		WHEN typeid = '736472000'
-			THEN 'Has admin method'
-		WHEN typeid = '736474004'
-			THEN 'Has intended site'
-		WHEN typeid = '736475003'
-			THEN 'Has release charact'
-		WHEN typeid = '736473005'
-			THEN 'Has transformation'
-		WHEN typeid = '736518005'
-			THEN 'Has state of matter'
-		WHEN typeid = '726633004'
-			THEN 'Temp related to'
-				--added 20180622
-		WHEN typeid = '13085501000001109'
-			THEN 'Has unit of admin'
-		WHEN typeid = '762949000'
-			THEN 'Has prec ingredient'
-		WHEN typeid = '763032000'
-			THEN 'Has unit of presen'
-		WHEN typeid = '733724008'
-			THEN 'Has conc num val'
-		WHEN typeid = '733723002'
-			THEN 'Has conc denom val'
-		WHEN typeid = '733722007'
-			THEN 'Has conc denom unit'
-		WHEN typeid = '733725009'
-			THEN 'Has conc num unit'
-		WHEN typeid = '738774007'
-			THEN 'Modification of'
-		WHEN typeid = '766952006'
-			THEN 'Has count of ing'
-				--20190204
-		WHEN typeid = '766939001'
-			THEN 'Plays role'
-				--20190823
-		WHEN typeid = '13088401000001104'
-			THEN 'Has route'
-		WHEN typeid = '13089101000001102'
-			THEN 'Has CD category'
-		WHEN typeid = '13088501000001100'
-			THEN 'Has ontological form'
-		WHEN typeid = '13088901000001108'
-			THEN 'Has combi prod ind'
-		WHEN typeid = '13088701000001106'
-			THEN 'Has form continuity'
-				--20200312
-		WHEN typeid = '13090301000001106'
-			THEN 'Has add monitor ind'
-		WHEN typeid = '13090501000001104'
-			THEN 'Has AMP restr ind'
-		WHEN typeid = '13090201000001102'
-			THEN 'Paral imprt ind'
-		WHEN typeid = '13089701000001101'
-			THEN 'Has free indicator'
-		WHEN typeid = '246514001'
-			THEN 'Has unit'
-		WHEN typeid = '704323007'
-			THEN 'Has proc duration'
-				--20201023
-		WHEN typeid = '704325000'
-			THEN 'Relative to'
-		WHEN typeid = '766953001'
-			THEN 'Has count of act ing'
-		WHEN typeid = '860781008'
-			THEN 'Has prod character'
-		WHEN typeid = '860779006'
-			THEN 'Has prod character'
-		WHEN typeid = '246196007'
-			THEN 'Surf character of'
-		WHEN typeid = '836358009'
-			THEN 'Has dev intend site'
-		WHEN typeid = '840562008'
-			THEN 'Has prod character'
-		WHEN typeid = '840560000'
-			THEN 'Has comp material'
-		WHEN typeid = '827081001'
-			THEN 'Has filling'
-				--January 2022
-		WHEN typeid = '1148967007'
-			THEN 'Has coating material'
-		WHEN typeid = '1148969005'
-			THEN 'Has absorbability'
-		WHEN typeid = '1003703000'
-			THEN 'Process extends to'
-		WHEN typeid = '1149366004'
-			THEN 'Has strength'
-		WHEN typeid = '1148968002'
-			THEN 'Has surface texture'
-		WHEN typeid = '1148965004'
-			THEN 'Is sterile'
-		WHEN typeid = '1149367008'
-			THEN 'Has targ population'
-				-- August 2023
-		WHEN typeid = '1003735000'
-			THEN 'Process acts on'
-		WHEN typeid = '288556008'
-			THEN 'Before'
-		WHEN typeid = '704320005'
-			THEN 'Towards'
-	       WHEN typeid='26421000009105'
-THEN 'Has life circumstan'
-WHEN typeid='30951000009108'
-THEN 'Has sub-specimen'
-WHEN typeid='26431000009107'
-THEN 'Has physiol state'
-		ELSE term --'non-existing'
-		END AS relationship_id,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'SNOMED Veterinary'
-		) AS valid_start_date,
-	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-	NULL AS invalid_reason
-FROM attr_rel
+		CASE
+			WHEN term = 'Access'
+				THEN 'Has access'
+			WHEN term = 'Associated aetiologic finding'
+				THEN 'Has etiology'
+			WHEN term = 'After'
+				THEN 'Followed by'
+			WHEN term = 'Approach'
+				THEN 'Has surgical appr' -- looks like old version
+			WHEN term = 'Associated finding'
+				THEN 'Has asso finding'
+			WHEN term = 'Associated morphology'
+				THEN 'Has asso morph'
+			WHEN term = 'Associated procedure'
+				THEN 'Has asso proc'
+			WHEN term = 'Associated with'
+				THEN 'Finding asso with'
+			WHEN term = 'AW'
+				THEN 'Finding asso with'
+			WHEN term = 'Causative agent'
+				THEN 'Has causative agent'
+			WHEN term IN (
+					'Clinical course',
+					'Course'
+					)
+				THEN 'Has clinical course'
+			WHEN term = 'Component'
+				THEN 'Has component'
+			WHEN term = 'Direct device'
+				THEN 'Has dir device'
+			WHEN term = 'Direct morphology'
+				THEN 'Has dir morph'
+			WHEN term = 'Direct substance'
+				THEN 'Has dir subst'
+			WHEN term = 'Due to'
+				THEN 'Has due to'
+			WHEN term = 'Episodicity'
+				THEN 'Has episodicity'
+			WHEN term = 'Extent'
+				THEN 'Has extent'
+			WHEN term = 'Finding context'
+				THEN 'Has finding context'
+			WHEN term = 'Finding informer'
+				THEN 'Using finding inform'
+			WHEN term = 'Finding method'
+				THEN 'Using finding method'
+			WHEN term = 'Finding site'
+				THEN 'Has finding site'
+			WHEN term = 'Has active ingredient'
+				THEN 'Has active ing'
+			WHEN term = 'Has definitional manifestation'
+				THEN 'Has manifestation'
+			WHEN term = 'Has dose form'
+				THEN 'Has dose form'
+			WHEN term = 'Has focus'
+				THEN 'Has focus'
+			WHEN term = 'Has interpretation'
+				THEN 'Has interpretation'
+			WHEN term = 'Has measured component'
+				THEN 'Has meas component'
+			WHEN term = 'Has specimen'
+				THEN 'Has specimen'
+			WHEN term = 'Stage'
+				THEN 'Has stage'
+			WHEN term = 'Indirect device'
+				THEN 'Has indir device'
+			WHEN term = 'Indirect morphology'
+				THEN 'Has indir morph'
+			WHEN term = 'Instrumentation'
+				THEN 'Using device' -- looks like an old version
+			WHEN term IN (
+					'Intent',
+					'Has intent'
+					)
+				THEN 'Has intent'
+			WHEN term = 'Interprets'
+				THEN 'Has interprets'
+			WHEN term = 'Is a'
+				THEN 'Is a'
+			WHEN term = 'Laterality'
+				THEN 'Has laterality'
+			WHEN term = 'Measurement method'
+				THEN 'Has measurement'
+			WHEN term = 'Measurement Method'
+				THEN 'Has measurement' -- looks like misspelling
+			WHEN term = 'Method'
+				THEN 'Has method'
+			WHEN term = 'Morphology'
+				THEN 'Has asso morph' -- changed to the same thing as 'Has Morphology'
+			WHEN term = 'Occurrence'
+				THEN 'Has occurrence'
+			WHEN term = 'Onset'
+				THEN 'Has clinical course' -- looks like old version
+			WHEN term = 'Part of'
+				THEN 'Has part of'
+			WHEN term = 'Pathological process'
+				THEN 'Has pathology'
+			WHEN term = 'Pathological process (qualifier value)'
+				THEN 'Has pathology'
+			WHEN term = 'Priority'
+				THEN 'Has priority'
+			WHEN term = 'Procedure context'
+				THEN 'Has proc context'
+			WHEN term = 'Procedure device'
+				THEN 'Has proc device'
+			WHEN term = 'Procedure morphology'
+				THEN 'Has proc morph'
+			WHEN term = 'Procedure site - Direct'
+				THEN 'Has dir proc site'
+			WHEN term = 'Procedure site - Indirect'
+				THEN 'Has indir proc site'
+			WHEN term = 'Procedure site'
+				THEN 'Has proc site'
+			WHEN term = 'Property'
+				THEN 'Has property'
+			WHEN term = 'Recipient category'
+				THEN 'Has recipient cat'
+			WHEN term = 'Revision status'
+				THEN 'Has revision status'
+			WHEN term = 'Route of administration'
+				THEN 'Has route of admin'
+			WHEN term = 'Route of administration - attribute'
+				THEN 'Has route of admin'
+			WHEN term = 'Scale type'
+				THEN 'Has scale type'
+			WHEN term = 'Severity'
+				THEN 'Has severity'
+			WHEN term = 'Specimen procedure'
+				THEN 'Has specimen proc'
+			WHEN term = 'Specimen source identity'
+				THEN 'Has specimen source'
+			WHEN term = 'Specimen source morphology'
+				THEN 'Has specimen morph'
+			WHEN term = 'Specimen source topography'
+				THEN 'Has specimen topo'
+			WHEN term = 'Specimen substance'
+				THEN 'Has specimen subst'
+			WHEN term = 'Subject relationship context'
+				THEN 'Has relat context'
+			WHEN term = 'Surgical approach'
+				THEN 'Has surgical appr'
+			WHEN term = 'Temporal context'
+				THEN 'Has temporal context'
+			WHEN term = 'Temporally follows'
+				THEN 'Occurs after' -- looks like an old version
+			WHEN term = 'Time aspect'
+				THEN 'Has time aspect'
+			WHEN term = 'Using access device'
+				THEN 'Using acc device'
+			WHEN term = 'Using device'
+				THEN 'Using device'
+			WHEN term = 'Using energy'
+				THEN 'Using energy'
+			WHEN term = 'Using substance'
+				THEN 'Using subst'
+			WHEN term = 'Following'
+				THEN 'Followed by'
+			WHEN term = 'VMP non-availability indicator'
+				THEN 'Has non-avail ind'
+			WHEN term = 'Has ARP'
+				THEN 'Has ARP'
+			WHEN term = 'Has VRP'
+				THEN 'Has VRP'
+			WHEN term = 'Has trade family group'
+				THEN 'Has trade family grp'
+			WHEN term = 'Flavour'
+				THEN 'Has flavor'
+			WHEN term = 'Discontinued indicator'
+				THEN 'Has disc indicator'
+			WHEN term = 'VRP prescribing status'
+				THEN 'VRP has prescr stat'
+			WHEN term = 'Has specific active ingredient'
+				THEN 'Has spec active ing'
+			WHEN term = 'Has excipient'
+				THEN 'Has excipient'
+			WHEN term = 'Has basis of strength substance'
+				THEN 'Has basis str subst'
+			WHEN term = 'Has VMP'
+				THEN 'Has VMP'
+			WHEN term = 'Has AMP'
+				THEN 'Has AMP'
+			WHEN term = 'Has dispensed dose form'
+				THEN 'Has disp dose form'
+			WHEN term = 'VMP prescribing status'
+				THEN 'VMP has prescr stat'
+			WHEN term = 'Legal category'
+				THEN 'Has legal category'
+			WHEN term = 'Caused by'
+				THEN 'Caused by'
+			WHEN term = 'Precondition'
+				THEN 'Has precondition'
+			WHEN term = 'Inherent location'
+				THEN 'Has inherent loc'
+			WHEN term = 'Technique'
+				THEN 'Has technique'
+			WHEN term = 'Relative to part of'
+				THEN 'Has relative part'
+			WHEN term = 'Process output'
+				THEN 'Has process output'
+			WHEN term = 'Property type'
+				THEN 'Has property type'
+			WHEN term = 'Inheres in'
+				THEN 'Inheres in'
+			WHEN term = 'Direct site'
+				THEN 'Has direct site'
+			WHEN term = 'Characterizes'
+				THEN 'Characterizes'
+					--added 20171116
+			WHEN term = 'During'
+				THEN 'During'
+			WHEN term = 'Has BoSS'
+				THEN 'Has basis str subst' -- use existing relationship
+			WHEN term = 'Has manufactured dose form'
+				THEN 'Has dose form' -- use existing relationship
+			WHEN term = 'Has presentation strength denominator unit'
+				THEN 'Has denominator unit'
+			WHEN term = 'Has presentation strength denominator value'
+				THEN 'Has denomin value'
+			WHEN term = 'Has presentation strength numerator unit'
+				THEN 'Has numerator unit'
+			WHEN term = 'Has presentation strength numerator value'
+				THEN 'Has numerator value'
+					--added 20180205
+			WHEN term = 'Has basic dose form'
+				THEN 'Has basic dose form'
+			WHEN term = 'Has disposition'
+				THEN 'Has disposition'
+			WHEN term = 'Has dose form administration method'
+				THEN 'Has admin method'
+			WHEN term = 'Has dose form intended site'
+				THEN 'Has intended site'
+			WHEN term = 'Has dose form release characteristic'
+				THEN 'Has release charact'
+			WHEN term = 'Has dose form transformation'
+				THEN 'Has transformation'
+			WHEN term = 'Has state of matter'
+				THEN 'Has state of matter'
+			WHEN term = 'Temporally related to'
+				THEN 'Temp related to'
+					--added 20180622
+			WHEN term = 'Has NHS dm+d basis of strength substance'
+				THEN 'Has basis str subst'
+			WHEN term = 'Has unit of administration'
+				THEN 'Has unit of admin'
+			WHEN term = 'Has precise active ingredient'
+				THEN 'Has prec ingredient'
+			WHEN term = 'Has unit of presentation'
+				THEN 'Has unit of presen'
+			WHEN term = 'Has concentration strength numerator value'
+				THEN 'Has conc num val'
+			WHEN term = 'Has concentration strength denominator value'
+				THEN 'Has conc denom val'
+			WHEN term = 'Has concentration strength denominator unit'
+				THEN 'Has conc denom unit'
+			WHEN term = 'Has concentration strength numerator unit'
+				THEN 'Has conc num unit'
+			WHEN term = 'Is modification of'
+				THEN 'Modification of'
+			WHEN term = 'Count of base of active ingredient'
+				THEN 'Has count of ing'
+					--20190204
+			WHEN term = 'Has realization'
+				THEN 'Has pathology'
+			WHEN term = 'Plays role'
+				THEN 'Plays role'
+			WHEN term = 'Has physiologic state'
+				THEN 'Has physiol state'
+			WHEN term = 'Includes sub-specimen'
+				THEN 'Has sub-specimen'
+			WHEN term = 'Has life circumstance'
+				THEN 'Has life circumstan'
+			ELSE term --'non-existing'
+			END AS relationship_id,
+		(
+			SELECT latest_update
+			FROM vocabulary
+			WHERE vocabulary_id = 'SNOMED Veterinary'
+			) AS valid_start_date,
+		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+	FROM tmp_rel
+	--we don't know about concepts in relationships to set the proper vocabulary_id, so we need to check SNOMED vocabulary
 	LEFT JOIN concept c1 ON c1.concept_code = sourceid
 		AND c1.vocabulary_id = 'SNOMED'
 	LEFT JOIN concept c2 ON c2.concept_code = destinationid
 		AND c2.vocabulary_id = 'SNOMED'
-ON CONFLICT DO NOTHING;
+	) sn
+WHERE NOT (
+		sn.vocabulary_id_1 = 'SNOMED'
+		AND sn.vocabulary_id_2 = 'SNOMED'
+		AND sn.relationship_id <> 'Is a'
+		);--we need SNOMED 'Is a' SNOMED for snomed_ancestor, other relationships between SNOMED and SNOMED we don't want
+
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
@@ -1444,4 +1415,13 @@ DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 
+DO $_$
+   BEGIN
+       PERFORM devv5.GenericUpdate();
+   END $_$;
+
+DO $_$
+	BEGIN
+		PERFORM vocabulary_pack.pConceptAncestor();
+	END $_$;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

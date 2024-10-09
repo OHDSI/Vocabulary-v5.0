@@ -85,6 +85,7 @@ FROM (
 	FROM sources.vet_sct2_concept_full c,
 		sources.vet_sct2_desc_full d
 	WHERE c.id = d.conceptid
+	    AND d.languagecode = 'en'
 		AND term IS NOT NULL
 	) sct2
 WHERE sct2.rn = 1

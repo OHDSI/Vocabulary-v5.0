@@ -15,7 +15,7 @@
 *
 * Authors: Maria Rogozhkina,
 * Aliaksei Katyshou, Vlad Korsik,
-* Alexander Davydov, Oleg Zhuk,
+* Alexander Davydov, Oleg Zhuk, EORTC QLQ Group
 * Date: 2024
 **************************************************************************/
 

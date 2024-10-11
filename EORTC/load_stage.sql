@@ -46,7 +46,8 @@ TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 
 
---1. CONCEPT_STAGE POPULATION for Questionnaires
+--1. CONCEPT_STAGE POPULATION
+-- Questionnaires
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -89,7 +90,8 @@ FROM (SELECT DISTINCT CASE
       where (qs.state is NULL OR qs.code = 'SBQ') -- to prevent Drafts ingestion
       ) AS tab;
 
---CONCEPT_SYNONYM POPULATION for Questionnaires
+--CONCEPT_SYNONYM POPULATION
+-- Questionnaires
 INSERT INTO concept_synonym_stage (synonym_name,
                                    synonym_concept_code,
                                    synonym_vocabulary_id,
@@ -110,7 +112,8 @@ FROM (SELECT DISTINCT CASE
 WHERE synonym_name IS NOT NULL
 ;
 
---CONCEPT POPULATION with Questions per se
+--CONCEPT POPULATION
+-- true-Question (non-Standard)
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -155,7 +158,8 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
 WHERE rating_in_section = 1
 ;
 
---CONCEPT POPULATION with Questions classifiers
+--CONCEPT POPULATION
+-- Questions classifiers
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -198,7 +202,8 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
 WHERE rating_in_section = 1
 ;
 
---CONCEPT POPULATION with Direction
+--CONCEPT POPULATION
+-- Direction
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -242,7 +247,8 @@ WHERE rating_in_section = 1
 ;
 
 
---CONCEPT POPULATION with Issue
+--CONCEPT POPULATION
+-- Issues
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -284,7 +290,8 @@ WHERE rating_in_section = 1
 ;
 
 
---CONCEPT POPULATION Scales per se
+--CONCEPT POPULATION
+-- true-Scales (non Standard)
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -346,7 +353,8 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
 WHERE rating_in_section = 1
 ;
 
---CONCEPT POPULATION Scales Classifiers
+--CONCEPT POPULATION
+-- Scales Classifiers
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -413,7 +421,8 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
 WHERE rating_in_section = 1
 ;
 
---CONCEPT POPULATION Answer
+--CONCEPT POPULATION
+-- Answer design logic (window F is aimed to minimize the number of potential variations, with array position as only exception as in different Likert scale Numeric values may mean opposite things)
 INSERT INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -452,7 +461,7 @@ OVER (PARTITION BY SPLIT_PART(cs.concept_code, '_', 2) ORDER BY LENGTH(cs.concep
 ;
 
 --CONCEPT_RELATIONSHIP POPULATION
---Questions- to Q-classifiers
+--Create relationships from true-Question to Question-classifier
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -497,7 +506,7 @@ WHERE rating_in_section = 1
 ;
 
 --CONCEPT_SYNONYM POPULATION
---Questions- as synonyms for Q-classifiers
+--Questions as Synonyms for Question-classifiers
 INSERT INTO concept_synonym_stage       (synonym_concept_code,synonym_name,synonym_vocabulary_id,language_concept_id)
 
 SELECT DISTINCT concept_code_2,
@@ -531,7 +540,7 @@ WHERE rating_in_section = 1
 ;
 
 --CONCEPT_RELATIONSHIP POPULATION
---Scale- to Scale-classifiers
+--Create relationships from true-Scale(non-standard) to Scale-classifiers
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -573,7 +582,7 @@ ORDER BY concept_code_2, relationship_id, concept_code_1
 ;
 
 --CONCEPT_RELATIONSHIP POPULATION
---RespScale + Answer
+--Create relationships from Response Scale to Answer
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -621,7 +630,7 @@ FROM (SELECT DISTINCT concept_code                                              
 ;
 
 --CONCEPT_RELATIONSHIP POPULATION
---questionnaire to its scale
+--Create relationships from Questionnaire to its Scales
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -669,7 +678,7 @@ FROM (SELECT cs.concept_name                 AS concept_name_1,
 ;
 
 --CONCEPT_RELATIONSHIP POPULATION
---Qr to tru-Q
+--Create relationships from Questionnaire to true-Question (non-Standard)
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -716,7 +725,7 @@ FROM tab
 
 
 --CONCEPT_RELATIONSHIP POPULATION
---question to SymScale
+--Create relationships from Question to SYMPTOM Scale
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -781,7 +790,7 @@ FROM (SELECT cs2.concept_name                AS concept_name_1,
 
 
 --CONCEPT_RELATIONSHIP POPULATION
---question to Other Scales
+--Create relationships from Question to Other Scales
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -843,7 +852,7 @@ FROM (SELECT cs2.concept_name                AS concept_name_1,
 ;
 
 --CONCEPT_RELATIONSHIP POPULATION
---Question to Answer
+--Create relationships from Question to Answer
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -893,7 +902,7 @@ FROM (SELECT DISTINCT cs.concept_name                 AS concept_name_1,
 
 
 --CONCEPT RELATIONSHIP POPULATION
--- Issue to class-Q
+--Create relationships from Issue to classification-Questions
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -938,7 +947,7 @@ FROM (SELECT DISTINCT
 ;
 
 --CONCEPT RELATIONSHIP POPULATION
--- Issue to true-Q
+-- Create relationships from Issue to true-Question (non-Standard)
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -991,8 +1000,8 @@ FROM (SELECT DISTINCT cs2.concept_name                AS concept_name_1,
 ;
 
 
---CONCEPT_RELATIONSHIP POPULATION
---Direction- to Q-classifiers
+--CONCEPT_RELATIONSHIP_STAGE POPULATION
+--Create relationships from Direction to classification-Questions
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -1033,7 +1042,7 @@ FROM (      SELECT
 ;
 
 
---Direction- to true-Q
+--Create relationships from Direction to true-Question (non-Standard)
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,

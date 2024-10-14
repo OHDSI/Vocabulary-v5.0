@@ -79,7 +79,11 @@ FROM (SELECT DISTINCT CASE
                               ) END                                                                     AS concept_name,
                       'Measurement'                                                                     AS domain_id,
                       'EORTC QLQ'                                                                       AS vocabulary_id,
-                     CASE WHEN qs.type = 'catshort' then 'CAT SHORT' else UPPER(qs.type)    end as     conept_class_id,
+                     CASE WHEN qs.type = 'catshort'
+                         then 'CAT Short'
+                         WHEN qs.type = 'cat'
+                         THEN 'CAT'
+                         else initcap(qs.type)    end as     conept_class_id,
                   NULL                                                                              AS standard_concept,
                     qs.id || '-' ||  qs.code                                                         AS code,
                       TO_DATE(TO_CHAR(LEAST(qs.createdate, qs.updatedate), 'YYYY-MM-DD'),
@@ -227,7 +231,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
              TO_DATE('2099-12-31', 'YYYY-MM-DD')                                                    AS valid_end_date,
              INITCAP(qi.direction)                                                             AS concept_name,
              lower(qi.direction)                                                                    AS concept_code,
-             'DIRECTION'                                                                            AS concept_class_id,
+             'Direction'                                                                            AS concept_class_id,
              'EORTC QLQ'                                                                            AS vocabulary_id,
              'Meas Value'                                                                           AS domain_id,
              NULL                                                                                   AS standard_concept,
@@ -271,7 +275,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
              TO_DATE('2099-12-31', 'YYYY-MM-DD')                                                    AS valid_end_date,
              qi.underlyingissue                                                                     AS concept_name,
              'ISS_' || (regexp_match(qi.code,'\d+'))[1]::varchar                                                             AS concept_code,
-             'ISSUE'                                                                                AS concept_class_id,
+             'Issue'                                                                                AS concept_class_id,
              'EORTC QLQ'                                                                            AS vocabulary_id,
              'Observation'                                                                          AS domain_id,
              NULL                                                                                   AS standard_concept,
@@ -327,16 +331,16 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
                           ELSE 'Meas Value' END                                                            AS domain_id_1,
                       CASE
                           WHEN qi.type = 'responseScale'
-                              THEN 'RESPONSE SCALE'
+                              THEN 'Response Scale'
                           WHEN qi.type = 'symptomScale'
-                              THEN 'SYMPTOM SCALE'
+                              THEN 'Symptom Scale'
                           WHEN qi.type = 'timeScale'
-                              THEN 'TIME SCALE'
+                              THEN 'Time Scale'
                           END                                                                              AS concept_class_id_1,
                       CASE
                           WHEN qi.type = 'symptomScale' THEN 'Measurement'
                           ELSE 'Meas Value' END                                                            AS domain_id_2,
-                      qi.type                                                                              AS concept_class_id_2,
+                      INITCAP(qi.type)                                                                              AS concept_class_id_2,
                       'C'                                                                                  AS standard_concept_2,
                       ROW_NUMBER() OVER (PARTITION BY qi.id ORDER BY TO_DATE(
                               TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'),
@@ -390,22 +394,22 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
                           ELSE 'Meas Value' END                                                            AS domain_id_1,
                       CASE
                           WHEN qi.type = 'responseScale'
-                              THEN 'RESPONSE SCALE'
+                              THEN 'Response Scale'
                           WHEN qi.type = 'symptomScale'
-                              THEN 'SYMPTOM SCALE'
+                              THEN 'Symptom Scale'
                           WHEN qi.type = 'timeScale'
-                              THEN 'TIME SCALE'
+                              THEN 'Time Scale'
                           END                                                                              AS concept_class_id_1,
                       CASE
                           WHEN qi.type = 'symptomScale' THEN 'Measurement'
                           ELSE 'Meas Value' END                                                            AS domain_id_2,
                       CASE
                           WHEN qi.type = 'responseScale'
-                              THEN 'RESPONSE SCALE'
+                              THEN 'Response Scale'
                           WHEN qi.type = 'symptomScale'
-                              THEN 'SYMPTOM SCALE'
+                              THEN 'Symptom Scale'
                           WHEN qi.type = 'timeScale'
-                              THEN 'TIME SCALE'
+                              THEN 'Time Scale'
                           END                                                                              AS concept_class_id_2,
                       'C'                                                                                  AS standard_concept_2,
                       ROW_NUMBER() OVER (PARTITION BY qi.code ORDER BY TO_DATE(
@@ -456,7 +460,7 @@ FROM (SELECT DISTINCT SPLIT_PART(cs.concept_code, '_', 2)                       
                       DENSE_RANK()
 OVER (PARTITION BY SPLIT_PART(cs.concept_code, '_', 2) ORDER BY LENGTH(cs.concept_name) ASC ,cs.concept_name ASC) AS rating_in_section
       FROM concept_stage cs
-      WHERE concept_class_id = 'RESPONSE SCALE'
+      WHERE concept_class_id = 'Response Scale'
         AND standard_concept IS NULL) AS table_answ
 ;
 
@@ -564,10 +568,10 @@ WITH tab AS (SELECT cs.concept_code                 AS concept_code_1,
              FROM concept_stage cs
                       JOIN concept_stage cs2
                            ON SPLIT_PART(cs.concept_code, '_', 2) = cs2.concept_code
-             WHERE cs.concept_class_id LIKE '%SCALE'
+             WHERE cs.concept_class_id LIKE '%Scale'
                AND cs.standard_concept IS NULL
 
-               AND cs2.concept_class_id LIKE '%SCALE'
+               AND cs2.concept_class_id LIKE '%Scale'
                AND cs2.standard_concept = 'C')
 SELECT DISTINCT concept_code_1,
                 concept_code_2,
@@ -625,7 +629,7 @@ FROM (SELECT DISTINCT concept_code                                              
                   OVER (PARTITION BY SPLIT_PART(cs.concept_code, '_', 2) ORDER BY LENGTH(cs.concept_name) ASC ,cs.concept_name ASC)  AS rating_in_section
 
             FROM concept_stage cs
-            WHERE concept_class_id = 'RESPONSE SCALE'
+            WHERE concept_class_id = 'Response Scale'
               AND standard_concept IS NULL) AS table_answ) AS responses_rel_tab
 ;
 
@@ -669,11 +673,11 @@ FROM (SELECT cs.concept_name                 AS concept_name_1,
                LEFT JOIN concept_stage cs1
                          ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
                              AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
-      WHERE cs1.concept_class_id LIKE '%SCALE'
+      WHERE cs1.concept_class_id LIKE '%Scale'
         AND (qs.state is NULL OR qs.code = 'SBQ')
         AND cs.concept_class_id IN (
-                                    'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
-                                    'PREVIOUS')) --filer questionnaire
+                                    'Core', 'Module', 'Standalone', 'CAT', 'CAT Short',
+                                    'Previous')) --filer questionnaire
          AS q_to_sc_tab
 ;
 
@@ -709,8 +713,8 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_1,
             WHERE (qs.state is NULL OR qs.code = 'SBQ')
               AND qi.type = 'question'
                AND cs.concept_class_id IN (
-                                           'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
-                                           'PREVIOUS') --filer questionnaire
+                                           'Core', 'Module', 'Standalone', 'CAT', 'CAT Short',
+                                    'Previous') --filer questionnaire
 )
 SELECT DISTINCT concept_code_1,
                                         concept_code_2,
@@ -753,11 +757,11 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_qr,
                       LEFT JOIN concept_stage cs1
                                 ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
                                     AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
-             WHERE cs1.concept_class_id = 'SYMPTOM SCALE'
+             WHERE cs1.concept_class_id = 'Symptom Scale'
                AND (qs.state is NULL OR qs.code = 'SBQ')
                AND cs.concept_class_id IN (
-                                           'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
-                                           'PREVIOUS') --filer questionnaire
+                                           'Core', 'Module', 'Standalone', 'CAT', 'CAT Short',
+                                    'Previous') --filer questionnaire
 )
 SELECT DISTINCT concept_code_1,
                 concept_code_2,
@@ -818,11 +822,11 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_qr,
                       LEFT JOIN concept_stage cs1
                                 ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
                                     AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
-             WHERE cs1.concept_class_id != 'SYMPTOM SCALE'
+             WHERE cs1.concept_class_id != 'Symptom Scale'
                AND (qs.state is NULL OR qs.code = 'SBQ')
                AND cs.concept_class_id IN (
-                                           'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
-                                           'PREVIOUS') --filer questionnaire
+                                           'Core', 'Module', 'Standalone', 'CAT', 'CAT Short',
+                                    'Previous') --filer questionnaire
 )
 SELECT DISTINCT concept_code_1,
                 concept_code_2,
@@ -888,7 +892,7 @@ FROM (SELECT DISTINCT cs.concept_name                 AS concept_name_1,
                JOIN concept_stage csi
                     ON csi.concept_code = crs.concept_code_2
                         AND csi.vocabulary_id = crs.vocabulary_id_2
-                        AND csi.concept_class_id = 'RESPONSE SCALE'
+                        AND csi.concept_class_id = 'Response Scale'
                JOIN concept_relationship_stage crsi
                     ON crsi.concept_code_1 = csi.concept_code
                         AND csi.vocabulary_id = crsi.vocabulary_id_1
@@ -995,7 +999,7 @@ FROM (SELECT DISTINCT cs2.concept_name                AS concept_name_1,
                JOIN concept_stage cs2
                     ON crsi.concept_code_1 = cs2.concept_code
                         AND cs2.vocabulary_id = crsi.vocabulary_id_2
-                        AND cs2.concept_class_id = 'ISSUE'
+                        AND cs2.concept_class_id = 'Issue'
       ) AS q_to_issue
 ;
 
@@ -1090,7 +1094,7 @@ FROM (SELECT DISTINCT cs2.concept_name                AS concept_name_1,
                JOIN concept_stage cs2
                     ON crsi.concept_code_1 = cs2.concept_code
                         AND cs2.vocabulary_id = crsi.vocabulary_id_2
-                        AND cs2.concept_class_id = 'DIRECTION'
+                        AND cs2.concept_class_id = 'Direction'
       ) AS q_to_issue
 ;
 

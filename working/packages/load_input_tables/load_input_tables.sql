@@ -930,9 +930,49 @@ begin
             COALESCE(pVocabularyDate, current_date), 
             'archive.eortc_version', 
             10);
-  else
+    WHEN 'ATC'
+    THEN 
+        TRUNCATE TABLE sources.atc_codes;
+        
+        INSERT INTO sources.atc_codes(
+            class_code, 
+            class_name, 
+            ddd, 
+            u, 
+            adm_r, 
+            note, 
+            start_date, 
+            revision_date, 
+            active, 
+            replaced_by, 
+            _atc_ver)
+        SELECT
+            class_code::VARCHAR(7),
+            class_name::VARCHAR(255),
+            ddd::VARCHAR(10),
+            u::VARCHAR(20),
+            adm_r::VARCHAR(20),
+            note::VARCHAR(255),
+            start_date::DATE,
+            revision_date::DATE,
+            active::VARCHAR(2),
+            replaced_by::VARCHAR(7),
+            ver::VARCHAR(20)
+        FROM vocabulary_download.py_load_atc();
+        
+        UPDATE sources.atc_codes
+           SET vocabulary_date = pvocabularydate,
+               vocabulary_version = pvocabularyversion;
+        
+        PERFORM sources_archive.AddVocabularyToArchive(
+            'ATC', 
+            ARRAY['atc_codes'], 
+            COALESCE(pVocabularyDate, current_date), 
+            'archive.atc_version', 
+            10);
+  ELSE
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
-  end case;
+  END CASE;
 end;
 $body$
 LANGUAGE 'plpgsql'

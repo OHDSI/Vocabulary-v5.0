@@ -1,5 +1,5 @@
 /**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+* Copyright 2016 Observational Health Data Sciences AND Informatics (OHDSI)
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 
 
---1. CONCEPT_STAGE POPULATION
+-- CONCEPT_STAGE POPULATION
 -- Questionnaires
 INSERT INTO concept_stage (concept_name,
                            domain_id,
@@ -87,10 +87,10 @@ FROM (SELECT DISTINCT CASE
                       TO_DATE('2099-12-31', 'YYYY-MM-DD')                                               AS valid_end_date,
                       NULL                                                                              AS invalid_reason
       FROM sources.eortc_questionnaires qs
-      where (qs.state is NULL OR qs.code = 'SBQ') -- to prevent Drafts ingestion
+      WHERE (qs.state is NULL OR qs.code = 'SBQ') -- to prevent Drafts ingestion
       ) AS tab;
 
---CONCEPT_SYNONYM POPULATION
+-- CONCEPT_SYNONYM POPULATION
 -- Questionnaires
 INSERT INTO concept_synonym_stage (synonym_name,
                                    synonym_concept_code,
@@ -107,7 +107,7 @@ FROM (SELECT DISTINCT CASE
                       'EORTC QLQ'                AS vocabulary_id,
                       4180186                    AS language_concept_id -- English
       FROM sources.eortc_questionnaires qs
-      where (qs.state is NULL OR qs.code = 'SBQ')
+      WHERE (qs.state is NULL OR qs.code = 'SBQ')
       ) AS TAB
 WHERE synonym_name IS NOT NULL
 ;
@@ -153,7 +153,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -197,7 +197,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -241,7 +241,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -284,7 +284,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(qi.createdate, qi.updatedate), 'YYYY-MM-DD'),
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -348,7 +348,7 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type LIKE '%Scale'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ) AS tab
 WHERE rating_in_section = 1
 ;
@@ -500,7 +500,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -534,7 +534,7 @@ FROM (SELECT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-MM-DD'), '
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
       WHERE qi.type = 'question'
-      and (qs.state is NULL OR qs.code = 'SBQ')
+      AND (qs.state is NULL OR qs.code = 'SBQ')
       ORDER BY qs.code, qi.codeprefix, q.position::int) AS tab
 WHERE rating_in_section = 1
 ;
@@ -670,7 +670,7 @@ FROM (SELECT cs.concept_name                 AS concept_name_1,
                          ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
                              AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
       WHERE cs1.concept_class_id LIKE '%SCALE'
-        and (qs.state is NULL OR qs.code = 'SBQ')
+        AND (qs.state is NULL OR qs.code = 'SBQ')
         AND cs.concept_class_id IN (
                                     'CORE', 'MODULE', 'STANDALONE', 'CAT', 'CAT SHORT',
                                     'PREVIOUS')) --filer questionnaire
@@ -987,7 +987,7 @@ FROM (SELECT DISTINCT cs2.concept_name                AS concept_name_1,
                     ON csi.concept_code = crs.concept_code_2
                         AND csi.vocabulary_id = crs.vocabulary_id_2
                         AND csi.concept_class_id = 'Question'
-              and csi.standard_concept ='C'
+              AND csi.standard_concept ='C'
                JOIN concept_relationship_stage crsi
                     ON crsi.concept_code_2 = csi.concept_code
                         AND csi.vocabulary_id = crsi.vocabulary_id_1
@@ -1082,7 +1082,7 @@ FROM (SELECT DISTINCT cs2.concept_name                AS concept_name_1,
                     ON csi.concept_code = crs.concept_code_2
                         AND csi.vocabulary_id = crs.vocabulary_id_2
                         AND csi.concept_class_id = 'Question'
-              and csi.standard_concept ='C'
+              AND csi.standard_concept ='C'
                JOIN concept_relationship_stage crsi
                     ON crsi.concept_code_2 = csi.concept_code
                         AND csi.vocabulary_id = crsi.vocabulary_id_1
@@ -1124,7 +1124,7 @@ $_$
     END
 $_$;
 
---Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--Deprecate 'Maps to' mappings to deprecated AND upgraded concepts
 DO
 $_$
     BEGIN

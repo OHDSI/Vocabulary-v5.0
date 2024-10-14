@@ -1,4 +1,4 @@
-To refresh the content of EORTC QLQ Vocabulary you should  
+Update of EORTC QLQ Vocabulary
 
 Prerequisites:
 - Vocabulary Server infrastructure

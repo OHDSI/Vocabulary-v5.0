@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Medical Team
+* Authors: Vlad Korsik, Maria Rohozhkina, Aliaksei Katyshou
 * Date: 2024
 **************************************************************************/
 

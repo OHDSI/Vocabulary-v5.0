@@ -20,7 +20,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'CORE',
+	pConcept_class_id	=>'Core',
 	pConcept_class_name	=>'Core questionnaire'
 );
 END $_$;
@@ -28,7 +28,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'MODULE',
+	pConcept_class_id	=>'Module',
 	pConcept_class_name	=>'Module questionnaire'
 );
 END $_$;
@@ -36,7 +36,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'STANDALONE',
+	pConcept_class_id	=>'Standalone',
 	pConcept_class_name	=>'Standalone questionnaire'
 );
 END $_$;
@@ -53,7 +53,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'CAT SHORT',
+	pConcept_class_id	=>'CAT Short',
 	pConcept_class_name	=>'Short version of Сomputerised adaptive testing questionnaire'
 );
 END $_$;
@@ -63,7 +63,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'PREVIOUS',
+	pConcept_class_id	=>'Previous',
 	pConcept_class_name	=>'Historical version of questionnaire'
 );
 END $_$;
@@ -72,7 +72,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'DIRECTION',
+	pConcept_class_id	=>'Direction',
 	pConcept_class_name	=>'Direction of question'
 );
 END $_$;
@@ -80,7 +80,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'ISSUE',
+	pConcept_class_id	=>'Issue',
 	pConcept_class_name	=>'Issue associated with question'
 );
 END $_$;
@@ -89,7 +89,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'RESPONSE SCALE',
+	pConcept_class_id	=>'Response Scale',
 	pConcept_class_name	=>'Response scale in questionnaire'
 );
 END $_$;
@@ -97,7 +97,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'TIME SCALE',
+	pConcept_class_id	=>'Time Scale',
 	pConcept_class_name	=>'Time scale in questionnaire'
 );
 END $_$;
@@ -105,7 +105,7 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'SYMPTOM SCALE',
+	pConcept_class_id	=>'Symptom Scale',
 	pConcept_class_name	=>'Symptom scale in questionnaire'
 );
 END $_$;

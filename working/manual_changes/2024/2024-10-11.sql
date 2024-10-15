@@ -28,14 +28,6 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
-	pConcept_class_id	=>'Module',
-	pConcept_class_name	=>'Module questionnaire'
-);
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Standalone',
 	pConcept_class_name	=>'Standalone questionnaire'
 );

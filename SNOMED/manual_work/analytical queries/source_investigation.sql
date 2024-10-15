@@ -1,7 +1,8 @@
 --We have three SNOMED modules automatically merged into source tables.
 -- These modules do not correspond to the dependencies between local and international versions of SNOMED.
 -- We need an approach for creating a merged source according to the pre-defined versions.
--- The scripts below are used to compare the content of the trimmed by the defined date source tables with their archive version with the same module dates.
+-- The scripts below are used to compare the content of the source merged of three distinct modules (INT, UK, US)
+-- and the default source from the sources schema trimmed to the according effective dates:
 
 --List of SNOMED source tables:
 ---der2_ssrefset_moduledependency_merged
@@ -11,33 +12,23 @@
 ---sct2_rela_full_merged
 ---der2_crefset_assreffull_merged
 
---1. Adjust archive parameters:
-SELECT * FROM sources_archive.ShowArchiveDetails() WHERE table_name = 'sct2_concept_full_merged';
+--List of SNOMED test source tables:
+---der2_ssrefset_moduledependency_merged_test
+---sct2_concept_full_merged_test
+---sct2_desc_full_merged_test
+---der2_crefset_language_merged_test
+---sct2_rela_full_merged_test
+---der2_crefset_assreffull_merged_test
 
-DO $$
-BEGIN
-	PERFORM sources_archive.ResetArchiveParams();
-END $$;
-
-DO $$
-BEGIN
-	PERFORM sources_archive.SetArchiveParams(
-		'SNOMED',
-		TO_DATE('20231122','yyyymmdd')
-	);
-END $$;
-
-SELECT * FROM sources_archive.ShowArchiveParams();
-
---2. Define effective dates for the modules
----	900000000000207008 --Core (international) module --2023-12-01
---- 900000000000012004	-- SNOMED CT model component --2023-12-01
---- 999000011000000103 --UK edition --2023-11-22
---- 731000124108 --US edition --2023-09-01
+--1. Define effective dates for the modules
+---	900000000000207008 --Core (international) module --20240801
+--- 900000000000012004	-- SNOMED CT model component --20240801
+--- 999000011000000103 --UK edition --20241001
+--- 731000124108 --US edition --20240901
 
 SELECT moduleid, max (sourceeffectivetime)
-FROM sources_archive.der2_ssrefset_moduledependency_merged
-where moduleid in ('900000000000207008', '900000000000012004','731000124108', '999000011000000103')
+FROM sources.der2_ssrefset_moduledependency_merged_test
+where moduleid in ('900000000000207008','731000124108', '999000011000000103')
 GROUP BY moduleid;
 
 --3. Compare the content of tables:
@@ -52,17 +43,17 @@ WITH trimmed AS (
 		-- vocabulary_version
 	FROM sources.sct2_concept_full_merged
 	--WHERE effectivetime <= '20231122'
-	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20231201'
-								 WHEN moduleid = '900000000000012004' THEN '20231201'
-								 WHEN moduleid = '731000124108' THEN '20230901'
-								 WHEN moduleid = '999000011000000103' THEN '20231122' END)
+	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20240801'
+								 WHEN moduleid = '900000000000012004' THEN '20240801'
+								 WHEN moduleid = '731000124108' THEN '20240901'
+								 WHEN moduleid = '999000011000000103' THEN '20241001' END)
 		 AND moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108' --UK Drug extension reference set module
 			 )
 )
 
--- compare total counts of the archive table with archive + trimmed
+-- compare total counts of the test table with test + trimmed
 /*sum as (
 SELECT id,
 		 effectivetime,
@@ -71,7 +62,7 @@ SELECT id,
 		 statusid
 		-- vocabulary_date,
 		-- vocabulary_version
-FROM sources_archive.sct2_concept_full_merged
+FROM sources.sct2_concept_full_merged_test
 WHERE moduleid NOT IN (
 						'999000011000001104', --UK Drug extension
 						'999000021000001108') --UK Drug extension reference set module
@@ -80,17 +71,17 @@ UNION
 SELECT * FROM trimmed
 )
 
-SELECT 'archive' as source,
-       count (*) FROM sources_archive.sct2_concept_full_merged m
+SELECT 'test' as source,
+       count (*) FROM sources.sct2_concept_full_merged_test m
                  where moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 UNION ALL
 
-SELECT 'archive+trimmed' as source,
+SELECT 'test+trimmed' as source,
         count(*) from sum;*/
 
--- review rows that were changed since the archive date
+-- review rows that were changed since the test date
 SELECT id,
 		 effectivetime,
 		 active,
@@ -98,7 +89,7 @@ SELECT id,
 		 statusid
 		-- vocabulary_date,
 		-- vocabulary_version
-FROM sources_archive.sct2_concept_full_merged
+FROM sources.sct2_concept_full_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -120,17 +111,17 @@ WITH trimmed AS (
 		 casesignificanceid
 	FROM sources.sct2_desc_full_merged
  	--WHERE effectivetime <= '20231122'
-	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20231201'
-								 WHEN moduleid = '900000000000012004' THEN '20231201'
-								 WHEN moduleid = '731000124108' THEN '20230901'
-								 WHEN moduleid = '999000011000000103' THEN '20231122' END)
+	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20240801'
+								 WHEN moduleid = '900000000000012004' THEN '20240801'
+								 WHEN moduleid = '731000124108' THEN '20240901'
+								 WHEN moduleid = '999000011000000103' THEN '20241001' END)
 		 AND moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108' --UK Drug extension reference set module
 			 )
 )
 
--- compare total counts of the archive table with archive + trimmed
+-- compare total counts of the test table with test + trimmed
 /*sum as (
        SELECT id,
 		 effectivetime,
@@ -141,7 +132,7 @@ WITH trimmed AS (
 		 typeid,
 		 term,
 		 casesignificanceid
-FROM sources_archive.sct2_desc_full_merged
+FROM sources.sct2_desc_full_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -150,17 +141,17 @@ WHERE moduleid NOT IN (
 SELECT * FROM trimmed
 )
 
-SELECT 'archive' as source,
-       count (*) FROM sources_archive.sct2_desc_full_merged m
+SELECT 'test' as source,
+       count (*) FROM sources.sct2_desc_full_merged_test m
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 UNION ALL
 
-SELECT 'archive+trimmed' AS source,
+SELECT 'test+trimmed' AS source,
         count(*) FROM sum*/
 
--- review rows that were changed since the archive date
+-- review rows that were changed since the test date
 SELECT id,
 		 effectivetime,
 		 active,
@@ -170,7 +161,7 @@ SELECT id,
 		 typeid,
 		 term,
 		 casesignificanceid
-FROM sources_archive.sct2_desc_full_merged
+FROM sources.sct2_desc_full_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -192,17 +183,17 @@ WITH trimmed AS (
 		 source_file_id
 	FROM sources.der2_crefset_language_merged
 	--WHERE effectivetime <= '20231122'
-	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20231201'
-								 WHEN moduleid = '900000000000012004' THEN '20231201'
-								 WHEN moduleid = '731000124108' THEN '20230901'
-								 WHEN moduleid = '999000011000000103' THEN '20231122' END)
+	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20240801'
+								 WHEN moduleid = '900000000000012004' THEN '20240801'
+								 WHEN moduleid = '731000124108' THEN '20240901'
+								 WHEN moduleid = '999000011000000103' THEN '20241001' END)
 		 AND moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108' --UK Drug extension reference set module
 			 )
 )
 
--- compare total counts of the archive table with archive + trimmed
+-- compare total counts of the test table with test + trimmed
 /*sum as (
        SELECT id,
 		 effectivetime,
@@ -212,7 +203,7 @@ WITH trimmed AS (
 		 referencedcomponentid,
 		 acceptabilityid,
 		 source_file_id
-FROM sources_archive.der2_crefset_language_merged
+FROM sources.der2_crefset_language_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -221,17 +212,17 @@ UNION
 SELECT * from trimmed
 )
 
-SELECT 'archive' as source,
-       count (*) FROM sources_archive.der2_crefset_language_merged m
+SELECT 'test' as source,
+       count (*) FROM sources.der2_crefset_language_merged_test m
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 UNION ALL
 
-SELECT 'archive+trimmed' AS source,
+SELECT 'test+trimmed' AS source,
         count(*) FROM sum;*/
 
--- review rows that were changed since the archive date
+-- review rows that were changed since the test date
 SELECT id,
 		 effectivetime,
 		 active,
@@ -240,7 +231,7 @@ SELECT id,
 		 referencedcomponentid,
 		 acceptabilityid,
 		 source_file_id
-FROM sources_archive.der2_crefset_language_merged
+FROM sources.der2_crefset_language_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -255,7 +246,7 @@ SELECT 'trimmed' as source, * from sources.der2_crefset_language_merged WHERE id
 
 UNION ALL
 
-SELECT 'archive',
+SELECT 'test',
        id,
 		 effectivetime,
 		 active,
@@ -264,7 +255,7 @@ SELECT 'archive',
 		 referencedcomponentid,
 		 acceptabilityid,
 		 source_file_id
-FROM sources_archive.der2_crefset_language_merged WHERE id = '80068033-f65b-4bc3-a05d-0b115fd47323';
+FROM sources.der2_crefset_language_merged_test WHERE id = '80068033-f65b-4bc3-a05d-0b115fd47323';
 ;
 
 --sct2_rela_full_merged
@@ -281,17 +272,17 @@ WITH trimmed AS (
 		 modifierid
 	FROM sources.sct2_rela_full_merged
 	--	WHERE effectivetime <= '20231122'
-	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20231201'
-								 WHEN moduleid = '900000000000012004' THEN '20231201'
-								 WHEN moduleid = '731000124108' THEN '20230901'
-								 WHEN moduleid = '999000011000000103' THEN '20231122' END)
+	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20240801'
+								 WHEN moduleid = '900000000000012004' THEN '20240801'
+								 WHEN moduleid = '731000124108' THEN '20240901'
+								 WHEN moduleid = '999000011000000103' THEN '20241001' END)
 		 AND moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108' --UK Drug extension reference set module
 			 )
 )
 
--- compare total counts of the archive table with archive + trimmed
+-- compare total counts of the test table with test + trimmed
 /*sum as (
        SELECT id,
 		 effectivetime,
@@ -303,7 +294,7 @@ WITH trimmed AS (
 		 typeid,
 		 characteristictypeid,
 		 modifierid
-FROM sources_archive.sct2_rela_full_merged
+FROM sources.sct2_rela_full_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -312,17 +303,17 @@ WHERE moduleid NOT IN (
 SELECT * FROM trimmed
 )
 
-SELECT 'archive' as source,
-       count (*) FROM sources_archive.sct2_rela_full_merged m
+SELECT 'test' as source,
+       count (*) FROM sources.sct2_rela_full_merged_test m
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 UNION ALL
 
-SELECT 'archive+trimmed' AS source,
+SELECT 'test+trimmed' AS source,
         count(*) FROM sum;*/
 
--- review rows that were changed since the archive date
+-- review rows that were changed since the test date
 SELECT id,
 		 effectivetime,
 		 active,
@@ -333,7 +324,7 @@ SELECT id,
 		 typeid,
 		 characteristictypeid,
 		 modifierid
-FROM sources_archive.sct2_rela_full_merged
+FROM sources.sct2_rela_full_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -354,17 +345,17 @@ WITH trimmed AS (
 		 targetcomponent
 	FROM sources.der2_crefset_assreffull_merged
 --WHERE effectivetime <= '20231122'
-	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20231201'
-								 WHEN moduleid = '900000000000012004' THEN '20231201'
-								 WHEN moduleid = '731000124108' THEN '20230901'
-								 WHEN moduleid = '999000011000000103' THEN '20231122' END)
+	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20240801'
+								 WHEN moduleid = '900000000000012004' THEN '20240801'
+								 WHEN moduleid = '731000124108' THEN '20240901'
+								 WHEN moduleid = '999000011000000103' THEN '20241001' END)
 		 AND moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108' --UK Drug extension reference set module
 			 )
 )
 
--- compare total counts of the archive table with archive + trimmed
+-- compare total counts of the test table with test + trimmed
 /*sum as (
        SELECT id,
 		 effectivetime,
@@ -373,7 +364,7 @@ WITH trimmed AS (
 		 refsetid,
 		 referencedcomponentid,
 		 targetcomponent
-FROM sources_archive.der2_crefset_assreffull_merged
+FROM sources.der2_crefset_assreffull_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -382,17 +373,17 @@ WHERE moduleid NOT IN (
 SELECT * FROM trimmed
 )
 
-SELECT 'archive' as source,
-       count (*) FROM sources_archive.der2_crefset_assreffull_merged m
+SELECT 'test' as source,
+       count (*) FROM sources.der2_crefset_assreffull_merged_test m
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 UNION ALL
 
-SELECT 'archive+trimmed' AS source,
+SELECT 'test+trimmed' AS source,
         count(*) FROM sum*/
 
--- review rows that were changed since the archive date
+-- review rows that were changed since the test date
 SELECT id,
 		 effectivetime,
 		 active,
@@ -400,7 +391,7 @@ SELECT id,
 		 refsetid,
 		 referencedcomponentid,
 		 targetcomponent
-FROM sources_archive.der2_crefset_assreffull_merged
+FROM sources.der2_crefset_assreffull_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -422,13 +413,13 @@ SELECT id,
 		 targeteffectivetime
 	FROM sources.der2_ssrefset_moduledependency_merged
 	--WHERE effectivetime <= '20231122'
-	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20231201'
-								 WHEN moduleid = '900000000000012004' THEN '20231201'
-								 WHEN moduleid = '731000124108' THEN '20230901'
-								 WHEN moduleid = '999000011000000103' THEN '20231122' END)
+	WHERE effectivetime <= (CASE WHEN moduleid = '900000000000207008' THEN '20240801'
+								 WHEN moduleid = '900000000000012004' THEN '20240801'
+								 WHEN moduleid = '731000124108' THEN '20240901'
+								 WHEN moduleid = '999000011000000103' THEN '20241001' END)
 )
 
--- compare total counts of the archive table with archive + trimmed
+-- compare total counts of the test table with test + trimmed
 /*sum as (
 SELECT  id,
 		 effectivetime,
@@ -438,7 +429,7 @@ SELECT  id,
 		 referencedcomponentid,
 		 sourceeffectivetime,
 		 targeteffectivetime
-FROM sources_archive.der2_ssrefset_moduledependency_merged
+FROM sources.der2_ssrefset_moduledependency_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
@@ -448,7 +439,7 @@ UNION
 SELECT * FROM trimmed
 ),
 
-archive as (
+test as (
 SELECT DISTINCT id,
 		 effectivetime,
 		 active,
@@ -457,23 +448,23 @@ SELECT DISTINCT id,
 		 referencedcomponentid,
 		 sourceeffectivetime,
 		 targeteffectivetime
-FROM sources_archive.der2_ssrefset_moduledependency_merged
+FROM sources.der2_ssrefset_moduledependency_merged_test
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 	  )
 
-SELECT 'archive' as source,
-       count (*) FROM archive m
+SELECT 'test' as source,
+       count (*) FROM test m
 WHERE moduleid NOT IN (
 							 '999000011000001104', --UK Drug extension
 							 '999000021000001108') --UK Drug extension reference set module
 UNION all
 
-SELECT 'archive+trimmed' AS source,
+SELECT 'test+trimmed' AS source,
         count(*) FROM sum
 ;*/
--- review rows that were changed since the archive date
+-- review rows that were changed since the test date
 SELECT DISTINCT id,
 		 effectivetime,
 		 active,
@@ -482,7 +473,7 @@ SELECT DISTINCT id,
 		 referencedcomponentid,
 		 sourceeffectivetime,
 		 targeteffectivetime
-FROM sources_archive.der2_ssrefset_moduledependency_merged
+FROM sources.der2_ssrefset_moduledependency_merged_test
 WHERE moduleid IN ( --Unlike other tables, this one contains data concerning other SNOMED modules we don't use, so if you specify module dates above you also need to specify modules here
  '900000000000207008',
  '900000000000012004',

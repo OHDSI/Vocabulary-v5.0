@@ -191,4 +191,23 @@ FROM concept c
 WHERE c.vocabulary_id = 'SNOMED'
     AND c.concept_class_id IN ('Undefined', 'Navi Concept', 'Admin Concept', 'Model Comp', 'Record Artifact', 'Model Comp')
 ;
+
+-- Check the presence of post-coordinated measurements in Clinical Finding concept class
+--- This check should return only concepts related to COVID-19 which were post-coordinated following the specific convention
+
+select *
+from concept c
+where vocabulary_id = 'SNOMED'
+and concept_class_id = 'Clinical Finding'
+and invalid_reason is null
+and concept_id in (select concept_id_1
+                   from concept_relationship
+                   where relationship_id = 'Maps to value'
+                   and invalid_reason is null)
+and not exists(select 1
+               from concept_relationship cr1
+               where cr1.concept_id_2 = 1340204 -- exclude "History of.." concepts
+               and cr1.concept_id_1 = c.concept_id
+               and cr1.invalid_reason is null)
+and c.concept_name !~* ('allerg|hypersens') -- exclude allergies
 ;

@@ -206,7 +206,10 @@ and concept_id in (select concept_id_1
                    and invalid_reason is null)
 and not exists(select 1
                from concept_relationship cr1
-               where cr1.concept_id_2 = 1340204 -- exclude "History of.." concepts
+               where cr1.concept_id_2 in (1340204,-- exclude "History of.." concepts
+                                          1340207,
+                                          1340218,
+                                         4051255)
                and cr1.concept_id_1 = c.concept_id
                and cr1.invalid_reason is null)
 and c.concept_name !~* ('allerg|hypersens') -- exclude allergies

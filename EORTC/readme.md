@@ -7,7 +7,7 @@ Prerequisites:
 
 1. Run the vocabulary_download.get_eortc (automated scraping was set-up with twice a year schedule or scraping can be performed on-demand basis)
    1. The Item Library Web-Site (itemlibrary.eortc.org) version dated Spring-2024 was used for initial scraper set-up;
-   2. The Credentials are linked to OHDSI Vocabulary Account (permission from EORTC team was received via e-mail)
+   2. Сaution: the content cannot be automatically processed without prior agreement from the EORTC team
 3. Run 
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);

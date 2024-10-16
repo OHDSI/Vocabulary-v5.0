@@ -6,7 +6,7 @@ BEGIN
     pVocabulary_name        => 'EORTC Quality of Life questionnaires',
     pVocabulary_reference   => 'https://itemlibrary.eortc.org/',
     pVocabulary_version     => '2023_11',
-    pOMOP_req				=> 'Y', --NULL or 'Y'
+    pOMOP_req				=> NULL, --NULL or 'Y'
 	pClick_default			=> NULL, --NULL or 'Y'
 	pAvailable				=> NULL, --NULL, 'Currently not available','License required' or 'EULA required'
 	pURL					=> NULL,

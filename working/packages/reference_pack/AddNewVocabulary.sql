@@ -99,6 +99,10 @@ BEGIN
 
     DROP SEQUENCE v5_concept;
 
+    SELECT MAX(vocabulary_id_v4) + 1
+      INTO ex
+      FROM vocabulary_conversion;
+
     INSERT INTO vocabulary_conversion (
         vocabulary_id_v4,
         vocabulary_id_v5,
@@ -109,7 +113,7 @@ BEGIN
         click_disabled
     )
     SELECT
-        -1,
+        ex,
         pVocabulary_id,
         pOMOP_req,
         pClick_default,

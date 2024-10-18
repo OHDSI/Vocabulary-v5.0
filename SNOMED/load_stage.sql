@@ -1049,6 +1049,7 @@ FROM (
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid,
 			sc.targetcomponent,
+			sc.refsetid,
 			sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC
 			) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active

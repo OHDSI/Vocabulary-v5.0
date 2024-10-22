@@ -14,7 +14,22 @@ Pgcrypto and Tablefunc extensions should be installed for some functions to work
 Create extensions:
 >CREATE EXTENSION pg_trgm;  
 >CREATE EXTENSION tablefunc;  
->CREATE EXTENSION plpython3u;
+>CREATE EXTENSION plpython3u;  
+>CREATE EXTENSION pg_trgm;
+
+If during the installation of plpython3u you get an error like:  
+_“ERROR: could not load library "C:/Program Files/PostgreSQL/15/lib/plpython3.dll": The specified module could not be found.”_  
+this means that it is necessary to install the required packages.  
+There is an example for Postgresql 15 using apt or apt-get (for Linux system):  
+>**apt-get:**  
+>sudo apt-get update  
+>sudo apt-get -y install postgresql-plpython3-15  
+>  
+>**apt:**  
+>sudo apt update  
+>sudo apt -y install postgresql-plpython3-15  
+
+
 
 # Creating Schemas
 

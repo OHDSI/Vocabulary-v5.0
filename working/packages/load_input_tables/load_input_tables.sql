@@ -913,6 +913,23 @@ begin
       analyze sources.meta_ncimeme;
       
       PERFORM sources_archive.AddVocabularyToArchive('META', ARRAY['meta_mrconso','meta_mrhier','meta_mrmap','meta_mrsmap','meta_mrsat','meta_mrrel','meta_mrsty','meta_mrdef','meta_mrsab','meta_ncimeme'], COALESCE(pVocabularyDate,current_date), 'archive.meta_version', 5);
+    WHEN 'EORTC'
+    THEN 
+        TRUNCATE TABLE sources.eortc_questionnaires CASCADE;
+        TRUNCATE TABLE sources.eortc_languages CASCADE;
+        
+        PERFORM vocabulary_download.py_load_eortc_qlq(pVocabularyPath);
+        
+        UPDATE sources.eortc_questionnaires
+           SET vocabulary_date = pvocabularydate,
+               vocabulary_version = pvocabularyversion;
+               
+        PERFORM sources_archive.AddVocabularyToArchive(
+            'EORTC', 
+            ARRAY['eortc_questionnaires', 'eortc_questions', 'eortc_question_items', 'eortc_recommended_wordings', 'eortc_languages'], 
+            COALESCE(pVocabularyDate, current_date), 
+            'archive.eortc_version', 
+            10);
     WHEN 'ATC'
     THEN 
         TRUNCATE TABLE sources.atc_codes;

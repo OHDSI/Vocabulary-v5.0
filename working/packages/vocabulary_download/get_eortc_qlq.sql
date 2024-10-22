@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION vocabulary_download.get_eortc (
+CREATE OR REPLACE FUNCTION vocabulary_download.get_eortc_qlq(
     iOperation TEXT DEFAULT NULL,
     OUT session_id int4,
     OUT last_status INT,
@@ -98,7 +98,7 @@ BEGIN
                                                 '&password='||devv5.urlencode(pVocabulary_pass)||
                                                 '&grant_type=password');
 
-        PERFORM vocabulary_download.py_get_eortc(pAuthToken, pVocabulary_load_path);
+        PERFORM vocabulary_download.py_get_eortc_qlq(pAuthToken, pVocabulary_load_path);
         
         PERFORM sources.load_input_tables(pVocabularyID, pVocabularyNewDate, pVocabularyNewVersion);
         

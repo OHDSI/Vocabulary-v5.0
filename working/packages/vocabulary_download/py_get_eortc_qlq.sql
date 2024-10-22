@@ -1,6 +1,6 @@
--- DROP FUNCTION vocabulary_download.py_get_eortc(text, text);
+-- DROP FUNCTION vocabulary_download.py_get_eortc_qlq(text, text);
 
-CREATE OR REPLACE FUNCTION vocabulary_download.py_get_eortc(p_auth_token text, p_save_folder text)
+CREATE OR REPLACE FUNCTION vocabulary_download.py_get_eortc_qlq(p_auth_token text, p_save_folder text)
  RETURNS void
  LANGUAGE plpython3u
 AS $BODY$

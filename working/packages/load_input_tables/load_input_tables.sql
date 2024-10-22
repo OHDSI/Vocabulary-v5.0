@@ -918,7 +918,7 @@ begin
         TRUNCATE TABLE sources.eortc_questionnaires CASCADE;
         TRUNCATE TABLE sources.eortc_languages CASCADE;
         
-        PERFORM vocabulary_download.py_load_eortc(pVocabularyPath);
+        PERFORM vocabulary_download.py_load_eortc_qlq(pVocabularyPath);
         
         UPDATE sources.eortc_questionnaires
            SET vocabulary_date = pvocabularydate,

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION vocabulary_download.py_load_eortc(p_json_folder text)
+CREATE OR REPLACE FUNCTION vocabulary_download.py_load_eortc_qlq(p_json_folder text)
  RETURNS void
  LANGUAGE plpython3u
 AS $BODY$

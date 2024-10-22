@@ -423,7 +423,8 @@ FROM (SELECT DISTINCT TO_DATE(TO_CHAR(LEAST(q.createdate, q.updatedate), 'YYYY-M
                          ON qs.id = q.questionnaire_id
                LEFT JOIN sources.eortc_question_items qi
                          ON q.id = qi.question_id
-      WHERE qi.type LIKE '%Scale') AS tab
+      WHERE qi.type LIKE '%Scale'
+    AND (qs.state is NULL OR qs.code = 'SBQ')) AS tab
 WHERE rating_in_section = 1
 ;
 

@@ -1415,6 +1415,7 @@ JOIN (
 		FIRST_VALUE(r.destinationid) OVER (
 			PARTITION BY r.sourceid,
 			r.effectivetime
+		    ORDER BY id DESC
 			) AS destinationid, --pick one parent at random
 		r.effectivetime,
 		MAX(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime

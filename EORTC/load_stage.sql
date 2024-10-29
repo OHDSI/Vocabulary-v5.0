@@ -730,6 +730,10 @@ SELECT DISTINCT concept_code_1,
 FROM tab
 ;
 
+ANALYZE concept_stage,
+        sources.eortc_questionnaires,
+        sources.eortc_questions,
+        sources.eortc_question_items;
 
 --CONCEPT_RELATIONSHIP POPULATION
 --Create relationships from Question to SYMPTOM Scale
@@ -742,28 +746,33 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                         valid_end_date,
                                         invalid_reason)
 
-WITH tab AS (SELECT cs.concept_name            AS concept_name_qr,
-                    cs.concept_code            AS concept_code_qr,
-                    cs.vocabulary_id           AS vocabulary_id_qr,
-                    cs1.concept_name           AS concept_name_2,
-                    cs1.concept_code           AS concept_code_2,
-                    cs1.vocabulary_id          AS vocabulary_id_2,
-                    UNNEST(q.relatedquestions) AS r_qn_id
-             FROM concept_stage cs
-                      JOIN sources.eortc_questionnaires qs
-                           ON qs.id = SPLIT_PART(cs.concept_code, '-', 1)::int
-
-                      JOIN sources.eortc_questions q ON
-                 qs.id = q.questionnaire_id
-                      JOIN sources.eortc_question_items qi ON q.id = qi.question_id
-                 AND qi.type ILIKE 'symptomscale'
-                      LEFT JOIN concept_stage cs1
-                                ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
-                                    AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
-             WHERE cs1.concept_class_id = 'Symptom Scale'
-               AND (qs.state is NULL OR qs.code = 'SBQ')
-               AND cs.concept_class_id IN (
-                                           'Core', 'Module', 'Standalone', 'CAT', 'CAT Short',
+WITH tab AS (
+    SELECT cs.concept_name            AS concept_name_qr,
+           cs.concept_code            AS concept_code_qr,
+           cs.vocabulary_id           AS vocabulary_id_qr,
+           cs1.concept_name           AS concept_name_2,
+           cs1.concept_code           AS concept_code_2,
+           cs1.vocabulary_id          AS vocabulary_id_2,
+           UNNEST(q.relatedquestions) AS r_qn_id
+      FROM concept_stage cs
+      JOIN sources.eortc_questionnaires qs
+        ON qs.id = SPLIT_PART(cs.concept_code, '-', 1)::int
+      JOIN sources.eortc_questions q 
+        ON qs.id = q.questionnaire_id
+      JOIN sources.eortc_question_items qi 
+        ON q.id = qi.question_id
+       AND LOWER(qi.type) = 'symptomscale'
+      LEFT 
+      JOIN concept_stage cs1
+        ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
+       AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
+     WHERE cs1.concept_class_id = 'Symptom Scale'
+       AND (qs.state is NULL OR qs.code = 'SBQ')
+       AND cs.concept_class_id IN ( 'Core', 
+                                    'Module', 
+                                    'Standalone', 
+                                    'CAT', 
+                                    'CAT Short',
                                     'Previous') --filer questionnaire
 )
 SELECT DISTINCT concept_code_1,
@@ -774,24 +783,23 @@ SELECT DISTINCT concept_code_1,
                 valid_start_date,
                 valid_end_date,
                 invalid_reason
-FROM (SELECT cs2.concept_name                AS concept_name_1,
-             cs2.concept_code                AS concept_code_1,
-             cs2.vocabulary_id               AS vocabulary_id_1,
-             'Is a'                          AS relationship_id,
-             NULL                            AS invalid_reason,
-             CURRENT_DATE                    AS valid_start_date,
-             TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-             concept_name_2,
-             concept_code_2,
-             vocabulary_id_2
-      FROM tab a
-      JOIN concept_stage cs2
-                    ON SPLIT_PART(cs2.concept_code, '-', 1)::int = r_qn_id
-                        AND cs2.concept_class_id = 'Question'
-                        AND cs2.standard_concept IS NULL
-       AND  SPLIT_PART(SPLIT_PART(cs2.concept_code, '-', 2), '_', 1) = SPLIT_PART(SPLIT_PART(a.concept_code_2, '-', 2), '_', 1)
-      )AS q_to_ss
-;
+  FROM (SELECT cs2.concept_name                AS concept_name_1,
+               cs2.concept_code                AS concept_code_1,
+               cs2.vocabulary_id               AS vocabulary_id_1,
+               'Is a'                          AS relationship_id,
+               NULL                            AS invalid_reason,
+               CURRENT_DATE                    AS valid_start_date,
+               TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+               concept_name_2,
+               concept_code_2,
+               vocabulary_id_2
+          FROM tab a
+          JOIN concept_stage cs2
+            ON SPLIT_PART(cs2.concept_code, '-', 1)::int = r_qn_id
+           AND cs2.concept_class_id = 'Question'
+           AND cs2.standard_concept IS NULL
+           AND  SPLIT_PART(SPLIT_PART(cs2.concept_code, '-', 2), '_', 1) = SPLIT_PART(SPLIT_PART(a.concept_code_2, '-', 2), '_', 1)
+       )AS q_to_ss;
 
 
 
@@ -814,22 +822,21 @@ WITH tab AS (SELECT cs.concept_name            AS concept_name_qr,
                     cs1.concept_code           AS concept_code_2,
                     cs1.vocabulary_id          AS vocabulary_id_2,
                     UNNEST(q.relatedquestions) AS r_qn_id
-             FROM concept_stage cs
-                      JOIN sources.eortc_questionnaires qs
-                           ON qs.id = SPLIT_PART(cs.concept_code, '-', 1)::int
-
-                      JOIN sources.eortc_questions q ON
-                 qs.id = q.questionnaire_id
-                      JOIN sources.eortc_question_items qi ON q.id = qi.question_id
-                 AND qi.type NOT ILIKE 'symptomscale'
-                      LEFT JOIN concept_stage cs1
-                                ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
-                                    AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
-             WHERE cs1.concept_class_id != 'Symptom Scale'
-               AND (qs.state is NULL OR qs.code = 'SBQ')
-               AND cs.concept_class_id IN (
-                                           'Core', 'Module', 'Standalone', 'CAT', 'CAT Short',
-                                    'Previous') --filer questionnaire
+               FROM concept_stage cs
+               JOIN sources.eortc_questionnaires qs
+                 ON qs.id = SPLIT_PART(cs.concept_code, '-', 1)::int
+               JOIN sources.eortc_questions q 
+                 ON qs.id = q.questionnaire_id
+               JOIN sources.eortc_question_items qi 
+                 ON q.id = qi.question_id
+                AND LOWER(qi.type) <> 'symptomscale'
+               LEFT 
+               JOIN concept_stage cs1
+                 ON cs1.concept_code = qi.question_id || '-' || qs.code || '_' || qi.code::varchar
+                AND SPLIT_PART(cs.concept_code, '-', 2) = qs.code
+              WHERE cs1.concept_class_id != 'Symptom Scale'
+                AND (qs.state is NULL OR qs.code = 'SBQ')
+                AND cs.concept_class_id IN ('Core', 'Module', 'Standalone', 'CAT', 'CAT Short', 'Previous') --filer questionnaire
 )
 SELECT DISTINCT concept_code_1,
                 concept_code_2,
@@ -839,24 +846,23 @@ SELECT DISTINCT concept_code_1,
                 valid_start_date,
                 valid_end_date,
                 invalid_reason
-FROM (SELECT cs2.concept_name                AS concept_name_1,
-             cs2.concept_code                AS concept_code_1,
-             cs2.vocabulary_id               AS vocabulary_id_1,
-             'Has Scale'                     AS relationship_id,
-             NULL                            AS invalid_reason,
-             CURRENT_DATE                    AS valid_start_date,
-             TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-             concept_name_2,
-             concept_code_2,
-             vocabulary_id_2
-      FROM tab a
-               JOIN concept_stage cs2
-                    ON SPLIT_PART(cs2.concept_code, '-', 1)::int = r_qn_id
-                        AND cs2.concept_class_id = 'Question'
-                        AND cs2.standard_concept IS NULL
-                         AND  SPLIT_PART(SPLIT_PART(cs2.concept_code, '-', 2), '_', 1) = SPLIT_PART(SPLIT_PART(a.concept_code_2, '-', 2), '_', 1)
-      ) AS q_to_otherSc
-;
+  FROM (SELECT cs2.concept_name                AS concept_name_1,
+               cs2.concept_code                AS concept_code_1,
+               cs2.vocabulary_id               AS vocabulary_id_1,
+               'Has Scale'                     AS relationship_id,
+               NULL                            AS invalid_reason,
+               CURRENT_DATE                    AS valid_start_date,
+               TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+               concept_name_2,
+               concept_code_2,
+               vocabulary_id_2
+          FROM tab a
+          JOIN concept_stage cs2
+            ON SPLIT_PART(cs2.concept_code, '-', 1)::int = r_qn_id
+           AND cs2.concept_class_id = 'Question'
+           AND cs2.standard_concept IS NULL
+           AND  SPLIT_PART(SPLIT_PART(cs2.concept_code, '-', 2), '_', 1) = SPLIT_PART(SPLIT_PART(a.concept_code_2, '-', 2), '_', 1)
+       ) AS q_to_otherSc;
 
 --CONCEPT_RELATIONSHIP POPULATION
 --Create relationships from Question to Answer

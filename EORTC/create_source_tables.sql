@@ -102,3 +102,8 @@ CREATE TABLE sources.eortc_recommended_wordings (
 ALTER TABLE sources.eortc_recommended_wordings 
 ADD CONSTRAINT fk_eortc_recommended_wordings_item
 FOREIGN KEY (item) REFERENCES sources.eortc_question_items(id);
+
+CREATE INDEX idx_eortc_questionnaires_code ON sources.eortc_questionnaires(code);
+CREATE INDEX idx_eortc_questions_questionnaire_id ON sources.eortc_questions(questionnaire_id);
+CREATE INDEX idx_eortc_question_items_question_id ON sources.eortc_question_items(question_id);
+CREATE INDEX idx_eortc_question_items_type ON sources.eortc_question_items(type);

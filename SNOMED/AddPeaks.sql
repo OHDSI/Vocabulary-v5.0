@@ -39,10 +39,9 @@ BEGIN
 		('243796009',			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Situation with explicit context
 		('420056007',			'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Aromatherapy agent
 		('373873005',			'Drug',			TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Pharmaceutical / biologic product
-		('404684003',			'Condition',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Clinical Finding
 		('313413008',			'Condition',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Calculus observation
 		('162566001',			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), --Patient not aware of diagnosis
-		('71388002', 			'Procedure',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Procedure
+		--('71388002', 			'Procedure',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Procedure
 		('304252001',			'Procedure',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150119', 'YYYYMMDD'),	NULL), -- Resuscitate
 		('304253006',			'Procedure',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20150104', 'YYYYMMDD'),	NULL), -- DNR
 		('297249002',			'Observation',  TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Family history of procedure
@@ -358,9 +357,9 @@ BEGIN
 		('365341008',			'Observation',  TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform community living activities
 		('365031000',			'Observation',  TO_DATE('20201124', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform activities of everyday life
 		('365242003',			'Observation',  TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform domestic activities
-		('1240591000000102',  'Measurement',	TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 not detected
+	--	('1240591000000102',  'Measurement',	TO_DATE('20200317', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 not detected
 
-		('1240581000000104',  'Measurement',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 detected
+	--	('1240581000000104',  'Measurement',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Severe acute respiratory syndrome coronavirus 2 detected
 		('129063003',			'Observation',  TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Instrumental activity of daily living
 		('863903001',			'Observation',  TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy to vaccine product
 
@@ -538,7 +537,7 @@ BEGIN
 		('250411006',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone marrow finding
 		('76612001',			'Condition',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypercoagulability state
 
-		('397852001',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- V/Q - Ventilation/perfusion ratio
+		/*('397852001',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- V/Q - Ventilation/perfusion ratio
 		('302083008',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of Apgar score
 		('413347006',			'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of American Society of Anesthesiologists physical status classification
 		('881501000000104',	'Measurement',	 TO_DATE('20230928', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gross Motor Function Classification System for Cerebral Palsy level finding
@@ -558,12 +557,7 @@ BEGIN
 		('1321561000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result negative
 		('1321551000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result positive
 		('1321581000000100',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result unknown
-		('1322901000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result indeterminate
-		('1322911000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
-		('1322801000000101',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result indeterminate
-		('1322791000000100',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result negative
-		('1322781000000102',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result positive
-		('1322821000000105',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
+
 		('1324601000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) RNA detection result positive
 		('260246004',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity finding
 		('302082003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of birth length
@@ -585,12 +579,11 @@ BEGIN
 		('1236949008',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of placental volume
 		('1187035007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Blood viscosity below reference range
 		('298717003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of measures of thorax
-		('366147009',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory measurements - finding
 		('249131000',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of amniotic fluid volume
 		('34641000087106', 	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematology test outside reference range
 		('366092004', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Eye measurements - finding
 		('366158000', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vascular measurements - finding
-		('106200001', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematopoietic system finding
+		('106200001', 		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hematopoietic system finding*/
 
 		('705075002',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see
 		('719749006',			'Observation',  TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Able to see using assistive device
@@ -891,10 +884,109 @@ BEGIN
 		('1295289001',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Maternal perinatal jaundice
 		('78164000',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Feeding problem
 		('289906003',			'Condition',  	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 	NULL),  -- Female genital tract problem
-		('106126000',  			'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Emotional state finding
 		('18523001',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nudity
 		('299698007',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Feeding poor
 		('1269562006',			'Observation',	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- At increased risk for postpartum disorder
+        -- history:on
+		('366147009',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Respiratory measurements - finding
+		('366147009',  		'Condition',	 TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory measurements - finding
+        --history: off
+
+        -- history:on
+		('1322901000000109',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result indeterminate
+		('1322901000000109',  'Condition',	     TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result indeterminate
+		('1322911000000106',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+		('1322911000000106',  'Condition',	     TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+		('1322801000000101',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result indeterminate
+		('1322801000000101',  'Condition',	     TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result indeterminate
+		('1322791000000100',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result negative
+		('1322791000000100',  'Condition',	     TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result negative
+		('1322781000000102',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result positive
+		('1322781000000102',  'Condition',	     TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result positive
+		('1322821000000105',  'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
+		('1322821000000105',  'Condition',	     TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
+        --history: off
+
+		('118188004',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of neonate
+		('366334007',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Condition of amniotic fluid - finding
+		('406122000',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Head finding
+		('386808001',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Phobia
+		('301113001',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of heart rate
+		('366255007',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Swallowing pattern - finding
+		('88111009',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Altered bowel function
+		('298378000',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of neck region
+		('297268004',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Ear, nose and throat finding
+		('118952005',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Joint finding
+		('301097002',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of right ventricle
+		('30473006',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pain in pelvis
+		('82423001',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chronic pain
+		('21522001',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abdominal pain
+		('274667000',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Jaw pain
+		('300856000',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mass of urogenital structure
+		('309529002',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Lung mass
+		('76039005',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disturbance of attention
+		('271840007',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal feces
+		('300284004',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of esophagus
+		('279055000',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Obstetric pain
+		('366373007',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Facial skeletal pattern - finding
+		('195675009',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Cardiac akinesia
+		('37706002',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hypokinesis of cardiac wall
+		--!!
+		--('22325002',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal gait
+
+
+		('364986009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to perform functions for speech
+		('364936003',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to ability to control posture
+		('47340003',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Birth weight finding
+		('364739001',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Fetal gestation at delivery - finding
+		('301338002',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of head circumference
+		('28487002',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of arrangement of fetus
+		('385348009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Breslow depth finding for melanoma
+		('289761004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of cervical dilatation
+		('289824002',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of measures of cervix
+		('200144004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Deliveries by cesarean
+		('271607001',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Excessive hair growth
+		('247308000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of conductivity of sound
+		('274521009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Electroencephalogram abnormal
+		('251473007',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Generalized episodic EEG abnormality
+		('364885007',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- EEG symmetry - finding
+		('364852004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Generalized EEG pattern - finding
+		('289699001',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of uterine contractions
+		('248878009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Vaginal wall finding
+		('364974006',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nerve conduction pattern - finding
+		('373369003',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of histologic grading differentiation AND/OR behavior
+		('278040002',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Loss of hair
+		('60862001',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Tinnitus
+		('162349004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Noises in ear
+		('289826000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of device of cervix
+		('105501005',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Dependence on enabling machine or device
+		('289568008',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of vaginal liquor
+		('118180006',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to amniotic fluid function
+		('118178000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Observation of placental function
+		('416822007',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of movement of sacrum
+		('298181000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Range of joint movement increased
+		('737294004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transplant present
+		('366258009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding related to awareness of bowel function
+		('300385000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Desire for stool finding
+	--!!
+		('365052008',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual evoked potential symmetry - finding
+		('366420008',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Peripheral reflex finding
+		('250004004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Peripheral skeletomuscular gait disorder
+		('366308004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Galant's reflex finding
+		('28328005',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Abnormal radiologic density
+		('366251003',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Anal sphincter tone - finding
+		('168500000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Radiology result normal
+		('168541005',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plain X-ray result normal
+		('1290424008',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plain X-ray of soft tissue abnormal
+		('441914009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging of head abnormal
+		('168542003',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging result abnormal
+		('168703000',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plain X-ray of abdomen normal
+		('442702006',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plain X-ray of musculoskeletal system abnormal
+		('277031003',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Decremental response to repetitive nerve stimulation
+		('118230007',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hearing finding
+		('169952004',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Placental finding
+		('449368009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Stopped smoking during pregnancy
+		('722494001',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Nicotine user
 
 		--Context-dependent
 		('395098000',			'Condition',	TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder confirmed
@@ -945,6 +1037,16 @@ BEGIN
 		('402150002',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insect bite reaction
 
 		('419076005',			'Condition',	TO_DATE('20210127', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergic reaction
+
+		('39579001',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Anaphylaxis
+		('724817003',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder of nervous system following procedure
+		('205237003',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Pneumonitis
+		('400088006',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Scarring alopecia
+		('302215000',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Thrombocytopenic disorder
+
+		('292045009',			'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Opioid analgesic adverse reaction
+		('10851141000119101',	'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Adverse reaction caused by psychotropic
+		('402169007',	        'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Scar due to and following procedure
 
 		--Location
 		--history:on
@@ -1444,6 +1546,7 @@ BEGIN
 		('411115002',			'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug-device combination product
 		('12222501000001106', 'Device',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Virtual radiopharmaceutical moiety
 		('736542009',			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Pharmaceutical dose form
+		('763158003',			'Drug',  		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Medicinal product
 
 		--Procedure
 		--history:on
@@ -1601,6 +1704,8 @@ BEGIN
 		('390906007',  			'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Follow-up encounter
 		('11429006',  			'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Consultation
 
+		('426945003',  			'Procedure', 	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plain X-ray of bone
+
 		--Qualifier Value
 		('260245000',			'Meas Value',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding Value
 		--history:on
@@ -1744,8 +1849,13 @@ BEGIN
 		('406463001',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Drug allergen
 		('782573007',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glycerol phenylbutyrate
 		('441900009',  		'Drug',			TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Chemical
---2024-05-10
+
 		('29750002',  		'Drug',			TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Substance
+		('311942001',  		'Device',		TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disinfectant dye
+
+		('771382006',  		'Drug',	        TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Receptor antagonist
+		('116185007',  		'Drug',	        TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Antibody to coagulation factor
+		('33278000',  		'Observation',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Insecticide
 
 		--history:on
 		('364066008',			'Observation',	TO_DATE('20201110', 'YYYYMMDD'),	TO_DATE('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable
@@ -1761,8 +1871,16 @@ BEGIN
 		('301978000',			'Observation',  TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 1),  --Finding of vision of eye
 		('1099111000000105',  'Measurement',	TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 1),  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
 		('24942001',  		'Condition',	TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 0),  --Urobilinogenuria
-		('18165001',  		'Condition',	TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 0);  --Jaundice
-
+		('18165001',  		'Condition',	TO_DATE('20201210', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'), 0),  --Jaundice
+--2024-10-21
+		-- history:on
+		('404684003',			'Condition',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Clinical Finding
+		('404684003',			'Condition',	TO_DATE('20241021', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	0), -- Clinical Finding
+        -- history:off
+        -- history:on
+		('71388002', 			'Procedure',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20230914', 'YYYYMMDD'),	NULL), -- Procedure
+		('71388002', 			'Procedure',	TO_DATE('20241021', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	0); -- Procedure
+        -- history:off
 	ANALYZE peak;
 END;
 $BODY$

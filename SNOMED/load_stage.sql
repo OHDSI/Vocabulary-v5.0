@@ -1427,6 +1427,7 @@ JOIN (
 			'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
 			'999000011000001104' --SNOMED CT United Kingdom drug extension module
 			)
+	  and r.active = '1'
 	) m ON m.sourceid = s1.concept_code
 	AND m.effectivetime = m.maxeffectivetime
 JOIN snomed_ancestor a ON m.destinationid = a.descendant_concept_code
@@ -1487,8 +1488,8 @@ FROM (
 	WHERE p.levels_down >= sa.min_levels_of_separation
 		OR p.levels_down IS NULL
 	ORDER BY sa.descendant_concept_code,
+			sa.min_levels_of_separation,
 		p.ranked DESC,
-		sa.min_levels_of_separation,
 		-- if there are two conflicting domains in the rank (both equally distant from the ancestor) then use precedence
 		CASE peak_domain_id WHEN 'Condition'
 			THEN 1

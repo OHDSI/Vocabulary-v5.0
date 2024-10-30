@@ -1049,6 +1049,7 @@ FROM (
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid,
 			sc.targetcomponent,
+			sc.refsetid,
 			sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC
 			) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
@@ -1414,6 +1415,7 @@ JOIN (
 		FIRST_VALUE(r.destinationid) OVER (
 			PARTITION BY r.sourceid,
 			r.effectivetime
+		    ORDER BY id DESC
 			) AS destinationid, --pick one parent at random
 		r.effectivetime,
 		MAX(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime

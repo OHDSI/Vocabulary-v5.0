@@ -1,5 +1,5 @@
 -- 1. Populate concept_stage table
-INSERT INTO concept_stage (
+/*INSERT INTO concept_stage (
 	concept_name,
     domain_id,
 	vocabulary_id,
@@ -10,10 +10,10 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)*/
-SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name,
+SELECT DISTINCT vocabulary_pack.CutConceptName(str) AS concept_name,
                 'Condition' AS domain_id,
                 'Orphanet' AS vocabulary_id,
-                s.sty AS concept_class_id, -- not sure about it. See sty = 'Pharmacologic substance': select * from sources.mrconso where cui = 'C0022230'
+                '??' AS concept_class_id,
                 NULL AS standard_concept,
                 m.code as concept_code,
              /*   (
@@ -31,12 +31,12 @@ and tty = 'PT';
 
 
 -- 2. Populate concept_synonym table:
-INSERT INTO concept_synonym_stage (
+/*INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_vocabulary_id,
 	synonym_name,
 	language_concept_id
-	)
+	)*/
 SELECT DISTINCT m.code,
 	            'Orphanet',
 	            vocabulary_pack.CutConceptSynonymName(m.str),
@@ -46,6 +46,7 @@ WHERE sab = 'ORPHANET'
 and tty = 'SY';
 
 -- semantic types (may be added to synonyms or used as classificators)
+-- not sure about concept_class. See sty = 'Pharmacologic substance': select * from sources.mrconso where cui = 'C0022230'
 SELECT distinct s.*
 from sources.mrsty s
 join sources.mrconso c using(cui)
@@ -93,25 +94,78 @@ and c2.sab = 'ORPHANET'
 	valid_end_date,
 	invalid_reason
 	)*/
-SELECT DISTINCT c.code AS concept_code_1,
+
+WITH umls_map AS
+    (SELECT DISTINCT c.code AS concept_code_1,
                 cc.code AS concept_code_2,
+               /* c.str as source_name,
+                cc.str as target_name,*/
+                count(cc.code) over (partition by c.code) as t_count
+    FROM sources.mrconso c
+    JOIN sources.mrconso cc using(cui)
+    JOIN concept c1 on c1.concept_code = cc.code
+                           and c1.vocabulary_id = 'SNOMED'
+                           and c1.concept_class_id in ('Clinical Finding', 'Disorder')
+                           and c1.standard_concept = 'S'
+    WHERE c.tty = 'PT'
+    AND cc.tty = 'PT'
+    AND c.sab = 'ORPHANET'
+    AND cc.sab = 'SNOMEDCT_US'
+    AND cc.lat = 'ENG')
+SELECT DISTINCT concept_code_1,
+                concept_code_2,
+               /* source_name,
+                target_name,*/
                 'Maps to' AS relationship_id,
                 'Orphanet' AS vocabulary_id_1,
-	            'Orphanet' AS vocabulary_id_2,
-                (SELECT latest_update
+	            'SNOMED' AS vocabulary_id_2,
+               /* (SELECT latest_update
                  FROM vocabulary
-                 WHERE vocabulary_id = 'Orphanet') AS valid_start_date,
+                 WHERE vocabulary_id = 'Orphanet') AS valid_start_date,*/
 	            TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	            NULL AS invalid_reason
-FROM sources.mrconso c
-JOIN sources.mrconso cc using(cui)
-WHERE c.tty = 'PT'
-AND cc.tty = 'PT'
-AND c.sab = 'ORPHANET'
-AND cc.sab = 'SNOMEDCT_US'
-AND cc.lat = 'ENG'
+FROM umls_map
+WHERE t_count = 1
 ;
--- variant 2 - 'dirty' mappings
+
+-- Mapping for manual review:
+WITH umls_map AS
+    (SELECT DISTINCT c.code AS concept_code_1,
+                cc.code AS concept_code_2,
+                c.str as source_code_description,
+                cc.str as target_concept_name,
+                count(cc.code) over (partition by c.code) as t_count
+    FROM sources.mrconso c
+    JOIN sources.mrconso cc using(cui)
+    JOIN concept c1 on c1.concept_code = cc.code
+                           and c1.vocabulary_id = 'SNOMED'
+                           and c1.concept_class_id in ('Clinical Finding', 'Disorder')
+                           and c1.standard_concept = 'S'
+    WHERE c.tty = 'PT'
+    AND cc.tty = 'PT'
+    AND c.sab = 'ORPHANET'
+    AND cc.sab = 'SNOMEDCT_US'
+    AND cc.lat = 'ENG')
+SELECT DISTINCT source_code_description,
+        concept_code_1,
+        'Orphanet' as vocabulary_id,
+		'Maps to' as relationship_id,
+        'UMLS' as source,
+        cc.concept_id,
+		cc.concept_code,
+       	cc.concept_name,
+       	cc.concept_class_id as target_concept_class_id,
+       	cc.standard_concept as target_standard_concept,
+       	cc.invalid_reason as target_invalid_reason,
+       	cc.domain_id as target_domain_id,
+       	cc.vocabulary_id as target_vocabulary_id
+FROM umls_map u
+JOIN concept cc on u.concept_code_2 = cc.concept_code and cc.vocabulary_id = 'SNOMED'
+WHERE t_count > 1
+ORDER BY concept_code_1
+;
+
+-- variant 2 - 'dirty' mappings from mrrel table
 SELECT DISTINCT c.code as source_code,
        c.str as source_name,
        'Maps to' as relationship_id,

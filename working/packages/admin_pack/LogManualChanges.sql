@@ -145,7 +145,17 @@ BEGIN
 
     IF iRet = 0 
     THEN
-        --exit when no changes found
+        -- clear logs for CRM and CM in case no changes has been found 
+        EXECUTE FORMAT ($$
+                DELETE 
+                  FROM concept_relationship_manual logged_crm
+                 WHERE logged_crm.dev_schema_name = %1$L;
+
+                DELETE 
+                  FROM concept_manual logged_cm
+                 WHERE logged_cm.dev_schema_name = %1$L;
+        $$, SESSION_USER);
+
         RETURN;
     END IF;
 
@@ -502,6 +512,89 @@ BEGIN
             ON CONFLICT 
                 DO NOTHING
         $$, SESSION_USER, iUserID);
+
+        -- delete undone local changes in concept_relationship_manual
+        EXECUTE FORMAT ($$
+            DELETE 
+            FROM
+                concept_relationship_manual log_crm
+            WHERE EXISTS (
+                SELECT 1
+                FROM %1$I.concept_relationship_manual dev_crm
+                JOIN devv5.base_concept_relationship_manual base_crm
+                    ON dev_crm.concept_code_1 = base_crm.concept_code_1 
+                    AND dev_crm.concept_code_2 = base_crm.concept_code_2
+                    AND dev_crm.vocabulary_id_1 = base_crm.vocabulary_id_1
+                    AND dev_crm.vocabulary_id_2 = base_crm.vocabulary_id_2
+                    AND dev_crm.relationship_id = base_crm.relationship_id
+                    AND dev_crm.valid_start_date = base_crm.valid_start_date
+                    AND dev_crm.valid_end_date = base_crm.valid_end_date
+                    AND COALESCE(dev_crm.invalid_reason, '_') = COALESCE(base_crm.invalid_reason, '_')
+                WHERE (
+                    dev_crm.valid_start_date != log_crm.valid_start_date
+                    OR dev_crm.valid_end_date != log_crm.valid_end_date
+                    OR COALESCE(dev_crm.invalid_reason, '_') != COALESCE(log_crm.invalid_reason, '_')
+                )
+                AND log_crm.concept_code_1 = dev_crm.concept_code_1
+                AND log_crm.concept_code_2 = dev_crm.concept_code_2
+                AND log_crm.vocabulary_id_1 = dev_crm.vocabulary_id_1
+                AND log_crm.vocabulary_id_2 = dev_crm.vocabulary_id_2
+                AND log_crm.relationship_id = dev_crm.relationship_id
+                AND log_crm.dev_schema_name = %1$L
+            )
+        $$, SESSION_USER);
+
+        -- delete undone local changes in concept_manual
+        EXECUTE FORMAT ($$
+            DELETE
+            FROM concept_manual
+            WHERE EXISTS (
+                SELECT 1
+                FROM 
+                    admin_pack.concept_manual log_cm
+                JOIN %1$I.concept_manual dev_cm
+                    ON log_cm.concept_code = dev_cm.concept_code
+                    AND log_cm.vocabulary_id = dev_cm.vocabulary_id 
+                JOIN devv5.base_concept_manual base_cm
+                    ON dev_cm.concept_code = base_cm.concept_code 
+                    AND dev_cm.vocabulary_id = base_cm.vocabulary_id
+                WHERE log_cm.dev_schema_name = %1$L
+                AND ROW (
+                    log_cm.concept_name, 
+                    log_cm.domain_id, 
+                    log_cm.concept_class_id, 
+                    log_cm.standard_concept, 
+                    log_cm.valid_start_date, 
+                    log_cm.valid_end_date, 
+                    log_cm.invalid_reason
+                ) IS DISTINCT FROM ROW (
+                    dev_cm.concept_name, 
+                    dev_cm.domain_id, 
+                    dev_cm.concept_class_id, 
+                    dev_cm.standard_concept, 
+                    dev_cm.valid_start_date, 
+                    dev_cm.valid_end_date, 
+                    dev_cm.invalid_reason
+                )
+                AND ROW (
+                    dev_cm.concept_name, 
+                    dev_cm.domain_id, 
+                    dev_cm.concept_class_id, 
+                    dev_cm.standard_concept, 
+                    dev_cm.valid_start_date, 
+                    dev_cm.valid_end_date, 
+                    dev_cm.invalid_reason
+                ) IS NOT DISTINCT FROM ROW (
+                    base_cm.concept_name, 
+                    base_cm.domain_id, 
+                    base_cm.concept_class_id, 
+                    base_cm.standard_concept, 
+                    base_cm.valid_start_date, 
+                    base_cm.valid_end_date, 
+                    base_cm.invalid_reason
+                )
+            )
+        $$, SESSION_USER);
 
         ANALYZE concept_relationship_manual,
             concept_manual,

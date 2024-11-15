@@ -78,8 +78,8 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 WITH old_syn AS (
 SELECT c.concept_code,
        c.vocabulary_id,
-       string_agg(distinct cs.language_concept_id::text, '; ' order by cs.language_concept_id::text) as old_language_concept_id,
-       string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) as old_synonym
+       string_agg (DISTINCT cs.language_concept_id::text, '; ' ORDER BY cs.language_concept_id::text) AS old_language_concept_id,
+       string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) AS old_synonym
 FROM devv5.concept c
     JOIN devv5.concept_synonym cs
       ON c.concept_id = cs.concept_id WHERE c.vocabulary_id IN (:your_vocabs)
@@ -90,8 +90,8 @@ GROUP BY
 new_syn AS (
 SELECT c.concept_code,
        c.vocabulary_id,
-      string_agg( distinct cs.language_concept_id::text, '; ' order by cs.language_concept_id::text) as new_language_concept_id,
-      string_agg ( cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) as new_synonym
+       string_agg (DISTINCT cs.language_concept_id::text, '; ' ORDER BY cs.language_concept_id::text) AS new_language_concept_id,
+       string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) AS new_synonym
 FROM concept c
 JOIN concept_synonym cs
     ON c.concept_id = cs.concept_id

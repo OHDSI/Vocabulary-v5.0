@@ -516,10 +516,15 @@ INSERT INTO concept_synonym_stage (
 SELECT DISTINCT m.code,
 	'SNOMED',
 	vocabulary_pack.CutConceptSynonymName(m.str),
-	4180186 -- English
+	CASE WHEN m.sab = 'SNOMEDCT_US'
+	    THEN 4180186 -- English
+      WHEN m.sab = 'SCTSPA'
+        THEN 4182511 -- Spanish
+    END
 FROM sources.mrconso m
 JOIN concept_stage s ON s.concept_code = m.code
-WHERE m.sab = 'SNOMEDCT_US'
+WHERE m.sab IN ('SNOMEDCT_US', 'SCTSPA')
+    AND m.suppress = 'N'
 	AND m.tty IN (
 		'PT',
 		'PTGB',

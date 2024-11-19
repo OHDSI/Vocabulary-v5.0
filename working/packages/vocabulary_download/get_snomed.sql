@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION vocabulary_download.get_snomed (
 AS
 $BODY$
 DECLARE
-    pVocabularyID CONSTANT TEXT := 'SNOMED';
+    pVocabularyID TEXT;
     CRLF CONSTANT TEXT:=E'\r\n';
     
     pVocabulary_auth vocabulary_access.vocabulary_auth%TYPE;
@@ -27,13 +27,9 @@ DECLARE
 /*
   possible values of pJumpToOperation:
   ALL (default), 
-  JUMP_TO_SNOMED_INT_PREPARE, 
   JUMP_TO_SNOMED_UK, 
-  JUMP_TO_SNOMED_UK_PREPARE, 
   JUMP_TO_SNOMED_US, 
-  JUMP_TO_SNOMED_US_PREPARE, 
   JUMP_TO_SNOMED_UK_DE, 
-  JUMP_TO_SNOMED_UK_DE_PREPARE, 
   JUMP_TO_SNOMED_IMPORT
 */
     pJumpToOperation TEXT;
@@ -42,7 +38,36 @@ DECLARE
     pSession int4;
     pVocabulary_load_path TEXT;
 BEGIN
-   pVocabularyOperation:='GET_SNOMED';
+
+    IF iOperation IS NULL 
+    THEN 
+        pJumpToOperation := 'ALL'; 
+    ELSE 
+        pJumpToOperation := iOperation; 
+    END IF;
+
+    IF iOperation NOT IN ('ALL', 
+                          'JUMP_TO_SNOMED_INT', 
+                          'JUMP_TO_SNOMED_UK', 
+                          'JUMP_TO_SNOMED_US' ,
+                          'JUMP_TO_SNOMED_UK_DE', 
+                          'JUMP_TO_DMD', 
+                          'JUMP_TO_DMD_PREPARE',
+                          'JUMP_TO_SNOMED_IMPORT') 
+    THEN 
+        RAISE EXCEPTION 'Wrong iOperation %', iOperation; 
+    END IF;
+
+   pVocabularyID := CASE iOperation
+                    WHEN 'JUMP_TO_SNOMED_INT'   THEN 'SNOMED_INT'
+                    WHEN 'JUMP_TO_SNOMED_UK'    THEN 'SNOMED_UK'
+                    WHEN 'JUMP_TO_SNOMED_US'    THEN 'SNOMED_US'
+                    WHEN 'JUMP_TO_SNOMED_UK_DE' THEN 'SNOMED_UK_DE'
+                    ELSE 'SNOMED'
+                    END CASE;
+            
+   pVocabularyOperation := 'GET_' || pVocabularyID;
+
    SELECT NEXTVAL('vocabulary_download.log_seq') INTO pSession;
   
    SELECT new_date, new_version, src_date, src_version 
@@ -58,27 +83,11 @@ BEGIN
         iVocabulary_status => 0
     );
   
-    IF iOperation IS NULL 
-    THEN 
-        pJumpToOperation := 'ALL'; 
-    ELSE 
-        pJumpToOperation := iOperation; 
-    END IF;
-    
-    IF iOperation NOT IN ('ALL', 'JUMP_TO_SNOMED_INT_PREPARE', 
-        'JUMP_TO_SNOMED_UK', 'JUMP_TO_SNOMED_UK_PREPARE', 
-        'JUMP_TO_SNOMED_US' ,'JUMP_TO_SNOMED_US_PREPARE',
-        'JUMP_TO_SNOMED_UK_DE', 'JUMP_TO_SNOMED_UK_DE_PREPARE',
-        'JUMP_TO_DMD', 'JUMP_TO_DMD_PREPARE',
-        'JUMP_TO_SNOMED_IMPORT') 
-    THEN 
-        RAISE EXCEPTION 'Wrong iOperation %', iOperation; 
-    END IF;
   
   /*if pJumpToOperation='ALL' then 
-  	if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
+    if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
   else
-  	--if we want to partially update the SNOMED (e.g. only UK-part), then we use the old date from the main source (International release), even if it was updated
+    --if we want to partially update the SNOMED (e.g. only UK-part), then we use the old date from the main source (International release), even if it was updated
     select vocabulary_date into pVocabularyNewDate from sources.sct2_concept_full_merged limit 1;
   end if;*/
     IF pVocabularyNewDate IS NULL 
@@ -96,17 +105,18 @@ BEGIN
       FROM devv5.config$ 
      WHERE var_name = 'vocabulary_load_path';
     
-    IF pJumpToOperation='ALL' 
+    -- INT download
+    IF pJumpToOperation in ('ALL','JUMP_TO_SNOMED_INT')
     THEN
         --get credentials
         SELECT vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, MAX(vocabulary_order) OVER()
           INTO pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z 
           FROM devv5.vocabulary_access 
-         WHERE vocabulary_id=pVocabularyID 
-           AND vocabulary_order=2;
+         WHERE vocabulary_id = pVocabularyID 
+           AND vocabulary_order = 2;
     
         --first part, getting raw download link from page
-        SELECT SUBSTRING(http_content,'<h1>Current International Edition Release</h1>.+?<a class=.+?href="(.+?)".*?><strong>Download RF2 Files Now!</strong></a>') 
+        SELECT TRIM(SUBSTRING(http_content,'<h1>Current International Edition Release</h1>.+?<a class=.+?href="(.+?)".*?><strong>Download RF2 Files Now!</strong></a>'))
           INTO pDownloadURL 
           FROM py_http_get(url => pVocabulary_url);
           
@@ -118,6 +128,7 @@ BEGIN
     
         --get the proper ticket and concatenate it with the pDownloadURL
         pTicket := get_umls_ticket (pVocabulary_auth, pVocabulary_login, pDownloadURL);
+        
         pDownloadURL := pDownloadURL || '?ticket=' || pTicket;
 
         PERFORM write_log (
@@ -143,16 +154,18 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
-    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_INT_PREPARE') 
+
+    -- INT prepare
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_INT') 
     THEN
-        pJumpToOperation := 'ALL';
         --extraction
         pVocabularyOperation := 'GET_SNOMED INT prepare';
+        
         PERFORM get_snomed_prepare_int (
             iPath => pVocabulary_load_path,
             iFilename => LOWER(pVocabularyID) || '.zip'
         );
+        
         PERFORM write_log (
             iVocabularyID => pVocabularyID,
             iSessionID => pSession,
@@ -160,11 +173,10 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
+
+    -- UK download
     IF pJumpToOperation IN ('ALL', 'JUMP_TO_SNOMED_UK') 
     THEN
-        pJumpToOperation := 'ALL';
-    
         pVocabularyOperation := 'GET_SNOMED UK-part';
         
         --get credentials
@@ -177,7 +189,7 @@ BEGIN
         --authorization
         SELECT (SELECT VALUE 
                   FROM json_each_text(http_headers) 
-                 WHERE LOWER(key)='set-cookie'), 
+                 WHERE LOWER(key) = 'set-cookie'), 
                http_content 
           INTO pCookie, pContent
           FROM py_http_post(url => pVocabulary_auth, params => 'j_username=' || 
@@ -199,7 +211,8 @@ BEGIN
         pDownloadURL := SUBSTRING(pContent, '<div class="release-details__label">.+?<a href="(.*?)">.+');
     
         --start downloading
-        pVocabularyOperation:='GET_SNOMED UK-part downloading';
+        pVocabularyOperation := 'GET_SNOMED UK-part downloading';
+        
         PERFORM run_wget (
             iPath => pVocabulary_load_path,
             iFilename => LOWER(pVocabularyID) || '.zip',
@@ -214,13 +227,12 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
-    IF pJumpToOperation IN ('ALL', 'JUMP_TO_SNOMED_UK_PREPARE') 
+
+    -- UK prepare
+    IF pJumpToOperation IN ('ALL', 'JUMP_TO_SNOMED_UK') 
     THEN
-        pJumpToOperation:='ALL';
-        
         --extraction
-        pVocabularyOperation:='GET_SNOMED UK prepare';
+        pVocabularyOperation := 'GET_SNOMED UK prepare';
         
         PERFORM get_snomed_prepare_uk (
             iPath => pVocabulary_load_path,
@@ -234,11 +246,10 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
+
+    -- US download
     IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_US') 
     THEN
-        pJumpToOperation := 'ALL';
-    
         pVocabularyOperation := 'GET_SNOMED US-part';
         
         --get credentials
@@ -246,7 +257,7 @@ BEGIN
           INTO pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z 
           FROM devv5.vocabulary_access 
          WHERE vocabulary_id = pVocabularyID 
-           AND vocabulary_orde r= 4;
+           AND vocabulary_order = 4;
     
         --first part, getting raw download link from page
         SELECT SUBSTRING(http_content, 'Current US Edition Release.+?<p><a href="(.+?\.zip)".*?>Download Now!</a></p>')
@@ -288,11 +299,10 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
-    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_US_PREPARE') 
+
+    -- US prepare
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_US') 
     THEN
-        pJumpToOperation:='ALL';
-        
         --extraction
         pVocabularyOperation:='GET_SNOMED US prepare';
         
@@ -308,11 +318,10 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
+
+    -- UK_DE download
     IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_UK_DE') 
     THEN
-        pJumpToOperation := 'ALL';
-    
         pVocabularyOperation := 'GET_SNOMED UK DE-part';
         
         --get credentials
@@ -364,11 +373,10 @@ BEGIN
             iVocabulary_status => 1
         );
     END IF;
-  
-    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_UK_DE_PREPARE') 
+
+    -- UK_DE prepare
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_UK_DE') 
     THEN
-        pJumpToOperation := 'ALL';
-        
         --extraction
         pVocabularyOperation := 'GET_SNOMED UK DE prepare';
         
@@ -384,10 +392,12 @@ BEGIN
         );
     END IF;
   
-    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_IMPORT') 
+    IF pJumpToOperation IN ('ALL','JUMP_TO_SNOMED_IMPORT',
+                            'JUMP_TO_SNOMED_INT', 
+                            'JUMP_TO_SNOMED_UK', 
+                            'JUMP_TO_SNOMED_US' ,
+                            'JUMP_TO_SNOMED_UK_DE') 
     THEN
-        pJumpToOperation:='ALL';
-        
         --finally we have all input tables, we can start importing
         pVocabularyOperation := 'GET_SNOMED load_input_tables';
         

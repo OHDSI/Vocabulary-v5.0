@@ -22,8 +22,10 @@ DECLARE
     cLoadStageScript TEXT;
     cScriptFailed boolean;
     cScriptErrorText TEXT;
+    cParameters TEXT;
     pSession int4;
     cMailText TEXT;
+    cVocabularyId TEXT;
     crlf CONSTANT VARCHAR(4) := '<br>';
     crlfSQL CONSTANT VARCHAR(4) := E'\r\n';
     cEmail VARCHAR(1000);
@@ -86,9 +88,20 @@ BEGIN
           
             IF COALESCE(cSrcDate::VARCHAR,cSrcVersion) <> COALESCE(cNewDate::VARCHAR,cNewVersion) 
             THEN
+                IF cVocab.vocabulary_id LIKE 'SNOMED_%'
+                THEN
+                    -- To execute get_snomed function with the iOperation parameter for SNOMED modules
+                    cParameters := 'iOperation => ''JUMP_TO_' || cVocab.vocabulary_id || '''::TEXT';
+                    cVocabularyId := 'SNOMED';
+                ELSE 
+                    -- To execut default get_<vocabulary_id>() function
+                    cParameters := '';
+                    cVocabularyId := REPLACE(cVocab.vocabulary_id,' ','_');
+                END IF;
+                
                 --update vocabulary in source-schema
                 EXECUTE 'SELECT session_id, last_status, result_output FROM vocabulary_download.get_' 
-                        || REPLACE(cVocab.vocabulary_id,' ','_') || '()' 
+                        || cVocabularyId || '(' || cParameters || ')'
                    INTO cSessionID, cLastStatusID, cResult;
                         
                 IF cLastStatusID = 3 

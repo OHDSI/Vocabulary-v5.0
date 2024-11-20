@@ -45,5 +45,3 @@ SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 9. If no problems, enjoy!
 
-Manual tables directory permalink: https://drive.google.com/drive/u/0/folders/1TWGdyVy95AT-9GfK7KaKY2HQA4rDqxrH
-

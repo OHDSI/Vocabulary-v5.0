@@ -240,23 +240,12 @@ CREATE TABLE concept_synonym_manual (
 	language_concept_id int4 NOT NULL
 );
 
-/*
-	the next four columns are for our internal use, you don't need to include them in your work environment:
-	created
-	created_by
-	modified
-	modified_by
-*/
 --Create a base table for manual relationships, it stores all manual relationships from all vocabularies
 DROP TABLE IF EXISTS base_concept_relationship_manual;
 CREATE TABLE base_concept_relationship_manual (
 	LIKE concept_relationship_manual,
 	concept_id_1 INT4 NOT NULL,
 	concept_id_2 INT4 NOT NULL,
-	created TIMESTAMPTZ NOT NULL,
-	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
-	modified TIMESTAMPTZ,
-	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
 	CONSTRAINT idx_pk_base_crm PRIMARY KEY (
 		concept_code_1,
 		concept_code_2,
@@ -271,10 +260,6 @@ DROP TABLE IF EXISTS base_concept_manual CASCADE;
 CREATE TABLE base_concept_manual (
 	LIKE concept_manual,
 	concept_id INT4 NOT NULL,
-	created TIMESTAMPTZ NOT NULL,
-	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
-	modified TIMESTAMPTZ,
-	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
 	CONSTRAINT idx_pk_base_cm PRIMARY KEY (
 		concept_code,
 		vocabulary_id
@@ -286,10 +271,6 @@ DROP TABLE IF EXISTS base_concept_synonym_manual CASCADE;
 CREATE TABLE base_concept_synonym_manual (
 	LIKE concept_synonym_manual,
 	concept_id INT4 NOT NULL,
-	created TIMESTAMPTZ NOT NULL,
-	created_by INT4 NOT NULL REFERENCES admin_pack.virtual_user(user_id),
-	modified TIMESTAMPTZ,
-	modified_by INT4 REFERENCES admin_pack.virtual_user(user_id),
 	CONSTRAINT idx_pk_base_csm PRIMARY KEY (
 		synonym_vocabulary_id,
 		synonym_name,

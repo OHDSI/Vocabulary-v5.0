@@ -111,6 +111,22 @@ BEGIN
         THEN
             cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.*\.zip".+?\.zip">.+'),'yyyymmdd');
             cVocabVer := 'Snomed Release '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_INT'
+        THEN
+            cVocabDate := to_date(SUBSTRING(cVocabHTML FROM 'Release Date: ([A-Za-z]+ \d{1,2}, \d{4})'), 'Month DD, YYYY');
+            cVocabVer := 'Snomed International '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_US'
+        THEN
+            cVocabDate := TO_DATE(SUBSTRING(cVocabHTML FROM '<p><strong>Release Date:</strong> ([A-Za-z]+ \d{1,2}, \d{4})'), 'Month DD, YYYY');
+            cVocabVer := 'Snomed US '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_UK_DE'
+        THEN
+            cVocabDate := TO_DATE(SUBSTRING(cVocabHTML FROM '(\d+\s+[A-Za-z]+\s+\d+)\s+major release.'), 'DD Month YYYY');
+            cVocabVer := 'Snomed UK_DE '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_UK'
+        THEN
+            cVocabDate := TO_DATE(SUBSTRING(cVocabHTML FROM '(\d+\s+[A-Za-z]+\s+\d+)\s+major release.'), 'DD Month YYYY');
+            cVocabVer := 'Snomed UK '||TO_CHAR(cVocabDate,'YYYYMMDD');
         WHEN cVocabularyName = 'HCPCS'
         THEN
             --cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs files*">'),'month yyyy');

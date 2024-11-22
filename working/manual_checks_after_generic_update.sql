@@ -235,96 +235,16 @@ where a.vocabulary_id IN (:your_vocabs)
 and c.concept_id is null
 ;
 
---Maria version
 --02.5. concepts changed their mapping ('Maps to', 'Maps to value')
 --In this check we manually review the changes of concept's mapping to make sure they are expected, correct and in line with the current conventions and approaches.
+--Also we can assess the source which mapping comes from and at what point in the run the mapping changes occurred.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 --This occurrence includes 2 possible scenarios: (i) mapping changed; (ii) mapping present in one version, absent in another. To review the absent mappings cases, sort by the respective code_agg to get the NULL values first.
 --In this check we review the actual concept-level content and mapping quality, and for prioritization purposes more artifacts can be found in the following scenarios:
 -- - mapping presented before, but is missing now;
 -- - multiple 'Maps to' and/or 'Maps to value' links (sort by relationship_id to find such cases);
 -- - frequent target concept (sort by new_code_agg or old_code_agg fields to find such cases).
---TODO: add logical groups for suspicious target domains
-
-with new_map as (
-select a.concept_id,
-       a.vocabulary_id,
-       a.concept_class_id,
-       a.standard_concept,
-       a.concept_code,
-       a.concept_name,
-       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.vocabulary_id end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as vocabulary_agg,
-       string_agg (case when (a.concept_code, a.vocabulary_id, r.relationship_id, b.concept_code, b.vocabulary_id) IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 from concept_relationship_manual where vocabulary_id_1 IN (:your_vocabs) AND invalid_reason IS NULL) then 'manual file' else 'ls' end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as source_agg
-from concept a
-left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
-left join concept b on b.concept_id = concept_id_2
-where a.vocabulary_id IN (:your_vocabs)
-    --and a.invalid_reason is null --to exclude invalid concepts
-group by a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
-)
-,
-old_map as (
-select a.concept_id,
-       a.vocabulary_id,
-       a.concept_class_id,
-       a.standard_concept,
-       a.concept_code,
-       a.concept_name,
-       string_agg (r.relationship_id, '-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as relationship_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as code_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as name_agg,
-       string_agg (case when (a.concept_code, a.vocabulary_id, r.relationship_id, b.concept_code, b.vocabulary_id) IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 from concept_relationship_manual where vocabulary_id_1 IN (:your_vocabs) and invalid_reason = 'D') then 'D by crm'
-           when (a.concept_id, r.relationship_id, b.concept_id) IN (select concept_id_1, relationship_id, concept_id_2 from concept_relationship where concept_id_1 IN (select concept_id from concept where vocabulary_id IN (:your_vocabs)) and invalid_reason = 'D' and relationship_id in ('Maps to', 'Maps to value')) then 'D by ls'
-           else 'alive' end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as changes_agg,
-       string_agg (case when (a.concept_code, a.vocabulary_id, r.relationship_id, b.concept_code, b.vocabulary_id) IN (select concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 from devv5.base_concept_relationship_manual where vocabulary_id_1 IN (:your_vocabs) AND invalid_reason IS NULL) then 'manual file' else 'ls' end, '-/-' order by r.relationship_id, b.concept_code, b.vocabulary_id) as source_agg
-from devv5.concept a
-left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
-left join devv5.concept b on b.concept_id = concept_id_2
-where a.vocabulary_id IN (:your_vocabs)
-    --and a.invalid_reason is null --to exclude invalid concepts
-group by a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
-)
-select b.vocabulary_id as vocabulary_id,
-       b.concept_class_id,
-       b.standard_concept,
-       b.concept_code as source_code,
-       b.concept_name as source_name,
-       CASE WHEN a.code_agg IS NULL
-           THEN NULL
-           ELSE a.source_agg END AS old_source_agg,
-       a.relationship_agg as old_relat_agg,
-       a.code_agg as old_code_agg,
-       a.name_agg as old_name_agg,
-       CASE WHEN a.code_agg IS NULL
-           THEN NULL
-           ELSE a.changes_agg
-           END AS old_mapping_changes,
-       CASE WHEN b.code_agg IS NULL
-           THEN NULL
-           ELSE b.source_agg END AS new_source_agg,
-       b.relationship_agg as new_relat_agg,
-       b.code_agg as new_code_agg,
-       b.name_agg as new_name_agg
-from old_map a
-join new_map b
-on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) or (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
-order by a.concept_code
-;
-
-
---Varvara version
---02.5. concepts changed their mapping ('Maps to', 'Maps to value')
---In this check we manually review the changes of concept's mapping to make sure they are expected, correct and in line with the current conventions and approaches.
---To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
---This occurrence includes 2 possible scenarios: (i) mapping changed; (ii) mapping present in one version, absent in another. To review the absent mappings cases, sort by the respective code_agg to get the NULL values first.
---In this check we review the actual concept-level content and mapping quality, and for prioritization purposes more artifacts can be found in the following scenarios:
--- - mapping presented before, but is missing now;
--- - multiple 'Maps to' and/or 'Maps to value' links (sort by relationship_id to find such cases);
--- - frequent target concept (sort by new_code_agg or old_code_agg fields to find such cases).
-CREATE OR REPLACE FUNCTION optimize_mapping_function(single_vocab text)
+CREATE OR REPLACE FUNCTION mapping_changes(your_vocabs text[])
 RETURNS TABLE (
     vocabulary_id varchar,
     concept_class_id varchar,
@@ -339,7 +259,10 @@ RETURNS TABLE (
     new_source_agg text,
     new_relat_agg text,
     new_code_agg text,
-    new_name_agg text
+    new_name_agg text,
+    old_new_similarity real,
+    old_source_similarity real,
+    new_source_similarity real
 ) AS $$
 BEGIN
     -- Create temporary table for new_map
@@ -360,12 +283,12 @@ BEGIN
                              WHERE concept_code_1 = a.concept_code AND vocabulary_id_1 = a.vocabulary_id
                              AND relationship_id = r.relationship_id
                              AND concept_code_2 = b.concept_code AND vocabulary_id_2 = b.vocabulary_id
-                             AND vocabulary_id_1 = single_vocab AND invalid_reason IS NULL)
-                        THEN 'manual file' ELSE 'ls' END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS source_agg
+                             AND vocabulary_id_1 = ANY (your_vocabs) AND invalid_reason IS NULL)
+                        THEN 'manual mapping' ELSE 'load_stage' END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS source_agg
     FROM concept a
     LEFT JOIN concept_relationship r ON a.concept_id = r.concept_id_1 AND r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason IS NULL
     LEFT JOIN concept b ON b.concept_id = r.concept_id_2
-    WHERE a.vocabulary_id = single_vocab
+    WHERE a.vocabulary_id = ANY (your_vocabs)
     GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name;
 
     -- Create indexes for temp_new_map
@@ -389,26 +312,34 @@ BEGIN
                              WHERE concept_code_1 = a.concept_code AND vocabulary_id_1 = a.vocabulary_id
                              AND relationship_id = r.relationship_id
                              AND concept_code_2 = b.concept_code AND vocabulary_id_2 = b.vocabulary_id
-                             AND vocabulary_id_1 = single_vocab AND invalid_reason = 'D')
-                        THEN 'D by crm'
-                        WHEN EXISTS
-                             (SELECT 1 FROM concept_relationship
-                              WHERE concept_id_1 = a.concept_id AND relationship_id = r.relationship_id
-                              AND concept_id_2 = b.concept_id AND invalid_reason = 'D' AND relationship_id IN ('Maps to', 'Maps to value')
-                              AND concept_id_1 IN (SELECT concept_id FROM concept c WHERE c.vocabulary_id = single_vocab))
-                        THEN 'D by ls'
-                        ELSE 'alive' END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS changes_agg,
+                             AND vocabulary_id_1 = ANY (your_vocabs) AND invalid_reason = 'D')
+                        THEN 'deprecated manually'
+               WHEN EXISTS
+                            (SELECT 1 FROM concept_relationship_stage
+                             WHERE concept_code_1 = a.concept_code
+                             AND vocabulary_id_1 = a.vocabulary_id
+                             AND relationship_id = r.relationship_id
+                             AND concept_code_2 = b.concept_code
+                             AND vocabulary_id_2 = b.vocabulary_id
+                             AND invalid_reason IS NULL)
+                   AND EXISTS
+                            (SELECT 1 FROM concept_relationship
+                             WHERE concept_id_1 = a.concept_id AND relationship_id = r.relationship_id
+                             AND concept_id_2 = b.concept_id AND invalid_reason = 'D' AND relationship_id IN ('Maps to', 'Maps to value')
+                             AND concept_id_1 IN (SELECT concept_id FROM concept c WHERE c.vocabulary_id = ANY (your_vocabs)))
+                        THEN 'deprecated by generic'
+                        ELSE 'valid' END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS changes_agg,
            STRING_AGG(CASE WHEN EXISTS
                             (SELECT 1 FROM devv5.base_concept_relationship_manual
                              WHERE concept_code_1 = a.concept_code AND vocabulary_id_1 = a.vocabulary_id
                              AND relationship_id = r.relationship_id
                              AND concept_code_2 = b.concept_code AND vocabulary_id_2 = b.vocabulary_id
-                             AND vocabulary_id_1 = single_vocab AND invalid_reason IS NULL)
-                        THEN 'manual file' ELSE 'ls' END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS source_agg
+                             AND vocabulary_id_1 = ANY (your_vocabs) AND invalid_reason IS NULL)
+                        THEN 'manual mapping' ELSE 'load_stage' END, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS source_agg
     FROM devv5.concept a
     LEFT JOIN devv5.concept_relationship r ON a.concept_id = r.concept_id_1 AND r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason IS NULL
     LEFT JOIN devv5.concept b ON b.concept_id = r.concept_id_2
-    WHERE a.vocabulary_id = single_vocab
+    WHERE a.vocabulary_id = ANY (your_vocabs)
     GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name;
 
     -- Create indexes for temp_old_map
@@ -430,7 +361,10 @@ BEGIN
            CASE WHEN b.code_agg IS NULL THEN NULL ELSE b.source_agg END AS new_source_agg,
            b.relationship_agg AS new_relat_agg,
            b.code_agg AS new_code_agg,
-           b.name_agg AS new_name_agg
+           b.name_agg AS new_name_agg,
+           devv5.similarity(  a.name_agg,b.name_agg) AS old_new_similarity,
+           devv5.similarity(  a.name_agg,b.concept_name) AS old_source_similarity,
+           devv5.similarity(  b.name_agg,b.concept_name) AS new_source_similarity
     FROM temp_old_map a
     JOIN temp_new_map b ON a.concept_id = b.concept_id
                          AND (COALESCE(a.code_agg, '') != COALESCE(b.code_agg, '') OR
@@ -439,12 +373,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-
--- Example usage of the optimize_mapping function for a single vocabulary ID
-
+-- Run the function and review the results:
 SELECT *
-FROM optimize_mapping_function('LOINC');
+FROM mapping_changes(ARRAY['xyz']); --ARRAY['SNOMED', 'HCPCS', 'LOINC']
 
 
 --02.6. Concepts changed their ancestry ('Is a')

@@ -289,6 +289,7 @@ BEGIN
     LEFT JOIN concept_relationship r ON a.concept_id = r.concept_id_1 AND r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason IS NULL
     LEFT JOIN concept b ON b.concept_id = r.concept_id_2
     WHERE a.vocabulary_id = ANY (your_vocabs)
+    --AND a.invalid_reason IS NULL --to exclude invalid concepts
     GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name;
 
     -- Create indexes for temp_new_map
@@ -340,6 +341,7 @@ BEGIN
     LEFT JOIN devv5.concept_relationship r ON a.concept_id = r.concept_id_1 AND r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason IS NULL
     LEFT JOIN devv5.concept b ON b.concept_id = r.concept_id_2
     WHERE a.vocabulary_id = ANY (your_vocabs)
+    --AND a.invalid_reason IS NULL --to exclude invalid concepts
     GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name;
 
     -- Create indexes for temp_old_map

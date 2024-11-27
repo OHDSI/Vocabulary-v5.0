@@ -408,11 +408,8 @@ SELECT b.source_vocabulary_id AS vocabulary_id,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
        b.name_agg AS new_name_agg,
-       devv5.similarity(a.name_agg,b.name_agg) AS old_new_similarity,
-       devv5.similarity(a.name_agg,b.source_name) AS old_source_similarity,
-       devv5.similarity(b.name_agg,b.source_name) AS new_source_similarity
 FROM old_map a
-join new_map b
+JOIN new_map b
 ON a.source_concept_id = b.source_concept_id  AND  ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
 ORDER BY a.source_code
 ;
@@ -471,9 +468,6 @@ SELECT b.vocabulary_id AS vocabulary_id,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
        b.name_agg AS new_name_agg,
-       devv5.similarity(  a.name_agg,b.name_agg) AS old_new_similarity,
-       devv5.similarity(  a.name_agg,b.concept_name) AS old_source_similarity,
-       devv5.similarity(  b.name_agg,b.concept_name) AS new_source_similarity
 FROM old_map  a
 JOIN new_map b
 ON a.concept_id = b.concept_id AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
@@ -750,7 +744,6 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 
 --03. Concepts have replacement link, but miss "Maps to" link
 -- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
---TODO: at the moment it's not resolved in SNOMED and some other places and requires additional attention. Review p.5 of "What's New" chapter [here](https://github.com/OHDSI/Vocabulary-v5.0/releases/tag/v20220829_1661776786)
 
 SELECT DISTINCT c.vocabulary_id,
                 c.concept_class_id,

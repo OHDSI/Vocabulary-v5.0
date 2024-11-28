@@ -467,7 +467,7 @@ SELECT b.vocabulary_id AS vocabulary_id,
        a.name_agg AS old_name_agg,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
-       b.name_agg AS new_name_agg,
+       b.name_agg AS new_name_agg
 FROM old_map  a
 JOIN new_map b
 ON a.concept_id = b.concept_id AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))

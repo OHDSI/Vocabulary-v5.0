@@ -243,13 +243,12 @@ AND c.concept_id IS NULL
 
 --02.5. concepts changed their mapping ('Maps to', 'Maps to value')
 --In this check we manually review the changes of concept's mapping to make sure they are expected, correct and in line with the current conventions and approaches.
---Also we can assess the source which mapping comes from and at what point in the run the mapping changes occurred.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 --This occurrence includes 2 possible scenarios: (i) mapping changed; (ii) mapping present in one version, absent in another. To review the absent mappings cases, sort by the respective code_agg to get the NULL values first.
---In this check we review the actual concept-level content and mapping quality, and for prioritization purposes more artifacts can be found in the following scenarios:
--- - mapping presented before, but is missing now;
--- - multiple 'Maps to' and/or 'Maps to value' links (sort by relationship_id to find such cases);
--- - frequent target concept (sort by new_code_agg or old_code_agg fields to find such cases).
+--Also we can assess the source which mapping comes from and at what point in the run the mapping changes occurred:
+--- "old_mapping_source" and "new_mapping_source" fields indicate whether mapping comes from concept_relationship_manual or it is built by load_stage scripts;
+--- "mapping_changes_source" field shows at what step of the vocabulary run the mapping was deprecated: concept_relationship_manual, load_stage or generic_update.
+
 WITH crm AS (
     SELECT concept_code_1,
            vocabulary_id_1,
@@ -397,14 +396,14 @@ SELECT b.source_vocabulary_id AS vocabulary_id,
        b.source_code,
        b.source_name,
        CASE WHEN a.code_agg IS NULL THEN NULL
-           ELSE a.source_agg END AS old_source_agg,
+           ELSE a.source_agg END AS old_mapping_source,
        a.relationship_agg AS old_relat_agg,
        a.code_agg AS old_code_agg,
        a.name_agg AS old_name_agg,
        CASE WHEN a.code_agg IS NULL THEN NULL
-           ELSE a.changes_agg END AS old_mapping_changes,
+           ELSE a.changes_agg END AS mapping_changes_source,
        CASE WHEN b.code_agg IS NULL THEN NULL
-           ELSE b.source_agg END AS new_source_agg,
+           ELSE b.source_agg END AS new_mapping_source,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
        b.name_agg AS new_name_agg

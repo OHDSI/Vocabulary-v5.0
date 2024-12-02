@@ -470,7 +470,7 @@ SELECT b.vocabulary_id AS vocabulary_id,
 FROM old_map  a
 JOIN new_map b
 ON a.concept_id = b.concept_id AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
-ORDER BY a.concept_code,old_new_similarity NULLS FIRST,old_source_similarity NULLS FIRST,new_source_similarity NULLS FIRST
+ORDER BY a.concept_code
 ;
 
 --02.7. Concepts with 1-to-many mapping -- multiple 'Maps to%' present

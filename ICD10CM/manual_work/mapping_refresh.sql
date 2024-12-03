@@ -16,6 +16,9 @@
 * Authors: Irina Zherko, Dmitry Dymshyts, Polina Talapova, Daryna Ivakhnenko
 * Date: 2024
 **************************************************************************/
+--icd10cm_refresh 02_2024 backup
+CREATE TABLE icd10cm_refresh_02_2024_backup as SELECT * FROM icd10cm_refresh;
+CREATE TABLE icd10cm_refresh_07_2024_backup as SELECT * FROM icd10cm_refresh;
 
 -- Create table icd10cm_refresh
 DROP TABLE icd10cm_refresh;
@@ -121,3 +124,5 @@ and crs.relationship_id in ('Maps to', 'Maps to value')
 WHERE crs.concept_code_2 is null
 and cs.invalid_reason is null
 and cs.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter', 'ICD10 Hierarchy');
+
+SELECT * FROM icd10cm_refresh;

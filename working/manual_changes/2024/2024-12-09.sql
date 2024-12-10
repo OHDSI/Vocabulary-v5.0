@@ -10,3 +10,9 @@ pStandard_concept =>'S',
 pConcept_code =>'{RU}/mL'
 );
 END $_$;
+
+-- Fix incorrect UCUM concept_name:
+UPDATE concept
+SET concept_name = 'milliliter per centimeter of water'
+WHERE concept_id = 720866
+;

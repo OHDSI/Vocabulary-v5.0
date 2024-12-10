@@ -101,7 +101,10 @@ BEGIN
         CREATE TABLE concept_relationship (LIKE %1$I.concept_relationship INCLUDING CONSTRAINTS);
         INSERT INTO concept_relationship SELECT * FROM %1$I.concept_relationship WHERE '%2$s'=TRUE OR ('%2$s'=FALSE AND invalid_reason IS NULL);
         CREATE TABLE concept_relationship_metadata (LIKE %1$I.concept_relationship_metadata INCLUDING CONSTRAINTS);
-        INSERT INTO concept_relationship_metadata SELECT * FROM %1$I.concept_relationship_metadata;
+        INSERT INTO concept_relationship_metadata 
+        SELECT crm.* FROM %1$I.concept_relationship cr 
+          JOIN %1$I.concept_relationship_metadata crm USING (concept_id_1, concept_id_2, relationship_id)
+         WHERE '%2$s'=TRUE OR ('%2$s'=FALSE AND cr.invalid_reason IS NULL);
         CREATE TABLE concept_synonym (LIKE %1$I.concept_synonym INCLUDING CONSTRAINTS);
         INSERT INTO concept_synonym SELECT * FROM %1$I.concept_synonym WHERE '%3$s'=TRUE;
         CREATE TABLE vocabulary (LIKE %1$I.vocabulary);

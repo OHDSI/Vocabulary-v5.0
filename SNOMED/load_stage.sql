@@ -20,28 +20,40 @@
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
 CREATE OR REPLACE VIEW module_date AS
-SELECT s0.moduleid,
-	CASE 
-		WHEN s0.moduleid = '900000000000207008'
-			THEN TO_CHAR(MAX(s0.int_version) OVER (), 'yyyy-mm-dd')
-		ELSE s0.local_version
-		END AS version
-FROM (
-	SELECT DISTINCT ON (m.id) m.moduleid,
-		TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS local_version,
+WITH s0 AS (
+    SELECT DISTINCT ON (m.id) m.moduleid,
+		m.sourceeffectivetime AS local_version,
 		m.targeteffectivetime AS int_version
 	FROM sources.der2_ssrefset_moduledependency_merged m
 	WHERE m.active = 1
-		AND m.referencedcomponentid = '900000000000012004'
+		AND m.referencedcomponentid = '900000000000207008'
 		AND --Model component module; Synthetic target, contains source version in each row
 		m.moduleid IN (
-			'900000000000207008', --Core (international) module
 			'999000011000000103', --UK edition
 			'731000124108' --US edition
 			)
 	ORDER BY m.id,
 		m.effectivetime DESC
-	) s0;
+	)
+
+SELECT DISTINCT ON (m.moduleid) m.moduleid,
+	CASE
+		WHEN m.moduleid = '900000000000207008'
+			THEN TO_CHAR(MAX(s0.int_version) OVER (), 'yyyy-mm-dd')
+		ELSE TO_CHAR(s0.local_version, 'yyyy-mm-dd')
+		END AS version
+FROM sources.der2_ssrefset_moduledependency_merged m
+LEFT JOIN s0 ON m.moduleid = s0.moduleid AND
+                m.sourceeffectivetime = s0.local_version AND
+                m.targeteffectivetime = s0.int_version
+WHERE m.moduleid IN (
+			'900000000000207008', --Core (international) module
+			'999000011000000103', --UK edition
+			'731000124108' --US edition
+			)
+	ORDER BY m.moduleid,
+		m.effectivetime DESC
+;
 
 --2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.
@@ -131,10 +143,6 @@ FROM (
 	FROM sources.sct2_concept_full_merged c
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
-	WHERE c.moduleid NOT IN (
-			'999000011000001104', --UK Drug extension
-			'999000021000001108' --UK Drug extension reference set module
-			)
 	) sct2
 WHERE sct2.rn = 1;
 
@@ -151,10 +159,6 @@ FROM (
 			TO_DATE(c.effectivetime, 'YYYYMMDD') AS effectiveend,
 			c.active
 		FROM sources.sct2_concept_full_merged c
-		WHERE c.moduleid NOT IN (
-				'999000011000001104', --UK Drug extension
-				'999000021000001108' --UK Drug extension reference set module
-				)
 		ORDER BY c.id,
 			TO_DATE(c.effectivetime, 'YYYYMMDD') DESC
 		) s0
@@ -317,10 +321,6 @@ FROM (
 						JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.concept_code
 						WHERE c.vocabulary_id = 'SNOMED'
 							AND d.typeid = '900000000000003001' -- only Fully Specified Names
-							AND d.moduleid NOT IN (
-								'999000011000001104', --UK Drug extension
-								'999000021000001108'  --UK Drug extension reference set module
-							)
 					) AS s0
 					) AS s1
 				) AS s2
@@ -554,10 +554,6 @@ FROM (
 			PARTITION BY m.id ORDER BY TO_DATE(m.effectivetime, 'YYYYMMDD') DESC
 			) AS active_status
 	FROM sources.sct2_desc_full_merged m
-	WHERE m.moduleid NOT IN (
-			'999000011000001104', -- UK Drug extension
-			'999000021000001108' -- UK Drug extension reference set module
-			)
 	) d
 WHERE EXISTS (
 		SELECT 1
@@ -621,10 +617,6 @@ UNION ALL
 			'900000000000074008' --Primitive
 			)
 		AND c.active = 1
-		AND c.moduleid NOT IN (
-			'999000011000001104', --SNOMED CT United Kingdom drug extension module
-			'999000021000001108' --SNOMED CT United Kingdom drug extension reference set module
-			)
 	ORDER BY c.id,
 		TO_DATE(c.effectivetime, 'YYYYMMDD') DESC
 )
@@ -654,10 +646,6 @@ WITH attr_rel AS (
 				r.active
 			FROM sources.sct2_rela_full_merged r
 			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
-			WHERE r.moduleid NOT IN (
-					'999000011000001104', --UK Drug extension
-					'999000021000001108' --UK Drug extension reference set module
-					)
 			-- get the latest in a sequence of relationships, to decide whether it is still active
 			ORDER BY r.id,
 				TO_DATE(r.effectivetime, 'YYYYMMDD') DESC,
@@ -1066,10 +1054,6 @@ FROM (
 			'900000000000527005',
 			'900000000000530003'
 			)
-		AND sc.moduleid NOT IN (
-			'999000011000001104', --UK Drug extension
-			'999000021000001108' --UK Drug extension reference set module
-			)
 	) sn
 WHERE EXISTS (
 		SELECT 1
@@ -1428,10 +1412,6 @@ JOIN (
 	JOIN concept_stage x ON x.concept_code = r.destinationid
 		AND x.invalid_reason IS NULL
 	WHERE r.typeid = '116680003' -- Is a
-		AND r.moduleid NOT IN (
-			'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
-			'999000011000001104' --SNOMED CT United Kingdom drug extension module
-			)
 	  and r.active = '1'
 	) m ON m.sourceid = s1.concept_code
 	AND m.effectivetime = m.maxeffectivetime
@@ -1774,10 +1754,6 @@ WITH concept_status AS (
 			moduleid,
 			effectivetime
 		FROM sources.sct2_concept_full_merged c
-		WHERE c.moduleid NOT IN (
-				'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
-				'999000011000001104' --SNOMED CT United Kingdom drug extension module
-				)
 		ORDER BY c.id,
 			c.effectivetime DESC
 		),
@@ -1796,10 +1772,6 @@ WITH concept_status AS (
 			AND a.active = 1
 		WHERE d.active = 1
 			AND d.typeid = '900000000000003001' -- FSN
-			AND d.moduleid NOT IN (
-				'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
-				'999000011000001104' --SNOMED CT United Kingdom drug extension module
-				)
 		ORDER BY d.conceptid,
 			d.effectivetime DESC
 		),

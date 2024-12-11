@@ -95,8 +95,12 @@ BEGIN
 	INSERT INTO concept_ancestor SELECT * FROM devv5.concept_ancestor WHERE include_concept_ancestor;
 	CREATE TABLE concept (LIKE devv5.concept INCLUDING CONSTRAINTS);
 	INSERT INTO concept SELECT * FROM devv5.concept;
+    CREATE TABLE concept_metadata (LIKE devv5.concept_metadata INCLUDING CONSTRAINTS);
+	INSERT INTO concept_metadata SELECT * FROM devv5.concept_metadata;
 	CREATE TABLE concept_relationship (LIKE devv5.concept_relationship INCLUDING CONSTRAINTS);
 	INSERT INTO concept_relationship SELECT * FROM devv5.concept_relationship WHERE (invalid_reason IS NULL AND NOT include_deprecated_rels) OR include_deprecated_rels;
+    CREATE TABLE concept_relationship_metadata (LIKE devv5.concept_relationship_metadata INCLUDING CONSTRAINTS);
+    INSERT INTO concept_relationship_metadata SELECT * FROM devv5.concept_relationship_metadata;
 	CREATE TABLE relationship (LIKE devv5.relationship);
 	INSERT INTO relationship SELECT * FROM devv5.relationship;
 	CREATE TABLE vocabulary (LIKE devv5.vocabulary);

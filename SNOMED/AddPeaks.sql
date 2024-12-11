@@ -303,7 +303,6 @@ BEGIN
 		('790741000000104',	'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Equivocal immunology finding
 		('62117008',		  	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Bacterial antibody increase, paired specimens
 		('365408009',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- ECG waveform - finding
-		('165014009',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Allergy test positive
 		('165009005',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Allergy testing - no reaction
 		('1187035007',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Blood viscosity below reference range
 		('298717003',  		'Measurement',	 TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Finding of measures of thorax
@@ -863,7 +862,6 @@ BEGIN
 		('298180004', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of range of joint movement
 		('252041008', 		'Observation',	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Micturition finding
 		('36456004',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mental state finding
-		('118242002',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding by palpation
 		('118244001',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding by percussion
 		('247700009',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Normal perception
 		('102500002',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Good neonatal Condition at birth
@@ -947,7 +945,10 @@ BEGIN
 		('112623001',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Mottling
 		('301257008',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory finding of chest
 		('87486003',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aphasia
+    --history: on
+		('118242002',			'Observation', 	TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20241023', 'YYYYMMDD'),	NULL), -- Finding by palpation
 		('118242002',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding by palpation
+    --history: off
 		('413347006',			'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of American Society of Anesthesiologists physical status classification
 		('881501000000104',		'Condition',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Gross Motor Function Classification System for Cerebral Palsy level finding
 
@@ -1018,6 +1019,7 @@ BEGIN
 		('129650008',			'Condition',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyperalphaglobulinemia
 		('129651007',			'Condition',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyperbetaglobulinemia
 		('129646001',			'Condition',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Hyperglobulinemia
+		('129232009',			'Condition',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Analbuminemia
 		('605091',			    'Condition',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Genetic susceptibility to malignant hyperthermia due to ryanodine receptor 1 gene mutation
 		('605904',			    'Condition',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Genetic susceptibility to malignant hyperthermia due to calcium voltage-gated channel subunit alpha1 S gene mutation
 
@@ -1100,6 +1102,8 @@ BEGIN
 		('1321641000000107',	'Measurement',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result unknown
 		('47340003',			'Measurement',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Birth weight finding
 		('365665000',			'Measurement',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- CSF appearance - finding
+		('372046001',			'Measurement',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Glucose tolerance test during pregnancy, childbirth and puerperium outside reference range
+		('165014009',		 	'Measurement',	 TO_DATE('20230927', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Allergy test positive
 	--Antibody detected
 		('1335898006',		    'Measurement',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
 		('1335900008',		    'Measurement',	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),

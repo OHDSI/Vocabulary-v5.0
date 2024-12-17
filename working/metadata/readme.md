@@ -20,11 +20,11 @@ For the concept_metadata and concept_relationship_metadata tables in devv5 schem
 
 Scripts for creating these tables are located in the file:
 [DevV5_Metadata_DDL
-](https://github.com/OHDSI/Vocabulary-v5.0/blob/reuse_metadata/working/DevV5_Metadata_DDL.sql)
+](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/DevV5_Metadata_DDL.sql)
 
 In the vocabulary developing process, the metadata tables are filled in a local development schema.
 Then, after the concepts and concept relations from the local development schema are moved to the Devv5 schema using the GenericUpdate() function, the metadata from the local schema is transferred to the metadata tables of the devv5 schema using the following script:
-[move_to_devv5.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/reuse_metadata/working/metadata/move_to_devv5.sql)
+[move_to_devv5.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/metadata/move_to_devv5.sql)
 
 The logic of the scripts for transferring metadata is as follows:
 - If the devv5.concept_metadata table already contains a record with the key (concept_id) from a dev schema, then the metadata is updated, otherwise a new record is inserted.

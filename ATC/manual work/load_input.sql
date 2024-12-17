@@ -239,6 +239,19 @@ FROM (SELECT *
 
       UNION
 
+      ------manual table-----
+
+      (
+
+      SELECT concept_id,
+            "5th level code",
+            'manually added' as source
+      FROM dev_atc.to_add_new_connections
+
+      )
+
+      UNION
+
       ------DPD------
       (SELECT c2.concept_id,
               dpd.tc_atc_number,

@@ -948,7 +948,8 @@ SELECT DISTINCT c.vocabulary_id,
                 c.concept_class_id,
                 cr.concept_id_1,
                 cr.relationship_id,
-                cc.standard_concept
+                cc.standard_concept,
+                cr.valid_start_date
 FROM concept_relationship cr
 JOIN concept c
     ON c.concept_id = cr.concept_id_1

@@ -1416,13 +1416,4 @@ DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 
-DO $_$
-   BEGIN
-       PERFORM devv5.GenericUpdate();
-   END $_$;
-
-DO $_$
-	BEGIN
-		PERFORM vocabulary_pack.pConceptAncestor();
-	END $_$;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

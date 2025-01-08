@@ -1,5 +1,5 @@
 -- 1.These checks returns additional SNOMED-SNOMED relationships that are created due to the SNOMED Vet input in SNOMED hierarchy
---- Comparison of full ancestor in vet schema and manual ancestor for SNOMED, OMOP Extension,MedDRA
+--- Comparison of full ancestor in vet schema and manual ancestor for SNOMED, OMOP Extension, MedDRA, ICD9Proc (in a separate schema)
 select distinct
        ca.descendant_concept_id,
        c2.concept_name,
@@ -33,3 +33,4 @@ join dev_veterinary.concept cc on cc.concept_id = ca.ancestor_concept_id and cc.
 join dev_veterinary.concept_ancestor ca1 on ca1.descendant_concept_id = cc.concept_id
 left join dev_veterinary.concept a on a.concept_id = ca1.ancestor_concept_id and a.vocabulary_id = 'SNOMED'
 ;
+

@@ -253,7 +253,8 @@ WHERE source_code='';
 -- Standardise relationship_id
 
 UPDATE dev_meddra.meddra_environment
-SET relationship_id = 'Maps to' WHERE relationship_id ilike '%maps to%' AND relationship_id not ilike '%value%';
+SET relationship_id = 'Maps to' WHERE relationship_id ilike '%maps to%'
+                                AND relationship_id not ilike '%value%';
 
 UPDATE dev_meddra.meddra_environment
 SET relationship_id = 'Maps to value' WHERE relationship_id ilike '%value%';
@@ -413,8 +414,13 @@ WHERE NOT EXISTS (SELECT 1 FROM dev_meddra.concept_relationship_manual AS crm WH
                  tab.vocabulary_id_1 = crm.vocabulary_id_1 AND
                  tab.vocabulary_id_2 = crm.vocabulary_id_2 AND
                  tab.relationship_id = crm.relationship_id AND
-                 crm.invalid_reason IS NULL) AND concept_code_1 IS NOT NULL and concept_code_2 IS NOT NULL;
-
+                 crm.invalid_reason IS NULL)
+  AND concept_code_1 IS NOT NULL and concept_code_2 IS NOT NULL
+ON CONFLICT (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
+DO UPDATE SET
+    valid_start_date = EXCLUDED.valid_start_date,
+    valid_end_date = EXCLUDED.valid_end_date,
+    invalid_reason = EXCLUDED.invalid_reason;
 
 
 --7.2.8. Deprecate previously assigned hierarchical relationships

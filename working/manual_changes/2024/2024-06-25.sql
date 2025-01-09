@@ -117,21 +117,6 @@ BEGIN
 );
 END $_$;
 
---cycle
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Has cycle (HemOnc)',
-	pRelationship_id			=>'Has cycle',
-	pIs_hierarchical			=>0,
-	pDefines_ancestry			=>0,
-	pRelationship_name_rev	=>'Cycle of (HemOnc)',
-	pReverse_relationship_id		=>'Cycle of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
-);
-END $_$;
 
 --synth reg
 

@@ -445,7 +445,18 @@ JOIN concept_relationship_stage rb ON rb.concept_code_1 = ra.concept_code_1
 	AND rb.relationship_id = 'Is a'
 	AND rb.invalid_reason IS NULL -- component to component class
 WHERE ra.relationship_id = 'Maps to'
-	AND ra.invalid_reason IS NULL;
+	AND ra.invalid_reason IS NULL
+	AND (	-- prevent duplication inserts (comment above says no issue with it but... caused issue)
+			rb.concept_code_2, 
+			ra.concept_code_2, 
+			'Subsumes'
+		) NOT IN (
+		SELECT 
+			concept_code_1, 
+			concept_code_2,
+			relationship_id 
+		FROM concept_relationship_stage
+		);
 
 --11. Concept synonym
 INSERT INTO concept_synonym_stage (
@@ -454,7 +465,8 @@ INSERT INTO concept_synonym_stage (
 	synonym_name,
 	language_concept_id
 	)
-SELECT css.synonym_concept_code,
+SELECT DISTINCT 	-- distinct added to avoid duplicates; otherwise->(ERROR: duplicate key value violates unique constraint "idx_pk_css")
+	css.synonym_concept_code,
 	css.synonym_vocabulary_id,
 	REPLACE(css.synonym_name, '<sup>', '') AS synonym_name, -- fall2022 brings <syp>  is curated manually to make synonyms more reliable
 	css.language_concept_id
@@ -464,7 +476,6 @@ JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	-- 15704 has empty name, typo, I suppose
 	AND css.synonym_name IS NOT NULL
 	AND css.synonym_name NOT ILIKE '%\\>%'; --\\>  fall2022 release brings synonyms with URL structure for regimens
-
 
 --11.1 Concept synonym cleanup
 --delete rows not existing in CS

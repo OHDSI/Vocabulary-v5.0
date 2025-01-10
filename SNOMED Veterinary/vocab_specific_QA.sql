@@ -12,7 +12,7 @@ join dev_veterinary.concept c1 on c1.concept_id = ca.ancestor_concept_id and c1.
 join dev_veterinary.concept c2 on c2.concept_id = ca.descendant_concept_id and c2.vocabulary_id = 'SNOMED'
 where (ca.ancestor_concept_id, ca.descendant_concept_id) not in (
 select ca1.ancestor_concept_id, ca1.descendant_concept_id
-from dev_mkhitrun.concept_ancestor ca1
+from test_schema.concept_ancestor ca1
 )
 order by descendant_concept_id, min_levels_of_separation;
 

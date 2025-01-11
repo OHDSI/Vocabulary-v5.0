@@ -65,7 +65,10 @@ SELECT NULL AS concept_id,
 	h.vocabulary_id,
 	h.concept_class_id,
 	CASE
-		WHEN h.concept_class_id = 'Regimen Class'
+		WHEN h.concept_class_id IN (
+				'Regimen Class',
+				'Component Class'	-- Added 2024/01/10
+				)
 			THEN 'C'
 		WHEN concept_class_id = 'Modality'
 			THEN 'S' -- can be used as a generic Regimen when we don't know what exact Chemo or Hormonotherapy patient got

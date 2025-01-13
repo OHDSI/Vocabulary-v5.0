@@ -131,6 +131,11 @@ FROM sources.mrconso mr
 LEFT JOIN concept_stage cs ON cs.concept_code = mr.code
 	AND LOWER(cs.concept_name) = LOWER(mr.str)
 WHERE mr.sab = 'ICD10PCS'
+  	AND mr.suppress NOT IN (
+		'E',
+		'O',
+		'Y'
+		)
 	AND cs.concept_code IS NULL;
 
 --6. "Resurrect" previously deprecated concepts using the basic tables (they, being encountered in patient data, must remain Standard!)
@@ -292,4 +297,25 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+--15. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
+UPDATE concept_stage cs
+SET domain_id = 'Drug'
+FROM concept_relationship_stage crs
+WHERE crs.vocabulary_id_2 IN (
+		'RxNorm',
+		'RxNorm Extension',
+		'CVX'
+		)
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_class_id = 'ICD10PCS'
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1;
+
+SELECT admin_pack.VirtualLogIn ('dev_mkhitrun','Do_Not_Share_Your_Pass_2024!');
+
+   DO $_$
+   BEGIN
+       PERFORM devv5.GenericUpdate();
+   END $_$;
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

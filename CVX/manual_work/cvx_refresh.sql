@@ -1,4 +1,4 @@
---3.1. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous cvx refresh.
+--19.3.1. Create cvx_mapped table and pre-populate it with the resulting manual table of the previous cvx refresh.
 --DROP TABLE dev_cvx.cvx_mapped;
 CREATE TABLE dev_cvx.cvx_mapped
 (
@@ -34,16 +34,16 @@ ALTER TABLE dev_cvx.cvx_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,
 
 
 
---3.2. Review the previous mappings and manually add new to the cvx_mapped table.
+--19.3.2. Review the previous mappings and manually add new to the cvx_mapped table.
 
---3.3. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
+--19.3.3. Truncate the cvx_mapped table. Save the spreadsheet as the cvx_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_cvx.cvx_mapped;
 
---3.4. Perform any mapping checks you have set.
+--19.3.4. Perform any mapping checks you have set.
 
---3.5. Iteratively repeat steps 3.3-3.5 if found any issues.
+--19.3.5. Iteratively repeat steps 3.3-3.5 if found any issues.
 
---3.6. Insert new and update existing relationships according to _mapped table.
+--19.3.6. Insert new and update existing relationships according to _mapped table.
 INSERT INTO dev_cvx.concept_relationship_manual AS mapped
     (concept_code_1,
     concept_code_2,
@@ -79,7 +79,7 @@ INSERT INTO dev_cvx.concept_relationship_manual AS mapped
 	ROW (excluded.invalid_reason);
 
 
---3.7. Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables.
+--19.3.7. Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables.
 UPDATE concept_relationship_manual crm
 SET valid_start_date = cr.valid_start_date,
     valid_end_date = current_date

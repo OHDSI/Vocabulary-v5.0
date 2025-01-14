@@ -51,7 +51,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 12.3.4. Perform any mapping checks you have set.
 
-12.3.5. Iteratively repeat steps 19.3.3.-19.3.5. if found any issues.
+12.3.5. Iteratively repeat steps 12.3.3.-12.3.5. if found any issues.
 
 12.3.6. Insert new and update existing relationships according to _mapped table.
 

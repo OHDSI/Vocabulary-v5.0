@@ -22,39 +22,39 @@ Note: be careful with dates, because we need a minimum date of each concept code
 6. Download "Mapping CVX to Vaccine Groups" from https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=vg
 
 ##### Filling stage and basic tables
-14. Run FULL FastRecreate:
+7. Run FULL FastRecreate:
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> false,
                                 include_deprecated_rels=> true, include_synonyms=> true);
 ```
-15. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/load_stage.sql).
-16. Run check_stage_tables function (should retrieve NULL):
+8. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/load_stage.sql).
+9. Run check_stage_tables function (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.check_stage_tables();
 ```
-17. Run generic_update:
+10. Run generic_update:
 ```sql
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 ```
-18. Run basic tables check (should retrieve NULL):
+11. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-19. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/manual_work/readme.md) file in the 'manual_work' folder.
+12. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/CVX/manual_work/readme.md) file in the 'manual_work' folder.
 
-20. Repeat steps 11-15.
+13. Repeat steps 11-15.
 
-21. Run scripts to get summary, and interpret the results:
+14. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
 SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
-22. Run scripts to collect statistics, and interpret the results:
+15. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_domain_changes();
 ```
@@ -71,5 +71,5 @@ SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 
-23. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
-24. If no problems, enjoy!
+16. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+17. If no problems, enjoy!

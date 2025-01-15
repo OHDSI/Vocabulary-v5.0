@@ -315,10 +315,4 @@ WHERE crs.vocabulary_id_2 IN (
 	AND cs.concept_code = crs.concept_code_1
 	AND cs.vocabulary_id = crs.vocabulary_id_1;
 
-SELECT admin_pack.VirtualLogIn ('dev_mkhitrun','Do_Not_Share_Your_Pass_2024!');
-
-   DO $_$
-   BEGIN
-       PERFORM devv5.GenericUpdate();
-   END $_$;
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

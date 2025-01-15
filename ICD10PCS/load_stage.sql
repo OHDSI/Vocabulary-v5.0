@@ -105,7 +105,10 @@ SELECT DISTINCT
 	'ICD10PCS Hierarchy' AS concept_class_id,
 	'S' AS standard_concept, -- non-billable Hierarchy concepts are met in patient data, that is why they are considered to be Standard as well
 	code AS concept_code,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(	SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10PCS'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.mrconso mr

@@ -17,17 +17,14 @@ CREATE TABLE dev_hemonc.hemonc_mapped
 --Adding constraints for unique records
 ALTER TABLE dev_hemonc.hemonc_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
 
---4.2.2. Review the previous mapping and map new concepts. If previous mapping should be changed or deprecated, use cr_invalid_reason field.
---4.2.3. Select concepts to map and add them to the manual file in the spreadsheet editor.
-
---4.2.4. Truncate the hemonc_mapped table. Save the spreadsheet as the hemonc_mapped table and upload it into the working schema.
+--4.2.2. Truncate the hemonc_mapped table. Save the spreadsheet as the hemonc_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_hemonc.hemonc_mapped;
 
---4.2.5. Perform any mapping checks you have set.
+--4.2.3. Perform any mapping checks you have set.
 
---4.2.6. Iteratively repeat steps 9.3.2-9.3.5 if found any issues.
+--4.2.4. Iteratively repeat steps 4.2.2-4.2.4 if found any issues.
 
---4.2.7 Change concept_relationship_manual table according to hemonc_mapped table.
+--4.2.5 Change concept_relationship_manual table according to hemonc_mapped table.
 --Insert new relationships
 --Update existing relationships
 INSERT INTO dev_hemonc.concept_relationship_manual AS mapped
@@ -63,19 +60,19 @@ INSERT INTO dev_hemonc.concept_relationship_manual AS mapped
 	ROW (excluded.invalid_reason);
 
 --Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables
-UPDATE concept_relationship_manual crm
-SET valid_start_date = cr.valid_start_date,
-    valid_end_date = current_date
-FROM hemonc_mapped m
-JOIN concept c
-ON c.concept_code = m.concept_code_1 AND m.vocabulary_id_1 = c.vocabulary_id
-JOIN concept_relationship cr
-ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
-JOIN concept c1
-ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.concept_code_2 AND c1.vocabulary_id = m.vocabulary_id_2
-WHERE m.invalid_reason IS NOT NULL
-AND crm.concept_code_1 = m.concept_code_1 AND crm.vocabulary_id_1 = m.vocabulary_id_1
-AND crm.concept_code_2 = m.concept_code_2 AND crm.vocabulary_id_2 = m.vocabulary_id_2
-AND crm.relationship_id = m.relationship_id
-AND crm.invalid_reason IS NOT NULL
-;
+    UPDATE concept_relationship_manual crm
+    SET valid_start_date = cr.valid_start_date,
+        valid_end_date = current_date
+    FROM hemonc_mapped m
+    JOIN concept c
+    ON c.concept_code = m.concept_code_1 AND m.vocabulary_id_1 = c.vocabulary_id
+    JOIN concept_relationship cr
+    ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
+    JOIN concept c1
+    ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.concept_code_2 AND c1.vocabulary_id = m.vocabulary_id_2
+    WHERE m.invalid_reason IS NOT NULL
+    AND crm.concept_code_1 = m.concept_code_1 AND crm.vocabulary_id_1 = m.vocabulary_id_1
+    AND crm.concept_code_2 = m.concept_code_2 AND crm.vocabulary_id_2 = m.vocabulary_id_2
+    AND crm.relationship_id = m.relationship_id
+    AND crm.invalid_reason IS NOT NULL
+    ;

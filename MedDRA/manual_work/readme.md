@@ -40,3 +40,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 7.2.6. Change concept_relationship_manual table according to meddra_environment table.
 
 7.2.7. Create MedDRA-SNOMED hierarchical relationships.
+
+7.2.8. Deprecate previously assigned hierarchical relationships for measurements
+
+7.2.9. Deprecate previously assigned hierarchical relationships for concepts who changed mappings

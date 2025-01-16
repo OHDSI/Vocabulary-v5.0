@@ -42,6 +42,7 @@ END $_$;
 11. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
+
 ```
 12. Run scripts to get summary, and interpret the results:
 ```sql

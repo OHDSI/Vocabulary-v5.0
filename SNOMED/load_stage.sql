@@ -20,28 +20,40 @@
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
 CREATE OR REPLACE VIEW module_date AS
-SELECT s0.moduleid,
-	CASE 
-		WHEN s0.moduleid = '900000000000207008'
-			THEN TO_CHAR(MIN(s0.int_version) OVER (), 'yyyy-mm-dd')
-		ELSE s0.local_version
-		END AS version
-FROM (
-	SELECT DISTINCT ON (m.id) m.moduleid,
-		TO_CHAR(m.sourceeffectivetime, 'yyyy-mm-dd') AS local_version,
+WITH s0 AS (
+    SELECT DISTINCT ON (m.id) m.moduleid,
+		m.sourceeffectivetime AS local_version,
 		m.targeteffectivetime AS int_version
 	FROM sources.der2_ssrefset_moduledependency_merged m
 	WHERE m.active = 1
-		AND m.referencedcomponentid = '900000000000012004'
+		AND m.referencedcomponentid = '900000000000207008'
 		AND --Model component module; Synthetic target, contains source version in each row
 		m.moduleid IN (
-			'900000000000207008', --Core (international) module
 			'999000011000000103', --UK edition
 			'731000124108' --US edition
 			)
 	ORDER BY m.id,
 		m.effectivetime DESC
-	) s0;
+	)
+
+SELECT DISTINCT ON (m.moduleid) m.moduleid,
+	CASE
+		WHEN m.moduleid = '900000000000207008'
+			THEN TO_CHAR(MAX(s0.int_version) OVER (), 'yyyy-mm-dd')
+		ELSE TO_CHAR(s0.local_version, 'yyyy-mm-dd')
+		END AS version
+FROM sources.der2_ssrefset_moduledependency_merged m
+LEFT JOIN s0 ON m.moduleid = s0.moduleid AND
+                m.sourceeffectivetime = s0.local_version AND
+                m.targeteffectivetime = s0.int_version
+WHERE m.moduleid IN (
+			'900000000000207008', --Core (international) module
+			'999000011000000103', --UK edition
+			'731000124108' --US edition
+			)
+	ORDER BY m.moduleid,
+		m.effectivetime DESC
+;
 
 --2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.
@@ -131,10 +143,6 @@ FROM (
 	FROM sources.sct2_concept_full_merged c
 	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
 	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
-	WHERE c.moduleid NOT IN (
-			'999000011000001104', --UK Drug extension
-			'999000021000001108' --UK Drug extension reference set module
-			)
 	) sct2
 WHERE sct2.rn = 1;
 
@@ -151,10 +159,6 @@ FROM (
 			TO_DATE(c.effectivetime, 'YYYYMMDD') AS effectiveend,
 			c.active
 		FROM sources.sct2_concept_full_merged c
-		WHERE c.moduleid NOT IN (
-				'999000011000001104', --UK Drug extension
-				'999000021000001108' --UK Drug extension reference set module
-				)
 		ORDER BY c.id,
 			TO_DATE(c.effectivetime, 'YYYYMMDD') DESC
 		) s0
@@ -317,10 +321,6 @@ FROM (
 						JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.concept_code
 						WHERE c.vocabulary_id = 'SNOMED'
 							AND d.typeid = '900000000000003001' -- only Fully Specified Names
-							AND d.moduleid NOT IN (
-								'999000011000001104', --UK Drug extension
-								'999000021000001108'  --UK Drug extension reference set module
-							)
 					) AS s0
 					) AS s1
 				) AS s2
@@ -516,10 +516,15 @@ INSERT INTO concept_synonym_stage (
 SELECT DISTINCT m.code,
 	'SNOMED',
 	vocabulary_pack.CutConceptSynonymName(m.str),
-	4180186 -- English
+	CASE WHEN m.sab = 'SNOMEDCT_US'
+	    THEN 4180186 -- English
+      WHEN m.sab = 'SCTSPA'
+        THEN 4182511 -- Spanish
+    END
 FROM sources.mrconso m
 JOIN concept_stage s ON s.concept_code = m.code
-WHERE m.sab = 'SNOMEDCT_US'
+WHERE m.sab IN ('SNOMEDCT_US', 'SCTSPA')
+    AND m.suppress = 'N'
 	AND m.tty IN (
 		'PT',
 		'PTGB',
@@ -549,10 +554,6 @@ FROM (
 			PARTITION BY m.id ORDER BY TO_DATE(m.effectivetime, 'YYYYMMDD') DESC
 			) AS active_status
 	FROM sources.sct2_desc_full_merged m
-	WHERE m.moduleid NOT IN (
-			'999000011000001104', -- UK Drug extension
-			'999000021000001108' -- UK Drug extension reference set module
-			)
 	) d
 WHERE EXISTS (
 		SELECT 1
@@ -615,10 +616,7 @@ UNION ALL
 			'900000000000073002', --Defined
 			'900000000000074008' --Primitive
 			)
-		AND c.moduleid NOT IN (
-			'999000011000001104', --SNOMED CT United Kingdom drug extension module
-			'999000021000001108' --SNOMED CT United Kingdom drug extension reference set module
-			)
+		AND c.active = 1
 	ORDER BY c.id,
 		TO_DATE(c.effectivetime, 'YYYYMMDD') DESC
 )
@@ -648,10 +646,6 @@ WITH attr_rel AS (
 				r.active
 			FROM sources.sct2_rela_full_merged r
 			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
-			WHERE r.moduleid NOT IN (
-					'999000011000001104', --UK Drug extension
-					'999000021000001108' --UK Drug extension reference set module
-					)
 			-- get the latest in a sequence of relationships, to decide whether it is still active
 			ORDER BY r.id,
 				TO_DATE(r.effectivetime, 'YYYYMMDD') DESC,
@@ -686,8 +680,6 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Finding asso with'
 		WHEN typeid = '246075003'
 			THEN 'Has causative agent'
-		WHEN typeid = '263502005'
-			THEN 'Has clinical course'
 		WHEN typeid = '246093002'
 			THEN 'Has component'
 		WHEN typeid = '363699004'
@@ -749,7 +741,11 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Has method'
 		WHEN typeid = '246454002'
 			THEN 'Has occurrence'
-		WHEN typeid = '246100006'
+		WHEN typeid IN (
+		        '246100006',
+		        '263502005',
+		   		'260908002'
+		        )
 			THEN 'Has clinical course'
 		WHEN typeid = '123005000'
 			THEN 'Part of'
@@ -1046,6 +1042,7 @@ FROM (
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid,
 			sc.targetcomponent,
+			sc.refsetid,
 			sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC
 			) AS recent_status, --recent status of the relationship. To be used with 'active' field
 		active
@@ -1056,10 +1053,6 @@ FROM (
 			'900000000000528000',
 			'900000000000527005',
 			'900000000000530003'
-			)
-		AND sc.moduleid NOT IN (
-			'999000011000001104', --UK Drug extension
-			'999000021000001108' --UK Drug extension reference set module
 			)
 	) sn
 WHERE EXISTS (
@@ -1411,6 +1404,7 @@ JOIN (
 		FIRST_VALUE(r.destinationid) OVER (
 			PARTITION BY r.sourceid,
 			r.effectivetime
+		    ORDER BY id DESC
 			) AS destinationid, --pick one parent at random
 		r.effectivetime,
 		MAX(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime
@@ -1418,10 +1412,7 @@ JOIN (
 	JOIN concept_stage x ON x.concept_code = r.destinationid
 		AND x.invalid_reason IS NULL
 	WHERE r.typeid = '116680003' -- Is a
-		AND r.moduleid NOT IN (
-			'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
-			'999000011000001104' --SNOMED CT United Kingdom drug extension module
-			)
+	  and r.active = '1'
 	) m ON m.sourceid = s1.concept_code
 	AND m.effectivetime = m.maxeffectivetime
 JOIN snomed_ancestor a ON m.destinationid = a.descendant_concept_code
@@ -1482,8 +1473,8 @@ FROM (
 	WHERE p.levels_down >= sa.min_levels_of_separation
 		OR p.levels_down IS NULL
 	ORDER BY sa.descendant_concept_code,
+			sa.min_levels_of_separation,
 		p.ranked DESC,
-		sa.min_levels_of_separation,
 		-- if there are two conflicting domains in the rank (both equally distant from the ancestor) then use precedence
 		CASE peak_domain_id WHEN 'Condition'
 			THEN 1
@@ -1568,7 +1559,7 @@ WHERE concept_name ILIKE '%score%'
 
 --Trim word 'route' from the concepts in 'Route' domain [AVOC-4087]
 UPDATE concept_stage
-SET concept_name = RTRIM(concept_name, ' route')
+SET concept_name = regexp_replace(concept_name, '\sroute$', '')
 WHERE concept_name LIKE '% route'
 	AND domain_id = 'Route';
 
@@ -1655,20 +1646,25 @@ SET standard_concept = CASE domain_id
 		ELSE 'S'
 		END;
 
---17.1. De-standardize navigational concepts
+-- 17.1. Make invalid concepts non-standard:
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE invalid_reason IS NOT NULL;
+
+--17.2. De-standardize navigational concepts
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code = '363743006' -- Navigational Concept
 	AND cs.concept_code = sa.descendant_concept_code;
 
---17.2. Make those Obsolete routes non-standard
+--17.3. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---17.3 Make domain 'Geography' non-standard, except countries:
+--17.4 Make domain 'Geography' non-standard, except countries:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id = 'Location'
@@ -1678,7 +1674,7 @@ AND concept_code NOT IN (
 		WHERE ancestor_concept_code = '223369002' -- Country
 		);
 
---17.4 Make procedures with the context = 'Done' non-standard:
+--17.5 Make procedures with the context = 'Done' non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -1691,7 +1687,7 @@ WHERE EXISTS (
 			AND crs.invalid_reason IS NULL
 		);
 
---17.5 Make certain hierarchical branches non-standard:
+--17.6 Make certain hierarchical branches non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
@@ -1715,7 +1711,7 @@ WHERE sa.ancestor_concept_code IN (
 		)
 	AND cs.concept_code = sa.descendant_concept_code;
 
---17.6 Make certain concept classes non-standard:
+--17.7 Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id IN (
@@ -1758,10 +1754,6 @@ WITH concept_status AS (
 			moduleid,
 			effectivetime
 		FROM sources.sct2_concept_full_merged c
-		WHERE c.moduleid NOT IN (
-				'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
-				'999000011000001104' --SNOMED CT United Kingdom drug extension module
-				)
 		ORDER BY c.id,
 			c.effectivetime DESC
 		),
@@ -1780,10 +1772,6 @@ WITH concept_status AS (
 			AND a.active = 1
 		WHERE d.active = 1
 			AND d.typeid = '900000000000003001' -- FSN
-			AND d.moduleid NOT IN (
-				'999000021000001108', --SNOMED CT United Kingdom drug extension reference set module
-				'999000011000001104' --SNOMED CT United Kingdom drug extension module
-				)
 		ORDER BY d.conceptid,
 			d.effectivetime DESC
 		),
@@ -1827,7 +1815,17 @@ WHERE EXISTS (
 		FROM concept_stage c
 		WHERE c.concept_code = p.replacementid
 			AND c.standard_concept IS NOT NULL
-		);
+		)
+AND NOT EXISTS(
+       SELECT 1
+       FROM concept_relationship_stage crs
+       WHERE crs.concept_code_1 = p.conceptid
+       AND crs.concept_code_2 = p.replacementid
+       AND crs.vocabulary_id_1 = 'SNOMED'
+       AND crs.vocabulary_id_2 = 'SNOMED'
+       AND crs.relationship_id = 'Maps to'
+       AND crs.invalid_reason IS NULL
+);
 
 --19. Append manual concepts again for final assignment of concept characteristics
 DO $_$

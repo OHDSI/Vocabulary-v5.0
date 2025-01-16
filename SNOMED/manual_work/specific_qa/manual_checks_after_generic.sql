@@ -168,8 +168,8 @@ join devv5.concept c2 on
 	c1.invalid_reason is null
 join concept p on
 	p.vocabulary_id = 'SNOMED' and
-	p.concept_code :: int8 in (SELECT peak_code FROM peak WHERE
-	                                                            valid_start_date > to_date ('20220101', 'YYYYMMDD') --peaks introduced in the recent refresh
+	p.concept_code in (SELECT peak_code FROM peak WHERE
+	                                                            valid_start_date > to_date ('20230914', 'YYYYMMDD') --peaks introduced in the recent refresh
 	                                                        AND valid_end_date = to_date('20991231', 'YYYYMMDD'))   --active peaks
 join snomed_ancestor a on
 	p.concept_code = a.ancestor_concept_code::varchar and
@@ -191,4 +191,26 @@ FROM concept c
 WHERE c.vocabulary_id = 'SNOMED'
     AND c.concept_class_id IN ('Undefined', 'Navi Concept', 'Admin Concept', 'Model Comp', 'Record Artifact', 'Model Comp')
 ;
+
+-- Check the presence of post-coordinated measurements in Clinical Finding concept class
+--- This check should return only concepts related to COVID-19 which were post-coordinated following the specific convention
+
+select *
+from concept c
+where vocabulary_id = 'SNOMED'
+and concept_class_id = 'Clinical Finding'
+and invalid_reason is null
+and concept_id in (select concept_id_1
+                   from concept_relationship
+                   where relationship_id = 'Maps to value'
+                   and invalid_reason is null)
+and not exists(select 1
+               from concept_relationship cr1
+               where cr1.concept_id_2 in (1340204,-- exclude "History of.." concepts
+                                          1340207,
+                                          1340218,
+                                         4051255)
+               and cr1.concept_id_1 = c.concept_id
+               and cr1.invalid_reason is null)
+and c.concept_name !~* ('allerg|hypersens') -- exclude allergies
 ;

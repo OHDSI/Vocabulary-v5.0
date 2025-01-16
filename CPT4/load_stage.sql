@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Maria Khitrun
-* Date: 2023
+* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Masha Khitrun
+* Date: 2024
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -460,22 +460,8 @@ FROM (
 					'44015' -- Tube or needle catheter jejunostomy
 					)
 				THEN 'Visit'
-			WHEN m2.tui IN (
-					'T081',
-					'T097',
-					'T077'
-					)
-				OR (
-					m2.tui = 'T185'
-					AND tty <> 'HT'
-					)
-				OR (
-					m2.tui = 'T080'
-					AND cs.concept_name NOT ILIKE '%modifier%'
-					)
-				THEN 'Meas Value'
 			WHEN m2.tui = 'T059'
-				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling')
+				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling|digitization')
 				AND cs.concept_code NOT IN (
 						'86960',
 						'86965',
@@ -499,7 +485,24 @@ FROM (
 						'1037591'
 						)
 					OR cs.concept_code = '1036228'
+					OR (length(cs.concept_code) > 2
+					    AND cs.concept_code LIKE '%U') -- Proprietary Laboratory Analyses
 				THEN 'Measurement'
+			WHEN m2.tui IN (
+					'T081',
+					'T097',
+					'T077'
+					)
+				OR (
+					m2.tui = 'T185'
+					AND tty <> 'HT'
+					AND tty <> 'MP'
+					)
+				OR (
+					m2.tui = 'T080'
+					AND cs.concept_name NOT ILIKE '%modifier%'
+					)
+				THEN 'Meas Value'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
@@ -554,7 +557,6 @@ FROM (
 						)
 				THEN 'Observation'
 			WHEN c.concept_code IN (
-					'0777T',
 					'TP',
 					'KR'
 					)
@@ -715,20 +717,5 @@ WHERE crs.vocabulary_id_2 IN (
 	AND cs.concept_class_id <> 'CPT4 Hierarchy'
 	AND cs.concept_code = crs.concept_code_1
 	AND cs.vocabulary_id = crs.vocabulary_id_1;
-
---18. All concepts having mappings should be NON-standard
-UPDATE concept_stage cs
-SET standard_concept = NULL
-FROM concept_relationship_stage crs
-WHERE crs.relationship_id = 'Maps to'
-	AND crs.invalid_reason IS NULL
-	AND cs.concept_class_id <> 'CPT4 Hierarchy'
-	AND cs.standard_concept IS NOT NULL
-	AND cs.concept_code = crs.concept_code_1
-	AND cs.vocabulary_id = crs.vocabulary_id_1
-			AND NOT (
-				crs.concept_code_1 = crs.concept_code_2
-				AND crs.vocabulary_id_1 = crs.vocabulary_id_2
-				); --exclude mappings to self
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

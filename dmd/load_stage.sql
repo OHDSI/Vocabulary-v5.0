@@ -443,7 +443,7 @@ FROM (
 ;
 
 --TODO: May be used in future
-/*
+
 CREATE TABLE dmd2atc AS
 SELECT unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('/VMP/ATC/text()', i.xmlfield))::VARCHAR ATC
@@ -453,6 +453,7 @@ FROM (
 	) AS i
 ;
 
+/*
 --TODO: May be used in future
 CREATE TABLE dmd2bnf AS
 	(

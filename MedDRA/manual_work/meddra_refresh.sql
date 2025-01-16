@@ -5,10 +5,7 @@
 --meddra_snomed_eq: sourced from previously existed MedDRA-SNOMED eq
 --meddra_ICD10: mappings via ICD10 vocabulary
 
-SELECT *
-FROM dev_meddra.meddra_pt_only_100624;
-
-CREATE TABLE dev_meddra.meddra_pt_only_100624 AS
+CREATE TABLE dev_meddra.meddra_pt_only_2025_10_01 AS
 WITH tab AS (
 
 -- all MedDRA-SNOMED mappings from manual table (meddra_mapped)
@@ -166,6 +163,26 @@ ON t.source_code=c.concept_code AND c.vocabulary_id='MedDRA'
 INNER JOIN tab2 ON tab2.concept_code=t.source_code
 ORDER BY t.source_code;
 
+
+-- Select for manual review pairs source_code - target_concept_id with their descriptions which are absent
+-- in latest version of meddra_environment
+
+WITH tab AS (SELECT source_code, target_concept_id
+             FROM dev_meddra.meddra_pt_only_2025_01_10
+             WHERE (source_code, target_concept_id) NOT IN
+                   (SELECT source_code, target_concept_id FROM dev_meddra.meddra_environment))
+
+SELECT source_code, source_code_description, target_concept_id, target_concept_name, 'old' AS flag
+FROM dev_meddra.meddra_environment
+WHERE source_code IN (SELECT source_code FROM tab) AND decision='1'
+UNION ALL
+SELECT tab.source_code, c.concept_name, tab.target_concept_id, cc.concept_name, 'new' AS flag
+FROM tab
+INNER JOIN dev_meddra.concept AS c
+ON tab.source_code = c.concept_code AND c.vocabulary_id='MedDRA'
+INNER JOIN dev_meddra.concept AS cc
+ON tab.target_concept_id = cc.concept_id
+ORDER BY source_code, flag;
 
 
 --7.2.2. Create meddra_environment table based on Common Data Environment (CDE).

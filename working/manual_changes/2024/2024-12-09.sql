@@ -16,3 +16,8 @@ UPDATE concept
 SET concept_name = 'milliliter per centimeter of water'
 WHERE concept_id = 720866
 ;
+
+-- Fix duplicative NUCC concept_name according to he source (AVOC-3266):
+UPDATE concept
+SET concept_name = 'Pathology Specialist/Technologist'
+where concept_id = 38004130;

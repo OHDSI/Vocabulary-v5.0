@@ -85,6 +85,7 @@ FROM (
 	FROM sources.vet_sct2_concept_full c,
 		sources.vet_sct2_desc_full d
 	WHERE c.id = d.conceptid
+	    AND d.languagecode = 'en'
 		AND term IS NOT NULL
 	) sct2
 WHERE sct2.rn = 1
@@ -260,7 +261,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---5. Fill concept_relationship_stage
+-- 5. Add attribute relationships:
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -287,18 +288,18 @@ WITH tmp_rel AS (
 			FROM (
 				/*SELECT *
 				FROM sources.sct2_rela_full_merged --use the SNOMED sources as well for 'Is a' relationships
-				
+
 				UNION*/ --use descriptions from SNOMED, but only for Veterinarians relationships
-				
+
 				SELECT *
 				FROM sources.vet_sct2_rela_full
 				) r
 			JOIN (
 				SELECT conceptid::VARCHAR,term,id::VARCHAR
 				FROM sources.sct2_desc_full_merged --use the SNOMED sources as well for 'Is a' relationships
-				
+
 				UNION
-				
+
 				SELECT conceptid,term,id
 				FROM sources.vet_sct2_desc_full
 				) d ON r.typeid = d.conceptid
@@ -322,7 +323,7 @@ FROM (
 		destinationid AS concept_code_2,
 		COALESCE(c1.vocabulary_id, 'SNOMED Veterinary') AS vocabulary_id_1,
 		COALESCE(c2.vocabulary_id, 'SNOMED Veterinary') AS vocabulary_id_2,
-		CASE 
+		CASE
 			WHEN term = 'Access'
 				THEN 'Has access'
 			WHEN term = 'Associated aetiologic finding'
@@ -837,6 +838,16 @@ WHERE crs.concept_code_1 = cs.concept_code
 --11. Working with replacement mappings
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 DO $_$
 BEGIN

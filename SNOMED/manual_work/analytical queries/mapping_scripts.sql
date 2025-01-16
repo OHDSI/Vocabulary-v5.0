@@ -698,6 +698,7 @@ join concept_relationship cr1 on cr.concept_id_1 = cr1.concept_id_2
                                                                'Concept same_as to',
                                                                'Concept alt_to to',
                                                                'Concept was_a to')
+    and cr1.invalid_reason is null
 join concept c on cr1.concept_id_1 = c.concept_id and c.vocabulary_id = 'SNOMED'
 join concept cc on cc.concept_id = cr.concept_id_2
 where cr.relationship_id = 'Maps to value'
@@ -730,4 +731,6 @@ and not exists(
        and b.invalid_reason is null
               )
 and aa.vocabulary_id IN (:your_vocabs)
+and relationship_id like 'Maps to%'
+and a.invalid_reason is null
 ;

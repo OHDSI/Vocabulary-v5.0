@@ -293,7 +293,7 @@ SELECT DISTINCT ON (rxa.rxcui) vocabulary_pack.CutConceptName(rxa.str) AS concep
 	'Multiple Ingredients' AS concept_class_id,
 	NULL AS standard_concept,
 	rxa.rxcui AS concept_code,
-	TO_TIMESTAMP(rxa.created_timestamp, 'mm/dd/yyyy hh:mm:ss pm')::DATE AS valid_start_date,
+	TO_TIMESTAMP(rxa.created_timestamp, 'DD-MON-YYYY HH24:MI:SS')::DATE AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.rxnatomarchive rxa
@@ -304,7 +304,7 @@ WHERE rx.rxcui IS NULL
 	AND rxa.tty = 'MIN'
 	AND rxa.sab = 'RXNORM'
 ORDER BY rxa.rxcui,
-	TO_TIMESTAMP(rxa.created_timestamp, 'mm/dd/yyyy hh:mm:ss pm');
+	TO_TIMESTAMP(rxa.created_timestamp, 'DD-MON-YYYY HH24:MI:SS');
 
 --4. Add synonyms - for all classes except the packs (they use code as concept_code)
 INSERT INTO concept_synonym_stage (

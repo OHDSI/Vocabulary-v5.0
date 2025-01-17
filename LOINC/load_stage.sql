@@ -847,7 +847,7 @@ WHERE concept_code_1 = 'PANEL.H' || CHR(38) || 'P' -- '&' = CHR(38)
 	AND concept_code_2 = '38213-5'
 	AND relationship_id = 'Subsumes';
 
---13. Add to the concept_synonym_stage all synonymic names from a source table of 'sources.loinc'
+--13. Add to the concept_synonym_stage all synonymic names from a source table of 'sources.loinc', 'sources.loinc_part' and 'sources.loinc_consumer_name'
 -- NB! We do not add synonyms for LOINC Answers (a 'description' field) due to their vague formulation
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -923,8 +923,17 @@ UNION
 			FROM concept_stage cs_int
 			WHERE cs_int.concept_code = pl.partnumber
 			)
-		AND pl.partname <> p.partdisplayname
-);-- pick only different names
+		AND pl.partname <> p.partdisplayname -- pick only different names
+
+UNION
+
+	--alternative names from 'sources.loinc_consumer_name'
+	SELECT cn.loincnumber AS synonym_concept_code,
+	       cn.consumername AS synonym_name,
+	       'LOINC' AS synonym_vocabulary_id,
+		   4180186 AS language_concept_id --English language
+	FROM sources.loinc_consumer_name cn
+);
 
 --14. Add LOINC Answers from 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink' source tables to the concept_stage
 INSERT INTO concept_stage (

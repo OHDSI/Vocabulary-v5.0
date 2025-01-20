@@ -1,4 +1,4 @@
---19.3.1. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
+--18.3.1. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
 --DROP TABLE dev_loinc.loinc_mapped;
 CREATE TABLE dev_loinc.loinc_mapped
 (
@@ -29,7 +29,7 @@ UPDATE dev_loinc.loinc_mapped SET source_invalid_reason = NULL WHERE source_inva
 --Adding constraints for unique records
 ALTER TABLE dev_loinc.loinc_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
 
---19.3.2. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
+--18.3.2. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
         FROM devv5.concept_relationship cr
@@ -135,7 +135,7 @@ WHERE c.concept_code NOT IN (SELECT source_code FROM loinc_mapped) --exclude cod
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code
 ;
 
---19.3.3. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
+--18.3.3. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
 SELECT * FROM (
 SELECT DISTINCT
        replace (long_common_name, 'Deprecated ', '') AS source_concept_name_clean,
@@ -181,14 +181,14 @@ AND NOT EXISTS (SELECT
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
---19.3.4. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
+--18.3.4. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_loinc.loinc_mapped;
 
---19.3.5 Perform any mapping checks you have set.
+--18.3.5 Perform any mapping checks you have set.
 
---19.3.6 Iteratively repeat steps 19.3.2-19.3.5 if found any issues.
+--18.3.6 Iteratively repeat steps 18.3.2-18.3.5 if found any issues.
 
---19.3.7. Change concept_relationship_manual table according to loinc_mapped table.
+--18.3.7. Change concept_relationship_manual table according to loinc_mapped table.
 --Insert new relationships
 --Update existing relationships
 INSERT INTO dev_loinc.concept_relationship_manual AS mapped 
@@ -244,7 +244,7 @@ AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
 
---19.3.8. Change concept_manual if needed
+--18.3.8. Change concept_manual if needed
 SELECT *
 FROM concept_manual
 WHERE vocabulary_id = 'LOINC';

@@ -108,7 +108,8 @@ WITH CTE_2 AS (WITH CTE AS (SELECT c1.concept_code,
      )
 INSERT
 INTO atc_checks
-SELECT 'Rx mono drug assigned to ATC combo' AS group,
+SELECT
+      'Rx mono drug assigned to ATC combo' AS group,
        NULL,
        COUNT(concept_code),
        CASE WHEN COUNT(concept_code) = 0 THEN 'P' ELSE 'F' END
@@ -126,8 +127,8 @@ WITH rxnorm AS (
              JOIN dev_atc.concept c2 ON c2.concept_id = ca2.descendant_concept_id
         AND c2.concept_name ~ 'Injec' --and c2.vocabulary_id = 'RxNorm'
 )
--- INSERT
--- INTO atc_checks
+INSERT
+INTO atc_checks
 SELECT 'missing corticosteroids in descendants', NULL, COUNT(*), CASE WHEN COUNT(*) = 0 THEN 'P' ELSE 'F' END
 FROM rxnorm r
 WHERE
@@ -1337,3 +1338,149 @@ where t1.vocabulary_id = 'RxNorm'
                          and t2.concept_class_id = 'Clinical Drug Form'
                          and t1.concept_id = t2.concept_id
                          and t2.invalid_reason is NULL);
+
+
+
+
+----- List of all cases where MonoDrugs binded to Combination Classes
+SELECT
+    t2.concept_code,
+    t2.concept_name,
+    t4.concept_id,
+    t4.concept_name,
+    count (t3.concept_id_2) as n_ings
+FROM dev_atc.concept_relationship t1
+     join dev_atc.concept t2 on t1.concept_id_1 = t2.concept_id and t1.relationship_id = 'ATC - RxNorm'
+                                                                and t2.vocabulary_id = 'ATC'
+                                                                and t1.invalid_reason is NULL
+                                                                and t2.invalid_reason is NULL
+                                                                and (t2.concept_name LIKE '%combinations%' or t2.concept_name LIKE '% and %')
+    join dev_atc.concept t4 on t1.concept_id_2 = t4.concept_id and t4.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                and t4.invalid_reason is NULL
+    join dev_atc.concept_relationship t3 on t1.concept_id_2 = t3.concept_id_1 and t3.relationship_id = 'RxNorm has ing'
+                                                                                and t3.invalid_reason is NULL
+GROUP BY t2.concept_code, t2.concept_name, t4.concept_id, t4.concept_name having count (t3.concept_id_2) = 1;
+
+
+
+
+------ Compare number of connections per 1 rxnorm code from in dev_atc:
+------ concept_relationship 2.11
+(WITH CTE AS (
+    SELECT
+        t1.concept_id,
+        t1.concept_name,
+        COUNT(DISTINCT t3.concept_code) AS cnt
+    FROM dev_atc.concept t1
+    JOIN dev_atc.concept_relationship t2
+        ON t1.concept_id = t2.concept_id_2
+       AND t1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+       AND t1.concept_class_id = 'Clinical Drug Form'
+       AND t1.invalid_reason IS NULL
+       AND t2.relationship_id = 'ATC - RxNorm'
+       AND t2.invalid_reason IS NULL
+    JOIN dev_atc.concept t3
+        ON t2.concept_id_1 = t3.concept_id
+       AND t3.vocabulary_id = 'ATC'
+       AND t3.invalid_reason IS NULL
+    GROUP BY t1.concept_id, t1.concept_name
+    ORDER BY COUNT(DISTINCT t3.concept_code) DESC
+)
+SELECT
+    'concept_relationship_dev_atc' as src,
+    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
+    MAX(cnt) AS max,
+    MIN(cnt) AS min,
+    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
+    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
+    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
+    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
+FROM CTE)
+
+UNION
+--- ancestor - 1.62
+(WITH CTE as (SELECT t3.concept_id,
+       t3.concept_name,
+       count (t1.concept_code) as cnt
+FROM dev_atc.concept t1
+     join dev_atc.concept_ancestor t2 on t1.concept_id = t2.ancestor_concept_id
+                                         and t1.vocabulary_id = 'ATC'
+                                         and t1.invalid_reason is NULL
+                                         and length(t1.concept_code) = 7
+     join dev_atc.concept t3 on t2.descendant_concept_id = t3.concept_id
+                                        and t3.vocabulary_id in ('RxNorm','RxNorm Extension')
+                                        and t3.invalid_reason is NULL
+                                        and t3.concept_class_id = 'Clinical Drug Form'
+GROUP BY t3.concept_id, t3.concept_name
+ORDER BY count (t1.concept_code) desc)
+SELECT
+    'concept_ancestor_dev_atc' as src,
+    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
+    MAX(cnt) AS max,
+    MIN(cnt) AS min,
+    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
+    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
+    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
+    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
+FROM CTE t1)
+
+UNION
+---- devv5
+
+(WITH CTE AS (
+    SELECT
+        t1.concept_id,
+        t1.concept_name,
+        COUNT(DISTINCT t3.concept_code) AS cnt
+    FROM devv5.concept t1
+    JOIN devv5.concept_relationship t2
+        ON t1.concept_id = t2.concept_id_2
+       AND t1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+       AND t1.concept_class_id = 'Clinical Drug Form'
+       AND t1.invalid_reason IS NULL
+       AND t2.relationship_id = 'ATC - RxNorm'
+       AND t2.invalid_reason IS NULL
+    JOIN devv5.concept t3
+        ON t2.concept_id_1 = t3.concept_id
+       AND t3.vocabulary_id = 'ATC'
+       AND t3.invalid_reason IS NULL
+    GROUP BY t1.concept_id, t1.concept_name
+    ORDER BY COUNT(DISTINCT t3.concept_code) DESC
+)
+SELECT
+    'concept_relationship_devv5' as src,
+    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
+    MAX(cnt) AS max,
+    MIN(cnt) AS min,
+    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
+    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
+    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
+    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
+FROM CTE)
+
+UNION
+--- ancestor - 1.62
+(WITH CTE as (SELECT t3.concept_id,
+       t3.concept_name,
+       count (t1.concept_code) as cnt
+FROM devv5.concept t1
+     join devv5.concept_ancestor t2 on t1.concept_id = t2.ancestor_concept_id
+                                         and t1.vocabulary_id = 'ATC'
+                                         and t1.invalid_reason is NULL
+                                         and length(t1.concept_code) = 7
+     join devv5.concept t3 on t2.descendant_concept_id = t3.concept_id
+                                        and t3.vocabulary_id in ('RxNorm','RxNorm Extension')
+                                        and t3.invalid_reason is NULL
+                                        and t3.concept_class_id = 'Clinical Drug Form'
+GROUP BY t3.concept_id, t3.concept_name
+ORDER BY count (t1.concept_code) desc)
+SELECT
+    'concept_ancestor_devv5' as src,
+    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
+    MAX(cnt) AS max,
+    MIN(cnt) AS min,
+    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
+    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
+    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
+    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
+FROM CTE t1);

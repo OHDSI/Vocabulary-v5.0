@@ -424,7 +424,7 @@ begin
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
       --execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER'; --use csvcut (pip3 install csvkit --user) for parsing and ignoring new last columns
       execute 'COPY sources.loinc_forms FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-28 "'||pVocabularyPath||'panelsandforms.csv" '' delimiter '','' csv HEADER';
-      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
+      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology, sources.loinc_consumer_name;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'parentgroupattributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
       execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'grouploincterms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
@@ -437,9 +437,10 @@ begin
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
       execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'cpt_mrsmap.rrf'' delimiter ''|'' csv';
       execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'documentontology.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_consumer_name FROM '''||pVocabularyPath||'ConsumerName.csv'' delimiter '','' csv HEADER';
       PERFORM sources_archive.AddVocabularyToArchive('LOINC', ARRAY['loinc','map_to','source_organization','loinc_hierarchy','loinc_documentontology','loinc_answerslist','loinc_answerslistlink','loinc_forms',
         'loinc_group','loinc_parentgroupattributes','loinc_grouploincterms','loinc_partlink_primary','loinc_partlink_supplementary','loinc_part','loinc_radiology','loinc_class','cpt_mrsmap',
-        'scccrefset_expressionassociation_int','scccrefset_mapcorrorfull_int'], COALESCE(pVocabularyDate,current_date), 'archive.loinc_version', 10);
+        'scccrefset_expressionassociation_int','scccrefset_mapcorrorfull_int','loinc_consumer_name'], COALESCE(pVocabularyDate,current_date), 'archive.loinc_version', 100);
   when 'HCPCS' then
       truncate table sources.anweb_v2;
       insert into sources.anweb_v2 

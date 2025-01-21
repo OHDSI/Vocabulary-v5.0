@@ -847,7 +847,7 @@ WHERE concept_code_1 = 'PANEL.H' || CHR(38) || 'P' -- '&' = CHR(38)
 	AND concept_code_2 = '38213-5'
 	AND relationship_id = 'Subsumes';
 
---13. Add to the concept_synonym_stage all synonymic names from a source table of 'sources.loinc'
+--13. Add to the concept_synonym_stage all synonymic names from a source table of 'sources.loinc', 'sources.loinc_part' and 'sources.loinc_consumer_name'
 -- NB! We do not add synonyms for LOINC Answers (a 'description' field) due to their vague formulation
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -923,8 +923,17 @@ UNION
 			FROM concept_stage cs_int
 			WHERE cs_int.concept_code = pl.partnumber
 			)
-		AND pl.partname <> p.partdisplayname
-);-- pick only different names
+		AND pl.partname <> p.partdisplayname -- pick only different names
+
+UNION
+
+	--alternative names from 'sources.loinc_consumer_name'
+	SELECT cn.loincnumber AS synonym_concept_code,
+	       cn.consumername AS synonym_name,
+	       'LOINC' AS synonym_vocabulary_id,
+		   4180186 AS language_concept_id --English language
+	FROM sources.loinc_consumer_name cn
+);
 
 --14. Add LOINC Answers from 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink' source tables to the concept_stage
 INSERT INTO concept_stage (
@@ -1519,7 +1528,9 @@ WITH ax_1 AS (
 	        AND z3.lc_code NOT IN (
 	            '51540-3', --Cladosporium herbarum IgG Ab [Presence] in Serum
 	            '19726-9', --Aspergillus fumigatus IgG Ab [Presence] in Serum
-	            '51538-7' --Cladosporium herbarum IgG Ab [Presence] in Serum
+	            '51538-7', --Cladosporium herbarum IgG Ab [Presence] in Serum
+	            '55837-9', --Chloride [Moles/volume] in 24 hour Stool
+	            '51539-5' --Candida albicans IgG Ab [Presence] in Serum
             )
 			AND z3.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
@@ -1688,8 +1699,26 @@ WITH ax_1 AS (
 			    '11461000237104', --Alkaline phosphatase enzyme activity in fluid
 			    '364681000119104', --Benzodiazepine in urine by confirmatory technique
 			    '372361000119104', --Low density lipoprotein cholesterol by direct assay
-			    '365451000119108' --Smooth muscle actin immunoglobulin G antibody
+			    '365451000119108', --Smooth muscle actin immunoglobulin G antibody
+			    '408591000', --HBA1c target
+			    '780836005', --Target serum high density lipoprotein cholesterol level
+			    '780837001', --Target serum low density lipoprotein cholesterol level
+			    '780838006', --Target serum non high density lipoprotein cholesterol level
+			    '390896004', --Target cholesterol level
+			    '780835009', --Target serum triglyceride level
+			    '999551000000108', --Prolymphocyte count
+			    '1015481000000107', --Percentage lymphocytes
+			    '1015521000000107', --Percentage blast cells
+			    '1304152003' --Partial pressure of carbon dioxide in arterial blood
 				) -- to exclude codes with additional axises
+		  AND z1.lc_code NOT IN (
+	            '2077-6', --Chloride [Moles/volume] in Sweat
+	            '56448-4', --Chloride [Moles/volume] in Sweat by Screen method
+	            '44506-4', --Herpes simplex virus Ab [Presence] in Cerebral spinal fluid
+	            '16942-5', --Herpes simplex virus Ab [Presence] in Serum by Immunoblot
+	            '22339-6', --Herpes simplex virus Ab [Presence] in Serum
+		        '55837-9' --Chloride [Moles/volume] in 24 hour Stool
+            )
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -2204,6 +2233,9 @@ WITH resulting_table AS (
                              '364301000119102', --Detection of Helicobacter pylori antigen in stool
                             '443833006' --Quantitative measurement of cannabinoids in urine using GC-MS
                                 )
+				    AND loinc_code NOT IN
+                            ('805-2' --Leukocytes [#/volume] in Cerebral spinal fluid by Automated count
+                                )
 					) s0
 				ORDER BY s0.concept_code,
 					s0.snomed_subsumes_cnt DESC,
@@ -2322,6 +2354,9 @@ WITH resulting_table AS (
 						    '392372009' --Norway spruce specific IgE antibody measurement
 							)
 						AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
+					  AND t.loinc_code NOT IN
+                            ('805-2' --Leukocytes [#/volume] in Cerebral spinal fluid by Automated count
+                                )
 						AND regexp_replace(t.concept_name, '[^0-9]', '', 'g') = regexp_replace(t.snomed_name, '[^0-9]', '', 'g')
 					) s0
 				ORDER BY s0.concept_code,
@@ -2418,11 +2453,17 @@ WITH resulting_table AS (
 							t.specimen_code ~* 'dial|fluid'
 							AND t1.specimen_code ILIKE '%Dialysate%'
 							)
+					    OR (
+							t.specimen_code ~* 'semen'
+							AND t1.specimen_code ILIKE '%semen%'
+							)
 						)
 					AND snomed_code NOT IN (
 						'50271000237107', --HCV (hepatitis C virus) antibody in oral fluid qualitative result
-						'444264005'
-						) --Quantitative measurement of gastrin in fasting serum or plasma specimen
+						'444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
+					    '2341000237100', --Leucocyte number concentration in semen
+					    '4851000237100' --Neutrophil number concentration in semen
+					    )
 			    AND snomed_name !~* 'by deoxyribonucleic acid microarray analysis'
 				)/*,
 			--Component

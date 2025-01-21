@@ -34,14 +34,14 @@ GROUP BY c.concept_id, c.concept_code, c.concept_name;
 -- manual: covid, vaccines, insulin
 -- covid 19
 DROP TABLE IF EXISTS class_to_drug;
-CREATE TEMP TABLE class_to_drug
+CREATE TABLE class_to_drug
 AS
 SELECT cs.concept_code AS class_code,
        cs.concept_name AS class_name,
        c.concept_id,
        c.concept_name,
        c.concept_class_id,
-       1               AS order
+       1               AS concept_order
 FROM dev_atc.covid19_atc_rxnorm_manual cov
          JOIN dev_atc.concept_stage cs ON cov.concept_code_atc = cs.concept_code
          JOIN devv5.concept c ON cov.concept_id = c.concept_id

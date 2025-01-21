@@ -1,5 +1,5 @@
 /*****
-Pass-Fail checks
+Pass-Fail checks from Anna
 *******/
 
 -- new ATC should not have fewer concepts compared to old ATC
@@ -126,11 +126,14 @@ WITH rxnorm AS (
              JOIN dev_atc.concept c2 ON c2.concept_id = ca2.descendant_concept_id
         AND c2.concept_name ~ 'Injec' --and c2.vocabulary_id = 'RxNorm'
 )
-INSERT
-INTO atc_checks
+-- INSERT
+-- INTO atc_checks
 SELECT 'missing corticosteroids in descendants', NULL, COUNT(*), CASE WHEN COUNT(*) = 0 THEN 'P' ELSE 'F' END
 FROM rxnorm r
-WHERE r.concept_id NOT IN (
+WHERE
+    r.concept_class_id = 'Clinical Drug Form'
+    and
+    r.concept_id NOT IN (
     -- get systemic cordicosteroids through ATC
     SELECT c.concept_id AS atc_id
     FROM dev_atc.concept_ancestor ca
@@ -139,6 +142,7 @@ WHERE r.concept_id NOT IN (
 
 SELECT *
 FROM atc_checks;
+
 
 /*****
 Checks that require examination
@@ -274,6 +278,8 @@ ORDER BY concept_code;
 
 ---------- Check of accordance of ATC_Code - Dose Forms
 
+
+-- --This part should be run to obtain table for manual review. This part collects all possible Dose Forms for every ATC adm.r
 -- DROP TABLE IF EXISTS root_forms_for_check;
 -- create table root_forms_for_check as   ---- Take actual roots from current dev_atc.concept
 -- select
@@ -298,12 +304,12 @@ ORDER BY concept_code;
 -- select *
 --     from dev_atc.root_forms_for_check;
 
----- Here is manual curated list of adm.r - Dose Forms from previous query.
+---- Here is manual curated list of adm.r - dose Forms from previous query.
 DROP TABLE IF EXISTS root_forms_for_check;
 CREATE TABLE root_forms_for_check AS
 SELECT coalesce,
        STRING_AGG(concept_name, ',')
-FROM dev_atc.all_adm_r_filter
+FROM dev_atc.all_adm_r_filter  ---- created above, consists of different Dose Forms for every adm.route.
 GROUP BY coalesce
 ;
 
@@ -474,6 +480,13 @@ WHERE
 
 
 -- BLOCK: other changes
+
+--- New concepts list
+SELECT *
+FROM dev_atc.concept t1
+WHERE t1.vocabulary_id = 'ATC'
+and
+    t1.concept_code not in (select concept_code from devv5.concept where vocabulary_id = 'ATC');
 
 -- Change of concept_names
 SELECT c1.concept_code,
@@ -660,3 +673,667 @@ GROUP BY t.concept_id_atc,
          t.concept_id_rx,
          t.concept_name_rx,
          t.ings;
+
+----------- Count of connections per 1 RxNorm Code (total 32782 rxnorm codes 20.01.25)
+--- new
+SELECT
+    t1.concept_id,
+    t1.concept_name,
+    count(DISTINCT t3.concept_code)
+FROM concept t1
+     join concept_relationship t2 on t1.concept_id = t2.concept_id_2 and t1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                     and t1.concept_class_id = 'Clinical Drug Form'
+                                                                     and t1.invalid_reason is NULL
+                                                                     and t2.relationship_id = 'ATC - RxNorm'
+                                                                     and t2.invalid_reason is NULL
+     join concept t3 on t2.concept_id_1 = t3.concept_id and t3.vocabulary_id = 'ATC'
+                                                        and t3.invalid_reason is NULL
+GROUP BY t1.concept_id, t1.concept_name
+order by count(DISTINCT t3.concept_code) desc;
+
+--- old (total 32256 20.01.25)
+SELECT
+    t1.concept_id,
+    t1.concept_name,
+    count(DISTINCT t3.concept_code)
+FROM devv5.concept t1
+     join devv5.concept_relationship t2 on t1.concept_id = t2.concept_id_2 and t1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                     and t1.concept_class_id = 'Clinical Drug Form'
+                                                                     and t1.invalid_reason is NULL
+                                                                     and t2.relationship_id = 'ATC - RxNorm'
+                                                                     and t2.invalid_reason is NULL
+     join devv5.concept t3 on t2.concept_id_1 = t3.concept_id and t3.vocabulary_id = 'ATC'
+                                                        and t3.invalid_reason is NULL
+GROUP BY t1.concept_id, t1.concept_name
+order by count(DISTINCT t3.concept_code) desc;
+
+
+--- New connections appeared after Update
+
+SELECT
+        *
+FROM concept t1
+     join concept_relationship t2 on t1.concept_id = t2.concept_id_2 and t1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                     and t1.concept_class_id = 'Clinical Drug Form'
+                                                                     and t1.invalid_reason is NULL
+                                                                     and t2.relationship_id = 'ATC - RxNorm'
+                                                                     and t2.invalid_reason is NULL
+     join concept t3 on t2.concept_id_1 = t3.concept_id and t3.vocabulary_id = 'ATC'
+                                                        and t3.invalid_reason is NULL
+WHERE (t3.concept_id, t2.relationship_id, t1.concept_id) not in (SELECT
+                                                                        t3.concept_id, t2.relationship_id, t1.concept_id
+                                                                FROM devv5.concept t1
+                                                                     join devv5.concept_relationship t2 on t1.concept_id = t2.concept_id_2 and t1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                                                                                     and t1.concept_class_id = 'Clinical Drug Form'
+                                                                                                                                     and t1.invalid_reason is NULL
+                                                                                                                                     and t2.relationship_id = 'ATC - RxNorm'
+                                                                                                                                     and t2.invalid_reason is NULL
+                                                                     join devv5.concept t3 on t2.concept_id_1 = t3.concept_id and t3.vocabulary_id = 'ATC'
+                                                                                                                        and t3.invalid_reason is NULL
+                                                                        );
+
+
+
+--- Count of ATC - RxNorm - ATC (old)
+SELECT *  ---1096298
+FROM devv5.concept_relationship cr
+        JOIN devv5.concept c1 on cr.concept_id_1 = c1.concept_id
+                              AND c1.vocabulary_id = 'ATC'
+                              AND c1.invalid_reason is NULL
+                              AND cr.invalid_reason is NULL
+                              AND cr.relationship_id = 'ATC - RxNorm'
+        JOIN devv5.concept c2 on cr.concept_id_2 = c2.concept_id
+                              AND c2.invalid_reason is NULL
+                              AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                              AND c2.concept_class_id = 'Clinical Drug Form'
+        JOIN devv5.concept_relationship cr2 on c2.concept_id = cr2.concept_id_1
+                                            AND cr2.invalid_reason is NULL
+                                            AND cr2.relationship_id = 'RxNorm - ATC'
+        JOIN devv5.concept c3 on cr2.concept_id_2 = c3.concept_id
+                              AND c3.vocabulary_id = 'ATC'
+                              AND c3.invalid_reason is NULL;
+
+--- Count of ATC - RxNorm - ATC (new)
+SELECT *  ---1123316
+FROM dev_dev.concept_relationship cr
+        JOIN dev_dev.concept c1 on cr.concept_id_1 = c1.concept_id
+                              AND c1.vocabulary_id = 'ATC'
+                              AND c1.invalid_reason is NULL
+                              AND cr.invalid_reason is NULL
+                              AND cr.relationship_id = 'ATC - RxNorm'
+        JOIN dev_dev.concept c2 on cr.concept_id_2 = c2.concept_id
+                              AND c2.invalid_reason is NULL
+                              AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                              AND c2.concept_class_id = 'Clinical Drug Form'
+        JOIN dev_dev.concept_relationship cr2 on c2.concept_id = cr2.concept_id_1
+                                            AND cr2.invalid_reason is NULL
+                                            AND cr2.relationship_id = 'RxNorm - ATC'
+        JOIN dev_dev.concept c3 on cr2.concept_id_2 = c3.concept_id
+                              AND c3.vocabulary_id = 'ATC'
+                              AND c3.invalid_reason is NULL;
+
+
+--- ATC - RxNorm - ATC new demo for H02AB06
+SELECT *
+FROM devv5.concept_relationship cr
+        JOIN devv5.concept c1 on cr.concept_id_1 = c1.concept_id
+                              AND c1.vocabulary_id = 'ATC'
+                              AND c1.invalid_reason is NULL
+                              AND cr.invalid_reason is NULL
+                              AND cr.relationship_id = 'ATC - RxNorm'
+                              AND c1.concept_id = 21602734
+        JOIN devv5.concept c2 on cr.concept_id_2 = c2.concept_id
+                              AND c2.invalid_reason is NULL
+                              AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                              AND c2.concept_class_id = 'Clinical Drug Form'
+                              AND c2.concept_id = 35149489
+        JOIN devv5.concept_relationship cr2 on c2.concept_id = cr2.concept_id_1
+                                            AND cr2.invalid_reason is NULL
+                                            AND cr2.relationship_id = 'RxNorm - ATC'
+        JOIN devv5.concept c3 on cr2.concept_id_2 = c3.concept_id
+                              AND c3.vocabulary_id = 'ATC'
+                              AND c3.invalid_reason is NULL;
+
+
+
+---- Mono to Combo
+
+
+WITH CTE_2 AS (WITH CTE AS (SELECT c1.concept_code,
+                                   c1.concept_name,
+                                   c2.concept_name        AS secondary,
+                                   COUNT(c3.concept_name) AS n_ings
+                            FROM dev_atatur.concept_relationship cr
+                                     JOIN dev_atatur.concept c1 ON cr.concept_id_1 = c1.concept_id
+                                AND c1.vocabulary_id = 'ATC' AND c1.concept_class_id = 'ATC 5th'
+                                AND c1.invalid_reason IS NULL
+                                AND cr.invalid_reason IS NULL
+                                AND cr.relationship_id = 'ATC - RxNorm'
+                                     JOIN dev_atatur.concept c2 ON cr.concept_id_2 = c2.concept_id
+                                AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                AND c2.concept_class_id = 'Clinical Drug Form'
+                                AND c2.invalid_reason IS NULL
+                                     JOIN dev_atatur.concept_relationship cr2 ON cr.concept_id_2 = cr2.concept_id_1
+                                AND cr2.relationship_id = 'RxNorm has ing'
+                                     JOIN devv5.concept c3 ON cr2.concept_id_2 = c3.concept_id
+                            GROUP BY c1.concept_code, c1.concept_name, c2.concept_name)
+
+               SELECT concept_code,
+                      concept_name,
+                      CASE
+                          WHEN n_ings = 1 THEN 1
+                          ELSE 0 END AS one_ing,
+                      CASE
+                          WHEN n_ings > 1 THEN 1
+                          ELSE 0 END AS multi_ing
+               FROM CTE),
+     CTE_3 AS (SELECT concept_code,
+                      concept_name,
+                      SUM(one_ing)   AS one_ing,
+                      SUM(multi_ing) AS multi_ing
+               FROM CTE_2
+               GROUP BY concept_code, concept_name
+               ORDER BY concept_code)
+SELECT *
+               FROM CTE_3
+               WHERE concept_name LIKE '%combinations%'
+                 AND one_ing > 0
+               UNION
+               SELECT *
+               FROM CTE_3
+               WHERE concept_name LIKE '% and %'
+                 AND one_ing > 0 -- excludes things where form is not specified (doesn't have ';' ) b/c haven't figured out better regexp;
+;
+----- Check accordance of adm_r and Dose Form
+
+SELECT DISTINCT atc_concept_id,
+                atc_concept_code,
+                atc_concept_name,
+                root,
+                NULL AS drop,
+                rxnorm_form,
+                rxnorm_concept_id,
+                rxnorm_concept_name
+FROM dev_atatur.temp_check_results_only_yes
+WHERE rxnorm_form != 'Pack'
+ORDER BY root, rxnorm_form;
+
+--- Check what new connections appeared after update for specific ATC codes.
+select *
+from devv5.concept_relationship cr
+        join devv5.concept c1 on cr.concept_id_1 = c1.concept_id
+                                and cr.relationship_id = 'ATC - RxNorm'
+                                and cr.invalid_reason is NULL
+                                and c1.vocabulary_id = 'ATC'
+                                and c1.concept_code = (:concept_code_to_find)
+        join devv5.concept c2 on cr.concept_id_2 = c2.concept_id
+                                and c2.concept_class_id = 'Clinical Drug Form'
+                                and c2.invalid_reason is NULL
+where (cr.concept_id_1, cr.concept_id_2) not in (select cr.concept_id_1, cr.concept_id_2
+                                                    from dev_dev.concept_relationship cr
+                                                            join dev_dev.concept c1 on cr.concept_id_1 = c1.concept_id
+                                                                                    and cr.relationship_id = 'ATC - RxNorm'
+                                                                                    and cr.invalid_reason is NULL
+                                                                                    and c1.vocabulary_id = 'ATC'
+                                                                                    and c1.concept_code = (:concept_code_to_find)
+                                                            join dev_dev.concept c2 on cr.concept_id_2 = c2.concept_id
+                                                                                    and c2.concept_class_id = 'Clinical Drug Form');
+
+---- Multi-ing RxNorm's that have 2 ATC codes
+SELECT
+       c2.concept_id,
+       c2.concept_name,
+       count(DISTINCT c1.concept_code),
+       string_agg(DISTINCT c1.concept_code, ',') as ATC
+---       string_agg(c1.concept_code || ' - ' || c1.concept_name, ', ') as ATC
+FROM dev_atatur.concept_relationship cr
+        JOIN dev_atatur.concept c1 on cr.concept_id_1 = c1.concept_id
+                              AND c1.vocabulary_id = 'ATC'
+                              AND c1.invalid_reason is NULL
+                              AND cr.invalid_reason is NULL
+                              AND cr.relationship_id = 'ATC - RxNorm'
+        JOIN dev_atatur.concept c2 on cr.concept_id_2 = c2.concept_id
+                              AND c2.invalid_reason is NULL
+                              AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                              AND c2.concept_class_id = 'Clinical Drug Form'
+        JOIN dev_atatur.concept_relationship cr2 on c2.concept_id = cr2.concept_id_1
+                                                 and cr2.invalid_reason is NULL
+                                                 and cr2.relationship_id = 'RxNorm has ing'
+GROUP BY c2.concept_id, c2.concept_name having count(DISTINCT c1.concept_code) = 2
+                                           and count(DISTINCT cr2.concept_id_2) = 2
+                                           AND COUNT(DISTINCT LEFT(c1.concept_code, 5)) = 1;
+
+
+------- Multiing mapped to 1 mono ATC code, but at the same lvl exists combo code;
+    WITH CTE as (SELECT c2.concept_id,
+                    c2.concept_name,
+                    STRING_AGG(DISTINCT c1.concept_code, ',') AS ATC
+             FROM dev_atatur.concept_relationship cr
+                      JOIN dev_atatur.concept c1 ON cr.concept_id_1 = c1.concept_id
+                 AND c1.vocabulary_id = 'ATC'
+                 AND c1.invalid_reason IS NULL
+                 AND cr.invalid_reason IS NULL
+                 AND cr.relationship_id = 'ATC - RxNorm'
+                      JOIN dev_atatur.concept c2 ON cr.concept_id_2 = c2.concept_id
+                 AND c2.invalid_reason IS NULL
+                 AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                 AND c2.concept_class_id = 'Clinical Drug Form'
+                      JOIN dev_atatur.concept_relationship cr2 ON c2.concept_id = cr2.concept_id_1
+                 AND cr2.invalid_reason IS NULL
+                 AND cr2.relationship_id = 'RxNorm has ing'
+             GROUP BY c2.concept_id, c2.concept_name
+             HAVING COUNT(cr2.concept_id_2) > 1),
+     expanded as (
+                        SELECT
+                            concept_id,
+                            concept_name,
+                            unnest(STRING_TO_ARRAY(atc, ',')) as atc
+                        FROM CTE
+                        ),
+    comb as (select
+                    left(class_code,5) as up_level,
+                    class_code as down_level
+                from sources.atc_codes
+                where length(class_code) = 7
+                and class_name ~ 'comb|var'),
+    connected as (
+                    SELECT t1.*,
+                           t2.DOWN_LEVEL as code_with_combo
+                    FROM EXPANDED t1
+                        JOIN comb t2 on left(t1.atc,5) = t2.UP_LEVEL),
+    grouped as (
+                SELECt concept_id,
+                       concept_name,
+                       atc,
+                       string_to_array(string_agg(CODE_WITH_COMBO, ','), ',') concat
+                FROM CONNECTED
+                GROUP BY concept_id, concept_name, atc),
+    filtered as (SELECT *
+                 FROM GROUPED
+                 WHERE atc != ANY (CONCAT)),
+    ext as (
+                SELECT
+                    concept_id,
+                    concept_name,
+                    atc,
+                    1 as existent_mapping
+                FROM FILTERED
+
+                UNION
+
+                SELECT
+                    concept_id,
+                    concept_name,
+                    UNNEST(concat),
+                    0 as existent_mapping
+                FROM FILTERED)
+
+    SELECT
+            DISTINCT ed.concept_id,
+            ed.concept_name,
+            ed.EXISTENT_MAPPING,
+            LEFT(ed.ATC, 1) as "1st level code",
+            ac1.class_name AS "1st level name",
+            LEFT(ed.ATC, 3) as "2nd level code",
+            ac2.class_name AS "2nd level name",
+            LEFT(ed.ATC, 4) as "3rd level code",
+            ac3.class_name AS "3rd level name",
+            LEFT(ed.ATC, 5) as "4th level code",
+            ac4.class_name AS "4th level name",
+            ed.ATC as "5th level code",
+            ac5.class_name AS "5th level name"
+    FROM ext ed
+    LEFT JOIN sources.atc_codes ac1 ON LEFT(ed.ATC, 1) = ac1.class_code
+    LEFT JOIN sources.atc_codes ac2 ON LEFT(ed.ATC, 3) = ac2.class_code
+    LEFT JOIN sources.atc_codes ac3 ON LEFT(ed.ATC, 4) = ac3.class_code
+    LEFT JOIN sources.atc_codes ac4 ON LEFT(ed.ATC, 5) = ac4.class_code
+    LEFT JOIN sources.atc_codes ac5 ON ed.ATC = ac5.class_code
+
+order by concept_id, EXISTENT_MAPPING DESC;
+
+
+
+---- Multiing mapped on two ATC codes inside the same 4th lvl, one of which has 'comb' or 'var' in it's name.
+WITH expanded_data as(
+WITH grouped_data AS (
+    SELECT
+           c2.concept_id,
+           c2.concept_name,
+           COUNT(DISTINCT c1.concept_code) AS code_count,
+           STRING_AGG(DISTINCT c1.concept_code, ',') AS ATC
+    FROM dev_atatur.concept_relationship cr
+            JOIN dev_atatur.concept c1 ON cr.concept_id_1 = c1.concept_id
+                                  AND c1.vocabulary_id = 'ATC'
+                                  AND c1.invalid_reason IS NULL
+                                  AND cr.invalid_reason IS NULL
+                                  AND cr.relationship_id = 'ATC - RxNorm'
+            JOIN dev_atatur.concept c2 ON cr.concept_id_2 = c2.concept_id
+                                  AND c2.invalid_reason IS NULL
+                                  AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                  AND c2.concept_class_id = 'Clinical Drug Form'
+            JOIN dev_atatur.concept_relationship cr2 ON c2.concept_id = cr2.concept_id_1
+                                                     AND cr2.invalid_reason IS NULL
+                                                     AND cr2.relationship_id = 'RxNorm has ing'
+    GROUP BY c2.concept_id, c2.concept_name
+    HAVING
+        COUNT(DISTINCT c1.concept_code) > 1
+        --AND COUNT(DISTINCT cr2.concept_id_2) = 2
+        AND COUNT(DISTINCT LEFT(c1.concept_code, 5)) = 1
+        AND EXISTS (
+            SELECT 1
+            FROM sources.atc_codes sub_ac
+            WHERE sub_ac.class_code = ANY(STRING_TO_ARRAY(STRING_AGG(DISTINCT c1.concept_code, ','), ','))
+              AND (sub_ac.class_name ILIKE '%combination%' OR sub_ac.class_name ILIKE '%various%')
+        )
+)
+SELECT
+    concept_id,
+    concept_name,
+    code_count,
+    UNNEST(STRING_TO_ARRAY(ATC, ',')) AS ATC
+FROM grouped_data)
+SELECT
+    DISTINCT ed.concept_id,
+    ed.concept_name,
+    --ed.code_count,
+    LEFT(ed.ATC, 1) as "1st level code",
+    ac1.class_name AS "1st level name",
+    LEFT(ed.ATC, 3) as "2nd level code",
+    ac2.class_name AS "2nd level name",
+    LEFT(ed.ATC, 4) as "3rd level code",
+    ac3.class_name AS "3rd level name",
+    LEFT(ed.ATC, 5) as "4th level code",
+    ac4.class_name AS "4th level name",
+    ed.ATC as "5th level code",
+    ac5.class_name AS "5th level name"
+FROM expanded_data ed
+LEFT JOIN sources.atc_codes ac1 ON LEFT(ed.ATC, 1) = ac1.class_code
+LEFT JOIN sources.atc_codes ac2 ON LEFT(ed.ATC, 3) = ac2.class_code
+LEFT JOIN sources.atc_codes ac3 ON LEFT(ed.ATC, 4) = ac3.class_code
+LEFT JOIN sources.atc_codes ac4 ON LEFT(ed.ATC, 5) = ac4.class_code
+LEFT JOIN sources.atc_codes ac5 ON ed.ATC = ac5.class_code
+order by concept_id;
+
+---- Check where mapped ings using ATC - RxNorm pr lat
+WITH CTE as (SELECT DISTINCT c2.concept_id,
+       c2.concept_name,
+       c1.concept_code
+FROM devv5.concept_relationship cr
+     join devv5.concept c1 on cr.concept_id_1 = c1.concept_id
+                            and c1.vocabulary_id = 'ATC'
+                            and c1.invalid_reason is NULL
+                            and cr.invalid_reason is NULL
+                            and cr.relationship_id = 'ATC - RxNorm pr lat'
+     join devv5.concept c2 on cr.concept_id_2 = c2.concept_id
+                            and c2.invalid_reason is NULL
+                            and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')),
+    comb as (
+            select
+                    left(class_code,5) as up_level,
+                    class_code as down_level,
+                    class_name
+                from sources.atc_codes
+                where length(class_code) = 7
+                and class_name ~ 'comb|various')
+
+SELECT
+    concept_id,
+    concept_name,
+--     LEFT(ed.concept_code, 1) as "1st level code",
+--     ac1.class_name AS "1st level name",
+--     LEFT(ed.concept_code, 3) as "2nd level code",
+--     ac2.class_name AS "2nd level name",
+--     LEFT(ed.concept_code, 4) as "3rd level code",
+--     ac3.class_name AS "3rd level name",
+--     LEFT(ed.concept_code, 5) as "4th level code",
+--     ac4.class_name AS "4th level name",
+    string_to_array(string_agg(ed.concept_code, ','),',') as mapped_to_codes,
+    string_agg(ac5.class_name, ',') as mapped_to_names,
+     CASE
+           WHEN ARRAY(SELECT UNNEST(string_to_array(string_agg(DISTINCT t6.DOWN_LEVEL, ','), ',')) EXCEPT SELECT UNNEST(string_to_array(string_agg(ed.concept_code, ','),','))) = '{}'::text[]
+           THEN 1
+           ELSE 0
+       END AS all_elements_match,
+
+    string_to_array(string_agg(DISTINCT t6.DOWN_LEVEL, ','), ',') as comb_codes,
+    string_agg(t6.class_name, ',') as comb_names
+FROM CTE ed
+        LEFT JOIN sources.atc_codes ac1 ON LEFT(ed.concept_code, 1) = ac1.class_code
+        LEFT JOIN sources.atc_codes ac2 ON LEFT(ed.concept_code, 3) = ac2.class_code
+        LEFT JOIN sources.atc_codes ac3 ON LEFT(ed.concept_code, 4) = ac3.class_code
+        LEFT JOIN sources.atc_codes ac4 ON LEFT(ed.concept_code, 5) = ac4.class_code
+        LEFT JOIN sources.atc_codes ac5 ON ed.concept_code = ac5.class_code
+        LEFT JOIN COMB t6 ON LEFT(ed.concept_code, 5) = t6.UP_LEVEL
+WHERE DOWN_LEVEL is NOT null
+GROUP BY concept_id, concept_name
+ORDER BY concept_id;
+
+
+-----------------------
+
+-----------------------
+--- Check what new connections appeared after update for specific ATC codes from Marcel.
+select c1.concept_code,
+       c1.concept_name,
+       c2.concept_id,
+       c2.concept_name
+from dev_atc.concept_relationship cr
+        join dev_atc.concept c1 on cr.concept_id_1 = c1.concept_id
+                                and cr.relationship_id = 'ATC - RxNorm'
+                                and cr.invalid_reason is NULL
+                                and c1.vocabulary_id = 'ATC'
+                                and c1.concept_code in ('B01AC06','N02BA01', 'G03FA11', 'G03AA07', 'A06AD10', 'R03BA05', 'G03CA01', 'N02BA15',
+                                                        'M01AE18', 'R02AX02', 'C05AA01', 'R03BA09', 'J07BN01', 'D07AB11', 'D07AC16', 'C05AA12',
+                                                        'J07BX03', 'R03AK06', 'D01AC20', 'D07XA01', 'D09AA02', 'R03BA07', 'S03AA30', 'N02AJ09',
+                                                        'A07XA03', 'A12AA20', 'A11CC55', 'C07AB11', 'V04CX02', 'S02AA30', 'N02BE51', 'C05AA05',
+                                                        'R01AD12', 'N02AA59', 'R01AB06', 'N02BF02', 'N03AX16', 'S03AA08', 'G01AF04', 'S03CA01',
+                                                        'R01AD08', 'V04CA01', 'A10AD05', 'A10AD02', 'L02AB02', 'S02CA03', 'B03BA51', 'N02BA01',
+                                                        'G03AA08', 'G03AB03', 'R03BA09', 'A06AD10', 'A06AD65', 'R01AD12', 'R03BA05', 'N02BA15',
+                                                        'L02AA03', 'G03CA01', 'S01BA05', 'M01AE18', 'R02AX02', 'D07AB30', 'D07XB30', 'R01AD08',
+                                                        'S01CB03', 'A07AE02', 'S01BA02', 'A01AC03', 'D07AB11', 'D07AC16', 'C05AA01', 'J07BX03',
+                                                        'A07EA01', 'R01AD11', 'A01AC01', 'C05AA12', 'R01AD02')
+        join dev_atc.concept c2 on cr.concept_id_2 = c2.concept_id
+                                and c2.concept_class_id = 'Clinical Drug Form'
+                                and c2.invalid_reason is NULL
+where (cr.concept_id_1, cr.concept_id_2) not in (select cr.concept_id_1, cr.concept_id_2
+                                                    from dev_dev.concept_relationship cr
+                                                            join dev_dev.concept c1 on cr.concept_id_1 = c1.concept_id
+                                                                                    and cr.relationship_id = 'ATC - RxNorm'
+                                                                                    and cr.invalid_reason is NULL
+                                                                                    and c1.vocabulary_id = 'ATC'
+                                                                                    and c1.concept_code IN ('B01AC06','N02BA01', 'G03FA11', 'G03AA07', 'A06AD10', 'R03BA05', 'G03CA01', 'N02BA15',
+                                                                                                            'M01AE18', 'R02AX02', 'C05AA01', 'R03BA09', 'J07BN01', 'D07AB11', 'D07AC16', 'C05AA12',
+                                                                                                            'J07BX03', 'R03AK06', 'D01AC20', 'D07XA01', 'D09AA02', 'R03BA07', 'S03AA30', 'N02AJ09',
+                                                                                                            'A07XA03', 'A12AA20', 'A11CC55', 'C07AB11', 'V04CX02', 'S02AA30', 'N02BE51', 'C05AA05',
+                                                                                                            'R01AD12', 'N02AA59', 'R01AB06', 'N02BF02', 'N03AX16', 'S03AA08', 'G01AF04', 'S03CA01',
+                                                                                                            'R01AD08', 'V04CA01', 'A10AD05', 'A10AD02', 'L02AB02', 'S02CA03', 'B03BA51', 'N02BA01',
+                                                                                                            'G03AA08', 'G03AB03', 'R03BA09', 'A06AD10', 'A06AD65', 'R01AD12', 'R03BA05', 'N02BA15',
+                                                                                                            'L02AA03', 'G03CA01', 'S01BA05', 'M01AE18', 'R02AX02', 'D07AB30', 'D07XB30', 'R01AD08',
+                                                                                                            'S01CB03', 'A07AE02', 'S01BA02', 'A01AC03', 'D07AB11', 'D07AC16', 'C05AA01', 'J07BX03',
+                                                                                                            'A07EA01', 'R01AD11', 'A01AC01', 'C05AA12', 'R01AD02')
+                                                            join dev_dev.concept c2 on cr.concept_id_2 = c2.concept_id
+                                                                                    and c2.concept_class_id = 'Clinical Drug Form');
+
+
+
+SELECT t2.concept_code,
+       t2.concept_name,
+       t3.concept_id,
+       t3.concept_name
+FROM devv5.concept_ancestor t1
+        JOIN devv5.concept t2 on t1.ancestor_concept_id = t2.concept_id
+                                    and t1.ancestor_concept_id in  (21600541,21600544,21600552)
+        JOIN devv5.concept t3 on t1.descendant_concept_id = t3.concept_id
+                                    and t3.concept_class_id = 'Clinical Drug Form'
+                                    and t3.concept_id = 588466;
+
+
+------ RxN API
+CREATE TABLE rxnav_api_test as
+(
+WITH CTE AS (
+WITH CTE AS (
+    SELECT
+        c2.concept_id,
+        STRING_AGG(DISTINCT c1.concept_code, ',') AS ATC
+    FROM dev_atatur.concept_relationship cr
+    JOIN dev_atatur.concept c1
+        ON cr.concept_id_1 = c1.concept_id
+        AND c1.vocabulary_id = 'ATC'
+        AND c1.invalid_reason IS NULL
+        AND cr.invalid_reason IS NULL
+        AND cr.relationship_id = 'ATC - RxNorm'
+    JOIN dev_atatur.concept c2
+        ON cr.concept_id_2 = c2.concept_id
+        AND c2.invalid_reason IS NULL
+        AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+        AND c2.concept_class_id = 'Clinical Drug Form'
+    GROUP BY c2.concept_id
+)
+SELECT t1.*,
+       t2.ATC AS existent_atc
+FROM dev_atatur.rxn_api_cui_to_atc4 t1
+LEFT JOIN CTE t2
+    ON t1.concept_id = t2.concept_id
+WHERE
+    -- Include rows where t2.ATC is NULL
+    t2.ATC IS NULL
+    -- Or rows where t2.ATC contains a comma
+    OR t2.ATC LIKE '%,%'
+    -- Or rows where the first five characters of t1.atc do not match the first five of t2.ATC
+    OR t1.atc != LEFT(t2.ATC, 5)
+ORDER BY atc)
+SELECT concept_id,
+       concept_code,
+       concept_name,
+       atc as RxNavApi,
+       unnest(string_to_array(EXISTENT_ATC,',')) as existent_atc
+FROM CTE )
+
+UNION
+
+(WITH CTE AS (
+WITH CTE AS (
+    SELECT
+        c2.concept_id,
+        STRING_AGG(DISTINCT c1.concept_code, ',') AS ATC
+    FROM dev_atatur.concept_relationship cr
+    JOIN dev_atatur.concept c1
+        ON cr.concept_id_1 = c1.concept_id
+        AND c1.vocabulary_id = 'ATC'
+        AND c1.invalid_reason IS NULL
+        AND cr.invalid_reason IS NULL
+        AND cr.relationship_id = 'ATC - RxNorm'
+    JOIN dev_atatur.concept c2
+        ON cr.concept_id_2 = c2.concept_id
+        AND c2.invalid_reason IS NULL
+        AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+        AND c2.concept_class_id = 'Clinical Drug Form'
+    GROUP BY c2.concept_id
+)
+SELECT t1.*,
+       t2.ATC AS existent_atc
+FROM dev_atatur.rxn_api_cui_to_atc4 t1
+LEFT JOIN CTE t2
+    ON t1.concept_id = t2.concept_id
+WHERE
+    -- Include rows where t2.ATC is NULL
+    t2.ATC IS NULL
+    -- Or rows where t2.ATC contains a comma
+    OR t2.ATC LIKE '%,%'
+    -- Or rows where the first five characters of t1.atc do not match the first five of t2.ATC
+    OR t1.atc != LEFT(t2.ATC, 5)
+ORDER BY atc)
+
+SELECT *
+FROM CTE
+WHERE EXISTENT_ATC IS NULL)
+
+;
+
+SELECT * FROM rxnav_api_test;
+
+
+----- ALL RXN with more then 5 ATC codes
+WITH CTE as (select c1.concept_id as rxn_c_id,
+       c1.concept_code as rxn_c_c,
+       c1.concept_name as rxn_c_n,
+       count (c1.concept_id) as rxn_cnt,
+       string_agg(c2.concept_id::TEXT, '|') as atc_c_id,
+       string_agg(c2.concept_code, '|') as atc_c_c,
+       string_agg(c2.concept_name, '|') as atc_c_n
+from devv5.concept_relationship cr
+     join devv5.concept c1 on cr.concept_id_2 = c1.concept_id
+                     and cr.relationship_id = 'ATC - RxNorm'
+                     and c1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                     and c1.invalid_reason is NULL
+                     and cr.invalid_reason is NULL
+     join devv5.concept c2 on cr.concept_id_1 = c2.concept_id
+                     and c2.vocabulary_id = 'ATC'
+                     and c2.invalid_reason is NULL
+GROUP BY c1.concept_id, c1.concept_code, c1.concept_name having count (c1.concept_id) > 5),
+CTE2 as (
+SELECT RXN_C_ID,
+       RXN_C_C,
+       RXN_C_N,
+       rxn_cnt,
+       unnest(string_to_array(ATC_C_ID,'|')) as ATC_C_ID,
+       unnest(string_to_array(ATC_C_C,'|')) as ATC_C_C_5th,
+       unnest(string_to_array(ATC_C_N,'|')) as ATC_C_N_5th
+FROM CTE)
+SELECT t1.*,
+       t2.concept_code as ATC_C_C_4th,
+       t2.concept_name as ATC_C_N_4th,
+       t3.concept_code as ATC_C_C_3rd,
+       t3.concept_name as ATC_C_N_3rd,
+       t4.concept_code as ATC_C_C_2nd,
+       t4.concept_name as ATC_C_N_2nd,
+       t5.concept_code as ATC_C_C_1st,
+       t5.concept_name as ATC_C_N_1st
+FROM CTE2 as t1
+        join devv5.concept t2 on left(t1.ATC_C_C_5TH, 5) = t2.concept_code
+                     and t2.vocabulary_id = 'ATC' and t2.invalid_reason is NULL
+        join devv5.concept t3 on left(t1.ATC_C_C_5TH, 4) = t3.concept_code
+                             and t3.vocabulary_id = 'ATC' and t3.invalid_reason is NULL
+        join devv5.concept t4 on left(t1.ATC_C_C_5TH, 3) = t4.concept_code
+                             and t4.vocabulary_id = 'ATC' and t4.invalid_reason is NULL
+        join devv5.concept t5 on left(t1.ATC_C_C_5TH, 1) = t5.concept_code
+                             and t5.vocabulary_id = 'ATC' and t5.invalid_reason is NULL
+order by rxn_cnt desc,
+         RXN_C_ID asc,
+         ATC_C_C_5TH asc;
+
+
+
+
+---------- New rxnorm concepts without ATC connections (dev_dev - devv5)
+----- ings connections (ATC - RxNorm pr lat, pr up e.t.c.)
+SELECT t1.concept_id as id_rx,
+       t1.concept_code as code_rx,
+       t1.concept_name as name_rx
+FROM devv5.concept t1
+where t1.vocabulary_id = 'RxNorm'
+      and invalid_reason is NULL
+      and t1.concept_class_id = 'Ingredient'
+      and NOT EXISTS(SELECT 1
+                     FROM dev_dev.concept t2
+                     WHERE
+                         t2.vocabulary_id = 'RxNorm'
+                         and t2.concept_class_id = 'Ingredient'
+                         and t1.concept_id = t2.concept_id
+                         and t2.invalid_reason is NULL);
+----- clinical drug forms connections (ATC - RxNorm)
+SELECT t1.concept_id as id_rx,
+       t1.concept_code as code_rx,
+       t1.concept_name as name_rx
+FROM devv5.concept t1
+where t1.vocabulary_id = 'RxNorm'
+      and invalid_reason is NULL
+      and t1.concept_class_id = 'Clinical Drug Form'
+      and NOT EXISTS(SELECT 1
+                     FROM dev_dev.concept t2
+                     WHERE
+                         t2.vocabulary_id = 'RxNorm'
+                         and t2.concept_class_id = 'Clinical Drug Form'
+                         and t1.concept_id = t2.concept_id
+                         and t2.invalid_reason is NULL);

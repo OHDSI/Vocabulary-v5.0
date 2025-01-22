@@ -296,11 +296,12 @@ BEGIN
             ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC LIMIT 1;
         WHEN cVocabularyName = 'OMOP INVEST DRUG'
         THEN
-            SELECT TO_DATE(SUBSTRING(i.types->>'text',$$<a href = '.+?-([\d-]+)\..+'><b>Download</b></a>$$), 'yyyy-mm-dd')
-              INTO cVocabDate FROM (SELECT JSON_ARRAY_ELEMENTS(cVocabHTML::json) AS types) i
-             WHERE i.types->>'type'='news'
-               AND i.types->>'title'='Newest GSRS Public Data Released'
-             ORDER BY 1 DESC LIMIT 1;
+            SELECT to_date((regexp_matches(
+                        cVocabHTML, 
+                        '<h4>([A-Za-z]+\s\d{1,2},\s\d{4})</h4><h4>[^<]*Public Release[^<]*</h4>'
+                    ))[1],
+                    'Month DD, YYYY') 
+              INTO cVocabDate;
             cVocabVer := 'OMOP Invest Drug version '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
         WHEN cVocabularyName = 'CIVIC'
         THEN

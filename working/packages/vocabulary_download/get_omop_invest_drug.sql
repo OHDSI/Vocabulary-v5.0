@@ -68,21 +68,24 @@ BEGIN
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     
     --getting download link from page
-    select substring(pVocabulary_url,'^(https?://([^/]+))')||s0.arr[1] into pDownloadURL from (
+/*    select substring(pVocabulary_url,'^(https?://([^/]+))')||s0.arr[1] into pDownloadURL from (
       select regexp_matches(types->>'text',$$<a href = '\.(.+?-([\d-]+)\..+)'><b>Download</b></a>$$) arr from (select http_content::json as jsonfield from vocabulary_download.py_http_get(url=>pVocabulary_url)) i
       cross join json_array_elements(i.jsonfield) types
       where types->>'type'='news'
       and types->>'title'='Newest GSRS Public Data Released'
     ) as s0
-    order by s0.arr[2] desc limit 1;
+    order by s0.arr[2] desc limit 1;*/
+    select pVocabulary_url || (regexp_matches(http_content, '<a[^>]*href\s*=\s*["'']\./([^"'']*\.gsrs)["''][^>]*>[^<]*Download latest dataset[^<]*</a>'))[1]
+      into pDownloadURL
+      from vocabulary_download.py_http_get(url => pVocabulary_url);
     
     --start downloading
     pVocabularyOperation:='GET_OMOP_INVEST_DRUG dump-public.gsrs downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>'dump-public.gsrs.gz',
-      iDownloadLink=>pDownloadURL,
-      iParams=>'-4' --use IPv4 instead of IPv6
+      iDownloadLink => pDownloadURL,
+      iParams => '-4' --use IPv4 instead of IPv6
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -96,9 +99,10 @@ BEGIN
     
     --getting download link from page
     select pVocabulary_url||s0.arr[1] into pDownloadURL from (
-      select regexp_matches(http_content,'<td><a href="(NCIT_PharmSub_([\d.a-z]+)_([\d]+)\.xlsx)">.*?</a></td>','gn') arr from py_http_get(url=>pVocabulary_url)
+      select regexp_matches(http_content,'<td class="indexcolname"><a href="(NCIT_PharmSub_([\d.a-z]+)_([\d]+)\.xlsx)">.*?</a></td>','gn') arr from py_http_get(url=>pVocabulary_url) 
     ) as s0 order by to_date(s0.arr[3],'yyyymmdd') desc limit 1;
-    
+
+
     --start downloading
     pVocabularyOperation:='GET_OMOP_INVEST_DRUG NCIT_PharmSub downloading';
     perform run_wget (
@@ -120,7 +124,7 @@ BEGIN
     
     --getting download link from page (use regexp_matches in case the source wants to version the file)
     select pVocabulary_url||s0.arr[1] into pDownloadURL from (
-      select regexp_matches(http_content,'<td><a href="(Antineoplastic_Agent\.txt)">.*?</a></td>','gn') arr from py_http_get(url=>pVocabulary_url)
+      select regexp_matches(http_content,'<td class="indexcolname"><a href="(Antineoplastic_Agent\.txt)">.*?</a></td>','gn') arr from py_http_get(url=>pVocabulary_url)
     ) as s0 /*order by ... desc*/ limit 1;
     
     --start downloading

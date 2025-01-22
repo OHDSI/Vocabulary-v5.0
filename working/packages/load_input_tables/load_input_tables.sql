@@ -444,7 +444,8 @@ begin
   when 'HCPCS' then
       truncate table sources.anweb_v2;
       insert into sources.anweb_v2 
-        select trim(HCPC),long_description,short_description,xref1,xref2,xref3,xref4,xref5,betos,
+        select trim(HCPC),LEFT(long_description, 4000) AS long_description,
+        short_description,xref1,xref2,xref3,xref4,xref5,betos,
         TO_DATE(add_date,'YYYYMMDD'),TO_DATE(act_eff_dt,'YYYYMMDD'),TO_DATE(term_dt ,'YYYYMMDD'),
         COALESCE(pVocabularyDate,current_date),COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) 
         from sources.py_xlsparse_hcpcs(pVocabularyPath||'/HCPC_CONTR_ANWEB.xlsx') where add_date ~ '\d{6}';

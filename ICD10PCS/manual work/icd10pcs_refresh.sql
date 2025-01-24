@@ -1,6 +1,6 @@
 --10.1. Create icd10pcs_mapped table and pre-populate it with the resulting manual table of the previous icd10pcs refresh.
-/*
-DROP TABLE dev_icd10pcs.icd10pcs_mapped;
+
+--DROP TABLE dev_icd10pcs.icd10pcs_mapped;
 CREATE TABLE dev_icd10pcs.icd10pcs_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -28,29 +28,25 @@ CREATE TABLE dev_icd10pcs.icd10pcs_mapped
     target_vocabulary_id varchar(50),
 	mapper_id varchar(10),
 	reviewer_id varchar(10)
-); */
-
---10.2. Review the previous mapping and map new concepts. Use cr_invalid_reason field to deprecate mappings.
+);
 
 --Adding constraints for unique records
 ALTER TABLE dev_icd10pcs.icd10pcs_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_code,target_concept_code,source_vocabulary_id,target_vocabulary_id,relationship_id);
 
---10.3. Truncate the 'icd10pcs_mapped' table. Save the spreadsheet as the 'icd10pcs_mapped table' and upload it into the working schema.
+--10.3 Truncate the 'icd10pcs_mapped' table. Save the spreadsheet as the 'icd10pcs_mapped table' and upload it into the working schema.
 TRUNCATE TABLE dev_icd10pcs.icd10pcs_mapped;
 
 --Format after uploading
-UPDATE dev_icd10pcs.icd10pcs_mapped SET mapping_tool = NULL WHERE mapping_tool = '';
-UPDATE dev_icd10pcs.icd10pcs_mapped SET mapping_source = NULL WHERE mapping_source = '';
-UPDATE dev_icd10pcs.icd10pcs_mapped SET confidence = NULL WHERE confidence = '';
-UPDATE dev_icd10pcs.icd10pcs_mapped SET relationship_id_predicate = NULL WHERE relationship_id_predicate = '';
 UPDATE dev_icd10pcs.icd10pcs_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
 UPDATE dev_icd10pcs.icd10pcs_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
-UPDATE dev_icd10pcs.icd10pcs_mapped SET mapper_id = NULL WHERE mapper_id = '';
-UPDATE dev_icd10pcs.icd10pcs_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
+--UPDATE dev_icd10pcs.icd10pcs_mapped SET mapping_tool = NULL WHERE mapping_tool = '';
+--UPDATE dev_icd10pcs.icd10pcs_mapped SET mapping_source = NULL WHERE mapping_source = '';
+--UPDATE dev_icd10pcs.icd10pcs_mapped SET confidence = NULL WHERE confidence = '';
+--UPDATE dev_icd10pcs.icd10pcs_mapped SET relationship_id_predicate = NULL WHERE relationship_id_predicate = '';
+--UPDATE dev_icd10pcs.icd10pcs_mapped SET mapper_id = NULL WHERE mapper_id = '';
+--UPDATE dev_icd10pcs.icd10pcs_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
 
---10.4. Perform any mapping checks you have set.
-
---10.5. Change concept_relationship_manual table according to icd10pcs_mapped table.
+--10.4 Change concept_relationship_manual table according to icd10pcs_mapped table.
 --Insert new relationships
 --Update existing relationships
 INSERT INTO dev_icd10pcs.concept_relationship_manual AS mapped
@@ -74,7 +70,7 @@ INSERT INTO dev_icd10pcs.concept_relationship_manual AS mapped
                   ELSE current_date END AS valid_end_date,
            m.cr_invalid_reason
 	FROM dev_icd10pcs.icd10pcs_mapped m
-	--Only related to ICD10PCS vocabulary
+	--Only related to icd10pcs vocabulary
 	WHERE (source_vocabulary_id = 'ICD10PCS' OR target_vocabulary_id = 'ICD10PCS')
 	    AND (target_concept_id != 0 OR target_concept_id IS NULL)
 
@@ -107,8 +103,9 @@ AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
 
---10.6. Create concept_mapped table and populate it with concepts that require manual changes
-/*CREATE TABLE concept_mapped
+--5.2.7 Create concept_mapped table and populate it with the resulting manual table of the previous CPT4 refresh
+--DROP TABLE dev_icd10pcs.concept_mapped;
+CREATE TABLE concept_mapped
 (
        id SERIAL PRIMARY KEY,
 	   concept_name varchar(255),
@@ -116,13 +113,15 @@ AND crm.invalid_reason IS NOT NULL
 	   vocabulary_id varchar(50),
 	   concept_class_id varchar(50),
 	   standard_concept varchar(10),
+	   valid_start_date date,
+	   valid_end_date date,
 	   concept_code varchar(50)
-  );*/
+  );
 
 --Adding constraints for unique records
 ALTER TABLE dev_icd10pcs.concept_mapped ADD CONSTRAINT idx_pk_concept UNIQUE (concept_code, vocabulary_id);
 
--- 10.7. Truncate concept_mapped table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema:
+-- 5.2.8 Truncate cm_update table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema:
 TRUNCATE TABLE concept_mapped;
 
 --Format after uploading:
@@ -131,7 +130,7 @@ UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
 UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
 UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
 
---10.8. Change concept_manual table according to concept_mapped table.
+-- 5.2.9 Change concept_manual table according to concept_mapped table.
 INSERT INTO concept_manual AS cm
 (concept_name,
  domain_id,
@@ -148,9 +147,10 @@ SELECT concept_name,
        concept_class_id,
        standard_concept,
        concept_code,
-       null as valid_start_date,
-       null as valid_end_date,
-       'X' as invalid_reason
+       coalesce(valid_start_date, null) as valid_start_date,
+       coalesce(valid_end_date, null) as valid_end_date,
+       CASE WHEN valid_end_date = '2099-12-31' THEN NULL
+	   END AS invalid_reason
 FROM dev_icd10pcs.concept_mapped
 
 	ON CONFLICT ON CONSTRAINT unique_manual_concepts

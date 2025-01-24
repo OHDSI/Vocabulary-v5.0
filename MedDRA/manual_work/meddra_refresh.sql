@@ -306,9 +306,9 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
                           AND target_vocabulary_id = crm_old.vocabulary_id_2
                           AND CASE
                                   WHEN relationship_id ~* 'value' THEN 'Maps to value'
-                    WHEN relationship_id ~* 'Is a' THEN 'Is a'
-                    WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
-                   ELSE 'Maps to' END = crm_old.relationship_id
+                                  WHEN relationship_id ~* 'Is a' THEN 'Is a'
+                                  WHEN relationship_id ~* 'Subsumes' THEN 'Subsumes'
+                                  ELSE 'Maps to' END = crm_old.relationship_id
     )
     AND invalid_reason IS NULL AND crm_old.relationship_id LIKE 'Maps to%'
     AND vocabulary_id_1 = 'MedDRA'

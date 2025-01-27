@@ -270,7 +270,7 @@ BEGIN
           cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
         WHEN cVocabularyName = 'HEMONC'
         THEN
-          cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'Mon dd, yyyy');
+          cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'hemonc knowledgebase.+?<span class="text-muted">(.+?)</span>'),'Mon dd, yyyy');
           cVocabVer := 'HemOnc '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
         WHEN cVocabularyName = 'DMD'
         THEN

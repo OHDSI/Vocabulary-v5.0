@@ -60,9 +60,11 @@ BEGIN
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
 
-    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'.+<a href="(/dataset.xhtml\?persistentId=.+?)"><span style=.+?>HemOnc ontology</span></a>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'.+<a href="(/dataset.xhtml\?persistentId=.+?)"><span style=.+?>HemOnc knowledgebase</span></a>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
 
-    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'||SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_relationship_stage\.tab.+?</a>.+') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'
+                     || SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_relationship_stage\.tab.+?</a>.+') 
+                     from py_http_get(url=>pDownloadURL,allow_redirects=>true);
 
     --start downloading concept_relationship_stage
     pVocabularyOperation:='GET_HEMONC concept_relationship_stage downloading';
@@ -78,7 +80,9 @@ BEGIN
       iVocabulary_status=>1
     );
 
-    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'||SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_stage\.tab.+?</a>.+') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'
+                     || SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_stage\.tab.+?</a>.+') 
+                     from py_http_get(url=>pDownloadURL,allow_redirects=>true);
     --start downloading concept_stage
     pVocabularyOperation:='GET_HEMONC concept_stage downloading';
     perform run_wget (
@@ -94,7 +98,9 @@ BEGIN
       iVocabulary_status=>1
     );
 
-    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'||SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_synonym_stage\.tab.+?</a>.+') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'
+                     || SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_synonym_stage\.tab.+?</a>.+') 
+                     from py_http_get(url=>pDownloadURL,allow_redirects=>true);
     --start downloading concept_synonym_stage
     pVocabularyOperation:='GET_HEMONC concept_synonym_stage downloading';
     perform run_wget (

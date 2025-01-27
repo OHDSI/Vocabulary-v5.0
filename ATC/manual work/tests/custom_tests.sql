@@ -1371,6 +1371,67 @@ GROUP BY t2.concept_code, t2.concept_name, t4.concept_id, t4.concept_name having
         t1.concept_id,
         t1.concept_name,
         COUNT(DISTINCT t3.concept_code) AS cnt
+    FROM concept t1
+    JOIN concept_relationship t2
+        ON t1.concept_id = t2.concept_id_2
+       AND t1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+       AND t1.concept_class_id = 'Clinical Drug Form'
+       AND t1.invalid_reason IS NULL
+       AND t2.relationship_id = 'ATC - RxNorm'
+       AND t2.invalid_reason IS NULL
+    JOIN concept t3
+        ON t2.concept_id_1 = t3.concept_id
+       AND t3.vocabulary_id = 'ATC'
+       AND t3.invalid_reason IS NULL
+    GROUP BY t1.concept_id, t1.concept_name
+    ORDER BY COUNT(DISTINCT t3.concept_code) DESC
+)
+SELECT
+    'concept_relationship' as src,
+    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
+    MAX(cnt) AS max,
+    MIN(cnt) AS min,
+    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
+    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
+    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
+    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
+FROM CTE)
+
+UNION
+--- ancestor - 1.62
+(WITH CTE as (SELECT t3.concept_id,
+       t3.concept_name,
+       count (t1.concept_code) as cnt
+FROM concept t1
+     join concept_ancestor t2 on t1.concept_id = t2.ancestor_concept_id
+                                         and t1.vocabulary_id = 'ATC'
+                                         and t1.invalid_reason is NULL
+                                         and length(t1.concept_code) = 7
+     join concept t3 on t2.descendant_concept_id = t3.concept_id
+                                        and t3.vocabulary_id in ('RxNorm','RxNorm Extension')
+                                        and t3.invalid_reason is NULL
+                                        and t3.concept_class_id = 'Clinical Drug Form'
+GROUP BY t3.concept_id, t3.concept_name
+ORDER BY count (t1.concept_code) desc)
+SELECT
+    'concept_ancestor' as src,
+    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
+    MAX(cnt) AS max,
+    MIN(cnt) AS min,
+    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
+    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
+    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
+    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
+FROM CTE t1)
+
+UNION
+---- 2nd schema (devv5, dev_atc)
+---- concept_relationship
+(WITH CTE AS (
+    SELECT
+        t1.concept_id,
+        t1.concept_name,
+        COUNT(DISTINCT t3.concept_code) AS cnt
     FROM dev_atc.concept t1
     JOIN dev_atc.concept_relationship t2
         ON t1.concept_id = t2.concept_id_2
@@ -1415,67 +1476,6 @@ GROUP BY t3.concept_id, t3.concept_name
 ORDER BY count (t1.concept_code) desc)
 SELECT
     'concept_ancestor_dev_atc' as src,
-    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
-    MAX(cnt) AS max,
-    MIN(cnt) AS min,
-    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
-    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
-    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
-    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
-FROM CTE t1)
-
-UNION
----- devv5
-
-(WITH CTE AS (
-    SELECT
-        t1.concept_id,
-        t1.concept_name,
-        COUNT(DISTINCT t3.concept_code) AS cnt
-    FROM devv5.concept t1
-    JOIN devv5.concept_relationship t2
-        ON t1.concept_id = t2.concept_id_2
-       AND t1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-       AND t1.concept_class_id = 'Clinical Drug Form'
-       AND t1.invalid_reason IS NULL
-       AND t2.relationship_id = 'ATC - RxNorm'
-       AND t2.invalid_reason IS NULL
-    JOIN devv5.concept t3
-        ON t2.concept_id_1 = t3.concept_id
-       AND t3.vocabulary_id = 'ATC'
-       AND t3.invalid_reason IS NULL
-    GROUP BY t1.concept_id, t1.concept_name
-    ORDER BY COUNT(DISTINCT t3.concept_code) DESC
-)
-SELECT
-    'concept_relationship_devv5' as src,
-    SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
-    MAX(cnt) AS max,
-    MIN(cnt) AS min,
-    100.0 * SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_eq_1,
-    100.0 * SUM(CASE WHEN cnt > 2 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_2,
-    100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
-    100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
-FROM CTE)
-
-UNION
---- ancestor - 1.62
-(WITH CTE as (SELECT t3.concept_id,
-       t3.concept_name,
-       count (t1.concept_code) as cnt
-FROM devv5.concept t1
-     join devv5.concept_ancestor t2 on t1.concept_id = t2.ancestor_concept_id
-                                         and t1.vocabulary_id = 'ATC'
-                                         and t1.invalid_reason is NULL
-                                         and length(t1.concept_code) = 7
-     join devv5.concept t3 on t2.descendant_concept_id = t3.concept_id
-                                        and t3.vocabulary_id in ('RxNorm','RxNorm Extension')
-                                        and t3.invalid_reason is NULL
-                                        and t3.concept_class_id = 'Clinical Drug Form'
-GROUP BY t3.concept_id, t3.concept_name
-ORDER BY count (t1.concept_code) desc)
-SELECT
-    'concept_ancestor_devv5' as src,
     SUM(cnt) / COUNT(*) AS avg_atc_p_rxn,
     MAX(cnt) AS max,
     MIN(cnt) AS min,

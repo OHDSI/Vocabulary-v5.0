@@ -467,11 +467,11 @@ WHERE
     (
         (crm.concept_code_1, crm.concept_code_2, crm.vocabulary_id_1, crm.vocabulary_id_2) NOT IN (
             SELECT source_code, target_concept_code, source_vocabulary_id, target_vocabulary_id
-            FROM dev_meddra.meddra_environment
+            FROM dev_meddra.meddra_environment WHERE decision='1'
         )
         AND (crm.concept_code_1, crm.concept_code_2, crm.vocabulary_id_1, crm.vocabulary_id_2) NOT IN (
             SELECT target_concept_code, source_code, target_vocabulary_id, source_vocabulary_id
-            FROM dev_meddra.meddra_environment
+            FROM dev_meddra.meddra_environment WHERE decision='1'
         )
         AND crm.relationship_id = 'Is a'
         AND crm.invalid_reason IS NULL

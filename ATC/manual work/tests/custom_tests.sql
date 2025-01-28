@@ -1362,7 +1362,7 @@ FROM dev_atc.concept_relationship t1
 GROUP BY t2.concept_code, t2.concept_name, t4.concept_id, t4.concept_name having count (t3.concept_id_2) = 1;
 
 
-
+---------- Postprocessing shutting down
 
 ------ Compare number of connections per 1 rxnorm code
 -- ---- in dev_test10:
@@ -1608,3 +1608,59 @@ SELECT
     100.0 * SUM(CASE WHEN cnt > 5 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_5,
     100.0 * SUM(CASE WHEN cnt > 10 THEN 1 ELSE 0 END) / COUNT(*) AS percent_cnt_gt_10
 FROM CTE t1);
+
+select *
+from comparisson_diff_ancestors
+
+
+--- What connections in CR, not in CA but in Class_to_drug in dev_atc (working Postprocessing)
+SELECT t2.concept_code, t2.concept_name,
+       t3.concept_id, t3.concept_name
+FROM dev_atc.concept_relationship t1
+        JOIN dev_atc.concept t2 on t1.concept_id_1 = t2.concept_id
+                                    and t1.relationship_id = 'ATC - RxNorm'
+                                    and t2.vocabulary_id = 'ATC'
+                                    and t1.invalid_reason is NULL
+                                    and t2.invalid_reason is NULL
+        JOIN dev_atc.concept t3 on t1.concept_id_2 = t3.concept_id
+                                    and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                    and t3.concept_class_id = 'Clinical Drug Form'
+                                    and t3.invalid_reason is NULL
+WHERE (t2.concept_id, t3.concept_id) NOT IN (select t2.concept_id, t3.concept_id
+                                            from dev_atc.concept_ancestor t1
+                                                 join dev_atc.concept t2 on t1.ancestor_concept_id = t2.concept_id
+                                                                         and t2.invalid_reason is NULL
+                                                                         and t2.vocabulary_id = 'ATC'
+                                                                         and length(t2.concept_code) = 7
+                                                 join dev_atc.concept t3 on t1.descendant_concept_id = t3.concept_id
+                                                                         and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                         and t3.invalid_reason is NULL
+                                                                         and t3.concept_class_id = 'Clinical Drug Form')
+AND (t2.concept_code, t3.concept_id)
+        IN (SELECT class_code, concept_id from dev_atc.class_to_drug);
+
+--- What connections in CR, not in CA but in Class_to_drug in dev_test10 (all orders = 1)
+SELECT t2.concept_code, t2.concept_name,
+       t3.concept_id, t3.concept_name
+FROM dev_test10.concept_relationship t1
+        JOIN dev_test10.concept t2 on t1.concept_id_1 = t2.concept_id
+                                    and t1.relationship_id = 'ATC - RxNorm'
+                                    and t2.vocabulary_id = 'ATC'
+                                    and t1.invalid_reason is NULL
+                                    and t2.invalid_reason is NULL
+        JOIN dev_test10.concept t3 on t1.concept_id_2 = t3.concept_id
+                                    and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                    and t3.concept_class_id = 'Clinical Drug Form'
+                                    and t3.invalid_reason is NULL
+WHERE (t2.concept_id, t3.concept_id) NOT IN (select t2.concept_id, t3.concept_id
+                                            from dev_test10.concept_ancestor t1
+                                                 join dev_test10.concept t2 on t1.ancestor_concept_id = t2.concept_id
+                                                                         and t2.invalid_reason is NULL
+                                                                         and t2.vocabulary_id = 'ATC'
+                                                                         and length(t2.concept_code) = 7
+                                                 join dev_test10.concept t3 on t1.descendant_concept_id = t3.concept_id
+                                                                         and t3.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+                                                                         and t3.invalid_reason is NULL
+                                                                         and t3.concept_class_id = 'Clinical Drug Form')
+AND (t2.concept_code, t3.concept_id)
+        IN (SELECT class_code, concept_id from dev_test10.class_to_drug);

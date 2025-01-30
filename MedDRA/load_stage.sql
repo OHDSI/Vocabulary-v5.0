@@ -146,8 +146,8 @@ AS (
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
-			WHEN hlt_name = 'Gene mutations and other alterations NEC'
-				THEN 'Measurement'
+			WHEN hlt_name ~* 'gene mutations and other alterations'
+				THEN 'Condition'
 					--hlgt level
 			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
 				THEN 'Observation'
@@ -183,8 +183,8 @@ AS (
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
-			WHEN hlt_name = 'Gene mutations and other alterations NEC'
-				THEN 'Measurement'
+			WHEN hlt_name ~* 'gene mutations and other alterations|syndrome'
+				THEN 'Condition'
 					--hlgt level
 			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
 				THEN 'Observation'
@@ -215,8 +215,8 @@ AS (
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'
-			WHEN hlt_name = 'Gene mutations and other alterations NEC'
-				THEN 'Measurement'
+			WHEN hlt_name ~* 'gene mutations and other alterations'
+				THEN 'Condition'
 					--hlgt level
 			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
 				THEN 'Observation'

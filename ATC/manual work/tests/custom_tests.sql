@@ -1225,7 +1225,7 @@ WITH CTE AS (
         AND c1.invalid_reason IS NULL
         AND cr.invalid_reason IS NULL
         AND cr.relationship_id = 'ATC - RxNorm'
-    JOIN dev_atatur.concept c2
+    JOIN dev_atatur.concept c2чё
         ON cr.concept_id_2 = c2.concept_id
         AND c2.invalid_reason IS NULL
         AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
@@ -1367,7 +1367,7 @@ GROUP BY t2.concept_code, t2.concept_name, t4.concept_id, t4.concept_name having
 ------ Compare number of connections per 1 rxnorm code
 -- ---- in dev_test10:
 ------ concept_relationship 2.11
-create table comparisson_diff_ancestors as
+--create table comparisson_diff_ancestors as
 (WITH CTE AS (
     SELECT
         t1.concept_id,

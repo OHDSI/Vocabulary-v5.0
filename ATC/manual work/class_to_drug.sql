@@ -4,7 +4,7 @@
 
 -- prelim
 DROP TABLE IF EXISTS rx;
-CREATE TEMP TABLE rx AS
+CREATE TABLE rx AS
 SELECT c.concept_id,
        c.concept_code,
        c.concept_name,
@@ -30,7 +30,6 @@ FROM devv5.concept c
          JOIN devv5.concept cc ON cc.concept_id = ca.ancestor_concept_id AND cc.concept_class_id = 'Ingredient'
 WHERE c.concept_id NOT IN (SELECT concept_id FROM rx)
 GROUP BY c.concept_id, c.concept_code, c.concept_name;
-
 
 -- manual: covid, vaccines, insulin
 -- covid 19
@@ -173,7 +172,6 @@ FROM dev_atc.concept_stage cs
     AND crs.relationship_id = 'ATC - RxNorm'
          JOIN rx ON rx.concept_id = crs.concept_id_2
 WHERE (cs.concept_code, rx.concept_id) NOT IN (SELECT class_code, concept_id FROM class_to_drug);
-
 
 -- --- In case if you want to turn of connections filtration in postprocessing
 -- UPDATE class_to_drug

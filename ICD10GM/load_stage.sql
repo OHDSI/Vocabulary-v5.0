@@ -46,7 +46,8 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT c.concept_name,
+SELECT
+    coalesce(c.concept_name, g.concept_name) as concept_name,
 	c.domain_id,
 	'ICD10GM' AS vocabulary_id,
 	c.concept_class_id,
@@ -61,6 +62,12 @@ FROM sources.icd10gm g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10'
 	AND c.concept_class_id NOT LIKE '%Chapter%';
+
+
+--3.1 Update CM table to add new concepts and their translations (absent in CM after 01-01-2025 update)
+INSERT INTO concept_manual
+SELECT *
+from dev_icd10gm.icd10gm_newcodes;
 
 --4. Append concept corrections -- COVID concepts added and English translation
 DO $_$

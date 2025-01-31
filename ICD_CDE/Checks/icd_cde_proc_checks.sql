@@ -283,7 +283,7 @@ WITH cc as
 cc.source_code,
 cc.source_code_description,
 cc.source_vocabulary_id,
-string_agg(cc.relationship_id, '-' ORDER BY cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_relationship_id,
+string_agg(cc.relationship_id::VARCHAR, '-' ORDER BY cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_relationship_id,
 string_agg (cc.target_concept_code, '-' ORDER BY cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_target_concept_code,
 string_agg(cc.target_concept_name, '-' ORDER BY cc.relationship_id, cc.source_code, cc.source_vocabulary_id) as cc_target_concept_name
 FROM dev_icd10.icd_community_contribution cc
@@ -294,7 +294,7 @@ SELECT
 p.source_code,
 p.source_code_description,
 p.source_vocabulary_id,
-string_agg (p.relationship_id, '-' ORDER BY p.relationship_id, p.source_code, p.source_vocabulary_id) as p_relationship_id,
+string_agg (p.relationship_id::VA, '-' ORDER BY p.relationship_id, p.source_code, p.source_vocabulary_id) as p_relationship_id,
 string_agg (p.target_concept_code, '-' ORDER BY p.relationship_id, p.source_code, p.source_vocabulary_id) as p_target_concept_code,
 string_agg (p.target_concept_name, '-' ORDER BY p.relationship_id, p.source_code, p.source_vocabulary_id) as p_target_concept_name
 FROM dev_icd10.icd_cde_proc p

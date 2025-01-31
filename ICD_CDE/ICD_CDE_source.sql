@@ -643,6 +643,7 @@ SELECT s.source_code,
 FROM dev_icd10.icd_community_contribution s
 JOIN devv5.concept c on s.target_concept_id = c.concept_id;
 
+
 --6. Insert mappings from external sources into the dev_icd10.icd_cde_source table
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,
@@ -832,7 +833,6 @@ HAVING count(group_name) >1;
 --group_id in (SELECT group_id FROM icd_cde_source
 --GROUP BY group_id
 --HAVING COUNT (DISTINCT (mappings_origin)) > 1)
-;
 
 --For some codes from users
 UPDATE icd_cde_source SET for_review = '1'
@@ -846,24 +846,24 @@ WHERE source_code in ('F10.91',
 'F13.91');
 
 --For 'Maps to' Meas value
-UPDATE icd_cde_source SET for_review = '1'
-WHERE target_domain_id = 'Meas Value' and relationship_id = 'Maps to';
-
---For ICD10, ICD10CM codes without mapping
-UPDATE icd_cde_source SET for_review = '1'
-WHERE group_id in (
-    SELECT group_id FROM icd_cde_source
-        WHERE source_vocabulary_id in ('ICD10', 'ICD10CM') AND target_concept_id is NULL);
-
---For 'Concept poss_eq' to
-UPDATE icd_cde_source SET for_review = '1'
-WHERE group_id in (
-    SELECT group_id FROM icd_cde_source
-   WHERE mappings_origin = 'Concept poss_eq to');
-
---For concepts after checks
-UPDATE icd_cde_source SET for_review = '1'
-WHERE source_code in (SELECT DISTINCT source_code FROM to_check);
+-- UPDATE icd_cde_source SET for_review = '1'
+-- WHERE target_domain_id = 'Meas Value' and relationship_id = 'Maps to';
+--
+-- --For ICD10, ICD10CM codes without mapping
+-- UPDATE icd_cde_source SET for_review = '1'
+-- WHERE group_id in (
+--     SELECT group_id FROM icd_cde_source
+--         WHERE source_vocabulary_id in ('ICD10', 'ICD10CM') AND target_concept_id is NULL);
+--
+-- --For 'Concept poss_eq' to
+-- UPDATE icd_cde_source SET for_review = '1'
+-- WHERE group_id in (
+--     SELECT group_id FROM icd_cde_source
+--    WHERE mappings_origin = 'Concept poss_eq to');
+--
+-- --For concepts after checks
+-- UPDATE icd_cde_source SET for_review = '1'
+-- WHERE source_code in (SELECT DISTINCT source_code FROM to_check);
 
 --15. Table for manual mapping and review creation -- data for the exact refresh
 --DROP TABLE icd_cde_manual;
@@ -1380,17 +1380,19 @@ valid_end_date  date);
 
 --Update mapper and reviewer fields
 DELETE FROM icd_cde_mapped WHERE group_code is null;
-UPDATE icd_cde_mapped_ext SET mapper_id = 'TO' WHERE mapper_id = 'Mapper: tetiana.orlova@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET mapper_id = 'JC' WHERE mapper_id = 'Mapper: janice.cruz@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET mapper_id = 'IZ' WHERE mapper_id = 'Mapper: irina.zherko@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET mapper_id = 'MK' WHERE mapper_id = 'Mapper: maria.khitrun@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET mapper_id = 'TS' WHERE mapper_id = 'Mapper: tatiana.skugarevskaya@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET rev_id = 'IZ' WHERE rev_id = 'Reviewer: irina.zherko@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET rev_id = 'MK' WHERE rev_id = 'Reviewer: maria.khitrun@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET rev_id = 'TS' WHERE rev_id = 'Reviewer: tatiana.skugarevskaya@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET rev_id = 'TO' WHERE rev_id = 'Reviewer: tetiana.orlova@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET rev_id = 'JC' WHERE rev_id = 'Reviewer: janice.cruz@odysseusinc.com';
-UPDATE icd_cde_mapped_ext SET rev_id = null WHERE rev_id = 'Reviewer: 0';
+UPDATE icd_cde_mapped SET mapper_id = 'TO' WHERE mapper_id = 'Mapper: tetiana_orlova@epam.com';
+UPDATE icd_cde_mapped SET mapper_id = 'JC' WHERE mapper_id = 'Mapper: janice-pilar_cruz@epam.com';
+UPDATE icd_cde_mapped SET mapper_id = 'MK' WHERE mapper_id = 'Mapper: maria_khitrun@epam.com';
+UPDATE icd_cde_mapped SET mapper_id = 'MS' WHERE mapper_id = 'Mapper: mikita_salavei@epam.com';
+UPDATE icd_cde_mapped SET mapper_id = 'AT' WHERE mapper_id = 'Mapper: anton_tatur1@epam.com';
+UPDATE icd_cde_mapped SET mapper_id = 'AY' WHERE mapper_id = 'Mapper: aliaksandr_yurchanka3@epam.com';
+UPDATE icd_cde_mapped SET rev_id = 'MK' WHERE rev_id = 'Reviewer: maria_khitrun@epam.com';
+UPDATE icd_cde_mapped SET rev_id = 'TO' WHERE rev_id = 'Reviewer: tetiana_orlova@epam.com';
+UPDATE icd_cde_mapped SET rev_id = 'JC' WHERE rev_id = 'Reviewer: janice-pilar_cruz@epam.com';
+UPDATE icd_cde_mapped SET rev_id = 'MS' WHERE rev_id = 'Reviewer: mikita_salavei@epam.com';
+UPDATE icd_cde_mapped SET rev_id = 'AT' WHERE rev_id = 'Reviewer: anton_tatur1@epam.com';
+UPDATE icd_cde_mapped SET rev_id = 'AY' WHERE rev_id = 'Reviewer: aliaksandr_yurchanka3@epam.com';
+UPDATE icd_cde_mapped SET rev_id = null WHERE rev_id = 'Reviewer: 0';
 
 --17. Update mapped table
 --Update decision flag --miss null!
@@ -1407,20 +1409,24 @@ WHERE target_invalid_reason = 'Valid';
 
 --Update rel_invalid_reason, valid_start_date, valid_end_date fields for declined candidates
 UPDATE icd_cde_mapped SET
-decision_date = '2024-07-29'
+decision_date = '2025-01-31'
 WHERE decision in ('0', '1');
 
 UPDATE icd_cde_mapped SET
-valid_start_date = '2024-07-29',
+valid_start_date = '2025-01-31',
 valid_end_date = '2099-12-31'
 WHERE decision = '1'
-AND mappings_origin in ('without mapping', 'manual');
+AND  (mappings_origin = '{without mapping}'
+    OR mappings_origin = '{manual}');
+
 
 --18. Create final table with mappings
 --CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
 --CREATE TABLE icd_cde_proc_backup_28_8_2024 as (SELECT * FROM icd_cde_proc);
+-- CREATE TABLE icd_cde_proc_backup_30_1_2025 as (SELECT * FROM icd_cde_proc);
 --TRUNCATE TABLE icd_cde_proc;
 --DROP TABLE icd_cde_proc;
+
 CREATE TABLE icd_cde_proc (
     source_code varchar,
     source_code_description varchar,
@@ -1438,6 +1444,8 @@ CREATE TABLE icd_cde_proc (
     mapper varchar,
     reviewer varchar
 );
+
+
 INSERT INTO icd_cde_proc (source_code,
                           source_code_description,
                           source_vocabulary_id,
@@ -1473,6 +1481,31 @@ FROM icd_cde_source s JOIN icd_cde_mapped m
 ON s.group_name = m.group_name
 AND m.decision = '1'
 ;
+
+
+--- Solving problem of not correct source_code
+-- create table icd_cde_proc_corr as
+-- select t1.source_code,
+--     t1.source_code_description,
+--     t1.source_vocabulary_id,
+--     t1.relationship_id,
+--     t1.relationship_id_predicate,
+--     t1.target_concept_id,
+--     t2.concept_code as target_concept_code,
+--     t1.target_concept_name,
+--     t1.target_concept_class_id,
+--     t1.target_standard_concept,
+--     t1.target_invalid_reason,
+--     t1.target_domain_id,
+--     t1.target_vocabulary_id,
+--     t1.mapper,
+--     t1.reviewer
+--     from icd_cde_proc t1
+--     join devv5.concept t2 on t1.target_concept_id = t2.concept_id
+--                                 and t2.invalid_reason is null ;
+-- DROP table icd_cde_proc;
+-- CREATE table icd_cde_proc as select * from icd_cde_proc_corr;
+select * from icd_cde_proc;
 
 --INSERT INTO icd_cde_proc (source_code,
 --                          source_code_description,

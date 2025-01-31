@@ -312,9 +312,9 @@ FROM (
 			AND cs1.vocabulary_id = 'ICD9CM'
 		JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 			AND c2.vocabulary_id = crs.vocabulary_id_2
-		--AND c2.vocabulary_id = 'SNOMED'
+		    --AND c2.vocabulary_id = 'SNOMED'
 		WHERE crs.relationship_id = 'Maps to'
-			AND crs.invalid_reason IS NULL
+			--AND crs.invalid_reason IS NULL
 		ORDER BY cs1.concept_code,
 			CASE c2.domain_id
 				WHEN 'Condition'
@@ -339,11 +339,11 @@ FROM (
 		JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 			AND c1.vocabulary_id = 'ICD9CM'
 		JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		--AND c2.vocabulary_id = 'SNOMED'
+		        --AND c2.vocabulary_id = 'SNOMED'
 		JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 			AND cs1.vocabulary_id = c1.vocabulary_id
 		WHERE cr.relationship_id = 'Maps to'
-			AND cr.invalid_reason IS NULL
+			--AND cr.invalid_reason IS NULL
 			AND NOT EXISTS (
 				SELECT 1
 				FROM concept_relationship_stage crs_int

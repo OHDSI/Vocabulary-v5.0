@@ -436,7 +436,8 @@ SELECT concept_code_atc AS concept_code_1,
        TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM dev_atc.covid19_atc_rxnorm_manual cov
          JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                                                 AND cov.to_drop IS NULL;
+                                                                 AND cov.to_drop IS NULL
+ON CONFLICT DO NOTHING;
 
 --12. Process manual relationships
 DO

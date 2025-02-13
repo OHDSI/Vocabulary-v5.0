@@ -17,8 +17,10 @@
 * Date: 2017
 **************************************************************************/
 
--- 2. Truncate all working tables
-TRUNCATE TABLE test_table;
+DO $_$
+BEGIN
+    PERFORM test_truncate();
+END $_$;
 
 insert into test_table 
 values ('test');

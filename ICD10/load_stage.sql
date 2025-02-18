@@ -106,6 +106,7 @@ LEFT JOIN classes b ON a.class_code = b.class_code
 	AND b.rubric_kind = 'preferredLong'
 WHERE a.rubric_kind <> 'preferredLong';
 
+
 --3.1. Manual fixes
 --manual fix for J96
 INSERT INTO classes
@@ -309,6 +310,7 @@ FROM classes
 WHERE class_code LIKE '%-%'
 	AND rubric_kind = 'preferred';
 
+
 UPDATE concept_stage cs
 SET concept_name = i.new_name
 FROM (
@@ -348,11 +350,14 @@ FROM (
 	) i
 WHERE cs.concept_code = i.concept_code;
 
+
 --5. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
+
+
 
 --6. Working with concept_relationship_manual table
 DO $_$
@@ -505,22 +510,24 @@ FROM classes
 WHERE rubric_kind = 'preferred'
 	AND superclass_code LIKE '%-%';
 
+
+
 --10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
 --12. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
 --13. Update domain_id for ICD10 from target vocabularies
@@ -688,6 +695,24 @@ WHERE 'ICD10' IN (
 		'ICD10 SubChapter',
 		'ICD10 Chapter'
 		);
+
+
+-- ---- Kill all thrash links that come on the stage of links propagation, but are invalid.
+-- update concept_relationship_stage crs
+-- set invalid_reason = 'D',
+--     valid_end_date = current_date
+-- WHERE
+--     crs.invalid_reason is null
+--     AND crs.vocabulary_id_1 = 'ICD10'
+--     AND EXISTS (SELECT *
+--             FROM dev_icd10.icd_cde_source s JOIN dev_icd10.icd_cde_mapped m
+--                     ON s.group_name = m.group_name
+--             where m.decision = 0
+--             and crs.vocabulary_id_1 = s.source_vocabulary_id
+--             and crs.concept_code_1 = s.source_code
+--             and crs.concept_code_2 = m.target_concept_code
+--             and crs.vocabulary_id_2 = m.target_vocabulary_id);
+--
 
 --17. Clean up
 DROP TABLE modifier_classes;

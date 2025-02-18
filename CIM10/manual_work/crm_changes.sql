@@ -85,6 +85,7 @@ with mapping AS -- select all new codes with their mappings from manual file
         FROM dev_icd10.icd_cde_proc
         WHERE target_concept_id is not null -- select only codes with mapping to standard concepts
         AND source_vocabulary_id = 'CIM10'
+        and target_concept_id != 0
     )
 -- insert new mappings into concept_relationship_manual table
 INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)

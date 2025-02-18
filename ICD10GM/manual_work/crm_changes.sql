@@ -114,9 +114,9 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 
 
 --2. Update the concept_manual table to add translations for newly added concepts
---TRUNCATE concept_manual;
---INSERT INTO concept_manual
---SELECT concept_name,
+-- TRUNCATE concept_manual;
+-- INSERT INTO concept_manual
+-- SELECT concept_name,
 --       domain_id,
 --       vocabulary_id,
 --       concept_class_id,
@@ -125,6 +125,6 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
 --       valid_start_date,
 --       valid_end_date,
 --       invalid_reason
---FROM devv5.base_concept_manual
---WHERE vocabulary_id = 'ICD10GM';
+-- FROM devv5.base_concept_manual
+-- WHERE vocabulary_id = 'ICD10GM';
 

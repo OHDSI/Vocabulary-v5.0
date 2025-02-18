@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Timur Vakhitov, Christian Reich
 * Date: 2017
 **************************************************************************/
@@ -49,7 +49,7 @@ INSERT INTO concept_stage (
 SELECT NAME AS concept_name,
 	NULL AS domain_id,
 	'ICD9CM' AS vocabulary_id,
-	CASE 
+	CASE
 		WHEN SUBSTR(code, 1, 1) = 'V'
 			THEN LENGTH(code) || '-dig billing V code'
 		WHEN SUBSTR(code, 1, 1) = 'E'
@@ -86,7 +86,7 @@ INSERT INTO concept_stage (
 SELECT vocabulary_pack.CutConceptName(str) AS concept_name,
 	NULL AS domain_id,
 	'ICD9CM' AS vocabulary_id,
-	CASE 
+	CASE
 		WHEN SUBSTR(code, 1, 1) = 'V'
 			THEN LENGTH(REPLACE(code, '.', '')) || '-dig nonbill V code'
 		WHEN SUBSTR(code, 1, 1) = 'E'
@@ -134,9 +134,9 @@ SELECT CASE -- add dots to the codes
 FROM (
 	SELECT *
 	FROM sources.cms_desc_long_dx
-	
+
 	UNION
-	
+
 	SELECT code,
 		name
 	FROM sources.cms_desc_short_dx
@@ -329,9 +329,9 @@ FROM (
 					THEN 5
 				END
 		)
-	
+
 	UNION
-	
+
 	(
 		SELECT DISTINCT ON (cs1.concept_code) cs1.concept_code,
 			c2.domain_id
@@ -445,5 +445,17 @@ WHERE 'ICD9CM' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
+--
+-- UPDATE concept_relationship_stage crm
+-- SET invalid_reason = 'D',
+--     valid_end_date = current_date
+--
+-- FROM manual_correction mc
+--     WHERE crm.concept_code_1 = mc.concept_code
+--       AND crm.concept_code_2 = mc.concept_code_2
+--       AND crm.vocabulary_id_1 = mc.vocabulary_id
+--       AND crm.vocabulary_id_2 = mc.vocabulary_id_2
+--       AND crm.relationship_id = mc.relationship_id
+--       AND mc.invalid_reason = 'D';
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

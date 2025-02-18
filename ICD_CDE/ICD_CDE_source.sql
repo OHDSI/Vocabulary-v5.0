@@ -35,9 +35,21 @@
 --TRUNCATE TABLE icd_cde_source;
 --INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_8_28_2024);
 
+
+----Backup before update (02.02.2025) - mappings done. before CC update
+-- CREATE TABLE icd_cde_source_backup_02_02_2025 as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_8_28_2024);
+
+----Backup before update (09.02.2025) - backup before first detach try
+---- CREATE TABLE icd_cde_source_backup_09_02_2025_det as SELECT * FROM icd_cde_source;
+--TRUNCATE TABLE icd_cde_source;
+--INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_8_28_2024);
+
+
 --1. СDE source insertion
-DROP TABLE dev_icd10.icd_cde_source;
-TRUNCATE TABLE dev_icd10.icd_cde_source;
+--- DROP TABLE dev_icd10.icd_cde_source;
+--- TRUNCATE TABLE dev_icd10.icd_cde_source;
 CREATE TABLE dev_icd10.icd_cde_source
 (
     source_code                TEXT NOT NULL,
@@ -797,7 +809,9 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I85.0:ICD10CM'
     'L03.0:ICD10CM','M05.39:ICD10CM','F10.9:ICD10CM','M70.12:ICD10CM','G56.4:ICD10','M23.51:ICD10','M23.52:ICD10','G31.0:ICD10','Q61.0:ICD10CM','M25.43:ICD10CM','S02.60:ICD10',
     'O91.0:ICD10','N44:ICD10CM','W83:ICD10','X91:ICD10','Y20:ICD10','M21.95:ICD10','K35.32:ICD10CM','J96.00:ICD10CM','J96.01:ICD10CM','M80.07:ICD10CM','M80.03:ICD10CM', 'M80.06:ICD10CM',
     'M80.01:ICD10CM', 'Z52.01:ICD10CM','J96.11:ICD10CM','O08:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S12.01:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S72.00:ICD10CM','S72.01:ICD10CM',
-    'R75:ICD10CM','M24.02:ICD10CM','P52.4:ICD10','P52.6:ICD10']);
+    'R75:ICD10CM','M24.02:ICD10CM','P52.4:ICD10','P52.6:ICD10', 'M71.10:ICD10CM', 'M08.80:ICD10', 'N13.7:ICD10CM', 'S63.5:ICD10CM', 'S63.6:ICD10CM', 'M19.92:ICD10CM', 'M62.81:ICD10CM',
+    'M62.84:ICD10CM', 'M19.93:ICD10CM', 'T66:ICD10CM', 'D70:ICD10CM', 'N77.1:ICD10CM', 'I07.1:ICD10CM', 'L89.1:ICD10CM','L89.3:ICD10CM','L89.0:ICD10CM','L89.0:ICD10CM',
+    'I05.0:ICD10CM','I07.9:ICD10CM','L89.0:ICD10CM','L89.1:ICD10CM','L89.2:ICD10CM','L89.3:ICD10CM', 'Z86.001:ICD10CM', 'Z86.001:ICD10CN', '288.0:ICD9CM']);
 
 --12. Check every concept is represented in only one group
 SELECT DISTINCT
@@ -805,7 +819,7 @@ source_code,
 source_vocabulary_id,
 COUNT (DISTINCT group_id)
 FROM icd_cde_source
-GROUP BY group_id, source_code, source_vocabulary_id
+GROUP BY source_code, source_vocabulary_id --group_id,
 HAVING COUNT (DISTINCT group_id) > 1;
 
 --13. Check for group_name uniqueness
@@ -835,15 +849,32 @@ HAVING count(group_name) >1;
 --HAVING COUNT (DISTINCT (mappings_origin)) > 1)
 
 --For some codes from users
+-- UPDATE icd_cde_source SET for_review = '1'
+-- where (source_code, source_vocabulary_id, target_concept_id) in
+--                                                                     (select source_code, source_vocabulary_id, target_concept_id
+--                                                         from last_three_cc_table
+--                                                         where (source_code, source_vocabulary_id, target_concept_id) not in
+--                                                                     (
+--                                                                     select source_code, source_vocabulary_id,target_concept_id
+--                                                                     from dev_icd10.icd_cde_source
+--                                                                      where decision = '1'));
+--
+-- select *
+--     from icd_cde_source where for_review = '1';
+
+UPDATE icd_cde_source SET for_review = null;
+
 UPDATE icd_cde_source SET for_review = '1'
-WHERE source_code in ('F10.91',
-'F12.91',
-'F14.91',
-'F16.91',
-'F18.91',
-'F11.91',
-'F15.91',
-'F13.91');
+where source_vocabulary_id = 'ICD9CM'
+        and
+    source_code IN (
+        '643.9'
+)
+;
+
+select *
+    from icd_cde_source where for_review = '1';
+
 
 --For 'Maps to' Meas value
 -- UPDATE icd_cde_source SET for_review = '1'
@@ -950,12 +981,20 @@ JOIN code_agg c ON s.group_id = c.group_id
 WHERE s.group_id in (
     SELECT group_id FROM icd_cde_source
     WHERE for_review = '1')
-AND s.group_id not in (
-    SELECT group_id FROM icd_cde_source s
-    WHERE s.decision = '1')
---AND (target_invalid_reason is null
---AND target_standard_concept = 'S')
-OR target_concept_id is null
+-- AND s.group_id not in (
+--     SELECT group_id FROM icd_cde_source s
+--     WHERE s.decision = '1')
+-- --AND (target_invalid_reason is null
+-- --AND target_standard_concept = 'S')
+-- and source_code in ('I07.1','S62.21','S72.10','T82.21','T82.212','T82.212A','T82.212D','T82.213',
+--                             'T82.213A','T82.213D','T82.218','T82.218A','T82.218D','T82.321','T82.321A',
+--                             'T82.321D','T82.331','T82.331A','T82.331D','T82.391','T82.391A','T82.391D',
+--                             'T85.11','T85.111','T85.111A','T85.111D','T85.112','T85.112A','T85.112D','T85.113',
+--                             'T85.113A','T85.113D','T85.118','T85.118A','T85.118D','T85.12','T85.121','T85.121A',
+--                             'T85.121D','T85.123','T85.123A','T85.123D','T85.128','T85.128A','T85.128D','T85.19',
+--                             'T85.191','T85.191A','T85.191D','T85.192','T85.192A','T85.192D','T85.193','T85.193A',
+--                             'T85.193D','T85.199','T85.199A','T85.199D')
+-- OR target_concept_id is null
 --AND s.group_id in
 --(SELECT group_id FROM icd_cde_manual
 --GROUP BY group_id
@@ -980,6 +1019,9 @@ GROUP BY s.group_name,
 --       s.valid_end_date
 ORDER BY group_id desc
 ;
+
+select *
+    from icd_cde_manual;
 
 DROP TABLE for_manual_review;
 CREATE TABLE for_manual_review as (
@@ -1012,8 +1054,8 @@ m.mapper_id
 FROM icd_cde_manual m
 LEFT JOIN concept c ON m.target_concept_id = c.concept_id
 WHERE m.target_concept_code = concept_code
-AND c.standard_concept = 'S'
-AND c.invalid_reason is null
+--AND c.standard_concept = 'S'
+--AND c.invalid_reason is null
 
 UNION
 
@@ -1058,7 +1100,9 @@ FROM icd_cde_manual
     WHERE mappings_origin = '{without mapping}'
     );
 
-SELECT * FROM for_manual_review order by group_id; --3199
+SELECT * FROM for_manual_review
+         where mappings_origin not in ('{SNOMED_eq}')
+         order by group_id; --3199
 
 --USE only if updates in the google sheet table are needed
 --Create new table with all necessary updates
@@ -1343,8 +1387,9 @@ SELECT * FROM for_manual_review_upd;
 --NOT IN (SELECT group_name, target_concept_id  FROM icd_cde_manual_current)
 --ORDER BY group_name;
 
+
 --16. Create mapped table
---DROP TABLE icd_cde_mapped;
+DROP TABLE icd_cde_mapped;
 --TRUNCATE TABLE icd_cde_mapped;
 --CREATE TABLE icd_cde_mapped_feb_back_30_7 AS SELECT * FROM icd_cde_mapped;
 --CREATE TABLE icd_cde_mapped_feb_back_8_28_2024 AS SELECT * FROM icd_cde_mapped;
@@ -1377,6 +1422,56 @@ rev_id text,
 rel_invalid_reason varchar,
 valid_start_date  date,
 valid_end_date  date);
+
+
+--- see first rows
+select *
+    from icd_cde_mapped;
+
+--- see last 5 rows
+SELECT *
+FROM icd_cde_mapped
+OFFSET (SELECT COUNT(*) - 5 FROM icd_cde_mapped)
+LIMIT 5;
+
+-- Solving problem of not correct source_code
+Drop table icd_cde_mapped_corr;
+create table icd_cde_mapped_corr as
+select
+        t1.group_name,
+        t1.group_id,
+        t1.group_code,
+        t1.medium_group_id,
+        t1.medium_group_code,
+        t1.broad_group_id,
+        t1.broad_group_code,
+        t1.mappings_origin,
+        t1.for_review,
+        t1.relationship_id,
+        t1.relationship_id_predicate,
+        t1.decision,
+        t1.decision_date,
+        t1.comments,
+        t1.target_concept_id,
+        t2.concept_code as target_concept_code,
+        t1.target_concept_name,
+        t1.target_concept_class_id,
+        t1.target_standard_concept,
+        t1.target_invalid_reason,
+        t1.target_domain_id,
+        t1.target_vocabulary_id,
+        t1.mapper_id,
+        t1.rev_id,
+        t1.rel_invalid_reason,
+        t1.valid_start_date,
+        t1.valid_end_date
+    from icd_cde_mapped t1
+    join devv5.concept t2 on t1.target_concept_id = t2.concept_id
+                                and t2.invalid_reason is null;
+
+select * from icd_cde_mapped_corr;
+drop table icd_cde_mapped;
+create table icd_cde_mapped as select * from icd_cde_mapped_corr;
 
 --Update mapper and reviewer fields
 DELETE FROM icd_cde_mapped WHERE group_code is null;
@@ -1419,13 +1514,28 @@ WHERE decision = '1'
 AND  (mappings_origin = '{without mapping}'
     OR mappings_origin = '{manual}');
 
+select * from icd_cde_mapped;
 
 --18. Create final table with mappings
 --CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
 --CREATE TABLE icd_cde_proc_backup_28_8_2024 as (SELECT * FROM icd_cde_proc);
 -- CREATE TABLE icd_cde_proc_backup_30_1_2025 as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_before_CC_updt as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_CC_updt as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_CC_union_with_mapping as (SELECT * FROM icd_cde_proc);
+-- CREATE TABLE icd_cde_proc_backup_02_03_2025_CC_union_with_mapping_union_w_lost as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_mashas_lost as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_part4 as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_part4_part5 as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_02_03_2025_part5 as (SELECT * FROM icd_cde_proc);
+--CREATE TABLE icd_cde_proc_backup_07_02_2025 as (SELECT * FROM icd_cde_proc);
 --TRUNCATE TABLE icd_cde_proc;
---DROP TABLE icd_cde_proc;
+
+
+select * from icd_cde_mapped
+    where group_id is null;
+
+DROP TABLE icd_cde_proc;
 
 CREATE TABLE icd_cde_proc (
     source_code varchar,
@@ -1482,14 +1592,20 @@ ON s.group_name = m.group_name
 AND m.decision = '1'
 ;
 
+select *
+from icd_cde_proc
+where source_code = 'I07.1';
 
---- Solving problem of not correct source_code
+-- --TRUNCATE icd_cde_proc;
+-- --- not correct source code
+-- drop table icd_cde_proc_corr;
 -- create table icd_cde_proc_corr as
--- select t1.source_code,
+-- select
+--     t1.source_code,
 --     t1.source_code_description,
 --     t1.source_vocabulary_id,
 --     t1.relationship_id,
---     t1.relationship_id_predicate,
+--     t1.relationship_id_predicate ,
 --     t1.target_concept_id,
 --     t2.concept_code as target_concept_code,
 --     t1.target_concept_name,
@@ -1501,11 +1617,14 @@ AND m.decision = '1'
 --     t1.mapper,
 --     t1.reviewer
 --     from icd_cde_proc t1
---     join devv5.concept t2 on t1.target_concept_id = t2.concept_id
---                                 and t2.invalid_reason is null ;
--- DROP table icd_cde_proc;
--- CREATE table icd_cde_proc as select * from icd_cde_proc_corr;
+--             join devv5.concept t2 on t1.target_concept_id = t2.concept_id;
+
+-- drop table icd_cde_proc;
+-- create table icd_cde_proc as select * from icd_cde_proc_corr;
+
+
 select * from icd_cde_proc;
+
 
 --INSERT INTO icd_cde_proc (source_code,
 --                          source_code_description,

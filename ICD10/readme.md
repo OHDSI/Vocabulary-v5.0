@@ -1,28 +1,44 @@
-### ICD10 upload/update
+Update of ICD10
 
-#### Prerequisites
-- Basic knowledge of the [OMOP representation of the ICD10 vocabulary](https://www.ohdsi.org/web/wiki/doku.php?id=documentation:vocabulary:icd10)
-- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+Prerequisites:
+- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
+- UMLS in SOURCES schema
 - SNOMED must be loaded first
-- Working directory dev_icd10
+- Working directory ICD10
 
-#### Sequence of actions
-1. Download the latest ICD-10 version (e.g. ICD-10 2016 version) on the [WHO Website](http://apps.who.int/classifications/apps/icd/ClassificationDownload/DLArea/Download.aspx) 
-2. Unzip the file icdClaMLYYYYens.xml and rename to icdClaML.xml
-3. Run in devv5 (with the fresh vocabulary date and version): 
+1. Run 
 ```sql
-SELECT sources.load_input_tables('ICD10',TO_DATE('20161201','YYYYMMDD'),'2016 Release');
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
 ```
-4. Run FULL FastRecreate:
+2. Run crm_changes.sql (The script updates CRM table with manual mappings. For more information see readme.md for ICD environment https://github.com/OHDSI/Vocabulary-v5.0/tree/master/ICD_CDE).
+
+3. Run load_stage.sql
+
+4. Run generic_update:
 ```sql
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
 ```
-5. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the first time to define problems in mapping
-6. Perform manual work described in manual_work folder
-7. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the second time to refresh ICD10
-8. Run generic_update: 
+5. Run basic tables check (should retrieve NULL):
 ```sql
-SELECT devv5.GenericUpdate();
+SELECT * FROM qa_tests.get_checks();
 ```
-10. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
-11. If no problems, enjoy!
+
+6. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+
+7. Run scripts to get summary, and interpret the results:
+```sql
+SELECT * FROM qa_tests.get_summary('concept');
+SELECT * FROM qa_tests.get_summary('concept_relationship');
+```
+8. Run scripts to collect statistics, and interpret the results:
+```sql
+SELECT * FROM qa_tests.get_domain_changes();
+SELECT * FROM qa_tests.get_newly_concepts();
+SELECT * FROM qa_tests.get_standard_concept_changes();
+SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+SELECT * FROM qa_tests.get_changes_concept_mapping();
+```
+9. If no problems, enjoy! If any mistakes were detected, make changes in ICD environment (see readme.md for ICD CDE https://github.com/OHDSI/Vocabulary-v5.0/tree/master/ICD_CDE) and repeat the process from the beginning.

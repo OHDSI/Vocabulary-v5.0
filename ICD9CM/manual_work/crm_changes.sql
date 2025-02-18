@@ -12,13 +12,14 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
 TRUNCATE TABLE dev_ICD9CM.concept_relationship_manual;
-CREATE TABLE concept_relationship_manual_backup_01_31_2025 as (SELECT * FROM concept_relationship_manual);
-INSERT INTO concept_relationship_manual (SELECT * FROM concept_relationship_manual_backup_8_30_2024);
+--CREATE TABLE concept_relationship_manual_backup_01_31_2025 as (SELECT * FROM concept_relationship_manual);
+--INSERT INTO concept_relationship_manual (SELECT * FROM concept_relationship_manual_backup_8_30_2024);
+
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
 concept_code_1,

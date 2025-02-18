@@ -69,6 +69,7 @@ INSERT INTO concept_manual
 SELECT *
 from dev_icd10gm.icd10gm_newcodes;
 
+
 --4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN

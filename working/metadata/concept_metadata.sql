@@ -38,7 +38,7 @@ WITH JUNK_POOL AS (SELECT DISTINCT c.*
                                                  ca.ancestor_concept_id IN (4312372 -- 423901009 Identification code SNOMED
                                                      )
                                                      OR (cc.concept_name ~*
-                                                         'serial numb|Social.+security.+(number|identifier)|personal.+telephon|Patient.identif.+numb|patient name|patient surname'
+                                                         'Pers.+identifier|serial numb|Social.+security.+(number|identifier)|personal.+telephon|Patient.identif.+numb|patient name|patient surname'
                                                      AND cc.standard_concept IN ( 'S','C')
                                                      )
                                                  ))
@@ -82,7 +82,7 @@ FROM junk_direct_rule_based
 
 --Apparent metadata
 INSERT INTO concept_metadata (concept_id,concept_category)
-SELECT DISTINCT concept_id, 'M' as concept_category
+SELECT DISTINCT     concept_id, 'M' as concept_category
 FROM devv5.concept
 where domain_id='Metadata'
 	ON CONFLICT ON CONSTRAINT xpk_concept_metadata
@@ -139,6 +139,28 @@ OR
 SELECT (SELECT count(*)
 FROM concept_metadata) - (SELECT count(distinct concept_id)
 FROM concept_metadata);
+
+--loss of concepts compared to prev release
+SELECT count(*)
+from devv5.concept_metadata cm
+where  not exists (
+    SELECT 1
+    from dev_test4.concept_metadata cmt
+    where cmt.concept_id=cm.concept_id
+)
+;
+
+--Asses new IDs compared to prev release
+SELECT *
+from dev_test4.concept_metadata cm
+join concept c
+on c.concept_id=cm.concept_id
+where  not exists (
+    SELECT 1
+    from devv5.concept_metadata cmt
+    where cmt.concept_id=cm.concept_id
+)
+;
 
 
 

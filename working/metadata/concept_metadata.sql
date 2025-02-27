@@ -21,7 +21,7 @@ SELECT DISTINCT
     c.concept_id,
    'RF' as reuse_status
 FROM
-    dev_test4.reused_concepts rr
+    dev_voc_metadata.reused_concepts rr
     JOIN concept c
         ON rr.concept_id = c.concept_id
 ;
@@ -145,14 +145,14 @@ SELECT count(*)
 from devv5.concept_metadata cm
 where  not exists (
     SELECT 1
-    from dev_test4.concept_metadata cmt
+    from dev_voc_metadata.concept_metadata cmt
     where cmt.concept_id=cm.concept_id
 )
 ;
 
 --Asses new IDs compared to prev release
 SELECT *
-from dev_test4.concept_metadata cm
+from dev_voc_metadata.concept_metadata cm
 join concept c
 on c.concept_id=cm.concept_id
 where  not exists (

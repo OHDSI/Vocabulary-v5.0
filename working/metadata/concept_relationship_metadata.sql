@@ -14,7 +14,7 @@ reviewer VARCHAR(50),
 FOREIGN KEY (concept_id_1, concept_id_2, relationship_id)
 REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
 CONSTRAINT chk_relationship_predicate_id
-CHECK (relationship_predicate_id IN ('eq', 'up', 'down')),
+CHECK (relationship_predicate_id IN ('eq', 'up', 'down','narrowMatch','exactMatch','broadMatch')),
 CONSTRAINT xpk_concept_relationship_metadata
 UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
 );
@@ -25,10 +25,7 @@ INSERT INTO concept_relationship_metadata
 SELECT DISTINCT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
-       case WHEN cc.predicate_id = 'exactMatch'
-              then 'eq'
-       when cc.predicate_id = 'broadMatch'
-              then 'up' end as relationship_predicate_id,
+  predicate_id as relationship_predicate_id,
        null::int as relationship_group,
      CASE WHEN   cc.mapping_source ~* 'manual|new snomed' then NULL
          WHEN   cc.mapping_source ~* 'OMOP|OHDSI' then 'OHDSI'
@@ -39,7 +36,7 @@ SELECT DISTINCT cr.concept_id_1 as concept_id_1,
          ELSE cc.mapping_tool end as  mapping_tool,
        null as mapper,
        null as reviewer
-FROM dev_test4.cc_mapping cc
+FROM dev_voc_metadata.cc_mapping cc
 JOIN devv5.concept c ON (cc.concept_code_1, cc.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
 JOIN devv5.concept c1 ON (cc.concept_code_2, cc.vocabulary_id_2) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr ON (c.concept_id, c1.concept_id, cc.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
@@ -66,7 +63,11 @@ FROM
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
-      array_remove((array_agg (DISTINCT CASE WHEN length(trim(p.relationship_id_predicate))=0 then null else p.relationship_id_predicate end)),NULL) as relationship_predicate_id,
+      array_remove((array_agg (DISTINCT CASE WHEN length(trim(p.relationship_id_predicate))=0 then null
+          when lower(trim(p.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(p.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(p.relationship_id_predicate))='down' then 'narrowMatch'
+          else p.relationship_id_predicate end)),NULL) as relationship_predicate_id,
        NULL::int as relationship_group,
        array_remove( (array_agg (DISTINCT s.mappings_origin)),NULL) as mapping_source,
        NULL::float as confidence,
@@ -91,7 +92,11 @@ INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
-       m.relationship_id_predicate as relationship_predicate_id,
+       CASE WHEN length(trim(m.relationship_id_predicate))=0 then null
+          when lower(trim(m.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(m.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
+          else m.relationship_id_predicate end as relationship_predicate_id,
        null as relationship_group,
        m.mapping_source as mapping_source,
        m.confidence::float as confidence,
@@ -136,7 +141,12 @@ FROM (SELECT DISTINCT c.concept_id     AS concept_id_1,
                       NULL as reviewer,
                       NULL::float as confidence,
                       REPLACE(SPLIT_PART(a.mapping_source[1], '-', 2), 'OMOP', 'OHDSI')         AS mapping_source,
-                     NULL::int as relationship_group,a.relationship_predicate_id
+                     NULL::int as relationship_group,
+                     CASE WHEN length(trim(a.relationship_predicate_id))=0 then null
+          when lower(trim(a.relationship_predicate_id))='eq' then 'exactMatch'
+           when lower(trim(a.relationship_predicate_id))='up' then 'broadMatch'
+           when lower(trim(a.relationship_predicate_id))='down' then 'narrowMatch'
+          else a.relationship_predicate_id end as  relationship_predicate_id
       FROM dev_cdisc.cdisc_automapped a
                JOIN devv5.concept c
                     ON c.concept_code = a.concept_code
@@ -160,7 +170,12 @@ UNION ALL
                       a.reviewer,
                       coalesce(a.confidence,0.5) as confidence,
                      NULL AS mapping_source,
-                     NULL::int as relationship_group,a.relationship_predicate_id
+                     NULL::int as relationship_group,
+                     CASE WHEN length(trim(a.relationship_predicate_id))=0 then null
+          when lower(trim(a.relationship_predicate_id))='eq' then 'exactMatch'
+           when lower(trim(a.relationship_predicate_id))='up' then 'broadMatch'
+           when lower(trim(a.relationship_predicate_id))='down' then 'narrowMatch'
+          else a.relationship_predicate_id end as  relationship_predicate_id
       FROM dev_cdisc.cdisc_mapped a
                JOIN devv5.concept c
                     ON c.concept_code = a.concept_code
@@ -205,7 +220,7 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                          WHEN trim(a.mapper_id) = 'EP'  then 'yauheni.paulenkovich@odysseusinc.com'
                          WHEN trim(a.mapper_id) ='JC'  then 'janice.cruz@odysseusinc.com'
                          WHEN trim(a.mapper_id) = 'VK'  then 'vlad.korsik@odysseusinc.com'
-                         WHEN trim(a.mapper_id) = 'OZ'  then 'oleg.zhuk@odysseusinc.com'
+                         WHEN trim(a.mapper_id) = 'OZ' or a.mapper_id ilike '%zhuk%'   then 'oleg.zhuk@odysseusinc.com'
                          WHEN trim(a.mapper_id) = 'OT'  then 'tetiana.orlova@odysseusinc.com'
                          WHEN trim(a.mapper_id) = 'YK'  then 'yuri.korin@odysseusinc.com'
                                  else replace(a.mapper_id,'Mapper: ','') END  as mapper,
@@ -221,8 +236,9 @@ FROM (SELECT DISTINCT c.concept_id as concept_id_1,c.concept_code as concept_cod
                         WHEN lower(trim(origin_of_mapping)) ~*'MedDRA-SNOMED eq' then 'OHDSI'
                        ELSE  UPPER(trim(replace(trim(replace(replace(a.origin_of_mapping,'meddra_mapped','OHDSI'),' ','')),',','+')))   END  AS mapping_source,
                      NULL::int  as relationship_group,
-                        CASE WHEN lower(trim(a.relationship_id_predicate)) ='downhill' then 'down'
-                             WHEN lower(trim(a.relationship_id_predicate)) ='uphill' then 'up' else a.relationship_id_predicate END as relationship_predicate_id
+                        CASE WHEN lower(trim(a.relationship_id_predicate)) in ('downhill','down') then 'narrowMatch'
+                             WHEN lower(trim(a.relationship_id_predicate)) in ('uphill','up') then 'broadMatch'
+                                 WHEN lower(trim(a.relationship_id_predicate)) in ('eq') then 'exactMatch' else a.relationship_id_predicate END as relationship_predicate_id
       FROM dev_meddra.meddra_environment a
                JOIN devv5.concept c
                     ON c.concept_code = a.source_code
@@ -271,7 +287,11 @@ INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
-       m.relationship_id_predicate as relationship_predicate_id,
+     CASE WHEN length(trim(m.relationship_id_predicate))=0 then null
+          when lower(trim(m.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(m.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
+          else m.relationship_id_predicate end as relationship_predicate_id,
        null as relationship_group,
        CASE WHEN m.mapping_source = 'manual mapping' then NULL else m.mapping_source end as mapping_source,
        m.confidence::float as confidence,
@@ -295,7 +315,11 @@ INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
        cr.relationship_id as relationship_id,
-       m.relationship_id_predicate as relationship_predicate_id,
+      CASE WHEN length(trim(m.relationship_id_predicate))=0 then null
+          when lower(trim(m.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(m.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
+          else m.relationship_id_predicate end as relationship_predicate_id,
        null as relationship_group,
       CASE WHEN m.mapping_source = 'manual mapping' then NULL else m.mapping_source end as mapping_source,
        m.confidence::float as confidence,
@@ -315,7 +339,51 @@ AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
 
+--Insertion of relationships that are currently not injested
+-- Scope is limited to Valid Triples
+INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id,
+                                           relationship_group, mapping_source, confidence, mapping_tool, mapper,
+                                           reviewer)
+SELECT concept_id_1,
+       concept_id_2,
+       relationship_id,
+      CASE WHEN length(trim(crm.relationship_predicate_id))=0 then null
+          when lower(trim(crm.relationship_predicate_id))='eq' then 'exactMatch'
+           when lower(trim(crm.relationship_predicate_id))='up' then 'broadMatch'
+           when lower(trim(crm.relationship_predicate_id))='down' then 'narrowMatch'
+          else crm.relationship_predicate_id end as relationship_predicate_id,
+       relationship_group,
+       mapping_source,
+       confidence,
+       mapping_tool,
+       mapper,
+       reviewer
+FROM devv5.concept_relationship_metadata crm
+where  not exists (
+    SELECT 1
+    from dev_voc_metadata.concept_relationship_metadata crmt
+    where crmt.concept_id_1=crm.concept_id_1
+)
+and exists (
+    SElECT 1
+    FROM  devv5.concept_relationship cr
+    where cr.concept_id_1=crm.concept_id_1
+    and cr.relationship_id=crm.relationship_id
+    and cr.concept_id_2=crm.concept_id_2
+    and cr.invalid_reason IS NULL
+)
+  and crm.relationship_id IN (
+'Maps to',
+'Maps to value'
+)
+;
 
+--issues/1073
+UPDATE concept_relationship_metadata
+    SET relationship_predicate_id='narrowMatch'
+where concept_id_1=1572266
+and concept_id_2=36717032
+;
 
 --relationship_predicate_id
 UPDATE concept_relationship_metadata
@@ -386,13 +454,16 @@ UPDATE concept_relationship_metadata AS b
     SET reviewer = CASE
                WHEN upper(trim(a.reviewer)) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) ='MS' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='MS'or  a.reviewer ilike '%salavei%' THEN 'mikita.salavei@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='JC' THEN 'janice.cruz@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='OZ' or a.reviewer ilike '%zhuk%'   THEN 'oleg.zhuk@odysseusinc.com'
                WHEN upper(trim(a.reviewer))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='YK'  then 'yuri.korin@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='IZ'  then 'irina.zherko@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) IN ('AT')  then 'anton.tatur@epam.com'
+              WHEN upper(trim(a.reviewer)) IN ('VALUE:')  then 'Vocabulary Team@epam.com'
+               WHEN upper(trim(a.reviewer)) IN ('AY')  then 'aliaksand.yurchanka3@epam.com'
                WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
@@ -409,19 +480,22 @@ UPDATE concept_relationship_metadata
 
 
 
---Set emails of reviewer
+--Set emails of mappers
 UPDATE concept_relationship_metadata AS b
     SET mapper = CASE
                WHEN upper(trim(a.mapper)) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
-               WHEN upper(trim(a.mapper)) ='MS' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='MS'or  a.mapper  ilike '%salavei%' THEN 'mikita.salavei@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='JC' THEN 'janice.cruz@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
-               WHEN upper(trim(a.mapper)) ='OZ' THEN 'oleg.zhuk@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) ='OZ' or a.mapper ilike '%zhuk%'   THEN 'oleg.zhuk@odysseusinc.com'
                WHEN upper(trim(a.mapper))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='YK'  then 'yuri.korin@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='IZ'  then 'irina.zherko@odysseusinc.com'
-                WHEN upper(trim(a.mapper)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) IN ('AT')  then 'anton.tatur@epam.com'
+               WHEN upper(trim(a.mapper)) IN ('VALUE:')  then 'Vocabulary Team@epam.com'
+               WHEN upper(trim(a.mapper)) IN ('AY')  then 'aliaksand.yurchanka3@epam.com'
+               WHEN upper(trim(a.mapper)) ='MK' or  a.mapper like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
                WHEN length(trim(a.mapper)) = 0 then NULL
@@ -436,8 +510,29 @@ UPDATE concept_relationship_metadata
     SET mapper = initcap(replace(split_part(mapper,'@',1),'.',' '));
 
 SELECT *
-FROM concept_relationship_metadata
+FROM concept_metadata
 ORDER BY concept_id_1,relationship_id,concept_id_2
+;
+
+--loss of concepts compared to prev release
+--predictable behaviour as it's resulted from mapping propagation and entire mapping inactivation/invalidation
+SELECT c.vocabulary_id,count(*) as row_cnt, count(DISTINCT c.concept_id) as id_cnt
+from devv5.concept_relationship_metadata crm
+JOIN devv5.concept c
+on crm.concept_id_1=c.concept_id
+where  not exists (
+    SELECT 1
+    from dev_voc_metadata.concept_relationship_metadata crmt
+    where crmt.concept_id_1=crm.concept_id_1
+)
+  and crm.relationship_id IN (
+'Maps to',
+'Maps to value'
+)
+GROUP BY c.vocabulary_id
+;
+
+
 
 
 

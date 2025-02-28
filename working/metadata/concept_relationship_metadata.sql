@@ -14,7 +14,7 @@ reviewer VARCHAR(50),
 FOREIGN KEY (concept_id_1, concept_id_2, relationship_id)
 REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
 CONSTRAINT chk_relationship_predicate_id
-CHECK (relationship_predicate_id IN ('eq', 'up', 'down','narrowMatch','exactMatch','broadMatch')),
+CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch')),
 CONSTRAINT xpk_concept_relationship_metadata
 UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
 );
@@ -510,7 +510,7 @@ UPDATE concept_relationship_metadata
     SET mapper = initcap(replace(split_part(mapper,'@',1),'.',' '));
 
 SELECT *
-FROM concept_metadata
+FROM concept_relationship_metadata
 ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
 

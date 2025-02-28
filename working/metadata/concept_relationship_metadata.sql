@@ -19,6 +19,11 @@ CONSTRAINT xpk_concept_relationship_metadata
 UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
 );
 
+DROP TABLE IF EXISTS dev_voc_metadata.cc_mapping;
+CREATE TABLE dev_voc_metadata.cc_mapping AS
+SELECT *
+FROM dev_test4.cc_mapping
+;
 
 --Community contribution
 INSERT INTO concept_relationship_metadata

@@ -532,6 +532,27 @@ where  not exists (
 GROUP BY c.vocabulary_id
 ;
 
+--new CRMeta elements
+SELECT c.vocabulary_id,count(*) as row_cnt, count(DISTINCT c.concept_id) as id_cnt
+from dev_voc_metadata.concept_relationship_metadata crm
+JOIN devv5.concept c
+on crm.concept_id_1=c.concept_id
+where  not exists (
+    SELECT 1
+    from devv5.concept_relationship_metadata crmt
+    where crmt.concept_id_1=crm.concept_id_1
+      and crmt.relationship_id IN (
+'Maps to',
+'Maps to value'
+)
+)
+  and crm.relationship_id IN (
+'Maps to',
+'Maps to value'
+)
+GROUP BY c.vocabulary_id
+;
+
 
 
 

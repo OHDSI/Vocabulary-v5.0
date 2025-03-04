@@ -382,6 +382,7 @@ cc.domain_id ,
 cc.vocabulary_id
 ;
 
+
 -- Mapping to standard using LOINC
 INSERT INTO cdisc_automapped (concept_code, concept_name, sty, mapability, relationship_id, relationship_id_predicate,
                           mapping_source, mapping_path, decision, confidence, mapper_id, reviewer_id, valid_start_date,
@@ -421,7 +422,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'LOINC'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'lnc'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -478,7 +479,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'ICD10'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'ICD10'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -536,7 +537,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'HCPCS'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'HCPCS'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -594,7 +595,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'CPT4'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'CPT'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -652,7 +653,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'MedDRA'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'MDR'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -709,7 +710,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'HemOnc'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'HemOnc'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -766,7 +767,7 @@ JOIN concept c on c.concept_code = s.code and c.vocabulary_id = 'RxNorm'
 JOIN concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.relationship_id IN ( 'Maps to' ,'Maps to value') and cr.invalid_reason is null
 JOIN concept cc on cc.concept_id = cr.concept_id_2
 WHERE s.sab = 'RXNORM'
-AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--AND m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 cr.relationship_id ,
@@ -824,7 +825,7 @@ cc.vocabulary_id    as target_vocabulary_id
                                    AND cc.vocabulary_id IN ('SNOMED', 'LOINC')
                                    AND cc.domain_id IN ('Condition', 'Procedure', 'Measurement', 'Observation')
                                    AND cc.concept_class_id <> 'Substance'
-WHERE  m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--WHERE  m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 string_to_array(CONCAT('Auto-OMOP-name_match',':', cc.vocabulary_id),':','NULL') ,
@@ -884,7 +885,7 @@ cc.vocabulary_id    as target_vocabulary_id
                                    AND cc.vocabulary_id IN ('SNOMED', 'LOINC')
                                    AND cc.domain_id IN ('Condition', 'Procedure', 'Measurement', 'Observation')
                                    AND cc.concept_class_id NOT IN ( 'Substance','Organism')
-WHERE  m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
+--WHERE  m.concept_code not in (SELECT DISTINCT concept_code FROM cdisc_automapped)
 GROUP BY m.concept_code,
 m.concept_name,
 string_to_array(CONCAT('Auto-OMOP-synonym_match',':', cc.vocabulary_id),':','NULL') ,
@@ -949,6 +950,88 @@ WHERE  (
     )
 
         AND (s.concept_code,'CDISC') NOT IN (SELECT concept_code_1,vocabulary_id_1 FROM concept_relationship_stage where invalid_reason is null and relationship_id like 'Maps to%')
+;
+
+--code below to be considered for subs-t runs of CDISC (mapping candidate selection)
+INSERT INTO concept_relationship_stage (
+concept_code_1,
+concept_code_2,
+vocabulary_id_1,
+vocabulary_id_2,
+relationship_id,
+valid_start_date,
+valid_end_date,
+invalid_reason)
+with tab as (SELECT a.metadata_enriched,
+                    a.concept_code,
+                    a.concept_name,
+                    a.vocabulary_id,
+                    a.sty,
+                    a.mapability,
+                    a.relationship_id,
+                    a.relationship_id_predicate,
+                    a.mapping_source,
+                    a.mapping_path,
+                    a.decision,
+                    a.confidence,
+                    a.mapper_id,
+                    a.reviewer_id,
+                    a.valid_start_date,
+                    a.valid_end_date,
+                    a.invalid_reason,
+                    a.comments,
+                    a.target_concept_id,
+                    a.target_concept_code,
+                    a.target_concept_name,
+                    a.target_concept_class,
+                    a.target_standard_concept,
+                    a.target_invalid_reason,
+                    a.target_domain_id,
+                    a.target_vocabulary_id,
+                    (devv5.similarity(a.concept_name, A.TARGET_concept_name) * 100)::int AS sim,
+                    overlap_count(STRING_TO_ARRAY(A.target_concept_name, ' '),
+                                          STRING_TO_ARRAY(a.concept_name, ' ')) * 10     AS ovelap_cnt,
+                    devv5.difference(a.concept_name, A.TARGET_concept_name) * 10         AS difference_cnt,
+                    COUNT(DISTINCT cr.concept_id_1) * 20                                 AS onto_cnt,
+                    ((devv5.similarity(a.concept_name, A.TARGET_concept_name) * 100)::int) +
+                    (overlap_count(STRING_TO_ARRAY(A.concept_name, ' '),
+                                           STRING_TO_ARRAY(a.target_concept_name, ' ')) * 10) -
+                    (devv5.difference(a.concept_name, A.TARGET_concept_name) * 10) +
+                    (COUNT(DISTINCT cr.concept_id_1) * 20)                               AS intergral_cnt
+             FROM cdisc_automapped a
+                      JOIN concept_relationship cr
+                           ON a.target_concept_id = cr.concept_id_2
+                               AND cr.relationship_id IN ('Maps to', 'Maps to value', 'Subsumes', 'Is a')
+                               AND cr.invalid_reason IS NULL
+             where target_domain_id in ('Measurement','Procedure','Condition','Unit','Drug','Observation','Specimen')
+             and target_concept_class not in ('Organism','Substance','Qualifier Value')
+             GROUP BY a.metadata_enriched, a.concept_code, a.concept_name, a.vocabulary_id, a.sty, a.mapability,
+                      a.relationship_id, a.relationship_id_predicate, a.mapping_source, a.mapping_path, a.decision,
+                      a.confidence, a.mapper_id, a.reviewer_id, a.valid_start_date, a.valid_end_date, a.invalid_reason,
+                      a.comments, a.target_concept_id, a.target_concept_code, a.target_concept_name,
+                      a.target_concept_class, a.target_standard_concept, a.target_invalid_reason, a.target_domain_id,
+                      a.target_vocabulary_id, a.concept_name, A.TARGET_concept_name, A.target_concept_name,
+                      a.concept_name, a.concept_name, A.TARGET_concept_name, a.concept_name, A.TARGET_concept_name,
+                      A.concept_name, a.target_concept_name, a.concept_name, A.TARGET_concept_name)
+,tab2 as (
+    SELECT *,       row_number() OVER (PARTITION BY concept_code ORDER BY intergral_cnt DESC)  AS rating_in_section
+    from tab
+)
+ SELECT DISTINCT
+r.concept_code as concept_code_1,
+r.target_concept_code as concept_code_2,
+'CDISC' as vocabulary_id_1,
+r.target_vocabulary_id as vocabulary_id_2,
+r.relationship_id as relationship_id,
+r.valid_start_date	AS valid_start_date,
+r.valid_end_date AS valid_end_date,
+null as invalid_reason
+    from tab2 r
+        where rating_in_section=1
+and not exists (select 1
+                from concept_relationship_stage crs
+                WHERE crs.concept_code_1=r.concept_code
+                and crs.vocabulary_id_1='CDISC')
 ;
 
 -- 6. Working with replacement mappings

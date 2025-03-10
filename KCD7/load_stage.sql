@@ -97,6 +97,11 @@ VALUES ('U18','신종질환의 국내 임시적 지정이나 응급사용','KCD7
 --7. Add KCD7 to SNOMED manual mappings
 DO $_$
 BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 

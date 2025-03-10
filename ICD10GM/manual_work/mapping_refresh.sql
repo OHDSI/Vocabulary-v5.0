@@ -62,7 +62,7 @@ with deprecated_mappings as
     FROM concept_relationship_stage crs
     WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
     (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
-    FROM concept_relationship_manual)
+    FROM devv5.base_concept_relationship_manual WHERE vocabulary_id_1 = 'ICD10GM')
     and invalid_reason = 'D'
     and valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -95,7 +95,7 @@ AND crs.vocabulary_id_1 = cs.vocabulary_id
 LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id_2 = c.vocabulary_id
     WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
     (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
-    FROM deprecated_mappings) --4
+    FROM deprecated_mappings)
 
 UNION ALL
 
@@ -165,7 +165,7 @@ and c.vocabulary_id = 'SNOMED'
 JOIN concept_stage cs ON crs.concept_code_1 = cs.concept_code
 WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
     (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
-    FROM concept_relationship_manual)
+    FROM devv5.base_concept_relationship_manual WHERE vocabulary_id_1 = 'ICD10GM')
     and crs.invalid_reason = 'D'
     and crs.valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -199,7 +199,7 @@ WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relatio
        AND c.standard_concept = 'S'
        AND c.invalid_reason is null);
 
---Insert the rest of crm concepts
+--Insert the rest of crm relationships which are not represented in the icd_cde_source table
 INSERT INTO icd10gm_refresh
     (source_code,
      source_code_description,
@@ -238,4 +238,6 @@ FROM concept_relationship_manual crm
 LEFT JOIN concept c on crm.concept_code_1 = c.concept_code and crm.vocabulary_id_1 = c.vocabulary_id
 LEFT JOIN concept c2 on crm.concept_code_2 = c2.concept_code and crm.vocabulary_id_2 = c2.vocabulary_id
 WHERE (crm.concept_code_1, crm.vocabulary_id_1, crm.relationship_id) not in (SELECT source_code, source_vocabulary_id, relationship_id FROM icd10gm_refresh)
-AND crm.vocabulary_id_1 = 'ICD10GM';
+AND crm.vocabulary_id_1 = 'ICD10GM'
+AND (crm.concept_code_1, crm.vocabulary_id_1, crm.concept_code_2. crm.vocabulary_id_2) NOT IN
+    (SELECT source_code, source_vocabulary_id, target_concept_code, target_vocabulary_id FROM dev_icd10.icd_cde_source);

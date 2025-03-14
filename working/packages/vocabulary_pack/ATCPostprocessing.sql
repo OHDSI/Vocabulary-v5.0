@@ -455,6 +455,15 @@ BEGIN
 			WHERE cae.ancestor_concept_id = s.class_id
 				AND cae.descendant_concept_id = ca1.descendant_concept_id
 			)
+	    and not exists
+        (
+            SELECT 1
+            FROM concept_relationship cr
+            WHERE  caa.ancestor_concept_id = cr.concept_id_1
+                    and cr.relationship_id = 'ATC - RxNorm'
+                    and ca1.descendant_concept_id = cr.concept_id_2
+                    and cr.invalid_reason is not null
+        )
 	GROUP BY caa.ancestor_concept_id,
 		ca1.descendant_concept_id,
 		concept_class_id;

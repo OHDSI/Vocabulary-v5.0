@@ -46,7 +46,8 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT c.concept_name,
+SELECT
+    coalesce(c.concept_name, g.concept_name) as concept_name,
 	c.domain_id,
 	'ICD10GM' AS vocabulary_id,
 	c.concept_class_id,
@@ -62,6 +63,12 @@ LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10'
 	AND c.concept_class_id NOT LIKE '%Chapter%';
 
+
+--3.1 Update CM table to add new concepts and their translations (absent in CM after 01-01-2025 update)
+INSERT INTO concept_manual
+SELECT *
+from dev_icd10gm.icd10gm_newcodes;
+
 --4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN
@@ -73,6 +80,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
+
 
 --6. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -87,7 +95,7 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT i.concept_code AS concept_code_1,
+SELECT DISTINCT i.concept_code AS concept_code_1,
 	c.concept_code AS concept_code_2,
 	'ICD10GM' AS vocabulary_id_1,
 	c.vocabulary_id AS vocabulary_id_2,
@@ -178,7 +186,7 @@ END $_$;
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT ON (crs.concept_code) crs.concept_code,
+	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1,
 		c2.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
@@ -191,7 +199,7 @@ FROM (
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'ICD10GM'
-	ORDER BY crs.concept_code,
+	ORDER BY crs.concept_code_1,
 		CASE c2.domain_id
 			WHEN 'Condition'
 				THEN 1

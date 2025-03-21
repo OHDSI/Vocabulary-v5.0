@@ -17,8 +17,8 @@
 * Date: 2024
 **************************************************************************/
 -- Create table icd10_refresh
-DROP TABLE icd10_refresh;
-TRUNCATE TABLE icd10_refresh;
+DROP TABLE IF EXISTS icd10_refresh;
+--TRUNCATE TABLE icd10_refresh;
 CREATE TABLE icd10_refresh
 (
     source_code             TEXT NOT NULL,

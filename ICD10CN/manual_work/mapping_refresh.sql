@@ -62,7 +62,7 @@ with deprecated_mappings as
     FROM concept_relationship_stage crs
     WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
     (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
-    FROM concept_relationship_manual)
+    FROM devv5.base_concept_relationship_manual WHERE vocabulary_id_1 = 'ICD10CN')
     and invalid_reason = 'D'
     and valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -99,7 +99,7 @@ LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id
 
 UNION ALL
 
-SELECT -- 69
+SELECT
 crs.concept_code_1 as source_code,
     cs.concept_name as source_code_description,
     crs.vocabulary_id_1 as source_vocabulary_id,
@@ -165,7 +165,7 @@ and c.vocabulary_id = 'SNOMED'
 JOIN concept_stage cs ON crs.concept_code_1 = cs.concept_code
 WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id) IN
     (SELECT concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id
-    FROM concept_relationship_manual)
+    FROM devv5.base_concept_relationship_manual WHERE vocabulary_id_1 = 'ICD10CN')
     and crs.invalid_reason = 'D'
     and crs.valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
 				SELECT MAX(v.latest_update) - 1
@@ -199,7 +199,7 @@ WHERE (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relatio
        AND c.standard_concept = 'S'
        AND c.invalid_reason is null);
 
---Insert the rest of crm concepts
+--Insert the rest of crm relationships which are not represented in the icd_cde_source table
 INSERT INTO icd10cn_refresh
     (source_code,
      source_code_description,
@@ -234,11 +234,13 @@ SELECT
     crm.valid_start_date as valid_start_date,
     crm.valid_end_date as valid_end_date,
     'crm' as mapping_origin
-FROM concept_relationship_manual crm
+FROM devv5.base_concept_relationship_manual crm
 LEFT JOIN concept c on crm.concept_code_1 = c.concept_code and crm.vocabulary_id_1 = c.vocabulary_id
 LEFT JOIN concept c2 on crm.concept_code_2 = c2.concept_code and crm.vocabulary_id_2 = c2.vocabulary_id
 WHERE (crm.concept_code_1, crm.vocabulary_id_1, crm.relationship_id) not in (SELECT source_code, source_vocabulary_id, relationship_id FROM icd10cn_refresh)
-AND crm.vocabulary_id_1 = 'ICD10CN';
+AND crm.vocabulary_id_1 = 'ICD10CN'
+AND (crm.concept_code_1, crm.vocabulary_id_1, crm.concept_code_2. crm.vocabulary_id_2) NOT IN
+    (SELECT source_code, source_vocabulary_id, target_concept_code, target_vocabulary_id FROM dev_icd10.icd_cde_source);
 
 --Insert concepts without mapping --Not used at every refresh
 INSERT INTO icd10cn_refresh

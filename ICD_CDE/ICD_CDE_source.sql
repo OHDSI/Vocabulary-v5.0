@@ -272,6 +272,7 @@ OR valid_end_date in (SELECT DISTINCT GREATEST(crs.valid_start_date, (
 					)
 			)) FROM dev_icd10cm.concept_relationship_stage crs);
 
+
 --Insertion of the potential replacement mappings and concepts without mappings
 INSERT INTO icd_cde_source (source_code,
                             source_code_description,

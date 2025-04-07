@@ -182,3 +182,56 @@ and c.sab = 'ORPHANET'
 and cc.lat = 'ENG'
 and cc.sab = 'SNOMEDCT_US'
 ;
+
+-- Mapping using full-text search (preferred):
+with tab as (
+SELECT DISTINCT vocabulary_pack.CutConceptName(str) AS concept_name,
+                'Condition' AS domain_id,
+                'Orphanet' AS vocabulary_id,
+                '??' AS concept_class_id,
+                NULL AS standard_concept,
+                m.code as concept_code,
+             /*   (
+                SELECT latest_update
+                FROM vocabulary
+                WHERE vocabulary_id = 'Orphanet'
+                ) AS valid_start_date,*/
+                TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	            NULL AS invalid_reason
+FROM sources.mrconso m
+JOIN sources.mrsty s USING (cui)
+WHERE sab = 'ORPHANET'
+and suppress = 'N'
+and tty = 'PT'),
+    cte as (
+select distinct t.concept_name, t.concept_code, cr.relationship_id, cc. concept_code as target_code, cc.concept_name as target_name, cc.vocabulary_id as target_vocab,
+                (devv5.similarity(t.concept_name, cc.concept_name) * 100)::int AS sim,
+                    (dev_schema.overlap_count(STRING_TO_ARRAY(t.concept_name, ' '),
+                                          STRING_TO_ARRAY(cc.concept_name, ' '))) * 10     AS ovelap_cnt,
+                    devv5.difference(t.concept_name,  cc.concept_name) * 10         AS difference_cnt,
+                    COUNT(DISTINCT cr1.concept_id_1) * 20                                 AS onto_cnt,
+                    ((devv5.similarity(t.concept_name, cc.concept_name) * 100)::int) +
+                    (dev_schema.overlap_count(STRING_TO_ARRAY(t.concept_name, ' '),
+                                           STRING_TO_ARRAY(cc.concept_name, ' ')) * 10) -
+                    (devv5.difference(t.concept_name, cc.concept_name) * 10) +
+                    (COUNT(DISTINCT cr1.concept_id_1) * 20)                               AS intergral_cnt
+
+from tab t
+join concept c on plainto_tsquery(t.concept_name) = plainto_tsquery(c.concept_name)
+and c.vocabulary_id = 'SNOMED'
+join concept_relationship cr on c.concept_id = cr.concept_id_1 and relationship_id like 'Maps to%'
+and cr.invalid_reason is null
+join concept cc on cc.concept_id = cr.concept_id_2
+ JOIN concept_relationship cr1
+                           ON cc.concept_id = cr1.concept_id_2
+                               AND cr1.relationship_id IN ('Maps to', 'Maps to value', 'Subsumes', 'Is a')
+                               AND cr1.invalid_reason IS NULL
+group by t.concept_name, t.concept_code, cr.relationship_id, cc.concept_id, cc.concept_name, cc.domain_id, cc.vocabulary_id, cc.concept_class_id, cc.standard_concept, cc.concept_code, cc.valid_start_date, cc.valid_end_date, cc.invalid_reason, cc.concept_name, cc.concept_name, cc.concept_name, cc.concept_name, cc.concept_name)
+
+,tab2 as (
+    SELECT *,       row_number() OVER (PARTITION BY concept_code ORDER BY intergral_cnt DESC)  AS rating_in_section
+    from cte
+)
+
+select *
+from tab2 where rating_in_section = 1;

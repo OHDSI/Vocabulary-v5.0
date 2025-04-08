@@ -1179,6 +1179,93 @@ WHERE cr.relationship_id = 'Maps to'
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
+-- If concept has new replacement link deprecate old replacement relationships and mappings unless manually created
+DROP TABLE IF EXISTS replacements;
+CREATE TEMP TABLE replacements AS
+WITH new_replacements AS (
+SELECT *
+FROM concept_relationship_stage crs
+WHERE relationship_id in (
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to'
+				)
+AND crs.invalid_reason is null
+)
+SELECT DISTINCT c.concept_code as concept_code_1,
+       c1.concept_code as concept_code_2,
+       c.vocabulary_id as vocabulary_id_1,
+       c1.vocabulary_id as vocabulary_id_2,
+       cr.relationship_id as relationship_id,
+       cr.valid_start_date,
+       cr.valid_end_date,
+	   cr.invalid_reason
+FROM concept_relationship cr
+JOIN concept c on cr.concept_id_1 = c.concept_id
+JOIN concept c1 on c1.concept_id = cr.concept_id_2
+WHERE cr.relationship_id in (
+                'Maps to',
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to'
+				)
+AND cr.invalid_reason IS NULL
+AND exists(SELECT 1
+           FROM new_replacements n
+           WHERE (c.concept_code, c.vocabulary_id) = (n.concept_code_1, n.vocabulary_id_1)
+           AND ((c1.concept_code, c1.vocabulary_id) != (n.concept_code_2, n.vocabulary_id_2)
+               OR cr.relationship_id != n.relationship_id)
+               )
+AND NOT exists(
+    SELECT 1
+    FROM concept_relationship_manual crm
+    WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
+    AND crm.relationship_id LIKE 'Maps to%'
+    AND crm.invalid_reason IS NULL
+)
+;
+
+ANALYZE replacements;
+
+INSERT INTO concept_relationship_stage
+(
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       valid_start_date,
+       (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		) AS valid_end_date,
+	'D' AS invalid_reason
+FROM replacements r
+ON CONFLICT ON CONSTRAINT idx_pk_crs
+DO UPDATE
+SET valid_end_date = (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		),
+		invalid_reason = 'D'
+	WHERE ROW (concept_relationship_stage.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.invalid_reason)
+;
+
 --delete records that do not exist in the concept and concept_stage
 DELETE
 FROM concept_relationship_stage crs
@@ -1735,6 +1822,41 @@ WHERE concept_class_id = 'Social Context'
 				'108334009' -- Religion AND/OR philosophy
 				)
 		);
+
+--18. Add mappings of Clinical Drug Forms to their ingredients:
+INSERT INTO concept_relationship_stage
+(concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+SELECT DISTINCT c.concept_code,
+                c2.concept_code,
+                c.vocabulary_id,
+                c2.vocabulary_id,
+                'Maps to',
+                current_date,
+                '2099-12-31'::date,
+                NULL
+FROM devv5.concept c
+JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id
+                                    AND cr.relationship_id = 'Has active ing'
+                                    AND cr.invalid_reason IS NULL
+JOIN devv5.concept_relationship cr1 ON cr.concept_id_2 = cr1.concept_id_1
+                                     AND cr1.relationship_id = 'Maps to'
+                                     AND cr1.invalid_reason IS NULL
+JOIN devv5.concept c2 on c2.concept_id = cr1.concept_id_2
+WHERE c.vocabulary_id = 'SNOMED'
+  AND c.domain_id = 'Drug'
+  AND c2.vocabulary_id LIKE 'RxNorm%'
+  AND NOT exists(SELECT 1
+               FROM devv5.concept_relationship b
+               WHERE cr.concept_id_1 = b.concept_id_1
+               AND b.relationship_id = 'Maps to'
+               AND b.invalid_reason IS NULL);
 
 --18. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431

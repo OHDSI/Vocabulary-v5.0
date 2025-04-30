@@ -51,6 +51,8 @@ WHERE m.moduleid IN (
 			'999000011000000103', --UK edition
 			'731000124108' --US edition
 			)
+AND m.referencedcomponentid IN ('900000000000207008',
+                               '900000000000012004')
 	ORDER BY m.moduleid,
 		m.effectivetime DESC
 ;
@@ -668,7 +670,8 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Has etiology'
 		WHEN typeid = '255234002'
 			THEN 'Followed by'
-		WHEN typeid = '260669005'
+		WHEN typeid IN ('260669005',
+		                '424876005')
 			THEN 'Has surgical appr'
 		WHEN typeid = '246090004'
 			THEN 'Has asso finding'
@@ -793,8 +796,6 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Has specimen subst'
 		WHEN typeid = '408732007'
 			THEN 'Has relat context'
-		WHEN typeid = '424876005'
-			THEN 'Has surgical appr'
 		WHEN typeid = '408731000'
 			THEN 'Has temporal context'
 		WHEN typeid = '363708005'
@@ -982,6 +983,8 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Before'
 		WHEN typeid = '704320005'
 			THEN 'Towards'
+	    WHEN typeid = '116688005'
+	        THEN 'Has approach'
 		ELSE term --'non-existing'
 		END AS relationship_id,
 	(
@@ -1108,7 +1111,6 @@ LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
-		'Concept poss_eq to',
 		'Concept was_a to'
 		)
 JOIN concept c1 ON c1.concept_code = cs.concept_code
@@ -1119,7 +1121,6 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
-		'Concept poss_eq to',
 		'Concept was_a to'
 		)
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
@@ -1189,7 +1190,9 @@ WHERE relationship_id in (
 				'Concept replaced by',
 				'Concept same_as to',
 				'Concept alt_to to',
-				'Concept was_a to'
+				'Concept was_a to',
+                'Concept poss_eq to'
+
 				)
 AND crs.invalid_reason is null
 )
@@ -1209,7 +1212,8 @@ WHERE cr.relationship_id in (
 				'Concept replaced by',
 				'Concept same_as to',
 				'Concept alt_to to',
-				'Concept was_a to'
+				'Concept was_a to',
+                'Concept poss_eq to'
 				)
 AND cr.invalid_reason IS NULL
 AND exists(SELECT 1
@@ -1265,6 +1269,30 @@ SET valid_end_date = (
 	IS DISTINCT FROM
 	ROW (excluded.invalid_reason)
 ;
+
+-- Deprecate replacement relationships for the manually curated concepts as we assume manual mapping is more accurate:
+UPDATE concept_relationship_stage crs
+    SET invalid_reason = 'D',
+        valid_end_date = (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		)
+WHERE exists(
+    SELECT 1
+    FROM concept_relationship_manual crm
+    WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (crs.concept_code_1, crs.vocabulary_id_1)
+    AND crm.relationship_id LIKE 'Maps to%'
+    AND crm.invalid_reason IS NULL
+)
+AND crs.relationship_id IN (
+		'Concept replaced by',
+		'Concept same_as to',
+		'Concept alt_to to',
+		'Concept was_a to'
+		)
+	AND crs.invalid_reason IS NULL
+    ;
 
 --delete records that do not exist in the concept and concept_stage
 DELETE
@@ -1350,6 +1378,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
+
 
 --11. Build domains; assign domains to the concepts according to their concept_classes
 DROP TABLE IF EXISTS domain_snomed;
@@ -1823,6 +1852,42 @@ WHERE concept_class_id = 'Social Context'
 				)
 		);
 
+insert into concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+select cs.concept_code,
+       cc.concept_code,
+       cs.vocabulary_id,
+       cc.vocabulary_id,
+       'Maps to',
+        (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+from concept_stage cs
+join devv5.concept cc on lower(cs.concept_name) = lower(cc.concept_name)
+where cs.domain_id = 'Drug'
+and cs.concept_class_id = 'Substance'
+and cs.vocabulary_id = 'SNOMED'
+  and cc.vocabulary_id like 'RxNorm%'
+  and cc.standard_concept = 'S'
+and not exists(
+    select 1
+    from devv5.concept_relationship cr
+    join devv5.concept c on c.concept_id = cr.concept_id_1
+    where (c.concept_code, c.vocabulary_id) = (cs.concept_code, cs.vocabulary_id)
+    and cr.relationship_id = 'Maps to'
+    and cr.invalid_reason is null
+);
+
 --18. Add mappings of Clinical Drug Forms to their ingredients:
 INSERT INTO concept_relationship_stage
 (concept_code_1,
@@ -1841,20 +1906,28 @@ SELECT DISTINCT c.concept_code,
                 current_date,
                 '2099-12-31'::date,
                 NULL
-FROM devv5.concept c
-JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id
+FROM concept_stage c
+JOIN concept_relationship_stage cr ON cr.concept_code_1 = c.concept_code
+                                    AND cr.vocabulary_id_1 = c.vocabulary_id
                                     AND cr.relationship_id = 'Has active ing'
                                     AND cr.invalid_reason IS NULL
-JOIN devv5.concept_relationship cr1 ON cr.concept_id_2 = cr1.concept_id_1
+JOIN devv5.concept cc on (cc.concept_code, cc.vocabulary_id) = (cr.concept_code_2, cr.vocabulary_id_2)
+JOIN devv5.concept_relationship cr1 ON cc.concept_id = cr1.concept_id_1
                                      AND cr1.relationship_id = 'Maps to'
                                      AND cr1.invalid_reason IS NULL
 JOIN devv5.concept c2 on c2.concept_id = cr1.concept_id_2
 WHERE c.vocabulary_id = 'SNOMED'
   AND c.domain_id = 'Drug'
   AND c2.vocabulary_id LIKE 'RxNorm%'
+    AND NOT exists(SELECT 1
+               FROM concept_relationship_stage crs1
+               WHERE (c.concept_code, c.vocabulary_id) = (crs1.concept_code_1, crs1.vocabulary_id_1)
+               AND crs1.relationship_id = 'Maps to'
+               AND crs1.invalid_reason IS NULL)
   AND NOT exists(SELECT 1
                FROM devv5.concept_relationship b
-               WHERE cr.concept_id_1 = b.concept_id_1
+               JOIN devv5.concept a on a.concept_id = b.concept_id_1
+               WHERE (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
                AND b.relationship_id = 'Maps to'
                AND b.invalid_reason IS NULL);
 
@@ -1981,9 +2054,9 @@ BEGIN
 END $_$;
 
 --21. Clean up
-DROP TABLE peak;
-DROP TABLE domain_snomed;
-DROP TABLE snomed_ancestor;
+--DROP TABLE peak;
+--DROP TABLE domain_snomed;
+--DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
 --22. Need to check domains before running the generic_update

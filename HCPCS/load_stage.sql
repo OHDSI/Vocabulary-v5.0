@@ -219,6 +219,8 @@ AS (
 			WHEN concept_code = 'C9060'
 				THEN 'Device'
 			WHEN concept_code IN (
+			        'C8004',
+			        'C8005',
 					'C9060',
 					'C9067',
 					'C9068',
@@ -233,6 +235,7 @@ AS (
 					'C9222',
 					'C9246',
 					'C9247',
+			        'C9300',
 					'C9458',
 					'C9459',
 					'C9461'
@@ -370,7 +373,8 @@ AS (
 			WHEN concept_code BETWEEN 'G0179'
 					AND 'G0182'
 				THEN 'Observation' -- Level 2: G0179-G0182 previously 'Physician Services'
-			WHEN concept_code = 'G0202'
+			WHEN concept_code IN ('G0202',
+                'G0183')
 				THEN 'Measurement'
 			WHEN concept_code BETWEEN 'G0237'
 					AND 'G0239'
@@ -506,8 +510,9 @@ AS (
 			WHEN concept_code BETWEEN 'G0507'
 					AND 'G0514'
 				THEN 'Observation' -- Preventive services
-			WHEN concept_code = 'G0659'
-				THEN 'Measurement' --Drug test
+			WHEN concept_code IN ('G0659',
+                'G0567')
+				THEN 'Measurement'
 			WHEN concept_code = 'G2250'
 				THEN 'Procedure' --	Remote assessment of recorded video and/or images
 			WHEN concept_code BETWEEN 'G0908'
@@ -856,7 +861,7 @@ AS (
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4353'
+					AND 'Q4367'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
@@ -941,7 +946,9 @@ AS (
 			WHEN concept_code BETWEEN 'S4030'
 					AND 'S4031'
 				THEN 'Observation' -- Sperm procurement and cryopreservation services
-			WHEN concept_code BETWEEN 'S4005'
+			WHEN concept_code = 'S4024'
+		        THEN 'Device'
+		    WHEN concept_code BETWEEN 'S4005'
 					AND 'S4042'
 				THEN 'Procedure' -- IVF procedures
 			WHEN concept_code BETWEEN 'S4988'
@@ -1141,7 +1148,7 @@ FROM t_domains t
 WHERE cs.concept_code = t.concept_code
 	AND cs.concept_class_id <> 'HCPCS Class';
 
--- 5.2. If some codes does not have domain_id pick it up from existing concept table
+-- 5.2. If some codes do not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs
 SET domain_id = c.domain_id
 FROM concept c
@@ -1388,6 +1395,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
-
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

@@ -1111,6 +1111,7 @@ LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
+		'Concept poss_eq to',
 		'Concept was_a to'
 		)
 JOIN concept c1 ON c1.concept_code = cs.concept_code
@@ -1121,6 +1122,7 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
+		'Concept poss_eq to',
 		'Concept was_a to'
 		)
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
@@ -1190,9 +1192,7 @@ WHERE relationship_id in (
 				'Concept replaced by',
 				'Concept same_as to',
 				'Concept alt_to to',
-				'Concept was_a to',
-                'Concept poss_eq to'
-
+				'Concept was_a to'
 				)
 AND crs.invalid_reason is null
 )
@@ -1212,8 +1212,7 @@ WHERE cr.relationship_id in (
 				'Concept replaced by',
 				'Concept same_as to',
 				'Concept alt_to to',
-				'Concept was_a to',
-                'Concept poss_eq to'
+				'Concept was_a to'
 				)
 AND cr.invalid_reason IS NULL
 AND exists(SELECT 1

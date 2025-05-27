@@ -1,6 +1,6 @@
 --External mappings sources exploration
-DROP TABLE map_for_review;
-TRUNCATE TABLE map_for_review;
+-- DROP TABLE map_for_review;
+-- TRUNCATE TABLE map_for_review;
 CREATE TABLE map_for_review (
     source_code varchar,
     source_code_description varchar,
@@ -32,7 +32,7 @@ INSERT INTO map_for_review (source_code,
                             target_vocabulary_id,
                             mappings_origin)
 SELECT DISTINCT
-sr.concept_id as source_concept_id,
+--sr.concept_id as source_concept_id,
 m.code as source_code,
 sr.concept_name as source_name,
 'ICD10' as source_vocabulary_id,

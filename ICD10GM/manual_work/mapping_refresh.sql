@@ -18,7 +18,7 @@
 **************************************************************************/
 --2. Create table icd10gm_refresh
 DROP TABLE icd10gm_refresh;
-TRUNCATE TABLE icd10gm_refresh;
+-- TRUNCATE TABLE icd10gm_refresh;
 CREATE TABLE icd10gm_refresh
 (
     source_code             TEXT NOT NULL,
@@ -239,5 +239,5 @@ LEFT JOIN concept c on crm.concept_code_1 = c.concept_code and crm.vocabulary_id
 LEFT JOIN concept c2 on crm.concept_code_2 = c2.concept_code and crm.vocabulary_id_2 = c2.vocabulary_id
 WHERE (crm.concept_code_1, crm.vocabulary_id_1, crm.relationship_id) not in (SELECT source_code, source_vocabulary_id, relationship_id FROM icd10gm_refresh)
 AND crm.vocabulary_id_1 = 'ICD10GM'
-AND (crm.concept_code_1, crm.vocabulary_id_1, crm.concept_code_2. crm.vocabulary_id_2) NOT IN
+AND (crm.concept_code_1, crm.vocabulary_id_1, crm.concept_code_2, crm.vocabulary_id_2) NOT IN
     (SELECT source_code, source_vocabulary_id, target_concept_code, target_vocabulary_id FROM dev_icd10.icd_cde_source);

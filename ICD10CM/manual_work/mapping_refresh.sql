@@ -17,12 +17,12 @@
 * Date: 2024
 **************************************************************************/
 --icd10cm_refresh 02_2024 backup
-CREATE TABLE icd10cm_refresh_02_2024_backup as SELECT * FROM icd10cm_refresh;
-CREATE TABLE icd10cm_refresh_07_2024_backup as SELECT * FROM icd10cm_refresh;
+-- CREATE TABLE icd10cm_refresh_02_2024_backup as SELECT * FROM icd10cm_refresh;
+-- CREATE TABLE icd10cm_refresh_07_2024_backup as SELECT * FROM icd10cm_refresh;
 
 -- Create table icd10cm_refresh
 DROP TABLE icd10cm_refresh;
-TRUNCATE TABLE icd10cm_refresh;
+-- TRUNCATE TABLE icd10cm_refresh;
 CREATE TABLE icd10cm_refresh
 (
     source_code             TEXT NOT NULL,

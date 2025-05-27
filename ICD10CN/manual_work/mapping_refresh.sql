@@ -18,7 +18,7 @@
 **************************************************************************/
 --Create table icd10cn_refresh
 DROP TABLE icd10cn_refresh;
-TRUNCATE TABLE icd10cn_refresh;
+-- TRUNCATE TABLE icd10cn_refresh;
 CREATE TABLE icd10cn_refresh
 (
     source_code             TEXT NOT NULL,
@@ -239,7 +239,7 @@ LEFT JOIN concept c on crm.concept_code_1 = c.concept_code and crm.vocabulary_id
 LEFT JOIN concept c2 on crm.concept_code_2 = c2.concept_code and crm.vocabulary_id_2 = c2.vocabulary_id
 WHERE (crm.concept_code_1, crm.vocabulary_id_1, crm.relationship_id) not in (SELECT source_code, source_vocabulary_id, relationship_id FROM icd10cn_refresh)
 AND crm.vocabulary_id_1 = 'ICD10CN'
-AND (crm.concept_code_1, crm.vocabulary_id_1, crm.concept_code_2. crm.vocabulary_id_2) NOT IN
+AND (crm.concept_code_1, crm.vocabulary_id_1, crm.concept_code_2, crm.vocabulary_id_2) NOT IN
     (SELECT source_code, source_vocabulary_id, target_concept_code, target_vocabulary_id FROM dev_icd10.icd_cde_source);
 
 --Insert concepts without mapping --Not used at every refresh

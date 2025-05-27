@@ -67,7 +67,8 @@ LEFT JOIN concept c ON c.concept_code = g.concept_code
 --3.1 Update CM table to add new concepts and their translations (absent in CM after 01-01-2025 update)
 INSERT INTO concept_manual
 SELECT *
-from dev_icd10gm.icd10gm_newcodes;
+from dev_icd10gm.icd10gm_newcodes
+ON CONFLICT DO NOTHING ;
 
 
 --4. Append concept corrections -- COVID concepts added and English translation

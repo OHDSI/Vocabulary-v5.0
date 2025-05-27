@@ -46,6 +46,9 @@
 --TRUNCATE TABLE icd_cde_source;
 --INSERT INTO icd_cde_source (SELECT * FROM icd_cde_source_backup_8_28_2024);
 
+---- Backup before update (13.05.2025)
+-- DROP TABLE IF EXISTS icd_cde_source_backup_13_05_2025;
+-- CREATE TABLE icd_cde_source_backup_13_05_2025 as SELECT * FROM icd_cde_source;
 
 --1. СDE source insertion
 --- DROP TABLE dev_icd10.icd_cde_source;
@@ -80,6 +83,8 @@ CREATE TABLE dev_icd10.icd_cde_source
     valid_end_date             date,
     mappings_origin            varchar
 );
+
+
 
 -- 1. Update 'for_review' field;
 UPDATE icd_cde_source SET for_review = null;
@@ -868,10 +873,7 @@ UPDATE icd_cde_source SET for_review = null;
 UPDATE icd_cde_source SET for_review = '1'
 where source_vocabulary_id = 'ICD9CM'
         and
-    source_code IN (
-        '643.9'
-)
-;
+    source_code in () ;
 
 select *
     from icd_cde_source where for_review = '1';
@@ -896,6 +898,7 @@ select *
 -- --For concepts after checks
 -- UPDATE icd_cde_source SET for_review = '1'
 -- WHERE source_code in (SELECT DISTINCT source_code FROM to_check);
+
 
 --15. Table for manual mapping and review creation -- data for the exact refresh
 --DROP TABLE icd_cde_manual;
@@ -1102,8 +1105,11 @@ FROM icd_cde_manual
     );
 
 SELECT * FROM for_manual_review
-         where mappings_origin not in ('{SNOMED_eq}')
-         order by group_id; --3199
+where mappings_origin != '{SNOMED_eq}'
+         order by group_id
+; --3199
+
+
 
 --USE only if updates in the google sheet table are needed
 --Create new table with all necessary updates
@@ -1391,7 +1397,7 @@ SELECT * FROM for_manual_review_upd;
 
 --16. Create mapped table
 DROP TABLE icd_cde_mapped;
---TRUNCATE TABLE icd_cde_mapped;
+TRUNCATE TABLE icd_cde_mapped;
 --CREATE TABLE icd_cde_mapped_feb_back_30_7 AS SELECT * FROM icd_cde_mapped;
 --CREATE TABLE icd_cde_mapped_feb_back_8_28_2024 AS SELECT * FROM icd_cde_mapped;
 CREATE TABLE icd_cde_mapped
@@ -1435,44 +1441,44 @@ FROM icd_cde_mapped
 OFFSET (SELECT COUNT(*) - 5 FROM icd_cde_mapped)
 LIMIT 5;
 
--- Solving problem of not correct source_code
-Drop table icd_cde_mapped_corr;
-create table icd_cde_mapped_corr as
-select
-        t1.group_name,
-        t1.group_id,
-        t1.group_code,
-        t1.medium_group_id,
-        t1.medium_group_code,
-        t1.broad_group_id,
-        t1.broad_group_code,
-        t1.mappings_origin,
-        t1.for_review,
-        t1.relationship_id,
-        t1.relationship_id_predicate,
-        t1.decision,
-        t1.decision_date,
-        t1.comments,
-        t1.target_concept_id,
-        t2.concept_code as target_concept_code,
-        t1.target_concept_name,
-        t1.target_concept_class_id,
-        t1.target_standard_concept,
-        t1.target_invalid_reason,
-        t1.target_domain_id,
-        t1.target_vocabulary_id,
-        t1.mapper_id,
-        t1.rev_id,
-        t1.rel_invalid_reason,
-        t1.valid_start_date,
-        t1.valid_end_date
-    from icd_cde_mapped t1
-    join devv5.concept t2 on t1.target_concept_id = t2.concept_id
-                                and t2.invalid_reason is null;
-
-select * from icd_cde_mapped_corr;
-drop table icd_cde_mapped;
-create table icd_cde_mapped as select * from icd_cde_mapped_corr;
+-- Solving problem of not correct source_code when uploading with datagrip
+-- Drop table icd_cde_mapped_corr;
+-- create table icd_cde_mapped_corr as
+-- select
+--         t1.group_name,
+--         t1.group_id,
+--         t1.group_code,
+--         t1.medium_group_id,
+--         t1.medium_group_code,
+--         t1.broad_group_id,
+--         t1.broad_group_code,
+--         t1.mappings_origin,
+--         t1.for_review,
+--         t1.relationship_id,
+--         t1.relationship_id_predicate,
+--         t1.decision,
+--         t1.decision_date,
+--         t1.comments,
+--         t1.target_concept_id,
+--         t2.concept_code as target_concept_code,
+--         t1.target_concept_name,
+--         t1.target_concept_class_id,
+--         t1.target_standard_concept,
+--         t1.target_invalid_reason,
+--         t1.target_domain_id,
+--         t1.target_vocabulary_id,
+--         t1.mapper_id,
+--         t1.rev_id,
+--         t1.rel_invalid_reason,
+--         t1.valid_start_date,
+--         t1.valid_end_date
+--     from icd_cde_mapped t1
+--     join devv5.concept t2 on t1.target_concept_id = t2.concept_id
+--                                 and t2.invalid_reason is null;
+--
+-- select * from icd_cde_mapped_corr;
+-- drop table icd_cde_mapped;
+-- create table icd_cde_mapped as select * from icd_cde_mapped_corr;
 
 --Update mapper and reviewer fields
 DELETE FROM icd_cde_mapped WHERE group_code is null;
@@ -1515,7 +1521,8 @@ WHERE decision = '1'
 AND  (mappings_origin = '{without mapping}'
     OR mappings_origin = '{manual}');
 
-select * from icd_cde_mapped;
+select * from icd_cde_mapped
+where group_id = 1031;
 
 --18. Create final table with mappings
 --CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
@@ -1593,10 +1600,6 @@ ON s.group_name = m.group_name
 AND m.decision = '1'
 ;
 
-select *
-from icd_cde_proc
-where source_code = 'I07.1';
-
 -- --TRUNCATE icd_cde_proc;
 -- --- not correct source code
 -- drop table icd_cde_proc_corr;
@@ -1623,8 +1626,8 @@ where source_code = 'I07.1';
 -- drop table icd_cde_proc;
 -- create table icd_cde_proc as select * from icd_cde_proc_corr;
 
-
-select * from icd_cde_proc;
+select * from icd_cde_proc
+where target_concept_code like '%E%';
 
 
 --INSERT INTO icd_cde_proc (source_code,

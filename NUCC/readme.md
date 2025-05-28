@@ -13,8 +13,6 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 
 3. Run generic_update:
 ```sql
-SELECT admin_pack.VirtualLogIn ('dev_mkhitrun','Do_Not_Share_Your_Pass_2024!');
-
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
@@ -32,8 +30,8 @@ Repeat steps 1-5
 
 7. Run scripts to get summary, and interpret the results:
 ```sql
-SELECT * FROM qa_tests.get_summary('concept', 'devv5');
-SELECT * FROM qa_tests.get_summary('concept_relationship', 'devv5');
+SELECT * FROM qa_tests.get_summary('concept');
+SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
 8. Run scripts to collect statistics, and interpret the results:
 ```sql

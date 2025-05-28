@@ -45,28 +45,30 @@ INSERT INTO concept_stage
  valid_start_date,
  valid_end_date,
  invalid_reason)
-select trim(regexp_replace(display_name, 'Deactivated - ', '')) as concept_name,
-       case when section_ = 'Individual' then 'Provider' else 'Visit' end as domain_id,
-       'NUCC' as vocabulary_id,
-       case when section_ = 'Individual' then 'Provider' else 'Visit' end as concept_class_id,
-       'S' as standard_concept,
-       code as concept_code,
+SELECT trim(regexp_replace(display_name, 'Deactivated - ', '')) AS concept_name,
+       CASE WHEN section_ = 'Individual' THEN 'Provider' ELSE 'Visit' END AS domain_id,
+       'NUCC' AS vocabulary_id,
+       CASE WHEN grouping_ = 'Allopathic & Osteopathic Physicians' THEN 'Physician Specialty'
+           WHEN grouping_ != 'Allopathic & Osteopathic Physicians' AND section_ = 'Individual' THEN 'Provider'
+           ELSE 'Visit' END AS concept_class_id,
+       'S' AS standard_concept,
+       code AS concept_code,
        coalesce(
-           (select to_date(substring(notes, '[0-9]/[0-9]/[0-9]{1,4}'), 'MM/DD/YYYY')
-        from sources.nucc_taxonomy t
-        where t.code = s.code
-            and notes not like '%inactive%'),
-           '1970-01-01') as valid_start_date,
-       case when display_name like 'Deactivated%'
-           then (select to_date(substring(notes, '[0-9]/[0-9]/[0-9]{1,4}'), 'MM/DD/YYYY')
-                from sources.nucc_taxonomy t2
-                where t2.code = s.code)
-           else '2099-12-31'
-           end as valid_end_date,
-       case when display_name like 'Deactivated%'
-           then 'D'
-           end as invalid_reason
-from sources.nucc_taxonomy s;
+           (SELECT to_date(substring(notes, '[0-9]/[0-9]/[0-9]{1,4}'), 'MM/DD/YYYY')
+        FROM sources.nucc_taxonomy t
+        WHERE t.code = s.code
+            AND notes not like '%inactive%'),
+           '1970-01-01') AS valid_start_date,
+       CASE WHEN notes like '%inactive%'
+           THEN (SELECT to_date(substring(notes, '[0-9]/[0-9]/[0-9]{1,4}'), 'MM/DD/YYYY')
+                FROM sources.nucc_taxonomy t2
+                WHERE t2.code = s.code)
+           ELSE '2099-12-31'
+           END AS valid_end_date,
+       CASE WHEN notes like '%inactive%'
+           THEN 'D'
+           END AS invalid_reason
+FROM sources.nucc_taxonomy s;
 
 -- 4.Populate concept_synonym_stage
 INSERT INTO concept_synonym_stage
@@ -79,7 +81,7 @@ SELECT concat(trim(grouping_), ', ',trim(classification), ', ', trim(specializat
        'NUCC',
        4180186 -- English
 FROM sources.nucc_taxonomy
-where specialization is not null
+WHERE specialization is not null
 ;
 
 -- 5.Populate concept_relationship_stage:
@@ -93,38 +95,38 @@ INSERT INTO concept_relationship_stage
  valid_start_date,
  valid_end_date,
  invalid_reason)
-select n1.code,
+SELECT n1.code,
        n2.code,
        'NUCC',
        'NUCC',
-       'Is a' as relationship_id,
-       (select latest_update
-              from vocabulary
-                 where vocabulary_id = 'NUCC'),
+       'Is a' AS relationship_id,
+       (SELECT latest_update
+              FROM vocabulary
+                 WHERE vocabulary_id = 'NUCC'),
        '2099-12-31',
        null
-from sources.nucc_taxonomy n1, sources.nucc_taxonomy n2
-where left(n1.code, 4) = left(n2.code, 4)
-and devv5.similarity (n2.classification, regexp_replace(n2.display_name, ' Physician', '')) = 1
-and n1.code != n2.code
-and n2.specialization is null
+FROM sources.nucc_taxonomy n1, sources.nucc_taxonomy n2
+WHERE left(n1.code, 4) = left(n2.code, 4)
+AND devv5.similarity (n2.classification, regexp_replace(n2.display_name, ' Physician', '')) = 1
+AND n1.code != n2.code
+AND n2.specialization is null
 ;
 
---6. Append manual changes
+--6. AppEND manual changes
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---7. Add mapping from deprecated to fresh concepts
+--7. Add mapping FROM deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--8. Deprecate 'Maps to' mappings to deprecated AND upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();

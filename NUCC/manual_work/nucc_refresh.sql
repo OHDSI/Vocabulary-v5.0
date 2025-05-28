@@ -79,7 +79,7 @@ INSERT INTO dev_nucc.concept_relationship_manual AS mapped
            m.cr_invalid_reason
 	FROM dev_nucc.nucc_mapped m
 	--Only related to nucc vocabulary
-	WHERE (source_vocabulary_id = 'nucc' OR target_vocabulary_id = 'nucc')
+	WHERE (source_vocabulary_id = 'NUCC' OR target_vocabulary_id = 'NUCC')
 	    AND (target_concept_id != 0 OR target_concept_id IS NULL)
 
 	ON CONFLICT ON CONSTRAINT unique_manual_relationships

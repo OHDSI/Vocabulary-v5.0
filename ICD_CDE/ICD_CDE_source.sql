@@ -817,7 +817,7 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I85.0:ICD10CM'
     'M80.01:ICD10CM', 'Z52.01:ICD10CM','J96.11:ICD10CM','O08:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S12.01:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S72.00:ICD10CM','S72.01:ICD10CM',
     'R75:ICD10CM','M24.02:ICD10CM','P52.4:ICD10','P52.6:ICD10', 'M71.10:ICD10CM', 'M08.80:ICD10', 'N13.7:ICD10CM', 'S63.5:ICD10CM', 'S63.6:ICD10CM', 'M19.92:ICD10CM', 'M62.81:ICD10CM',
     'M62.84:ICD10CM', 'M19.93:ICD10CM', 'T66:ICD10CM', 'D70:ICD10CM', 'N77.1:ICD10CM', 'I07.1:ICD10CM', 'L89.1:ICD10CM','L89.3:ICD10CM','L89.0:ICD10CM','L89.0:ICD10CM',
-    'I05.0:ICD10CM','I07.9:ICD10CM','L89.0:ICD10CM','L89.1:ICD10CM','L89.2:ICD10CM','L89.3:ICD10CM', 'Z86.001:ICD10CM', 'Z86.001:ICD10CN', '288.0:ICD9CM']);
+    'I05.0:ICD10CM','I07.9:ICD10CM','L89.0:ICD10CM','L89.1:ICD10CM','L89.2:ICD10CM','L89.3:ICD10CM', 'Z86.001:ICD10CM', 'Z86.001:ICD10CN', '288.0:ICD9CM', 'W79:ICD10', 'W79:ICD10CM']);
 
 --12. Check every concept is represented in only one group
 SELECT DISTINCT
@@ -871,13 +871,28 @@ HAVING count(group_name) >1;
 UPDATE icd_cde_source SET for_review = null;
 
 UPDATE icd_cde_source SET for_review = '1'
-where source_vocabulary_id = 'ICD9CM'
+where source_vocabulary_id = 'KCD7'
         and
-    source_code in () ;
+    source_code in ('M02.15',
+'M03',
+'M07',
+'M14.5',
+'O33.5',
+'T74.0',
+'T75.1',
+'W79',
+'Y06.0',
+'Y06.1',
+'Y06.2',
+'Y06.8',
+'Y06.9') ;
 
 select *
     from icd_cde_source where for_review = '1';
 
+select *
+    from icd_cde_source where source_vocabulary_id = 'ICD10'
+    and source_code in ('W79');
 
 --For 'Maps to' Meas value
 -- UPDATE icd_cde_source SET for_review = '1'
@@ -1105,7 +1120,7 @@ FROM icd_cde_manual
     );
 
 SELECT * FROM for_manual_review
-where mappings_origin != '{SNOMED_eq}'
+-- where mappings_origin != '{SNOMED_eq}'
          order by group_id
 ; --3199
 
@@ -1483,17 +1498,13 @@ LIMIT 5;
 --Update mapper and reviewer fields
 DELETE FROM icd_cde_mapped WHERE group_code is null;
 UPDATE icd_cde_mapped SET mapper_id = 'TO' WHERE mapper_id = 'Mapper: tetiana_orlova@epam.com';
-UPDATE icd_cde_mapped SET mapper_id = 'JC' WHERE mapper_id = 'Mapper: janice-pilar_cruz@epam.com';
 UPDATE icd_cde_mapped SET mapper_id = 'MK' WHERE mapper_id = 'Mapper: maria_khitrun@epam.com';
 UPDATE icd_cde_mapped SET mapper_id = 'MS' WHERE mapper_id = 'Mapper: mikita_salavei@epam.com';
 UPDATE icd_cde_mapped SET mapper_id = 'AT' WHERE mapper_id = 'Mapper: anton_tatur1@epam.com';
-UPDATE icd_cde_mapped SET mapper_id = 'AY' WHERE mapper_id = 'Mapper: aliaksandr_yurchanka3@epam.com';
 UPDATE icd_cde_mapped SET rev_id = 'MK' WHERE rev_id = 'Reviewer: maria_khitrun@epam.com';
 UPDATE icd_cde_mapped SET rev_id = 'TO' WHERE rev_id = 'Reviewer: tetiana_orlova@epam.com';
-UPDATE icd_cde_mapped SET rev_id = 'JC' WHERE rev_id = 'Reviewer: janice-pilar_cruz@epam.com';
 UPDATE icd_cde_mapped SET rev_id = 'MS' WHERE rev_id = 'Reviewer: mikita_salavei@epam.com';
 UPDATE icd_cde_mapped SET rev_id = 'AT' WHERE rev_id = 'Reviewer: anton_tatur1@epam.com';
-UPDATE icd_cde_mapped SET rev_id = 'AY' WHERE rev_id = 'Reviewer: aliaksandr_yurchanka3@epam.com';
 UPDATE icd_cde_mapped SET rev_id = null WHERE rev_id = 'Reviewer: 0';
 
 --17. Update mapped table
@@ -1521,8 +1532,12 @@ WHERE decision = '1'
 AND  (mappings_origin = '{without mapping}'
     OR mappings_origin = '{manual}');
 
+select *
+from icd_cde_mapped
+where target_concept_code like '%E%';
 select * from icd_cde_mapped
 where group_id = 1031;
+
 
 --18. Create final table with mappings
 --CREATE TABLE icd_cde_proc_backup_26_7_2024 as (SELECT * FROM icd_cde_proc);
@@ -1538,6 +1553,7 @@ where group_id = 1031;
 --CREATE TABLE icd_cde_proc_backup_02_03_2025_part5 as (SELECT * FROM icd_cde_proc);
 --CREATE TABLE icd_cde_proc_backup_07_02_2025 as (SELECT * FROM icd_cde_proc);
 --TRUNCATE TABLE icd_cde_proc;
+---CREATE TABLE icd_cde_proc_backup_30_05_2025 as (SELECT * FROM icd_cde_proc);
 
 
 select * from icd_cde_mapped
@@ -1628,6 +1644,12 @@ AND m.decision = '1'
 
 select * from icd_cde_proc
 where target_concept_code like '%E%';
+
+select *
+    from icd_cde_proc
+        where source_code = '890.0';
+        and source_vocabulary_id = 'ICD10';
+
 
 
 --INSERT INTO icd_cde_proc (source_code,

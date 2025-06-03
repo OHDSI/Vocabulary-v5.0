@@ -96,4 +96,4 @@ CREATE TABLE sources.vet_der2_crefset_language (
     acceptabilityid text NULL,
     source_file_id varchar(10) NULL
 );
-CREATE INDEX idx_vet_lang_refid ON sources.VET_der2_crefset_language_int USING btree (referencedcomponentid);
+CREATE INDEX idx_vet_lang_refid ON sources.VET_der2_crefset_language(referencedcomponentid);

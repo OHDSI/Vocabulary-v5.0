@@ -20,65 +20,65 @@
 DROP TABLE IF EXISTS SOURCES.VET_SCT2_CONCEPT_FULL;
 CREATE TABLE SOURCES.VET_SCT2_CONCEPT_FULL
 (
-   ID                 VARCHAR (100),
+   ID                 text null,
    EFFECTIVETIME      TIMESTAMP,
-   ACTIVE             INTEGER,
-   MODULEID           VARCHAR (100),
-   STATUSID           VARCHAR (100),
-   VOCABULARY_DATE    DATE,
-   VOCABULARY_VERSION VARCHAR (200)
+   ACTIVE             int2,
+   MODULEID           text null,
+   STATUSID           text null,
+   VOCABULARY_DATE    DATE null,
+   VOCABULARY_VERSION VARCHAR(200) null
 );
 
 DROP TABLE IF EXISTS SOURCES.VET_SCT2_DESC_FULL;
 CREATE TABLE SOURCES.VET_SCT2_DESC_FULL
 (
-   ID                   VARCHAR (100),
+   ID                   text null,
    EFFECTIVETIME        TIMESTAMP,
-   ACTIVE               INTEGER,
-   MODULEID             VARCHAR (100),
-   CONCEPTID            VARCHAR (100),
-   LANGUAGECODE         VARCHAR (2),
-   TYPEID               VARCHAR (100),
-   TERM                 VARCHAR (1000),
-   CASESIGNIFICANCEID   VARCHAR (100)
+   ACTIVE               int2 null,
+   MODULEID             text null,
+   CONCEPTID            text null,
+   LANGUAGECODE         VARCHAR(2) null,
+   TYPEID               text null,
+   TERM                 text null,
+   CASESIGNIFICANCEID   text null
 );
 
 DROP TABLE IF EXISTS SOURCES.VET_SCT2_RELA_FULL;
 CREATE TABLE SOURCES.VET_SCT2_RELA_FULL
 (
-   ID                     VARCHAR (100),
-   EFFECTIVETIME          TIMESTAMP,
-   ACTIVE                 INTEGER,
-   MODULEID               VARCHAR (100),
-   SOURCEID               VARCHAR (100),
-   DESTINATIONID          VARCHAR (100),
+   ID                     text null,
+   EFFECTIVETIME          TIMESTAMP null,
+   ACTIVE                 int2 null,
+   MODULEID               text null,
+   SOURCEID               text null,
+   DESTINATIONID          text null,
    RELATIONSHIPGROUP      INTEGER,
-   TYPEID                 VARCHAR (100),
-   CHARACTERISTICTYPEID   VARCHAR (100),
-   MODIFIERID             VARCHAR (100)
+   TYPEID                 text null,
+   CHARACTERISTICTYPEID   text null,
+   MODIFIERID             text null
 );
 
 DROP TABLE IF EXISTS SOURCES.VET_DER2_CREFSET_ASSREFFULL;
 CREATE TABLE SOURCES.VET_DER2_CREFSET_ASSREFFULL
 (
-    ID                         VARCHAR (100),
-    EFFECTIVETIME              TIMESTAMP,
-    ACTIVE                     INTEGER,
-    MODULEID                   VARCHAR (100),
-    REFSETID                   VARCHAR (100),
-    REFERENCEDCOMPONENTID      VARCHAR (100),
-    TARGETCOMPONENT            VARCHAR (100)
+    ID                         VARCHAR (256) null,
+    EFFECTIVETIME              TIMESTAMP null,
+    ACTIVE                     int2 null,
+    MODULEID                   text null,
+    REFSETID                   text null,
+    REFERENCEDCOMPONENTID      text null,
+    TARGETCOMPONENT            text null
 );
 
-CREATE INDEX idx_vet_concept_id ON SOURCES.VET_SCT2_CONCEPT_FULL (ID);
-CREATE INDEX idx_vet_desc_id ON SOURCES.VET_SCT2_DESC_FULL (CONCEPTID);
-CREATE INDEX idx_vet_rela_id ON SOURCES.VET_SCT2_RELA_FULL (ID);
+CREATE INDEX idx_vet_concept_id ON SOURCES.VET_SCT2_CONCEPT_FULL(ID);
+CREATE INDEX idx_vet_desc_id ON SOURCES.VET_SCT2_DESC_FULL(CONCEPTID);
+CREATE INDEX idx_vet_rela_id ON SOURCES.VET_SCT2_RELA_FULL(ID);
 
 DROP TABLE IF EXISTS sources.vet_der2_crefset_attributevalue_full;
 CREATE TABLE sources.vet_der2_crefset_attributevalue_full (
     id varchar(256) NULL,
-    effectivetime varchar(8) NULL,
-    active int2 NULL,
+    effectivetime TIMESTAMP,
+    active int2,
     moduleid text NULL,
     refsetid text NULL,
     referencedcomponentid text NULL,
@@ -88,12 +88,12 @@ CREATE TABLE sources.vet_der2_crefset_attributevalue_full (
 DROP TABLE IF EXISTS sources.vet_der2_crefset_language;
 CREATE TABLE sources.vet_der2_crefset_language (
     id varchar(256) NULL,
-    effectivetime varchar(8) NULL,
-    active int2 NULL,
-    moduleid text NULL,
+    effectivetime TIMESTAMP null,
+    active int2 null,
+    moduleid text null,
     refsetid text NULL,
     referencedcomponentid text NULL,
     acceptabilityid text NULL,
     source_file_id varchar(10) NULL
 );
-CREATE INDEX idx_vet_lang_refid ON sources.VET_der2_crefset_language(referencedcomponentid);
+CREATE INDEX idx_vet_lang_refid ON sources.VET_der2_crefset_language (referencedcomponentid);

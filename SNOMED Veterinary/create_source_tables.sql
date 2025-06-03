@@ -73,3 +73,27 @@ CREATE TABLE SOURCES.VET_DER2_CREFSET_ASSREFFULL
 CREATE INDEX idx_vet_concept_id ON SOURCES.VET_SCT2_CONCEPT_FULL (ID);
 CREATE INDEX idx_vet_desc_id ON SOURCES.VET_SCT2_DESC_FULL (CONCEPTID);
 CREATE INDEX idx_vet_rela_id ON SOURCES.VET_SCT2_RELA_FULL (ID);
+
+DROP TABLE IF EXISTS sources.vet_der2_crefset_attributevalue_full;
+CREATE TABLE sources.vet_der2_crefset_attributevalue_full (
+    id varchar(256) NULL,
+    effectivetime varchar(8) NULL,
+    active int2 NULL,
+    moduleid text NULL,
+    refsetid text NULL,
+    referencedcomponentid text NULL,
+    valueid text NULL
+);
+
+DROP TABLE IF EXISTS sources.vet_der2_crefset_language;
+CREATE TABLE sources.vet_der2_crefset_language (
+    id varchar(256) NULL,
+    effectivetime varchar(8) NULL,
+    active int2 NULL,
+    moduleid text NULL,
+    refsetid text NULL,
+    referencedcomponentid text NULL,
+    acceptabilityid text NULL,
+    source_file_id varchar(10) NULL
+);
+CREATE INDEX idx_vet_lang_refid ON sources.VET_der2_crefset_language_int USING btree (referencedcomponentid);

@@ -817,7 +817,8 @@ SELECT cde_groups.DetachConceptFromGroup('icd_cde_source', ARRAY['I85.0:ICD10CM'
     'M80.01:ICD10CM', 'Z52.01:ICD10CM','J96.11:ICD10CM','O08:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S12.01:ICD10CM','S42.01:ICD10CM','S12.00:ICD10CM','S72.00:ICD10CM','S72.01:ICD10CM',
     'R75:ICD10CM','M24.02:ICD10CM','P52.4:ICD10','P52.6:ICD10', 'M71.10:ICD10CM', 'M08.80:ICD10', 'N13.7:ICD10CM', 'S63.5:ICD10CM', 'S63.6:ICD10CM', 'M19.92:ICD10CM', 'M62.81:ICD10CM',
     'M62.84:ICD10CM', 'M19.93:ICD10CM', 'T66:ICD10CM', 'D70:ICD10CM', 'N77.1:ICD10CM', 'I07.1:ICD10CM', 'L89.1:ICD10CM','L89.3:ICD10CM','L89.0:ICD10CM','L89.0:ICD10CM',
-    'I05.0:ICD10CM','I07.9:ICD10CM','L89.0:ICD10CM','L89.1:ICD10CM','L89.2:ICD10CM','L89.3:ICD10CM', 'Z86.001:ICD10CM', 'Z86.001:ICD10CN', '288.0:ICD9CM', 'W79:ICD10', 'W79:ICD10CM']);
+    'I05.0:ICD10CM','I07.9:ICD10CM','L89.0:ICD10CM','L89.1:ICD10CM','L89.2:ICD10CM','L89.3:ICD10CM', 'Z86.001:ICD10CM', 'Z86.001:ICD10CN', '288.0:ICD9CM', 'W79:ICD10', 'W79:ICD10CM', 'E13.0:ICD10CM',
+    'M79.12:ICD10CM', 'Z87.01:CIM10', 'Z86.002:ICD10CN', 'Z86.002:ICD10CM', 'M02.10:ICD10', 'M02.19:ICD10CM', '711.39:ICD9CM']);
 
 --12. Check every concept is represented in only one group
 SELECT DISTINCT
@@ -871,28 +872,18 @@ HAVING count(group_name) >1;
 UPDATE icd_cde_source SET for_review = null;
 
 UPDATE icd_cde_source SET for_review = '1'
-where source_vocabulary_id = 'KCD7'
+where source_vocabulary_id = 'ICD9CM'
         and
-    source_code in ('M02.15',
-'M03',
-'M07',
-'M14.5',
-'O33.5',
-'T74.0',
-'T75.1',
-'W79',
-'Y06.0',
-'Y06.1',
-'Y06.2',
-'Y06.8',
-'Y06.9') ;
+    source_code in (
+            '659.30'
+        ) ;
 
 select *
     from icd_cde_source where for_review = '1';
 
 select *
-    from icd_cde_source where source_vocabulary_id = 'ICD10'
-    and source_code in ('W79');
+    from icd_cde_source where source_vocabulary_id = 'ICD9CM'
+    and source_code in ('659.30');
 
 --For 'Maps to' Meas value
 -- UPDATE icd_cde_source SET for_review = '1'
@@ -1447,14 +1438,17 @@ valid_end_date  date);
 
 
 --- see first rows
-select *
+select count(*)
     from icd_cde_mapped;
 
+select *
+from icd_cde_mapped where group_id = 111973;
 --- see last 5 rows
 SELECT *
 FROM icd_cde_mapped
 OFFSET (SELECT COUNT(*) - 5 FROM icd_cde_mapped)
 LIMIT 5;
+
 
 -- Solving problem of not correct source_code when uploading with datagrip
 -- Drop table icd_cde_mapped_corr;
@@ -1641,6 +1635,9 @@ AND m.decision = '1'
 
 -- drop table icd_cde_proc;
 -- create table icd_cde_proc as select * from icd_cde_proc_corr;
+
+select *
+from icd_cde_proc;
 
 select * from icd_cde_proc
 where target_concept_code like '%E%';

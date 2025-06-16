@@ -514,10 +514,17 @@ BEGIN
 	)
 	UPDATE concept_relationship r
 	SET valid_end_date  =
-			GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-				FROM vocabulary v
-			WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id) --take both concept ids to get proper latest_update
-			)),
+			CASE 
+                WHEN GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                                     FROM vocabulary v
+                                                    WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
+                     ) < r.valid_start_date
+                THEN CURRENT_DATE - 1
+                ELSE GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                                     FROM vocabulary v
+                                                    WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
+                     )
+                END,
 			invalid_reason = 'D'
 	FROM concept c1, concept c2, relationships rel
 	WHERE r.concept_id_1=c1.concept_id

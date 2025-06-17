@@ -486,7 +486,11 @@ BEGIN
 
 	--update 'main' table from a temporary table
 	UPDATE concept_relationship cr
-	SET valid_end_date = crt.max_latest_update - 1,
+	SET valid_end_date = CASE 
+                              WHEN (crt.max_latest_update - 1) < cr.valid_start_date 
+                              THEN CURRENT_DATE - 1
+                              ELSE crt.max_latest_update - 1 
+                         END,
 		invalid_reason = 'D'
 	FROM concept_relationship_upd$ crt
 	WHERE cr.concept_id_1 = crt.concept_id_1
@@ -525,7 +529,7 @@ BEGIN
                                                     WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
                      )
                 END,
-			invalid_reason = 'D'
+        invalid_reason = 'D'
 	FROM concept c1, concept c2, relationships rel
 	WHERE r.concept_id_1=c1.concept_id
 	AND r.concept_id_2=c2.concept_id

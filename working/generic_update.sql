@@ -449,7 +449,7 @@ BEGIN
 	ANALYZE vocab_combinations$;
 
 	--prepare temp table concept_relationship_upd$
-    CREATE UNLOGGED TABLE concept_rel_temp$ AS
+    CREATE UNLOGGED TABLE IF NOT EXISTS concept_rel_temp$ AS
     SELECT  cr.concept_id_1,
             cr.concept_id_2,
             cr.relationship_id,
@@ -470,7 +470,7 @@ BEGIN
 
     ANALYZE concept_rel_temp$;
 
-    create UNLOGGED TABLE concept_relationship_upd$ AS
+    CREATE UNLOGGED TABLE concept_relationship_upd$ AS
     SELECT cr.concept_id_1,
             cr.concept_id_2,
             cr.relationship_id,
@@ -498,7 +498,7 @@ BEGIN
 		AND cr.relationship_id = crt.relationship_id;
 
 	--clean up
-	DROP TABLE vocab_combinations$, concept_relationship_upd$;
+	DROP TABLE vocab_combinations$, concept_relationship_upd$, concept_rel_temp$;
 
 	--17. Deprecate old 'Maps to', 'Maps to value' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 	--part 1 (direct mappings)
@@ -519,14 +519,16 @@ BEGIN
 	UPDATE concept_relationship r
 	SET valid_end_date  =
 			CASE 
-                WHEN GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-                                                     FROM vocabulary v
-                                                    WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
+                WHEN GREATEST(r.valid_start_date, 
+                              (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                 FROM vocabulary v
+                                WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
                      ) < r.valid_start_date
                 THEN CURRENT_DATE - 1
-                ELSE GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-                                                     FROM vocabulary v
-                                                    WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
+                ELSE GREATEST(r.valid_start_date, 
+                              (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                 FROM vocabulary v
+                                WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
                      )
                 END,
         invalid_reason = 'D'

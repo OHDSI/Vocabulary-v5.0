@@ -1,3 +1,5 @@
+-- 2) dev_test3 - новый GU+ две функции 19 (обновленные после пт) ЛС+ малый анц
+
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -12,12 +14,12 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Christian Reich, Timur Vakhitov
 * Date: 2021
 **************************************************************************/
 
--- 1. Update latest_update field to new date 
+-- 1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -107,7 +109,7 @@ SELECT vocabulary_pack.CutConceptName(str),
 		FROM vocabulary
 		WHERE vocabulary_id = 'RxNorm'
 		),
-	CASE 
+	CASE
 		WHEN EXISTS (
 				SELECT 1
 				FROM sources.rxnatomarchive arch
@@ -137,7 +139,7 @@ SELECT vocabulary_pack.CutConceptName(str),
 					)
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE 
+	CASE
 		WHEN EXISTS (
 				SELECT 1
 				FROM sources.rxnatomarchive arch
@@ -212,7 +214,7 @@ SELECT vocabulary_pack.CutConceptName(str),
 		FROM vocabulary
 		WHERE vocabulary_id = 'RxNorm'
 		),
-	CASE 
+	CASE
 		WHEN EXISTS (
 				SELECT 1
 				FROM sources.rxnatomarchive arch
@@ -242,7 +244,7 @@ SELECT vocabulary_pack.CutConceptName(str),
 					)
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE 
+	CASE
 		WHEN EXISTS (
 				SELECT 1
 				FROM sources.rxnatomarchive arch
@@ -383,7 +385,7 @@ SELECT rxcui2 AS concept_code_1, -- !! The RxNorm source files have the directio
 	rxcui1 AS concept_code_2,
 	'RxNorm' AS vocabulary_id_1,
 	'RxNorm' AS vocabulary_id_2,
-	CASE -- 
+	CASE --
 		WHEN rela = 'has_precise_ingredient'
 			THEN 'Has precise ing'
 		WHEN rela = 'has_tradename'
@@ -450,9 +452,9 @@ FROM (
 			FROM concept
 			WHERE vocabulary_id = 'RxNorm'
 				AND concept_code = rxcui1
-			
+
 			UNION ALL
-			
+
 			SELECT 1
 			FROM concept_stage
 			WHERE vocabulary_id = 'RxNorm'
@@ -463,9 +465,9 @@ FROM (
 			FROM concept
 			WHERE vocabulary_id = 'RxNorm'
 				AND concept_code = rxcui2
-			
+
 			UNION ALL
-			
+
 			SELECT 1
 			FROM concept_stage
 			WHERE vocabulary_id = 'RxNorm'
@@ -671,9 +673,9 @@ WHERE EXISTS (
 				WHERE cs.concept_code = r.concept_code_1
 					AND cs.vocabulary_id = r.vocabulary_id_1
 					AND cs.concept_class_id = 'Ingredient'
-				
+
 				UNION ALL
-				
+
 				SELECT 1
 				FROM concept c
 				WHERE c.concept_code = r.concept_code_1
@@ -686,9 +688,9 @@ WHERE EXISTS (
 				WHERE cs.concept_code = r.concept_code_2
 					AND cs.vocabulary_id = r.vocabulary_id_2
 					AND cs.concept_class_id = 'Brand Name'
-				
+
 				UNION ALL
-				
+
 				SELECT 1
 				FROM concept c
 				WHERE c.concept_code = r.concept_code_2
@@ -715,9 +717,9 @@ WHERE EXISTS (
 				WHERE cs.concept_code = r.concept_code_1
 					AND cs.vocabulary_id = r.vocabulary_id_1
 					AND cs.concept_class_id = 'Brand Name'
-				
+
 				UNION ALL
-				
+
 				SELECT 1
 				FROM concept c
 				WHERE c.concept_code = r.concept_code_1
@@ -730,9 +732,9 @@ WHERE EXISTS (
 				WHERE cs.concept_code = r.concept_code_2
 					AND cs.vocabulary_id = r.vocabulary_id_2
 					AND cs.concept_class_id = 'Ingredient'
-				
+
 				UNION ALL
-				
+
 				SELECT 1
 				FROM concept c
 				WHERE c.concept_code = r.concept_code_2
@@ -1017,7 +1019,7 @@ UNION ALL
 		rx.valid_start_date,
 		rx.relationship_id
 	FROM rx
-	
+
 	UNION ALL
 	--Kill 'Maps to' as well
 	SELECT rx.concept_code_1,
@@ -1208,7 +1210,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date
 	)
 SELECT DISTINCT cs_min.concept_code AS concept_code_1,
-	CASE 
+	CASE
 		WHEN cs.concept_class_id = 'Ingredient'
 			THEN cs.concept_code
 		ELSE cs1.concept_code
@@ -1261,6 +1263,101 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+
+-- add Maps to from invalid RxN concepts that now doesn't have replacements inside RxN to RxE
+insert into concept_relationship_stage
+select NULL as concept_id_1,
+       NULL as concept_id_2,
+       t1.concept_code as concept_code_1,
+       t4.concept_code as concept_code_2,
+       t1.vocabulary_id as vocabulary_id_1,
+       t4.vocabulary_id as vocabulary_id_2,
+       'Maps to' as relationship_id,
+       current_date as valid_start_date,
+       '2099-12-31'::DATE as valid_end_date,
+       NULL as invalid_reason
+from concept t1
+     join concept t4 on lower(t1.concept_name) = lower(t4.concept_name)
+                        and t1.vocabulary_id = 'RxNorm'
+                        and t4.vocabulary_id = 'RxNorm Extension'
+                        and t4.concept_class_id = t1.concept_class_id
+                        and t1.invalid_reason is not NULL
+                        and t4.invalid_reason is null
+                        and t4.standard_concept = 'S'
+WHERE
+    not exists(SELECT 1 -- check that there is no mappin in the current ver.
+                   FROM concept_relationship t2
+                   WHERE t1.concept_id = t2.concept_id_1
+                   AND t2.relationship_id = 'Maps to'
+                   AND t2.invalid_reason is null)
+    and not exists (SELECT 1 -- check that nothing has been added during the load_stage
+                    FROM concept_relationship_stage t3
+                    WHERE t1.concept_code = t3.concept_code_1
+                    AND t1.vocabulary_id = t3.vocabulary_id_1
+                    AND t3.relationship_id = 'Maps to'
+                    and t3.invalid_reason is NULL);
+
+
+--- lets check situations where exists at the same time mappin to the RxN and RxE and if found,
+--- deprecate 'Maps to' to the RxE.
+insert into concept_relationship_stage
+select
+       NULL as concept_id_1,
+       NULL as concept_id_2,
+       t1.concept_code as concept_code_1,
+       c1.concept_code as concept_code_2,
+       t1.vocabulary_id as vocabulary_id_1,
+       c1.vocabulary_id as vocabulary_id_2,
+       'Maps to' as relationship_id,
+       cr.valid_start_date as valid_start_date,
+       current_date as valid_end_date,
+       'D' as invalid_reason
+from concept t1
+    join concept_relationship cr on t1.concept_id = cr.concept_id_1
+                                        and t1.vocabulary_id = 'RxNorm'
+                                        and t1.invalid_reason is NULL
+                                        and cr.relationship_id = 'Maps to'
+                                        and cr.invalid_reason is NULL
+    join concept c1 on cr.concept_id_2 = c1.concept_id
+                                        and c1.vocabulary_id = 'RxNorm Extension'
+WHERE
+    (EXISTS (SELECT 1
+             FROM concept_relationship t2
+                      JOIN concept t3 ON t2.concept_id_2 = t3.concept_id
+             WHERE t1.concept_id = t2.concept_id_1
+               AND t2.relationship_id = 'Maps to'
+               AND t2.invalid_reason IS NULL
+               AND t3.vocabulary_id = 'RxNorm'
+               AND t3.invalid_reason IS NULL)
+    OR EXISTS (SELECT 1
+             FROM concept_relationship_stage t6
+                      JOIN concept t7 ON t6.concept_code_2 = t7.concept_code
+             WHERE
+               t1.vocabulary_id = t6.vocabulary_id_1
+               and t1.concept_code = t6.concept_code_1
+               AND t6.relationship_id = 'Maps to'
+               AND t6.invalid_reason IS NULL
+               AND t7.vocabulary_id = 'RxNorm'
+               AND t7.invalid_reason IS NULL)
+    )
+and exists (SELECT 1
+            FROM concept_relationship t4
+            join concept t5 on t4.concept_id_2 = t5.concept_id
+            WHERE t1.concept_id = t4.concept_id_1
+            and t4.relationship_id = 'Maps to'
+            and t4.invalid_reason is null
+            and t5.vocabulary_id = 'RxNorm Extension'
+            and t5.invalid_reason is null);
+
+
+	-- fUNC19
+DO $_$
+    BEGIN
+    PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo('{RxNorm - CVX, CVX - RxNorm}',
+                                                         '{RxNorm Extension}',
+                                                         '{RxNorm Extension}');
+END $_$;
+
 --13. Create mapping to self for fresh concepts
 ANALYZE concept_relationship_stage;
 ANALYZE concept_stage;
@@ -1300,7 +1397,7 @@ ANALYZE concept_relationship_stage;
 
 --14. Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
 UPDATE concept_stage c
-SET concept_class_id = CASE 
+SET concept_class_id = CASE
 		WHEN concept_class_id = 'Branded Drug'
 			THEN 'Quant Branded Drug'
 		ELSE 'Quant Clinical Drug'
@@ -1394,6 +1491,7 @@ BEGIN
 END $_$;
 
 --18. We need to run generic_update before small RxE clean up
+
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
@@ -1406,3 +1504,8 @@ BEGIN
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;

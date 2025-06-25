@@ -141,36 +141,36 @@ absent_relationships_dev_rxnorm AS (
     )
     GROUP BY vc.concept_class_id, pr.relationship_id, pr.c_class_2
 ),
-valid_concepts_dev_test10 AS (
+valid_concepts_dev_test3 AS (
     SELECT concept_id, concept_name, concept_class_id
-    FROM dev_test10.concept
+    FROM dev_test3.concept
     WHERE vocabulary_id IN ('RxNorm', 'RxNorm Extension')
     AND invalid_reason IS NULL
 ),
-existing_relationships_dev_test10 AS (
+existing_relationships_dev_test3 AS (
     SELECT
         cr.concept_id_1,
         cr.relationship_id,
         c2.concept_class_id AS concept_class_id_2
-    FROM dev_test10.concept_relationship cr
-    JOIN valid_concepts_dev_test10 vc ON cr.concept_id_1 = vc.concept_id
-    JOIN dev_test10.concept c2 ON cr.concept_id_2 = c2.concept_id
+    FROM dev_test3.concept_relationship cr
+    JOIN valid_concepts_dev_test3 vc ON cr.concept_id_1 = vc.concept_id
+    JOIN dev_test3.concept c2 ON cr.concept_id_2 = c2.concept_id
     WHERE cr.invalid_reason IS NULL
     AND c2.invalid_reason IS NULL
     AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 ),
-absent_relationships_dev_test10 AS (
+absent_relationships_dev_test3 AS (
     SELECT
         vc.concept_class_id,
         pr.relationship_id,
         pr.c_class_2,
         COUNT(DISTINCT vc.concept_id) AS concept_count
-    FROM valid_concepts_dev_test10 vc
+    FROM valid_concepts_dev_test3 vc
     CROSS JOIN possible_relationships pr
     WHERE pr.c_class_1 = vc.concept_class_id
     AND NOT EXISTS (
         SELECT 1
-        FROM existing_relationships_dev_test10 er
+        FROM existing_relationships_dev_test3 er
         WHERE er.concept_id_1 = vc.concept_id
         AND er.relationship_id = pr.relationship_id
         AND er.concept_class_id_2 = pr.c_class_2
@@ -181,7 +181,7 @@ SELECT
     COALESCE(s1.concept_class_id, s2.concept_class_id) AS concept_class,
     COALESCE(s1.relationship_id, s2.relationship_id) || ' - ' || COALESCE(s1.c_class_2, s2.c_class_2) AS missing_connections,
     COALESCE(s1.concept_count, 0) AS count_in_dev_rxnorm,
-    COALESCE(s2.concept_count, 0) AS count_in_dev_test10,
+    COALESCE(s2.concept_count, 0) AS count_in_dev_test3,
     ABS(COALESCE(s1.concept_count, 0) - COALESCE(s2.concept_count, 0)) AS delta_abs,
     CASE
         WHEN COALESCE(s2.concept_count, 0) > 0
@@ -189,7 +189,7 @@ SELECT
         ELSE NULL
     END AS delta_percent
 FROM absent_relationships_dev_rxnorm s1
-FULL OUTER JOIN absent_relationships_dev_test10 s2
+FULL OUTER JOIN absent_relationships_dev_test3 s2
     ON s1.concept_class_id = s2.concept_class_id
     AND s1.relationship_id = s2.relationship_id
     AND s1.c_class_2 = s2.c_class_2

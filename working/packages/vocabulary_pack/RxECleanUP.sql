@@ -1,7 +1,9 @@
 CREATE OR REPLACE FUNCTION vocabulary_pack.RxECleanUP (
 )
-RETURNS void AS
-$BODY$
+RETURNS void
+    LANGUAGE plpgsql
+AS
+$$
 /*
  Clean up for RxE (create 'Concept replaced by' between RxE and Rx)
  AVOF-1456
@@ -22,8 +24,9 @@ BEGIN
 		pVocabularyName			=> 'RxNorm Extension',
 		pVocabularyDate			=> CURRENT_DATE,
 		pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
-		pVocabularyDevSchema	=> 'DEV_RXE'
+		pVocabularyDevSchema	=> 'DEV_RXNORM'
 	);
+
 	END $_$;
 
 	--2. Truncate all working tables
@@ -43,7 +46,7 @@ BEGIN
 	SET invalid_reason = 'X',
 		standard_concept = NULL,
 		valid_end_date = CURRENT_DATE,
-		concept_id=c.concept_id
+		concept_id=c.concept_id --- Здесь мы подменяем айдишник рхнорм экстешн на айдишник рхнорма, который полностью совпадает и ставим X
 	FROM concept c
 	WHERE upper(cs.concept_name) = upper(c.concept_name)
 		AND cs.concept_class_id = c.concept_class_id
@@ -76,15 +79,16 @@ BEGIN
 	WHERE c1.concept_id = r.concept_id_1
 		AND c2.concept_id = r.concept_id_2
 		AND (
-			(
-				c1.vocabulary_id = 'RxNorm Extension'
-				AND c2.vocabulary_id = 'RxNorm'
-				)
-			OR (
-				c1.vocabulary_id = 'RxNorm'
-				AND c2.vocabulary_id = 'RxNorm Extension'
-				)
+                (
+                    c1.vocabulary_id = 'RxNorm Extension'
+                    AND c2.vocabulary_id = 'RxNorm'
+                    )
+                OR (
+                    c1.vocabulary_id = 'RxNorm'
+                    AND c2.vocabulary_id = 'RxNorm Extension'
+                    )
 			)
+	    AND (c1.vocabulary_id, c2.vocabulary_id) != ('RxNorm', 'RxNorm') --- Добавим условие, чтобы не умирали связи внутри рхнорм
 		AND r.invalid_reason IS NULL;
 
 	--5. Deprecate old relationships
@@ -135,12 +139,19 @@ BEGIN
 	BEGIN
 		PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 	END $_$;
-	
+
 	--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 	DO $_$
 	BEGIN
 		PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 	END $_$;
+
+	-- fUNC19
+	DO $_$
+    BEGIN
+    PERFORM vocabulary_pack.addpropagatedhierarchymapsto();
+    END $_$;
+
 
 	--9. AddFreshMAPSTO creates RxNorm(ATC)-RxNorm links that need to be removed
 	DELETE
@@ -174,6 +185,8 @@ BEGIN
 	JOIN concept c ON c.concept_id = cs.concept_id
 		AND c.vocabulary_id = 'RxNorm Extension';
 	END;
+$$;
+
 $BODY$
 LANGUAGE 'plpgsql'
 VOLATILE

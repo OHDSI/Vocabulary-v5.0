@@ -109,8 +109,7 @@ BEGIN
           FROM hierarchical_relationships$ hr
           JOIN mapped_concepts$ mc ON mc.source_concept_code = hr.parent_concept_code
                AND mc.source_vocabulary_id = hr.parent_vocabulary_id
-         WHERE mc.target_concept_code != hr.child_concept_code 
-               AND mc.target_vocabulary_id != hr.child_vocabulary_id; 
+         WHERE (mc.target_concept_code, mc.target_vocabulary_id) != (hr.child_concept_code, hr.child_vocabulary_id);
 
     -- filter relationships by excluding relationship_id, new_parent_vocabulary_id, ew_child_vocabulary_id
     dynamic_query := '

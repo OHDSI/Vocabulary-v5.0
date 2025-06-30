@@ -1527,8 +1527,3 @@ DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
-
-DO $_$
-BEGIN
-	PERFORM vocabulary_pack.pConceptAncestor(is_small => True);
-END $_$;

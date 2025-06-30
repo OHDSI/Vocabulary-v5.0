@@ -46,7 +46,7 @@ BEGIN
 	SET invalid_reason = 'X',
 		standard_concept = NULL,
 		valid_end_date = CURRENT_DATE,
-		concept_id=c.concept_id --- Здесь мы подменяем айдишник рхнорм экстешн на айдишник рхнорма, который полностью совпадает и ставим X
+		concept_id=c.concept_id
 	FROM concept c
 	WHERE upper(cs.concept_name) = upper(c.concept_name)
 		AND cs.concept_class_id = c.concept_class_id
@@ -88,7 +88,7 @@ BEGIN
                     AND c2.vocabulary_id = 'RxNorm Extension'
                     )
 			)
-	    AND (c1.vocabulary_id, c2.vocabulary_id) != ('RxNorm', 'RxNorm') --- Добавим условие, чтобы не умирали связи внутри рхнорм
+	    AND (c1.vocabulary_id, c2.vocabulary_id) != ('RxNorm', 'RxNorm')
 		AND r.invalid_reason IS NULL;
 
 	--5. Deprecate old relationships
@@ -146,7 +146,6 @@ BEGIN
 		PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 	END $_$;
 
-	-- fUNC19
 	DO $_$
     BEGIN
     PERFORM vocabulary_pack.addpropagatedhierarchymapsto();

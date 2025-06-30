@@ -1,5 +1,3 @@
--- 2) dev_test3 - новый GU+ две функции 19 (обновленные после пт) ЛС+ малый анц
-
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences AND Informatics (OHDSI)
 *
@@ -1520,7 +1518,7 @@ END $_$;
 --21. Run RxE clean up
 DO $_$
 BEGIN
-	PERFORM dev_test10.RxECleanUP_old();
+	PERFORM vocabulary_pack.RxECleanUP();
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

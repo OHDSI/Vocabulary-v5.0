@@ -187,7 +187,13 @@ CREATE TABLE valid_llt_pt_1_to_1_child_paren_pairs as
                                  WHERE ca.ancestor_concept_id = c.target_id_array_agg[1]
                                    AND ca.descendant_concept_id = a.target_id_array_agg[1]);
 
-SELECT *
-from discrepancies_in_llt_pt
-where llt_id not in (SELECT llt_id from valid_llt_pt_1_to_1_child_paren_pairs)
+SELECT *,
+       CASE WHEN llt_target_id_array_agg <@ pt_target_id_array_agg
+           OR llt_target_id_array_agg @> pt_target_id_array_agg
+           THEN TRUE
+           ELSE FALSE
+           END AS flag
+FROM discrepancies_in_llt_pt
+WHERE llt_id NOT IN (SELECT llt_id FROM valid_llt_pt_1_to_1_child_paren_pairs)
+--AND llt_relationship_id = 'Maps to' --    exclude Maps to value
 ;

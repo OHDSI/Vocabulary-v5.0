@@ -21,7 +21,7 @@ BEGIN
 			DENSE_RANK() OVER (
 				PARTITION BY cd.concept_id ORDER BY cd.concept_order
 				) AS rn
-		FROM sources.class_to_drug cd
+		FROM dev_atc.class_to_drug cd
 		JOIN concept c ON cd.class_code = c.concept_code
 			AND c.vocabulary_id = 'ATC'
 		JOIN concept rx ON rx.concept_id = cd.concept_id
@@ -339,7 +339,7 @@ BEGIN
 			)
 		AND EXISTS (
 			SELECT 1
-			FROM sources.class_to_drug d
+			FROM dev_atc.class_to_drug d
 			WHERE d.class_code = c.concept_code
 				AND d.concept_class_id = 'Ingredient'
 			); --only default where ATC explicitly does not assume a drug form or an ingredient is unique
@@ -521,7 +521,7 @@ BEGIN
 			DENSE_RANK() OVER (
 				PARTITION BY cd.concept_id ORDER BY cd.concept_order
 				) AS rn
-		FROM sources.class_to_drug cd
+		FROM dev_atc.class_to_drug cd
 		JOIN concept c ON cd.class_code = c.concept_code
 			AND c.vocabulary_id = 'ATC'
 		JOIN concept rx ON rx.concept_id = cd.concept_id

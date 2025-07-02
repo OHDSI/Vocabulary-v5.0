@@ -1,5 +1,5 @@
 /**************************************************************************
-* Copyright 2016 Observational Health Data Sciences AND Informatics (OHDSI)
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -8,7 +8,7 @@
 * http://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed ON an "AS IS" BASIS,
+* distributed under the License is distributed on an "AS IS" BASIS,
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
@@ -82,7 +82,7 @@ SELECT vocabulary_pack.CutConceptName(str),
 		WHEN 'MIN'
 			THEN 'Multiple Ingredients'
 		END,
-	-- only Ingredients, drug components, drug forms, drugs AND packs are standard concepts
+	-- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
 	CASE tty
 		WHEN 'PIN'
 			THEN NULL
@@ -1197,7 +1197,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---8. Add 'Maps to' FROM MIN to Ingredient
+--8. Add 'Maps to' from MIN to Ingredient
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1243,7 +1243,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---10. Add mapping FROM deprecated to fresh concepts
+--10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
@@ -1402,18 +1402,18 @@ WHERE c.vocabulary_id = v.vocabulary_id
 ANALYZE concept_relationship_stage;
 
 --15. Do the "adoption" of children-concepts coming form newly-mapped parent entries.
---For Rx AND RxE hierarchical reconstruction is limited to  scope of Ancestor-approved triples
+--For Rx and RxE hierarchical reconstruction is limited to  scope of Ancestor-approved triples
 
 DO $_$
     BEGIN
     PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo('{RxNorm - CVX, CVX - RxNorm}', -- exclusion of specific rel-ns
-                                                         '{RxNorm Extension}', -- AND exclusion of specific voc-s
-                                                         '{RxNorm Extension}') -- AND exclusion of specific voc-s
+                                                         '{RxNorm Extension}', -- and exclusion of specific voc-s
+                                                         '{RxNorm Extension}') -- and exclusion of specific voc-s
     ; 
 END $_$;
 
 
---16. Turn "Clinical Drug" to "Quant Clinical Drug" AND "Branded Drug" to "Quant Branded Drug"
+--16. Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
 UPDATE concept_stage c
 SET concept_class_id = CASE
 		WHEN concept_class_id = 'Branded Drug'
@@ -1444,7 +1444,7 @@ FROM (
 	SELECT pack_code,
 		-- Parse the number at the beginning of each drug string as the amount
 		SUBSTRING(pack_name, '^[0-9]+') AS amount,
-		-- Parse the number in parentheses ON the second position of the drug string as the quantity factor of a quantified drug (usually not listed in the concept table), not used right now
+		-- Parse the number in parentheses on the second position of the drug string as the quantity factor of a quantified drug (usually not listed in the concept table), not used right now
 		TRANSLATE(SUBSTRING(pack_name, '\([0-9]+ [A-Za-z]+\)'), 'a()', 'a') AS quant,
 		-- Don't parse the drug name, because it will be found through instr() with the known name of the component (see below)
 		pack_name AS drug
@@ -1453,7 +1453,7 @@ FROM (
 			-- This is the sequence to split the concept_name of the packs by the semicolon, which replaces the parentheses plus slash (see below)
 			TRIM(UNNEST(regexp_matches(pack_name, '[^;]+', 'g'))) AS pack_name
 		FROM (
-			-- This takes a Pack name, replaces the sequence ') / ' with a semicolon for splitting, AND removes the word Pack AND everything thereafter (the brand name usually)
+			-- This takes a Pack name, replaces the sequence ') / ' with a semicolon for splitting, and removes the word Pack and everything thereafter (the brand name usually)
 			SELECT rxcui AS pack_code,
 				REGEXP_REPLACE(REPLACE(REPLACE(str, ') / ', ';'), '{', ''), '\) } Pack( \[.+\])?', '','g') AS pack_name
 			FROM sources.rxnconso
@@ -1488,7 +1488,7 @@ JOIN (
 	WHERE r.relationship_id = 'Contains'
 		AND r.invalid_reason IS NULL
 	) cont ON cont.concept_code_1 = pc.pack_code
-	AND pc.drug LIKE '%' || cont.concept_name || '%';-- this is where the component name is fit into the parsed drug name FROM the Pack string
+	AND pc.drug LIKE '%' || cont.concept_name || '%';-- this is where the component name is fit into the parsed drug name from the Pack string
 
 --18. Run FillDrugStrengthStage
 DO $_$
@@ -1520,7 +1520,7 @@ BEGIN
 	PERFORM vocabulary_pack.RxECleanUP();
 END $_$;
 
--- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();

@@ -36,7 +36,7 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Insert into concept_stage
--- Get drugs, components, forms AND ingredients
+-- Get drugs, components, forms and ingredients
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -182,7 +182,7 @@ WHERE sab = 'RXNORM'
 		'MIN'
 		);
 
--- Packs share rxcuis with Clinical Drugs AND Branded Drugs, therefore use code as concept_code
+-- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -471,7 +471,7 @@ FROM (
 			WHERE vocabulary_id = 'RxNorm'
 				AND concept_code = rxcui2
 			)
-		--Mid-2020 release added seeminggly useless nonsensical relationships between dead AND alive concepts that need additional investigation
+		--Mid-2020 release added seeminggly useless nonsensical relationships between dead and alive concepts that need additional investigation
 		--[AVOF-2522]
 		AND rela NOT IN (
 			'has_part',
@@ -485,7 +485,7 @@ FROM (
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 
---Rename "RxNorm has ing" to "Has brand name" if concept_code_2 has the concept_class_id='Brand Name' AND reverse
+--Rename "RxNorm has ing" to "Has brand name" if concept_code_2 has the concept_class_id='Brand Name' and reverse
 UPDATE concept_relationship_stage crs_m
 SET RELATIONSHIP_ID = 'Has brand name'
 WHERE EXISTS (
@@ -529,7 +529,7 @@ WHERE EXISTS (
 			AND crs_m.relationship_id = crs.relationship_id
 		);
 
--- Add missing relationships between Branded Packs AND their Brand Names
+-- Add missing relationships between Branded Packs and their Brand Names
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -569,7 +569,7 @@ WITH pb AS (
 					AND concept_class_id = 'Brand Name'
 				) AS s1 ON REPLACE(pack_brand, '-', ' ') ILIKE '%' || REPLACE(brand_name, '-', ' ') || '%'
 			) AS s2
-		-- apply the slow regexp only to the ones preSELECTed by instr
+		-- apply the slow regexp only to the ones preselected by instr
 		WHERE LOWER(REPLACE(pack_brand, '-', ' ')) ~ ('(^|\s|\W)' || LOWER(REPLACE(brand_name, '-', ' ')) || '($|\s|\W)')
 		)
 SELECT DISTINCT pack_code AS concept_code_1,
@@ -612,7 +612,7 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'Brand name of'
 		);
 
--- Remove shortcut 'RxNorm has ing' relationship between 'Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack' AND 'Ingredient'
+-- Remove shortcut 'RxNorm has ing' relationship between 'Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack' and 'Ingredient'
 DELETE
 FROM concept_relationship_stage r
 WHERE EXISTS (
@@ -635,7 +635,7 @@ WHERE EXISTS (
 		)
 	AND relationship_id = 'RxNorm has ing';
 
--- AND same for reverse
+-- and same for reverse
 DELETE
 FROM concept_relationship_stage r
 WHERE EXISTS (
@@ -658,7 +658,7 @@ WHERE EXISTS (
 		)
 	AND relationship_id = 'RxNorm ing of';
 
---Rename 'Has tradename' to 'Has brand name'  where concept_id_1='Ingredient' AND concept_id_2='Brand Name'
+--Rename 'Has tradename' to 'Has brand name' where concept_id_1='Ingredient' and concept_id_2='Brand Name'
 UPDATE concept_relationship_stage crs_m
 SET relationship_id = 'Has brand name'
 WHERE EXISTS (
@@ -746,7 +746,7 @@ WHERE EXISTS (
 			AND crs_m.relationship_id = r.relationship_id
 		);
 
---6. Add cross-link AND mapping table between SNOMED AND RxNorm
+--6. Add cross-link and mapping table between SNOMED and RxNorm
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -774,7 +774,7 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'SNOMED'
 	AND d.invalid_reason IS NULL
--- Mapping table between SNOMED to RxNorm. SNOMED is both an intermediary between RxNorm AND DM+D, AND a source code
+-- Mapping table between SNOMED to RxNorm. SNOMED is both an intermediary between RxNorm and DM+D, and a source code
 
 UNION ALL
 
@@ -800,7 +800,7 @@ WHERE d.vocabulary_id = 'SNOMED'
 		'Brand Name'
 		);
 
---7. Add upgrade relationships (concept_code_2 shouldn't exists in rxnsat with atn = 'RXN_QUALITATIVE_DISTINCTION')
+--7. Add upgrade relationships (concept_code_2 shouldn't exist in rxnsat with atn = 'RXN_QUALITATIVE_DISTINCTION')
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -843,7 +843,7 @@ WHERE raa.sab = 'RXNORM'
 	AND raa.rxcui <> raa.merged_to_rxcui
 	AND rxs.rxcui IS NULL;
 
---7.1. Add 'Maps to' between RXN_QUALITATIVE_DISTINCTION AND fresh concepts (AVOF-457)
+--7.1. Add 'Maps to' between RXN_QUALITATIVE_DISTINCTION and fresh concepts (AVOF-457)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1010,7 +1010,7 @@ UNION ALL
 				AND c.invalid_reason = 'U'
 				AND c.vocabulary_id = 'RxNorm'
 				AND c2.vocabulary_id = 'RxNorm'
-				AND cs.concept_code IS NULL --missing FROM concept_stage (rxnconso)
+				AND cs.concept_code IS NULL --missing from concept_stage (rxnconso)
 			)
 	SELECT rx.concept_code_1,
 		rx.concept_code_2,
@@ -1118,7 +1118,7 @@ WHERE crs.concept_code_1 = '1000589'
 	AND crs.concept_code_2 = '350141'
 	AND crs.relationship_id = 'Concept replaced by';
 
---7.4 Delete non-existing concepts FROM concept_relationship_stage
+--7.4 Delete non-existing concepts from concept_relationship_stage
 DELETE
 FROM concept_relationship_stage crs
 WHERE (
@@ -1150,7 +1150,7 @@ WHERE (
 				)
 		);
 
---7.5 Add 'Maps to' as part (duplicate) of the 'Form of' relationship between 'Precise Ingredient' AND 'Ingredient' (AVOF-1167)
+--7.5 Add 'Maps to' as part (duplicate) of the 'Form of' relationship between 'Precise Ingredient' and 'Ingredient' (AVOF-1167)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1249,7 +1249,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---11.1 Create the mappings-replacements FROM RxN to RxN_E for cases when mapping is not available in basic AND stage table
+--11.1 Create the mappings-replacements from RxN to RxN_E for cases when mapping is not available in basic and stage table
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
        concept_id_1,
@@ -1300,7 +1300,7 @@ GROUP BY t1.concept_code, t4.concept_code, t1.vocabulary_id, t4.vocabulary_id,t4
 where rating=1
 ;
 
---11.2 lets check situations where exists at the same time mapping to the RxN AND RxE AND if found,
+--11.2 lets check situations where exists at the same time mapping to the RxN and RxE and if found,
 -- deprecate 'Maps to' to the RxE.
 INSERT INTO concept_relationship_stage
 SELECT
@@ -1352,7 +1352,7 @@ AND EXISTS (SELECT 1
             AND t5.vocabulary_id = 'RxNorm Extension'
             AND t5.invalid_reason IS NULL);
 
---12. Deprecate 'Maps to' mappings to deprecated AND upgraded concepts
+--12. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
@@ -1509,7 +1509,6 @@ BEGIN
 END $_$;
 
 --20. We need to run generic_update before small RxE clean up
-
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
@@ -1522,7 +1521,6 @@ BEGIN
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script
-
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();

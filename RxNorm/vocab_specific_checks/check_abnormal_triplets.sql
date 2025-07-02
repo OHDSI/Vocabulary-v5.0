@@ -1,3 +1,6 @@
+-- This check compares the quantity of valid abnormal relationships between RxN/RxE concept classes in devv5 and the working schema
+-- The result should not show an increase in counts
+
 WITH normal_triplets AS (
 
     ----- All values that we manually checked and marked as relevant

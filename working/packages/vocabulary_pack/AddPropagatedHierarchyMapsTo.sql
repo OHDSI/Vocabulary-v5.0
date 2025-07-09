@@ -335,7 +335,7 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
     IF current_schema() = 'devv5' THEN
-        INSERT INTO audit.logged_propogated_maps_to (
+        INSERT INTO audit.logged_propagated_maps_to (
             concept_code_1,
             concept_code_2,
             vocabulary_id_1,
@@ -355,11 +355,11 @@ BEGIN
         PERFORM 1
         FROM information_schema.tables
         WHERE table_schema = current_schema()
-          AND table_name = 'logged_propogated_maps_to';
+          AND table_name = 'logged_propagated_maps_to';
 
         IF NOT FOUND THEN
             EXECUTE '
-                CREATE TABLE logged_propogated_maps_to (
+                CREATE TABLE logged_propagated_maps_to (
                     concept_code_1 varchar(50) NULL,
                     concept_code_2 varchar(50) NULL,
                     vocabulary_id_1 varchar(20) NULL,
@@ -374,7 +374,7 @@ BEGIN
                 );';
         END IF;
 
-        INSERT INTO logged_propogated_maps_to (
+        INSERT INTO logged_propagated_maps_to (
             concept_code_1,
             concept_code_2,
             vocabulary_id_1,

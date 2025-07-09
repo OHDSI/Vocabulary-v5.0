@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION vocabulary_pack.AddPropagatedHierarchyMapsTo(
     p_relationship_id text[] DEFAULT NULL::text[],
     p_vocabulary_id_1 text[] DEFAULT NULL::text[],
-    p_vocabulary_id_2 text[] DEFAULT NULL::text[])
+    p_vocabulary_id_2 text[] DEFAULT NULL::text[],
+    p_business_rule text DEFAULT NULL::text)
 RETURNS void
 LANGUAGE plpgsql
 AS $BODY$
@@ -343,12 +344,60 @@ BEGIN
             created
         )
         SELECT
-            new_parent_concept_code AS concept_code_1,
-            new_child_concept_code AS concept_code_2,
-            new_parent_vocabulary_id AS vocabulary_id_1,
-            new_child_vocabulary_id AS vocabulary_id_2,
+            concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
             relationship_id,
-            CURRENT_TIMESTAMP AS created
+            CURRENT_TIMESTAMP
+        FROM new_hierarchical_relationships$;
+    ELSE 
+        PERFORM 1
+        FROM information_schema.tables
+        WHERE table_schema = current_schema()
+          AND table_name = 'logged_propogated_maps_to';
+
+        IF NOT FOUND THEN
+            EXECUTE '
+                CREATE TABLE logged_propogated_maps_to (
+                    concept_code_1 varchar(50) NULL,
+                    concept_code_2 varchar(50) NULL,
+                    vocabulary_id_1 varchar(20) NULL,
+                    vocabulary_id_2 varchar(20) NULL,
+                    relationship_id varchar(20) NULL,
+                    valid_start_date date NULL,
+                    valid_end_date date NULL,
+                    invalid_reason varchar(1) NULL,
+                    created timestamp DEFAULT CURRENT_TIMESTAMP NULL,
+                    schema_name text NULL,
+                    business_rule text NULL
+                );';
+        END IF;
+
+        INSERT INTO logged_propogated_maps_to (
+            concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
+            relationship_id,
+            valid_start_date,
+            valid_end_date,
+            invalid_reason,
+            created,
+            schema_name,
+            business_rule
+        )
+        SELECT concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
+            relationship_id,
+            valid_start_date,
+            valid_end_date,
+            invalid_reason,
+            CURRENT_TIMESTAMP,
+            current_schema(),
+            p_business_rule
         FROM new_hierarchical_relationships$;
     END IF;
 

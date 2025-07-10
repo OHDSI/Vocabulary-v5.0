@@ -861,7 +861,7 @@ AS (
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4367'
+					AND 'Q4382'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010

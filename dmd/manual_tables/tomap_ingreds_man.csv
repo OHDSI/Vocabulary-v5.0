@@ -1,0 +1,193 @@
+"source_code";"source_name";"concept_id";"precedence"
+"10901611000001102";Cimicifuga tincture;45776108;1
+"11170811000001106";Varicella-Zoster virus live attenuated (Oka strain);;1
+"11171911000001108";Influenza virus surface antigens;;1
+"11172011000001101";Influenza virus surface antigens virosome;;1
+"11172111000001100";Influenza virus split virion;;1
+"1332140007";Foscarbidopa;740560;1
+"1332139005";Foslevodopa;789578;1
+"15651811000001103";Influenza H1N1 vaccine;;1
+"19699211000001101";Influenza virus live attenuated;;1
+"20114111000001107";Varicella-Zoster virus live attenuated (Oka/Merck strain);;1
+"23605011000001108";Neisseria meningitidis group B NadA protein;;1
+"23605111000001109";Neisseria meningitidis group B fHbp fusion protein;;1
+"23605211000001103";Outer membrane vesicles (OMV) from Neisseria meningitidis group B containing the PorA P1.4;;1
+"32883111000001106";Bent (Agrostis capillaris) pollen allergen extract;40684633;1
+"32883211000001100";Brome (Bromus species) pollen allergen extract;40684625;1
+"32883411000001101";Dogstail (Cynosurus cristatus) pollen allergen extract;40684610;1
+"32883411000001101";Dogstail (Cynosurus cristatus) pollen allergen extract;44784733;2
+"32883611000001103";Meadow foxtail (Alopecurus pratensis) pollen allergen extract;44784859;1
+"32883811000001104";False oat grass (Arrhenatherum elatius) pollen allergen extract;40684621;1
+"32884011000001107";Sweet vernal (Anthoxanthum odoratum) pollen allergen extract;40162087;1
+"33532111000001100";L-Lysine monohydrate;19092377;1
+"34613311000001109";Neisseria meningitidis serogroup B fHbp subfamily B fusion protein;;1
+"36754911000001103";Influenza virus inactivated split (H1N1, H3N2-like, B/Brisbane/60/2008-like, strains);;1
+"372639009";Fluoride;19018663;1
+"38737611000001109";Varicella-Zoster surface antigens;;1
+"40234711000001103";Asp viper snake venom antiserum;;1
+"40234811000001106";Horned viper snake venom antiserum;;1
+"41213611000001106";Dengue virus serotype 1 live attenuated;1361608;1
+"41213611000001106";Dengue virus serotype 1 live attenuated;36853568;2
+"41213711000001102";Dengue virus serotype 2 live attenuated;36857356;2
+"41213711000001102";Dengue virus serotype 2 live attenuated;1361609;1
+"41213811000001105";Dengue virus serotype 3 live attenuated;36861114;2
+"41213811000001105";Dengue virus serotype 3 live attenuated;1361610;1
+"41213911000001100";Dengue virus serotype 4 live attenuated;1361611;1
+"41213911000001100";Dengue virus serotype 4 live attenuated;36861173;2
+"41463111000001103";Ivy leaf dry extract;36878639;1
+"41823711000001103";Birch bark extract;42898478;1
+"41823711000001103";Birch bark extract;789937;2
+"41823711000001103";Birch bark extract;42898482;3
+"41824511000001106";Oat flour allergen extract;40175871;1
+"41825111000001103";Rice flour allergen extract;40172600;1
+"41825611000001106";Cow casein allergen extract;40170366;1
+"41825611000001106";Cow casein allergen extract;40175834;2
+"41826611000001101";Haricot blanc (white bean) allergen extract;40170814;1
+"41827111000001107";Chickpea allergen extract;40226438;1
+"41827611000001104";Acarus siro allergen extract;;1
+"41828111000001108";Tyrophagus putrescentiae allergen extract;;1
+"41828611000001100";Mustard allergen extract;40172321;1
+"41831111000001103";Celery allergen extract;40170408;1
+"41831611000001106";Potato allergen extract;40171218;1
+"41832111000001108";Corn flour allergen extract;40170650;1
+"41832811000001101";Barley flour allergen extract;40175801;1
+"41836211000001101";Meadow fescue (Festuca elatior) pollen allergen extract;1594455;2
+"41836211000001101";Meadow fescue (Festuca elatior) pollen allergen extract;36946029;3
+"41836211000001101";Meadow fescue (Festuca elatior) pollen allergen extract;40161861;1
+"41836711000001108";Hornbeam (American) (Ostrya virginiana) pollen allergen extract;;1
+"41837811000001103";Sweet (Bell) pepper allergen extract;43532101;1
+"41837811000001103";Sweet (Bell) pepper allergen extract;40172504;2
+"41837811000001103";Sweet (Bell) pepper allergen extract;40175868;3
+"41838311000001108";Yeast (Brewers) allergen extract;19097209;1
+"41839711000001103";Rye grass (Lolium multiflorum) pollen allergen extract;40171271;1
+"41839711000001103";Rye grass (Lolium multiflorum) pollen allergen extract;36963157;2
+"41843311000001104";Linden (Tilia cordata) pollen allergen extract;40161968;1
+"41844211000001105";Lepidoglyphus destructor allergen extract;;1
+"41844711000001103";Curry allergen extract;;1
+"41844911000001101";Rapeseed (Brassica napus) pollen allergen extract;44784667;1
+"41845411000001105";Lupin flour allergen extract;42904066;1
+"41845911000001102";Rabbit epithelium allergen extract;40167658;1
+"41846311000001108";Soya flour allergen extract;40171087;1
+"41846411000001101";Chicken feathers allergen extract;40170420;1
+"41847411000001104";Mouse epithelium allergen extract;40161845;1
+"41847511000001100";Pea allergen extract;40170854;1
+"41848511000001101";Rat epithelium allergen extract;40171114;1
+"41848711000001106";Macadamia allergen extract;40226690;1
+"41849211000001109";Goose feathers allergen extract;40170741;1
+"41850011000001109";Pecan allergen extract;40170868;1
+"41850311000001107";Duck feathers allergen extract;40170531;1
+"41851011000001100";Cashew allergen extract;40170370;1
+"41851511000001108";Sunflower allergen extract;40172580;1
+"41852011000001108";Walnut allergen extract;19013477;1
+"41853611000001106";Sunflower (Helianthus annuus) pollen allergen extract;40162079;1
+"41856111000001108";Mucor mucedo allergen extract;;1
+"41856411000001103";Botrytis cinerea allergen extract;40161103;1
+"41856511000001104";Pistachio allergen extract;40174420;1
+"41857511000001102";Almond allergen extract;40170458;1
+"41857911000001109";American cockroach (Periplaneta americana) allergen extract;40173533;1
+"41858811000001100";Brazil nut allergen extract;40170385;1
+"41859111000001100";Chicken meat allergen extract;40170416;1
+"41859611000001108";Hazelnut allergen extract;40170834;1
+"41860411000001109";Peanut allergen extract;40170862;1
+"41860911000001101";Lamb meat allergen extract;40175843;1
+"41861711000001106";Cod allergen extract;40171594;1
+"41862111000001100";Kiwi allergen extract;40226721;1
+"41862711000001104";Crab allergen extract;40170660;1
+"41863611000001103";Strawberry allergen extract;40171120;1
+"41864111000001108";Orange allergen extract;40170774;1
+"41864311000001105";Mussel allergen extract;;1
+"41865311000001109";Tuna allergen extract;40171135;1
+"41866011000001102";Salmon allergen extract;40171275;1
+"41866811000001108";Prawn allergen extract;;1
+"41866911000001103";Sardine allergen extract;40175884;1
+"41870211000001101";Goosefoot (Chenopodium album) pollen allergen extract;;1
+"41871011000001102";Willow (Salix fragilis) pollen allergen extract;37497460;1
+"41907211000001103";Hen's egg (white) allergen extract;40170549;1
+"41907311000001106";Hen's egg (yolk) allergen extract;40170553;1
+"41907411000001104";Hen's egg (whole) allergen extract;40174213;1
+"41908511000001101";Plane (Platanus hyspanica) pollen allergen extract;;1
+"41993711000001102";Cypress (Cupressus arizonica) pollen allergen extract;40161044;1
+"41993811000001105";Olive (Olea europaea) pollen allergen extract;40175783;1
+"41997911000001109";Parietaria (Parietaria judaica) pollen allergen extract;;1
+"41999011000001101";Ragweed (Ambrosia elatior) pollen allergen extract;36967859;1
+"41999811000001107";Russian thistle (Salsola species) pollen allergen extract;40161467;1
+"42000611000001106";House dust mite (Blomia tropicalis) allergen extract;;1
+"42047611000001101";Soya bean allergen extract;40171087;1
+"42048111000001105";Shrimp allergen extract;40171317;1
+"42238011000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF3) antigen;;1
+"42416111000001108";Beech (Fagus grandifolia) pollen allergen extract;40161542;1
+"42416111000001108";Beech (Fagus grandifolia) pollen allergen extract;40684632;2
+"42430411000001106";Plane tree (Platanus acerifolia) pollen allergen extract;36939856;1
+"42434111000001105";Hake allergen extract;;1
+"42436111000001103";Chestnut allergen extract;;1
+"42511211000001102";Proteus vulgaris inactivated;42903937;1
+"42511311000001105";Klebsiella pneumoniae inactivated;42899432;1
+"42511411000001103";Escherichia coli inactivated;19030957;1
+"42511711000001109";Johnson grass (Sorghum halepense) pollen allergen extract;40161256;1
+"42512211000001109";Bahia grass (Paspalum notatum) pollen allergen extract;40161077;1
+"42513011000001108";Wild oat (Trisetum paniceum) pollen allergen extract;40175871;1
+"42513011000001108";Wild oat (Trisetum paniceum) pollen allergen extract;46276396;2
+"42513511000001100";Amaranthus (Amaranthus retroflexus) pollen allergen extract;42900429;1
+"42514111000001106";Euroglyphus maynei allergen extract;;1
+"42514711000001107";Glycyphagus domesticus allergen extract;;1
+"42515211000001104";Beetroot allergen extract;40172566;1
+"42515611000001102";Chortoglyphus arcuatus allergen extract;;1
+"42516711000001103";Tricophyton mentagrophytes allergen extract;40167348;1
+"42516811000001106";Garlic allergen extract;40172254;1
+"42517811000001108";Oregano allergen extract;40226747;1
+"42518711000001104";Rhizopus oryzae allergen extract;40175794;1
+"42518811000001107";White pepper allergen extract;40227488;1
+"42520111000001108";Anisakis fish parasite allergen extract;;1
+"42522411000001102";Anise allergen extract;;1
+"42523511000001105";Black pepper allergen extract;40171939;1
+"42524011000001100";Cumin allergen extract;40172218;1
+"42524711000001103";Sheep epithelium allergen extract;1536751;1
+"42525311000001103";Hamster epithelium allergen extract;40170818;1
+"42528611000001102";Rabbit meat allergen extract;40175911;1
+"42529111000001103";Veal meat allergen extract;40227400;1
+"42529611000001106";Duck meat allergen extract;40175840;1
+"42531611000001108";Watermelon allergen extract;40172846;1
+"42532111000001105";Parakeet feathers allergen extract;40244145;1
+"42532611000001102";Pigeon feathers allergen extract;;1
+"42534911000001104";Squid allergen extract;;1
+"42535411000001108";Octopus allergen extract;;1
+"42535911000001100";Black ant (Lasius niger) allergen extract;35200660;2
+"42536411000001104";Oriental cockroach (Blatta orientalis) allergen extract;42904080;1
+"42536911000001107";Box elder (Acer negundo) pollen allergen extract;40161593;1
+"42537411000001102";Blue gum (Eucalyptus globulus) pollen allergen extract;40161706;1
+"42537511000001103";Date palm (Phoenix dactylifera) pollen allergen extract;40161654;1
+"42538211000001102";Chestnut (Castanea sativa) pollen allergen extract;;1
+"42539111000001101";White mulberry (Morus alba) pollen allergen extract;40162132;1
+"42539611000001109";Juniper (Juniperus oxycedrus) pollen allergen extract;;1
+"42542711000001105";Enterococcus faecalis Inactivated;19000813;1
+"42577411000001100";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup A;;1
+"42577511000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup B;;1
+"42594111000001107";Cytisinicline;35606016;1
+"42927511000001109";Common reed (Phragmites communis) pollen allergen extract;;1
+"42928611000001107";Brown rice / Wild rice pollen allergen extract;35201788;1
+"42931011000001108";Ovomucoid allergen extract;40170549;1
+"42934011000001106";Garden sorrel (Rumex acetosella) pollen allergen extract;40162235;1
+"42935911000001109";Eggplant (Aubergine) allergen extract;40175842;1
+"42940111000001104";Lentil (Red) allergen extract;40172453;1
+"42941411000001100";Casein allergen extract;40175834;1
+"42941911000001108";Beta-Lactoglobulin allergen extract;;1
+"42942411000001105";Alpha-Lactalbumin allergen extract;;1
+"42945711000001108";Cypress (Cupressus sempervirens) pollen allergen extract;36863547;1
+"42946711000001100";Stone pine pollen allergen extract;36859329;1
+"42947511000001107";Bay leaf (Laurel) allergen extract;40226409;1
+"43005111000001103";Pine (Pinus species) pollen allergen extract;;1
+"43292811000001107";Pelargonium root;42899638;1
+"43996311000001103";PTH(1-34);1521987;1
+"44459011000001103";Nonoxinol 9;969444;1
+"45150511000001106";Zoonotic influenza (H5N8) surface antigens;;1
+"48540004";Patent blue V sodium;19022170;1
+"713337000";N(2)-L-alanyl-L-glutamine;42904285;1
+"768559003";Colestyramine anhydrous;19095309;1
+"838509000";Chondroitin;1395573;1
+"10161311000001106";Frangula bark;19016537;1
+"10597611000001103";Acetyl-L-carnitine;19037596;1
+"11142111000001104";Hexaminolevulinate;43532423;1
+"32615011000001102";Corticorelin ovine;19048699;1
+"4174011000001101";Follicle stimulating hormone human;1588712;1
+"78447009";Phospholipids;0;
+"44155911000001102";Menotrophin;0;

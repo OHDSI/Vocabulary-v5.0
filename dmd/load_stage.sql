@@ -74,7 +74,7 @@ WHERE
 	c.vocabulary_id = 'SNOMED' AND
 	c.invalid_reason IS NULL
 ;
---Adding constraints AND indexes to snomed ancestor
+--Adding constraints and indexes to snomed ancestor
 ALTER TABLE ancestor_snomed ADD CONSTRAINT xpkancestor_snomed PRIMARY KEY (ancestor_concept_id,descendant_concept_id);
 CREATE INDEX idx_sna_descendant ON ancestor_snomed (descendant_concept_id);
 CREATE INDEX idx_sna_ancestor ON ancestor_snomed (ancestor_concept_id);
@@ -83,16 +83,16 @@ ANALYZE ancestor_snomed;
 
 --! Step 1. Extract meaningful data FROM XML source. Manual fix to source data discrepancies
 DROP TABLE IF EXISTS vmpps, vmps, ampps, amps, licensed_route, comb_content_v, comb_content_a, virtual_product_ingredient,
-    vtms, ont_drug_form, drug_form, ap_ingredient, ingredient_substances, combination_pack_ind, combination_prod_ind,
-    unit_of_measure, forms, supplier, fake_supp, df_indicator, dmd2atc, dmd2bnf, history_codes CASCADE;
+    vtms, ont_drug_form, drug_form, ingredient_substances, combination_pack_ind, combination_prod_ind,
+    unit_of_measure, forms, supplier, fake_supp, df_indicator, history_codes CASCADE;
 
 -- extract history codes for mappping compare 
 CREATE TABLE history_codes AS 
 SELECT 
-unnest(xpath('/VMPS/VMP/IDCURRENT/TEXT()', i.xmlfield))::VARCHAR CURRENT_CODE,
-unnest(xpath('/VMPS/VMP/IDPREVIOUS/TEXT()', i.xmlfield))::VARCHAR PREV_CODE,
-to_date(unnest(xpath('/VMPS/VMP/STARTDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') START_DATE,
-to_date(unnest(xpath('/VMPS/VMP/ENDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') END_DATE
+unnest(xpath('/VMPS/VMP/IDCURRENT/text()', i.xmlfield))::VARCHAR CURRENT_CODE,
+unnest(xpath('/VMPS/VMP/IDPREVIOUS/text()', i.xmlfield))::VARCHAR PREV_CODE,
+to_date(unnest(xpath('/VMPS/VMP/STARTDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') START_DATE,
+to_date(unnest(xpath('/VMPS/VMP/ENDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') END_DATE
 FROM (
 	SELECT unnest(xpath('/HISTORY/VMPS', i.xmlfield)) xmlfield
 	FROM sources.f_history i 
@@ -101,11 +101,11 @@ FROM (
 --vtms: Virtual Therapeutic Moiety
 CREATE TABLE vtms AS
 SELECT
-	unnest(xpath('/VTM/NM/TEXT()', i.xmlfield))::VARCHAR NM,
-	unnest(xpath('/VTM/VTMID/TEXT()', i.xmlfield))::VARCHAR VTMID,
-	unnest(xpath('/VTM/VTMIDPREV/TEXT()', i.xmlfield))::VARCHAR VTMIDPREV,
-	to_date(unnest(xpath('/VTM/VTMIDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VTMIDDT,
-	unnest(xpath('/VTM/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID
+	unnest(xpath('/VTM/NM/text()', i.xmlfield))::VARCHAR NM,
+	unnest(xpath('/VTM/VTMID/text()', i.xmlfield))::VARCHAR VTMID,
+	unnest(xpath('/VTM/VTMIDPREV/text()', i.xmlfield))::VARCHAR VTMIDPREV,
+	to_date(unnest(xpath('/VTM/VTMIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VTMIDDT,
+	unnest(xpath('/VTM/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
 	FROM sources.f_vtm2 i
@@ -113,8 +113,8 @@ FROM (
 
 UPDATE vtms SET invalid = '0' WHERE invalid IS NULL;
 
---Known issue: code duplication. These codes were removed FROM use according to official dm+d documentation
---At the moment, these codes left AS devices, derived FROM AMPP for compatibility
+--Known issue: code duplication. These codes were removed from use according to official dm+d documentation
+--At the moment, these codes left AS devices, derived from AMPP for compatibility
 DELETE FROM vtms
 WHERE vtmid IN
 ('9854411000001103', --Medium chain triglycerides - invalid
@@ -127,13 +127,13 @@ WHERE vtmid IN
 --vmpps: Virtual Medicinal Product Pack
 CREATE TABLE vmpps AS
 SELECT
-	unnest(xpath('/VMPP/NM/TEXT()', i.xmlfield))::VARCHAR nm,
-	unnest(xpath('/VMPP/VPPID/TEXT()', i.xmlfield))::VARCHAR VPPID,
-	unnest(xpath('/VMPP/VPID/TEXT()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('/VMPP/QTYVAL/TEXT()', i.xmlfield))::VARCHAR::NUMERIC QTYVAL,
-	unnest(xpath('/VMPP/QTY_UOMCD/TEXT()', i.xmlfield))::VARCHAR QTY_UOMCD,
-	unnest(xpath('/VMPP/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('/VMPP/ABBREVNM/TEXT()', i.xmlfield))::VARCHAR ABBREVNM
+	unnest(xpath('/VMPP/NM/text()', i.xmlfield))::VARCHAR nm,
+	unnest(xpath('/VMPP/VPPID/text()', i.xmlfield))::VARCHAR VPPID,
+	unnest(xpath('/VMPP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMPP/QTYVAL/text()', i.xmlfield))::VARCHAR::numeric QTYVAL,
+	unnest(xpath('/VMPP/QTY_UOMCD/text()', i.xmlfield))::VARCHAR QTY_UOMCD,
+	unnest(xpath('/VMPP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/VMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR ABBREVNM
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
 	FROM sources.f_vmpp2 i
@@ -143,8 +143,8 @@ UPDATE vmpps SET invalid = '0' WHERE invalid IS NULL;
 
 CREATE TABLE comb_content_v AS
 SELECT
-	unnest(xpath('/CCONTENT/PRNTVPPID/TEXT()', i.xmlfield))::VARCHAR PRNTVPPID,
-	unnest(xpath('/CCONTENT/CHLDVPPID/TEXT()', i.xmlfield))::VARCHAR CHLDVPPID
+	unnest(xpath('/CCONTENT/PRNTVPPID/text()', i.xmlfield))::VARCHAR PRNTVPPID,
+	unnest(xpath('/CCONTENT/CHLDVPPID/text()', i.xmlfield))::VARCHAR CHLDVPPID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
 	FROM sources.f_vmpp2 i
@@ -152,22 +152,22 @@ FROM (
 
 --vmps: Virtual Medicinal Product
 CREATE TABLE vmps AS
-SELECT unnest(xpath('/VMP/NM/TEXT()', i.xmlfield))::VARCHAR nm,
-	to_date(unnest(xpath('/VMP/VPIDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VPIDDT,
-	unnest(xpath('/VMP/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('/VMP/VPID/TEXT()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('/VMP/VPIDPREV/TEXT()', i.xmlfield))::VARCHAR VPIDPREV,
-	unnest(xpath('/VMP/VTMID/TEXT()', i.xmlfield))::VARCHAR VTMID,
-	unnest(xpath('/VMP/NMPREV/TEXT()', i.xmlfield))::VARCHAR NMPREV,
-	to_date(unnest(xpath('/VMP/NMDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
-	unnest(xpath('/VMP/ABBREVNM/TEXT()', i.xmlfield))::VARCHAR ABBREVNM,
-	unnest(xpath('/VMP/COMBPRODCD/TEXT()', i.xmlfield))::VARCHAR COMBPRODCD,
-	unnest(xpath('/VMP/NON_AVAILDT/TEXT()', i.xmlfield))::VARCHAR NON_AVAILDT,
-	unnest(xpath('/VMP/DF_INDCD/TEXT()', i.xmlfield))::VARCHAR DF_INDCD,
-	unnest(xpath('/VMP/UDFS/TEXT()', i.xmlfield))::VARCHAR::NUMERIC UDFS,
-	unnest(xpath('/VMP/UDFS_UOMCD/TEXT()', i.xmlfield))::VARCHAR UDFS_UOMCD,
-	unnest(xpath('/VMP/UNIT_DOSE_UOMCD/TEXT()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
-	unnest(xpath('/VMP/PRES_STATCD/TEXT()', i.xmlfield))::VARCHAR PRES_STATCD
+SELECT unnest(xpath('/VMP/NM/text()', i.xmlfield))::VARCHAR nm,
+	to_date(unnest(xpath('/VMP/VPIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') VPIDDT,
+	unnest(xpath('/VMP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/VMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VMP/VPIDPREV/text()', i.xmlfield))::VARCHAR VPIDPREV,
+	unnest(xpath('/VMP/VTMID/text()', i.xmlfield))::VARCHAR VTMID,
+	unnest(xpath('/VMP/NMPREV/text()', i.xmlfield))::VARCHAR NMPREV,
+	to_date(unnest(xpath('/VMP/NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
+	unnest(xpath('/VMP/ABBREVNM/text()', i.xmlfield))::VARCHAR ABBREVNM,
+	unnest(xpath('/VMP/COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
+	unnest(xpath('/VMP/NON_AVAILDT/text()', i.xmlfield))::VARCHAR NON_AVAILDT,
+	unnest(xpath('/VMP/DF_INDCD/text()', i.xmlfield))::VARCHAR DF_INDCD,
+	unnest(xpath('/VMP/UDFS/text()', i.xmlfield))::VARCHAR::numeric UDFS,
+	unnest(xpath('/VMP/UDFS_UOMCD/text()', i.xmlfield))::VARCHAR UDFS_UOMCD,
+	unnest(xpath('/VMP/UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
+	unnest(xpath('/VMP/PRES_STATCD/text()', i.xmlfield))::VARCHAR PRES_STATCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
@@ -192,19 +192,19 @@ WHERE
 		);
 
 CREATE TABLE virtual_product_ingredient AS
-SELECT unnest(xpath('/VPI/VPID/TEXT()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('/VPI/ISID/TEXT()', i.xmlfield))::VARCHAR ISID,
-	unnest(xpath('/VPI/BS_SUBID/TEXT()', i.xmlfield))::VARCHAR BS_SUBID,
-	unnest(xpath('/VPI/STRNT_NMRTR_VAL/TEXT()', i.xmlfield))::VARCHAR::NUMERIC STRNT_NMRTR_VAL,
-	unnest(xpath('/VPI/STRNT_NMRTR_UOMCD/TEXT()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
-	unnest(xpath('/VPI/STRNT_DNMTR_VAL/TEXT()', i.xmlfield))::VARCHAR::NUMERIC STRNT_DNMTR_VAL,
-	unnest(xpath('/VPI/STRNT_DNMTR_UOMCD/TEXT()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
+SELECT unnest(xpath('/VPI/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/VPI/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	unnest(xpath('/VPI/BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
+	unnest(xpath('/VPI/STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_NMRTR_VAL,
+	unnest(xpath('/VPI/STRNT_NMRTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
+	unnest(xpath('/VPI/STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_DNMTR_VAL,
+	unnest(xpath('/VPI/STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
 	) AS i;
 
---replace nanoliters WITH ml IN amount
+--replace nanoliters with ml in amount
 UPDATE virtual_product_ingredient
 SET
 	strnt_nmrtr_val = strnt_nmrtr_val * 0.000001,
@@ -213,74 +213,70 @@ WHERE strnt_nmrtr_uomcd = '282113003' -- nL
 ;
 
 CREATE TABLE ont_drug_form AS
-SELECT unnest(xpath('/ONT/VPID/TEXT()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('/ONT/FORMCD/TEXT()', i.xmlfield))::VARCHAR FORMCD
+SELECT unnest(xpath('/ONT/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/ONT/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/ONT_DRUG_FORM/ONT', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
-	) AS i
-;
+	) AS i;
 
 CREATE TABLE drug_form AS
-SELECT unnest(xpath('/DFORM/VPID/TEXT()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('/DFORM/FORMCD/TEXT()', i.xmlfield))::VARCHAR FORMCD
+SELECT unnest(xpath('/DFORM/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/DFORM/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
 	FROM sources.f_vmp2 i
-	) AS i
-;
+	) AS i;
+
 
 --amps: Actual Medicinal Product
 CREATE TABLE amps AS
-SELECT unnest(xpath('/AMP/NM/TEXT()', i.xmlfield))::VARCHAR nm,
-	unnest(xpath('/AMP/APID/TEXT()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('/AMP/VPID/TEXT()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('/AMP/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('/AMP/NMPREV/TEXT()', i.xmlfield))::VARCHAR NMPREV,
-	unnest(xpath('/AMP/ABBREVNM/TEXT()', i.xmlfield))::VARCHAR ABBREVNM,
-	to_date(unnest(xpath('/AMP/NMDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
-	unnest(xpath('/AMP/SUPPCD/TEXT()', i.xmlfield))::VARCHAR SUPPCD,
-	unnest(xpath('/AMP/COMBPRODCD/TEXT()', i.xmlfield))::VARCHAR COMBPRODCD,
-	unnest(xpath('/AMP/LIC_AUTHCD/TEXT()', i.xmlfield))::VARCHAR LIC_AUTHCD
+SELECT unnest(xpath('/AMP/NM/text()', i.xmlfield))::VARCHAR nm,
+	unnest(xpath('/AMP/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/AMP/VPID/text()', i.xmlfield))::VARCHAR VPID,
+	unnest(xpath('/AMP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/AMP/NMPREV/text()', i.xmlfield))::VARCHAR NMPREV,
+	unnest(xpath('/AMP/ABBREVNM/text()', i.xmlfield))::VARCHAR ABBREVNM,
+	to_date(unnest(xpath('/AMP/NMDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') NMDT,
+	unnest(xpath('/AMP/SUPPCD/text()', i.xmlfield))::VARCHAR SUPPCD,
+	unnest(xpath('/AMP/COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
+	unnest(xpath('/AMP/LIC_AUTHCD/text()', i.xmlfield))::VARCHAR LIC_AUTHCD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
-	) AS i
-;
+	) AS i;
 
 UPDATE amps SET invalid = '0' WHERE invalid IS NULL;
 
 CREATE TABLE licensed_route AS
 SELECT
-	unnest(xpath('/LIC_ROUTE/APID/TEXT()', i.xmlfield))::VARCHAR APID,
-	unnest(xpath('/LIC_ROUTE/ROUTECD/TEXT()', i.xmlfield))::VARCHAR ROUTECD
+	unnest(xpath('/LIC_ROUTE/APID/text()', i.xmlfield))::VARCHAR APID,
+	unnest(xpath('/LIC_ROUTE/ROUTECD/text()', i.xmlfield))::VARCHAR ROUTECD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE', i.xmlfield)) xmlfield
 	FROM sources.f_amp2 i
-	) AS i
-;
+	) AS i;
 
 --ampps: Actual Medicinal Product Pack
 	CREATE TABLE ampps AS
-	SELECT unnest(xpath('/AMPP/NM/TEXT()', i.xmlfield))::VARCHAR nm,
-		unnest(xpath('/AMPP/APPID/TEXT()', i.xmlfield))::VARCHAR APPID,
-		unnest(xpath('/AMPP/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID,
-		unnest(xpath('/AMPP/ABBREVNM/TEXT()', i.xmlfield))::VARCHAR ABBREVNM,
-		unnest(xpath('/AMPP/VPPID/TEXT()', i.xmlfield))::VARCHAR VPPID,
-		unnest(xpath('/AMPP/APID/TEXT()', i.xmlfield))::VARCHAR APID,
-		unnest(xpath('/AMPP/COMBPACKCD/TEXT()', i.xmlfield))::VARCHAR COMBPACKCD,
-		to_date(unnest(xpath('/AMPP/DISCDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') DISCDT
+	SELECT unnest(xpath('/AMPP/NM/text()', i.xmlfield))::VARCHAR nm,
+		unnest(xpath('/AMPP/APPID/text()', i.xmlfield))::VARCHAR APPID,
+		unnest(xpath('/AMPP/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+		unnest(xpath('/AMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR ABBREVNM,
+		unnest(xpath('/AMPP/VPPID/text()', i.xmlfield))::VARCHAR VPPID,
+		unnest(xpath('/AMPP/APID/text()', i.xmlfield))::VARCHAR APID,
+		unnest(xpath('/AMPP/COMBPACKCD/text()', i.xmlfield))::VARCHAR COMBPACKCD,
+		to_date(unnest(xpath('/AMPP/DISCDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') DISCDT
 	FROM (
 		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
 		FROM sources.f_ampp2 i
-		) AS i
-;
+		) AS i;
 
 UPDATE ampps SET invalid = '0' WHERE invalid IS NULL;
 
 CREATE TABLE comb_content_a AS
-SELECT unnest(xpath('/CCONTENT/PRNTAPPID/TEXT()', i.xmlfield))::VARCHAR PRNTAPPID,
-	unnest(xpath('/CCONTENT/CHLDAPPID/TEXT()', i.xmlfield))::VARCHAR CHLDAPPID
+SELECT unnest(xpath('/CCONTENT/PRNTAPPID/text()', i.xmlfield))::VARCHAR PRNTAPPID,
+	unnest(xpath('/CCONTENT/CHLDAPPID/text()', i.xmlfield))::VARCHAR CHLDAPPID
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
 	FROM sources.f_ampp2 i
@@ -288,11 +284,11 @@ FROM (
 
 --Ingredients
 CREATE TABLE ingredient_substances AS
-SELECT unnest(xpath('/ING/NM/TEXT()', i.xmlfield))::VARCHAR nm,
-	unnest(xpath('/ING/ISID/TEXT()', i.xmlfield))::VARCHAR ISID,
-	to_date(unnest(xpath('/ING/ISIDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') ISIDDT,
-	unnest(xpath('/ING/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID,
-	unnest(xpath('/ING/ISIDPREV/TEXT()', i.xmlfield))::VARCHAR ISIDPREV
+SELECT unnest(xpath('/ING/NM/text()', i.xmlfield))::VARCHAR nm,
+	unnest(xpath('/ING/ISID/text()', i.xmlfield))::VARCHAR ISID,
+	to_date(unnest(xpath('/ING/ISIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') ISIDDT,
+	unnest(xpath('/ING/INVALID/text()', i.xmlfield))::VARCHAR INVALID,
+	unnest(xpath('/ING/ISIDPREV/text()', i.xmlfield))::VARCHAR ISIDPREV
 FROM (
 	SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
 	FROM sources.f_ingredient2 i
@@ -302,8 +298,8 @@ UPDATE ingredient_substances SET invalid = '0' WHERE invalid IS NULL;
 
 --combination packs
 CREATE TABLE combination_pack_ind AS
-SELECT unnest(xpath('/INFO/DESC/TEXT()', i.xmlfield))::VARCHAR INFO_DESC,
-	unnest(xpath('/INFO/CD/TEXT()', i.xmlfield))::VARCHAR CD
+SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PACK_IND/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -311,41 +307,44 @@ FROM (
 
 --combination products
 CREATE TABLE combination_prod_ind AS
-SELECT unnest(xpath('/INFO/DESC/TEXT()', i.xmlfield))::VARCHAR INFO_DESC,
-	unnest(xpath('/INFO/CD/TEXT()', i.xmlfield))::VARCHAR CD
+SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PROD_IND/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
-	) AS i;
+	) AS i
+;
 
 --Units
 CREATE TABLE unit_of_measure AS
-SELECT unnest(xpath('/INFO/DESC/TEXT()', i.xmlfield))::VARCHAR INFO_DESC,
-	unnest(xpath('/INFO/CD/TEXT()', i.xmlfield))::VARCHAR CD,
-	to_date(unnest(xpath('/INFO/CDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
+SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
 FROM (
 	SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
-	) AS i;
+	) AS i
+;
 
 --Forms
 CREATE TABLE forms AS
-SELECT unnest(xpath('/INFO/DESC/TEXT()', i.xmlfield))::VARCHAR INFO_DESC,
-	unnest(xpath('/INFO/CD/TEXT()', i.xmlfield))::VARCHAR CD,
-	to_date(unnest(xpath('/INFO/CDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
+SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT
 FROM (
 	SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
-	) AS i;
+	) AS i
+;
 
 --suppliers
 CREATE TABLE supplier AS
 WITH supp_temp AS
 	(
-		SELECT unnest(xpath('/INFO/DESC/TEXT()', i.xmlfield))::VARCHAR INFO_DESC,
-			unnest(xpath('/INFO/CD/TEXT()', i.xmlfield))::VARCHAR CD,
-			to_date(unnest(xpath('/INFO/CDDT/TEXT()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT,
-			unnest(xpath('/INFO/INVALID/TEXT()', i.xmlfield))::VARCHAR INVALID
+		SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR INFO_DESC,
+			unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD,
+			to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') CDDT,
+			unnest(xpath('/INFO/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 		FROM (
 			SELECT unnest(xpath('/LOOKUP/SUPPLIER/INFO', i.xmlfield)) xmlfield
 			FROM sources.f_lookup2 i
@@ -398,8 +397,8 @@ WHERE
 
 --df_indicator
 CREATE TABLE df_indicator AS
-SELECT unnest(xpath('/INFO/DESC/TEXT()', i.xmlfield))::VARCHAR INFO_DESC,
-	unnest(xpath('/INFO/CD/TEXT()', i.xmlfield))::VARCHAR CD
+SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR INFO_DESC,
+	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR CD
 FROM (
 	SELECT unnest(xpath('/LOOKUP/DF_INDICATOR/INFO', i.xmlfield)) xmlfield
 	FROM sources.f_lookup2 i
@@ -455,7 +454,7 @@ WHERE
     OR v.nm ILIKE '% oil %'
 ORDER BY o.nm;
 
---known device domain, ingredients NOT IN whitelist (Drug according to RxNorm rules)
+--known device domain, ingredients not in whitelist (Drug according to RxNorm rules)
 INSERT INTO devices
 WITH ingred_whitelist AS (
     SELECT v.vpid
@@ -487,7 +486,7 @@ WHERE
     AND x.vpid IS NULL
 ORDER BY a.nm; 
 
---known device domain, ingredient NOT IN whitelist (Drug according to RxNorm rules)
+--known device domain, ingredient not in whitelist (Drug according to RxNorm rules)
 INSERT INTO devices
 SELECT 
     a.apid, 
@@ -611,7 +610,7 @@ JOIN keywords k ON (
     LOWER(a.nm) LIKE k.pattern
 );
 
---homeopathic products are NOT worth analyzing if source does NOT provide ingredients
+--homeopathic products are not worth analyzing if source does NOT provide ingredients
 INSERT INTO devices
 SELECT
     a.apid,
@@ -665,7 +664,6 @@ WHERE
     )
     AND c.vocabulary_id = 'SNOMED'
     AND c.domain_id = 'Device';
-
 
 -- if at least one vmp per amp is a drug, treat everything AS drug
 WITH dev_counts AS (
@@ -721,8 +719,8 @@ WHERE
 CREATE INDEX devices_vpid ON devices (vpid);
 CREATE INDEX devices_apid ON devices (apid);
 
---Step 3. Fix bugs IN source (dosages IN wrong units, missing denominators, inconsistent dosage of ingredients etc)
---mg instead of ml WHEN obviously wrong
+--Step 3. Fix bugs in source (dosages in wrong units, missing denominators, inconsistent dosage of ingredients etc)
+--mg instead of ml when obviously wrong
 UPDATE virtual_product_ingredient
 SET strnt_nmrtr_uomcd = '258684004' 
 WHERE
@@ -744,7 +742,7 @@ WITH vpid_only AS (
     ) AS t(vpid)
 )
 DELETE FROM virtual_product_ingredient vpi --duplicates or excipients
-USING to_delete, vpid_only
+USING vpid_only
 WHERE (vpi.vpid = vpid_only.vpid);
 
 UPDATE virtual_product_ingredient
@@ -886,9 +884,9 @@ SET
 	strnt_nmrtr_uomcd = NULL,
 	strnt_dnmtr_val = NULL,
 	strnt_dnmtr_uomcd = NULL
-WHERE isid = '5375811000001107'; -- pollen extract exclude FROM ds
+WHERE isid = '5375811000001107'; -- pollen extract exclude from ds
 
--- UPDATE WHERE ml IN name but denominator unit IN g
+-- UPDATE WHERE ml in name but denominator unit in g
 WITH vmps_ml AS (
     SELECT vpid
     FROM vmps
@@ -909,8 +907,6 @@ WHERE vpid = '18248211000001104'
 AND   isid = '51224002'; 
 
 --create new temporary ingredients for COVID vaccines
---COVID-19 vaccine, recombinant, full-LENGTH nanoparticle spike (S) protein, adjuvanted WITH Matrix-M
---COVID-19 vaccine, whole virus, inactivated, adjuvanted WITH Alum AND CpG 1018
 INSERT INTO ingredient_substances (isid, nm)
 VALUES
 	('OMOP0000000001', 'COVID-19 vaccine, recombinant, full-LENGTH nanoparticle spike (S) protein, adjuvanted WITH Matrix-M'),
@@ -1018,7 +1014,7 @@ CREATE TABLE tms_temp AS
 		WHERE v.nm LIKE '%+%'
 	);
 
---Connecting splitted ingredients WITH ids of separate ingredients
+--Connecting splitted ingredients with ids of separate ingredients
 --To be inserted into drug tables
 DROP TABLE IF EXISTS ir_insert;
 CREATE TABLE ir_insert AS
@@ -1041,7 +1037,7 @@ LEFT JOIN ingredient_substances i ON
 	i.invalid = '0';
 
 --Creating sequence for concept codes
---Later IN code would be a step WITH exchange to OMOP-like codes. It is easier to keep it AS it was written for backward compatibility
+--Later in code would be a step with exchange to OMOP-like codes. It is easier to keep it AS it was written for backward compatibility
 DROP SEQUENCE IF EXISTS new_seq;
 CREATE sequence new_seq INCREMENT BY 1 START
 	WITH 1 CACHE 20;
@@ -1060,7 +1056,7 @@ SELECT
 	'OMOP' || nextval ('new_seq') AS isid
 FROM x;
 
---Adding ingredients WITH fresh OMOP style concept_codes
+--Adding ingredients with fresh OMOP style concept_codes
 INSERT INTO ingred_replacement
 SELECT DISTINCT
 	i.isidprev,
@@ -1071,7 +1067,7 @@ FROM ir_insert i
 LEFT JOIN y ON
 	y.nmnew = i.nmnew;
 
---replaces precise ingredients (salts) WITH active molecule WITH few exceptions
+--replaces precise ingredients (salts) with active molecule with few exceptions
 INSERT INTO ingred_replacement
 SELECT DISTINCT
 	v.isid,
@@ -1088,7 +1084,7 @@ LEFT JOIN devices d ON --devices (contrasts) add a lot
 WHERE
 	v.bs_subid IS NOT NULL AND
 	d.vpid IS NULL AND
-	s2.isid NOT IN -- do NOT apply to folic acid, metalic compounds AND halogens -- must still be mapped to salts
+	s2.isid NOT IN -- do NOT apply to folic acid, metalic compounds and halogens -- must still be mapped to salts
 		(
 			SELECT c.concept_code
 			FROM concept c
@@ -1101,10 +1097,10 @@ WHERE
 				35624387) AND -- Metal and/or metal compound
 				ca.descendant_concept_id = c.concept_id
 		) AND
-	SUBSTRING (LOWER (s1.nm) FROM 1 FOR 7) != 'insulin' -- to NOT to lose various insulins
+	SUBSTRING (LOWER (s1.nm) FROM 1 FOR 7) != 'insulin' -- to not to lose various insulins
 ;
 
---if X replaced WITH Y AND Y replaced WITH Z, replace X WITH Z
+--if X replaced with Y and Y replaced WITH Z, replace X with Z
 UPDATE ingred_replacement x --314
 	SET
 		(isidnew,nmnew) =
@@ -1119,7 +1115,7 @@ UPDATE ingred_replacement x --314
 FROM ingred_replacement ir
 GROUP BY isidprev
 HAVING count(DISTINCT isidnew) > 1)
-                --Intermediate ingredient does NOT have multiple ingredients to change
+                --Intermediate ingredient does not have multiple ingredients to change
                 AND r.isidnew NOT IN (SELECT isidprev
 FROM ingred_replacement ir
 GROUP BY isidprev
@@ -1311,7 +1307,6 @@ LEFT JOIN devices d ON
 	v.vpid = d.vpid
 WHERE d.vpid IS NULL;
 
-
 INSERT INTO drug_concept_stage
 	(
 		concept_name,
@@ -1375,7 +1370,7 @@ SELECT DISTINCT LEFT (v.nm,255) AS concept_name,
        'VMPP'
 FROM vmpps v
   JOIN vmps p ON
---start date etc stored IN VMPS
+--start date etc stored in VMPS
 v.vpid = p.vpid
   LEFT JOIN devices d ON v.vpid = d.vpid
 WHERE d.vpid IS NULL;
@@ -1406,7 +1401,7 @@ SELECT DISTINCT LEFT (v.nm,255) AS concept_name,
        'VMPP'
 FROM vmpps v
   JOIN vmps p ON
---start date etc stored IN VMPS
+--start date etc stored in VMPS
 v.vpid = p.vpid
   JOIN devices d ON v.vpid = d.vpid;
 
@@ -1445,7 +1440,7 @@ SELECT DISTINCT LEFT (a.nm,255),
        'AMP'
 FROM amps a
   JOIN vmps p ON a.vpid = p.vpid
---start date etc stored IN VMPS
+--start date etc stored in VMPS
   LEFT JOIN devices d ON a.vpid = d.vpid
 WHERE d.vpid IS NULL;
 
@@ -1477,8 +1472,7 @@ SELECT DISTINCT LEFT (a.nm,255),
 FROM amps a
 WHERE EXISTS (
     SELECT 1 FROM devices d WHERE d.vpid = a.vpid
-)
-;
+);
 
 --AMPPS = Actual Medicinal Product Pack = Branded Drug Box (OMOP)
 INSERT INTO drug_concept_stage
@@ -1696,9 +1690,9 @@ SET
 FROM pc_modifier m
 WHERE m.pack_concept_code = c.pack_concept_code;
 
---fix bodyless headers: AMP AND VMP ancestors of pack concepts
+--fix bodyless headers: AMP and VMP ancestors of pack concepts
 INSERT INTO pc_stage
---branded pack headers, can have Brand Name, Supplier AND PC entry WITH same AMPs AS AMPP counterpart
+--branded pack headers, can have Brand Name, Supplier and PC entry with same AMPs as AMPP counterpart
 SELECT DISTINCT
 	a.apid AS pack_concept_code,
 	ax.apid,
@@ -1711,7 +1705,7 @@ JOIN ampps ax ON
 	p.drug_concept_code = ax.appid;
 
 INSERT INTO pc_stage
---clinical pack headers, can have only PC entry WITH same VMPs AS VMPP counterpart
+--clinical pack headers, can have only PC entry with same VMPs as VMPP counterpart
 SELECT DISTINCT
 	v.vpid AS pack_concept_code,
 	vx.vpid,
@@ -1771,8 +1765,8 @@ LEFT JOIN devices d
 LEFT JOIN multi_pcs mp
     ON mp.pack_concept_code = v.vpid
 WHERE
-    d.vpid IS NULL        -- exclude those present IN devices
-    AND mp.pack_concept_code IS NULL  -- exclude those WITH ≠1 mapping IN pc_stage
+    d.vpid IS NULL        -- exclude those present in devices
+    AND mp.pack_concept_code IS NULL  -- exclude those with ≠1 mapping in pc_stage
     AND v.formcd <> '3097611000001100';  -- filter out “NOT Applicable”
 
 --Some drugs have missing dose forms at this step. Only concepts without dose forms got by regular way are addressed here.
@@ -1780,7 +1774,7 @@ DROP TABLE IF EXISTS dose_form_fix;
 
 CREATE TABLE dose_form_fix AS
 WITH
--- 1) VPIDs, NOT IN devices, NOT bad IN pc_stage AND do NOT have dose forms IN internal_relationship_stage
+-- 1) VPIDs, not in devices, not bad in pc_stage and do not have dose forms in internal_relationship_stage
 initial AS (
   SELECT DISTINCT
     v.vpid,
@@ -1806,7 +1800,7 @@ initial AS (
        AND c.concept_code = i.concept_code_2
     )
 )
--- 2) final SELECT WITH one CASE, to create dose code + name
+-- 2) final select with one case, to create dose code + name
 SELECT
   vpid,
   nm,
@@ -1867,8 +1861,8 @@ LEFT JOIN devices d
 LEFT JOIN singly_mapped sm
   ON sm.pack_concept_code = a.apid
 WHERE
-    d.apid IS NULL           -- exclude any AMP already IN devices
-  AND sm.pack_concept_code IS NULL  -- exclude any AMP WITH exactly 1 mapping IN pc_stage
+    d.apid IS NULL           -- exclude any AMP already in devices
+  AND sm.pack_concept_code IS NULL  -- exclude any AMP with exactly 1 mapping in pc_stage
 ;
 
 INSERT INTO internal_relationship_stage
@@ -1877,7 +1871,7 @@ SELECT DISTINCT
 	a.apid,
 	a.suppcd
 FROM amps a
-LEFT JOIN fake_supp c ON -- supplier is present IN dcs
+LEFT JOIN fake_supp c ON -- supplier is present in dcs
 	a.suppcd = c.cd
 LEFT JOIN devices d ON
 	a.apid = d.apid
@@ -1904,7 +1898,7 @@ LEFT JOIN multi_pcs mp
 WHERE
   mp.pack_concept_code IS NULL;
 
---AMPP -- if NOT a pack, reuse AMP relations. If a pack, omit.
+--AMPP -- if not a pack, reuse AMP relations. If a pack, omit.
 INSERT INTO internal_relationship_stage
 WITH multi_pcs AS (
     SELECT pack_concept_code
@@ -1952,7 +1946,7 @@ only_1_pack AS (
   GROUP BY pack_concept_code
   HAVING COUNT(drug_concept_code) = 1
 ),
--- 2) all candidates NOT matter what class pack → concept_2  
+-- 2) all candidates not matter what class pack → concept_2  
 candidates AS (
   SELECT DISTINCT
     p.pack_concept_code,
@@ -1999,7 +1993,7 @@ UPDATE pc_stage
 SET	amount = 1
 WHERE pack_concept_code = '34884711000001100'; -- fix of drug
 
---! Step 8. Preparation for ds_stage population. Form ds_stage USING source relations AND name analysis. Replace ingredient relations
+--! Step 8. Preparation for ds_stage population. Form ds_stage using source relations and name analysis. Replace ingredient relations
 DROP TABLE IF EXISTS ds_prototype;
 
 --Create ds_stage for VMPs, inherit everything ELSE later
@@ -2048,7 +2042,7 @@ JOIN drug_concept_stage c3 ON
 LEFT JOIN drug_concept_stage c4 ON
 	c4.concept_code = b.strnt_dnmtr_uomcd;
 
-DROP TABLE IF EXISTS vmps_res --try to salvage missing dosages FROM texts FROM VMPs
+DROP TABLE IF EXISTS vmps_res --try to salvage missing dosages from texts FROM VMPs
 ;
 
 CREATE TABLE vmps_res AS
@@ -2321,7 +2315,7 @@ WHERE
 	amount_code IS NULL AND
 	amount_name IS NOT NULL;
 
---Table created for manual curation of certain drugs, WHERE doses were picked up FROM the TEXT
+--Table created for manual curation of certain drugs, where doses were picked up from the text
 /*DROP TABLE IF EXISTS tomap_vmps_ds_man;
 --For manual mapping of missing drug strength
 CREATE TABLE tomap_vmps_ds_man AS
@@ -2342,13 +2336,11 @@ WHERE
 	AND drug_concept_name NOT ilike '%vaccine%'
 ORDER BY drug_concept_name, ingredient_concept_name desc;*/
 
--- proceed WITH corrections after manual work
+-- proceed with corrections after manual work
 DROP TABLE IF EXISTS tomap_vmps_ds;
 CREATE TABLE tomap_vmps_ds AS
 SELECT * 
---FROM tomap_vmps_ds_man
-WHERE drug_concept_code NOT IN (SELECT vpid FROM tomap_vmps_ds_addition)
-;
+FROM tomap_vmps_ds_man;
 
 -- at the moment, they are deleted FROM tomap_vmps_ds
 DELETE FROM tomap_vmps_ds WHERE ingredient_concept_code = '0' or (ingredient_concept_code IS NULL AND ingredient_concept_name IS NULL) ;
@@ -2361,13 +2353,13 @@ WHERE drug_concept_code IN (SELECT drug_concept_code FROM tomap_vmps_ds);
 DELETE FROM tomap_vmps_ds
 WHERE drug_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage WHERE domain_id = 'Drug');
 
---DELETE FROM internal_relationship_stage all the relationships WITH ingredients to recreate it few steps later FROM the manual table (manual table is a priority)
+--DELETE from internal_relationship_stage all the relationships with ingredients to recreate it few steps later FROM the manual table (manual table is a priority)
 DELETE FROM internal_relationship_stage
 WHERE
 	concept_code_1 IN (SELECT drug_concept_code FROM tomap_vmps_ds) AND
 	concept_code_2 IN (SELECT concept_code FROM drug_concept_stage WHERE concept_class_id = 'Ingredient');
 
---Filling IN the ds_prototype table FROM the manual table
+--Filling IN the ds_prototype table from the manual table
 INSERT INTO ds_prototype (drug_concept_code, drug_name, ingredient_concept_code, ingredient_name, amount_value,
                           amount_code, amount_name, denominator_value, denominator_code, denominator_name, box_size, total, unit_1_code, unit_1_name)
 SELECT
@@ -2385,10 +2377,10 @@ SELECT
 	NULL :: INT4,
 	NULL :: VARCHAR,
 	NULL :: VARCHAR
-FROM tomap_vmps_ds -- should be UNION WITH manual
+FROM tomap_vmps_ds 
 WHERE amount_value IS NOT NULL;
 
---Working WITH ds_parsed table
+--Working with ds_parsed table
 DELETE FROM ds_parsed
 WHERE drug_concept_code IN
 	(SELECT drug_concept_code FROM tomap_vmps_ds);
@@ -2398,7 +2390,7 @@ SELECT *
 FROM ds_parsed
 WHERE amount_name IS NOT NULL AND drug_concept_code NOT IN (SELECT drug_concept_code FROM ds_prototype);
 
--- UPDATE ds_prototype WITH correct codes for units 
+-- UPDATE ds_prototype with correct codes for units 
 UPDATE ds_prototype d
 SET amount_code = u.cd
 FROM unit_of_measure u
@@ -2415,7 +2407,6 @@ WHERE
  
 --Preparation for ds_stage population
 --modify ds_prototype
-
 UPDATE ds_prototype d
 SET
   -- amount adjustments
@@ -2570,8 +2561,8 @@ WHERE
 	total = 1 AND
 	unit_1_code = '732980001';
 
---if denominator is IN mg, ml should NOT be IN numerator (mostly oils: 1 ml = 800 mg); --1
---if other numerators are present IN mg, all other numerators should be, too --2
+--if denominator is in mg, ml should NOT be in numerator (mostly oils: 1 ml = 800 mg); --1
+--if other numerators are present in mg, all other numerators should be, too --2
 WITH has_other_dosage AS (
   -- find all drugs that already have a non-ml dosage record
   SELECT DISTINCT drug_concept_code
@@ -2601,7 +2592,7 @@ WHERE
 	amount_code = '258773002' AND --ml
 	denominator_code IS NULL;
 
---if drug EXISTS AS concentration for VMPS, but has total IN grams ON VMPP level, convert concentration to MG
+--if drug exists as concentration for VMPS, but has total in grams ON VMPP level, convert concentration to MG
 UPDATE ds_prototype d
 SET
     denominator_code = '258684004',
@@ -2760,7 +2751,7 @@ WHERE
   d.denominator_code = d.unit_1_code;
 
 --AMPs
---Take note that we omit excipients completely AND just inherit VMP relations
+--Take note that we omit excipients completely and just inherit VMP relations
 --if we ever need excipients, we can find them IN AP_INGREDIENT table
 INSERT INTO ds_stage
 SELECT DISTINCT
@@ -2778,7 +2769,7 @@ JOIN amps a ON
 	d.drug_concept_code = a.vpid; --this will include packs, both proper components AND monocomponent packs;
 
 --VMPPs
---inherited FROM VMPs WITH added box size
+--inherited from VMPs with added box size
 DROP TABLE IF EXISTS ds_insert;
 
 CREATE TABLE ds_insert AS --intermediate entry
@@ -2846,7 +2837,7 @@ WHERE
     WHERE ds2.drug_concept_code = i.vppid
   )
   AND (
-    -- box_code NOT a non-scalable form
+    -- box_code not a non-scalable form
     nsf.form_code IS NULL
     -- or unit dose WITH mL/mg denominator
     OR (
@@ -2861,7 +2852,7 @@ WHERE
   );
 
 -- gives NULL
---simple dosage, same box forms AS IN VMP OR no box form IN VMP, scalable
+--simple dosage, same box forms as in VMP or no box form in VMP, scalable
 INSERT INTO ds_stage 
 WITH scalable_forms(code) AS (
   SELECT UNNEST(ARRAY[
@@ -2892,7 +2883,7 @@ FROM ds_insert i
 -- only “scalable” box_codes
 JOIN scalable_forms sf
   ON i.box_code = sf.code
--- must match the same amount_unit IN ds_stage
+-- must match the same amount_unit in ds_stage
 JOIN ds_stage d
   ON i.drug_concept_code = d.drug_concept_code
  AND d.amount_unit       = sf.code
@@ -2902,10 +2893,10 @@ LEFT JOIN excluded_drugs ed
 WHERE
   -- ensure unit_1_code is either null or equals box_code
   (i.unit_1_code IS NULL OR i.unit_1_code = sf.code)
-  -- filter out those already IN ds_stage
+  -- filter out those already in ds_stage
   AND ed.drug_concept_code IS NULL;
 
---num/denom dosage, same box forms AS IN VMP OR no box form IN VMP, scalable (e.g. solution)
+--num/denom dosage, same box forms as in VMP or no box form in VMP, scalable (e.g. solution)
 INSERT INTO ds_stage 
 WITH scalable_forms(code) AS (
   VALUES
@@ -2940,9 +2931,9 @@ JOIN scalable_forms sf
 LEFT JOIN existing_ds ed
   ON ed.drug_concept_code = i.vppid
 WHERE
-  -- only WHEN box AND unit_1 align or unit_1 IS NULL
+  -- only when box and unit_1 align or unit_1 IS NULL
   (i.box_code = i.unit_1_code OR i.unit_1_code IS NULL)
-  -- ensure ds_stage has both numerator AND denominator units
+  -- ensure ds_stage has both numerator and denominator units
   AND d.numerator_unit  IS NOT NULL
   AND d.denominator_unit IS NOT NULL
   -- exclude drugs already fully staged
@@ -3007,7 +2998,7 @@ GROUP BY
   i.concept_code_2
 HAVING COUNT(*) = 1;
 
--- DELETE those which are IN ds already
+-- delete those which are IN ds already
 DELETE FROM valid_ingredients vi
 USING ds_stage ds
 WHERE vi.drug_concept_code = ds.drug_concept_code;
@@ -3585,6 +3576,7 @@ WHERE
 	t.source_code IN (SELECT concept_code_2 FROM internal_relationship_stage)
 */
 
+ 
 TRUNCATE relationship_to_concept;
 INSERT INTO relationship_to_concept
 SELECT DISTINCT
@@ -3595,7 +3587,19 @@ SELECT DISTINCT
 	NULL :: INT4
 FROM tomap_ingredients
 WHERE
-	concept_id IS NOT NULL;
+	concept_id IS NOT NULL
+AND
+	source_code NOT IN (SELECT source_code FROM tomap_ingreds_man) -- man
+UNION
+SELECT DISTINCT 
+tim.source_code,
+'dm+d',
+tim.concept_id,
+tim.precedence,
+NULL::int4
+FROM tomap_ingreds_man tim -- man
+WHERE tim.concept_id IS NOT NULL
+;
 
 /*
  -- Extract units to map
@@ -3628,7 +3632,7 @@ SELECT
 	1 AS precedence,
 	COALESCE (conversion_factor,1)
 FROM drug_concept_stage dcs
-JOIN tomap_units_man tum 
+JOIN tomap_units_man tum--tomap_units_man tum 
 	ON dcs.concept_name = tum.source_name 
 WHERE dcs.concept_class_id = 'Unit' -- use manual table after check
 AND EXISTS
@@ -3798,7 +3802,7 @@ WHERE
 		(
 			SELECT vpid FROM fix_1ml
 		);
-
+	
 --! Step 11. Find AND map Brand Names, map suppliers
 --NOTE: despite that some VMPs AND VMPPs have Brand Names IN their names, we purposefully only build relations FROM AMPs AND AMPPs.
 --VMPS are identical to Clinical Drugs by design. They are virtual products that are NOT meant to have Supplier OR a Brand Name
@@ -3984,6 +3988,8 @@ AND ra.target_concept_id != 0;
 DELETE FROM tofind_brands --found
 WHERE concept_code IN (SELECT concept_code FROM amps_to_brands);
 
+select * from tofind_brands tb where concept_code_2 is not null
+
 /*
 -- Extract to find brands manually
 DROP TABLE IF EXISTS tofind_brands_man;
@@ -3992,7 +3998,8 @@ SELECT
 	tb.concept_code,
 	tb.concept_name,
 	NULL :: INT4 AS brand_id,
-	TRIM (REGEXP_REPLACE (tb.concept_name, ' .*$','')) :: VARCHAR AS brand_name
+	TRIM (REGEXP_REPLACE (tb.concept_name, ' .*$','')) :: VARCHAR AS brand_name,
+	NULL :: INT4 AS ind_to_create
 FROM tofind_brands tb
 LEFT JOIN concept c ON LOWER(c.concept_name) ilike '%'||TRIM (REGEXP_REPLACE (tb.concept_name, ' .*$',''))||'%' 
 AND c.concept_class_id = 'Ingredient' 
@@ -4006,7 +4013,7 @@ INSERT INTO amps_to_brands
 WITH man_brands AS
 	(
 		SELECT DISTINCT t.brand_id AS brand_code, t.brand_name
-		FROM tofind_brands_mapped t
+		FROM tofind_brands_man t -- man
 		JOIN tofind_brands s ON TRIM (REGEXP_REPLACE (s.concept_name, ' .*$','')) = t.brand_name
 		WHERE t.ind_to_create IS NOT NULL
 	),
@@ -4031,7 +4038,7 @@ FROM drug_concept_stage dcs
 LEFT JOIN amps_to_brands atb 
 	ON atb.concept_code = dcs.concept_code 
 WHERE atb.concept_code IS NULL
-	AND dcs.source_concept_class_id IN ('AMP','AMPP')
+	AND dcs.source_concept_class_id IN ('AMP')
 	AND dcs.concept_class_id != 'Device'
 )
 INSERT INTO amps_to_brands
@@ -4044,13 +4051,13 @@ LEFT JOIN concept_relationship cr
 	ON cr.concept_id_1 = c.concept_id 
 	AND cr.relationship_id = 'Maps to'
 	AND cr.invalid_reason IS NULL
-LEFT JOIN concept cc 
+LEFT JOIN concept_june_dev cc 
 	ON cc.concept_id = cr.concept_id_2 
-LEFT JOIN concept_relationship cr1
+LEFT JOIN concept_relationship_june_dev cr1
 	ON cr1.concept_id_1 = cc.concept_id 
 	AND cr1.relationship_id = 'Has brand name'
 	AND cr1.invalid_reason IS NULL
-LEFT JOIN concept ccc
+LEFT JOIN concept_june_dev ccc
 	ON ccc.concept_id = cr1.concept_id_2 
 	AND ccc.invalid_reason IS NULL
 WHERE ccc.concept_id IS NOT NULL
@@ -4129,25 +4136,11 @@ DROP TABLE IF EXISTS tomap_bn;
 CREATE TABLE tomap_bn AS
 WITH preex_m AS
 	(
-			SELECT DISTINCT --Manual relations
-			c.concept_code AS concept_code,
-			b.concept_name AS concept_name,
-			cc.concept_id AS mapped_id,
-			cc.concept_name AS mapped_name
-		FROM tofind_brand_list_found b
-		JOIN drug_concept_stage c ON
-			b.concept_name = c.concept_name AND
-			c.concept_class_id = 'Brand Name'
-		JOIN concept cc ON
-			b.brand_id::INT = cc.concept_id
-
-			UNION
-
 		SELECT DISTINCT --previously obtained name match
 			c.concept_code,
-			b.brand_name,
-			b.brand_id,
-			b.brand_name
+			b.brand_name as concept_name,
+			b.brand_id as mapped_id,
+			b.brand_name as mapped_name
 		FROM b_temp b
 		JOIN drug_concept_stage c ON
 			b.brand_name = c.concept_name AND
@@ -4211,7 +4204,7 @@ WHERE
 -- Extract brand name to map
 DROP TABLE IF EXISTS tomap_bn_man;
 
--- CREATE TABLE tomap_bn_man AS
+CREATE TABLE tomap_bn_man AS
 SELECT 
 	t.concept_code,
 	t.concept_name,
@@ -4250,7 +4243,21 @@ FROM tomap_bn t
 JOIN drug_concept_stage c ON
 	c.concept_name = t.concept_name AND
 	c.concept_class_id = 'Brand Name'
-WHERE t.mapped_id IS NOT NULL;
+WHERE t.mapped_id IS NOT NULL
+AND NOT EXISTS (SELECT 1 FROM tomap_bn_man tbm
+WHERE t.concept_code = tbm.concept_code)
+UNION 
+SELECT DISTINCT
+	c.concept_code,
+	'dm+d',
+	mapped_id,
+	1,
+	NULL :: NUMERIC
+FROM tomap_bn_man tbm
+JOIN drug_concept_stage c ON
+	c.concept_name = tbm.concept_name AND
+	c.concept_class_id = 'Brand Name'
+WHERE tbm.mapped_id IS NOT NULL;
 
 -- Work with suppliers
 -- Following queries prepare table which should be review to decide create or not new Suppliers in RxE
@@ -4317,11 +4324,18 @@ AND c.concept_code = tsm.concept_code
 AND c.vocabulary_id = 'dm+d';
 
 --At this stage extract suppliers to recheck and map if need
--- select * from tomap_supplier_man;
+/*
+DROP TABLE tomap_supplier_man_mapping;
+
+CREATE TABLE tomap_supplier_man_mapping AS 
+SELECT * FROM tomap_supplier_man 
+WHERE mapped_id IS NULL;
+*/
+
 -- update mapped suppliers
 UPDATE tomap_supplier_man tsm
 SET mapped_id = tsm25.mapped_id
-FROM tomap_supplier_may25 tsm25 --manual table
+FROM tomap_supplier_man_mapping tsm25 --manual table
 WHERE
   tsm.mapped_id IS NULL
   AND tsm.concept_code = tsm25.concept_code;
@@ -4632,7 +4646,7 @@ AND NOT EXISTS (
     WHERE codes.code = irs.concept_code_1
 );
 
---Replaces 'Powder' dose form WITH more specific forms, guessing FROM name WHERE possible
+--Replaces 'Powder' dose form with more specific forms, guessing FROM name WHERE possible
 DROP TABLE IF EXISTS vmps_chain;
 CREATE TABLE vmps_chain AS
 SELECT DISTINCT
@@ -4789,33 +4803,7 @@ WHERE
 			WHERE concept_code_1 IN (apid,appid)
 		);
 
---Dropping codes that cause error FROM pc_stage table
---Included IN manual mapping
-DELETE FROM pc_stage
-WHERE pack_concept_code IN
-	(SELECT  p.pack_concept_code
-	FROM pc_stage p
-	LEFT JOIN ds_stage d ON d.drug_concept_code = p.drug_concept_code
-	WHERE d.drug_concept_code IS NULL);
-
---! Step 12. Some manual fixes for some drugs inc. vaccine
-DELETE FROM drug_concept_stage dcs
-WHERE
-  dcs.source_concept_class_id IN ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
-  AND NOT EXISTS (
-    SELECT 1
-    FROM internal_relationship_stage ir
-    WHERE ir.concept_code_2 = dcs.concept_code
-  );
- 
-DELETE FROM relationship_to_concept rtc
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM drug_concept_stage dcs
-  WHERE dcs.concept_code = rtc.concept_code_1
-);
-
---! Step 13. More fixes AND shifting OMOP codes to follow sequence IN CONCEPT table
+--! Step 12. More fixes and shifting OMOP codes to follow sequence IN CONCEPT table
 DELETE FROM internal_relationship_stage ir
 USING drug_concept_stage dcs
 WHERE
@@ -4827,26 +4815,18 @@ SET amount_value = NULL
 WHERE amount_value IS NOT NULL
 AND numerator_value IS NOT NULL;
 
-DELETE FROM drug_concept_stage a
-WHERE
-  a.concept_class_id IN ('Brand Name','Dose Form','Supplier')
-  AND NOT EXISTS (
-    SELECT 1
-    FROM internal_relationship_stage b
-    WHERE b.concept_code_2 = a.concept_code
-  );
-
 -- 1) Identify all but one row per duplicate concept_code:
 WITH dup AS (
   SELECT
     ctid,
     ROW_NUMBER() OVER (
       PARTITION BY concept_code
-      ORDER BY concept_name  -- keep the “first” by name; adjust ORDER BY AS needed
+      ORDER BY concept_name  -- keep the “first” by name; adjust order as needed
     ) AS rn
   FROM drug_concept_stage
 )
--- 2) DELETE every row WHERE rn > 1, i.e. the true duplicates
+
+-- 2) delete every row where rn > 1, i.e. the true duplicates
 DELETE FROM drug_concept_stage d
 USING dup
 WHERE d.ctid = dup.ctid
@@ -4950,12 +4930,22 @@ USING duplicates dup
 WHERE d.ctid = dup.ctid;
 
 --Remove relationships to attributes for concepts, processed manually
-DELETE FROM ds_stage WHERE drug_concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual);
-DELETE FROM internal_relationship_stage WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual);
-DELETE FROM pc_stage WHERE pack_concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual);
-DELETE FROM relationship_to_concept WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual);
+DELETE FROM ds_stage ds WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = ds.drug_concept_code and crm.vocabulary_id_1 = 'dm+d');
+DELETE FROM internal_relationship_stage irs WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = irs.concept_code_1 and crm.vocabulary_id_1 = 'dm+d');
+DELETE FROM pc_stage ps WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = ps.pack_concept_code and crm.vocabulary_id_1 = 'dm+d');
+DELETE FROM relationship_to_concept rtc WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = rtc.concept_code_1 and crm.vocabulary_id_1 = 'dm+d');
 
---Changing column types AS they should be for BuildRxE
+-- Some manual fixes for some drugs inc. vaccine
+DELETE FROM drug_concept_stage dcs
+WHERE
+  dcs.source_concept_class_id IN ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM internal_relationship_stage ir
+    WHERE ir.concept_code_2 = dcs.concept_code
+  );
+
+--Changing column types as they should be for BuildRxE
 ALTER TABLE relationship_to_concept ALTER COLUMN conversion_factor TYPE NUMERIC;
 ALTER TABLE relationship_to_concept ALTER COLUMN precedence TYPE smallint;
 ALTER TABLE pc_stage ALTER COLUMN amount TYPE smallint;
@@ -4964,5 +4954,4 @@ ALTER TABLE ds_stage ALTER COLUMN amount_value TYPE NUMERIC;
 ALTER TABLE ds_stage ALTER COLUMN numerator_value TYPE NUMERIC;
 ALTER TABLE ds_stage ALTER COLUMN denominator_value TYPE NUMERIC;
 ALTER TABLE ds_stage ALTER COLUMN box_size TYPE smallint;
-
 --At this point, everything should be prepared for BuildRxE run

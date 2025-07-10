@@ -1,0 +1,31 @@
+"concept_code_1";"source_name";"concept_id_2";"concept_name";"conversion_factor"
+"10692211000001108";application;45744809;Actuation;
+"10693011000001107";SQ-T;8510;unit;
+"10693211000001102";Cell;45744812;cells;
+"10695711000001105";million plaque forming units;8510;unit;1000000
+"258666001";unit;8510;unit;
+"258682000";gram;8576;milligram;1000
+"258683005";kg;8576;milligram;1000000
+"258684004";mg;8576;milligram;
+"258685003";microgram;8576;milligram;0.001
+"258686002";nanogram;8576;milligram;0.000001
+"258702006";hour;8505;hour;
+"258718000";mmol;9573;millimole;
+"258719008";micromol;9573;millimole;0.001
+"258770004";litre;8587;milliliter;1000
+"258773002";ml;8587;milliliter;
+"258997004";iu;8510;unit;
+"259022006";square cm;9483;square centimeter;
+"282113003";nanolitre;8587;milliliter;0.000001
+"3317411000001100";dose;45744809;Actuation;
+"3319711000001103";unit dose;45744809;Actuation;
+"408165007";mega u;8510;unit;1000000
+"411225003";Kallikrein inactivator unit;8510;unit;
+"415758003";tuberculin unit;8510;unit;
+"732981002";actuation;45744809;Actuation;
+mega unit;mega unit;8510;unit;1000000
+SQ-U;SQ-U;8510;unit;
+tera vector genome;tera vector genome;32018;Vector-genome;1000000000000
+ppm;ppm;9387;parts per million;
+SQ-Bet;SQ-Bet;8510;unit;
+capsule;capsule;;"";

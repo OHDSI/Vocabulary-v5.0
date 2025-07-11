@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Maria Rogozhkina, Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
+* Authors: Maryia Rahozhkina, Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
 * Date: 2021
 **************************************************************************/
 
@@ -50,7 +50,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE 
+SELECT CASE
 		WHEN loinc_num = '66678-4'
 			AND property = 'Hx'
 			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
@@ -61,7 +61,7 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	CASE 
+	CASE
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -216,7 +216,7 @@ SELECT CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE 
+	CASE
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -333,7 +333,7 @@ SELECT CASE
 		WHEN classtype = '4'
 			THEN 'Survey'
 		END AS concept_class_id,
-	CASE 
+	CASE
 		WHEN l.STATUS IN ('DEPRECATED')
 			THEN NULL
 		WHEN l.STATUS IN ('DISCOURAGED')
@@ -351,9 +351,9 @@ SELECT CASE
 		END AS standard_concept,
 	LOINC_NUM AS concept_code,
 	v.latest_update AS valid_start_date,
-	CASE 
+	CASE
 		WHEN l.STATUS IN ('DEPRECATED')
-			THEN CASE 
+			THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -369,7 +369,7 @@ SELECT CASE
 					'4'
 					)
 				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-			THEN CASE 
+			THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -377,7 +377,7 @@ SELECT CASE
 					END
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE 
+	CASE
 		WHEN (
 				l.STATUS IN ('DISCOURAGED')
 				AND (
@@ -1212,9 +1212,9 @@ CREATE UNLOGGED TABLE sn_attr AS
 					f.effectivetime DESC -- the 'statusid' field may be both Fully define and Primitive at the same time, to distinguish Fully define ones use 'effectivetime' field
 				) AS s0
 			WHERE statusid = '900000000000073002'
-			
+
 			UNION ALL
-			
+
 			SELECT '41598000' AS concept_code,
 				'900000000000073002' AS statusid --This union is needed to take Estrogen component
 			)
@@ -1235,7 +1235,7 @@ CREATE UNLOGGED TABLE lc_attr AS
 	WITH lc_attr_add AS (
 			SELECT cs.concept_code AS lc_code,
 				cs.concept_name AS lc_name,
-				CASE 
+				CASE
 					WHEN crs.concept_code_2 NOT IN (
 							'LP7753-9',
 							'LP7751-3'
@@ -1243,7 +1243,7 @@ CREATE UNLOGGED TABLE lc_attr AS
 						THEN 'Has dir proc site'
 					ELSE 'Has scale type'
 					END AS relationship_id,
-				CASE 
+				CASE
 					WHEN crs.concept_code_2 IN (
 							'LP7057-5',
 							'LP21304-8',
@@ -1426,19 +1426,19 @@ SELECT DISTINCT lc_code,
 FROM (
 	SELECT *
 	FROM lc_attr_add
-	
+
 	UNION ALL
-	
+
 	SELECT *
 	FROM lc_sn
-	
+
 	UNION ALL
-	
+
 	SELECT *
 	FROM lc_attr_1
-	
+
 	UNION ALL
-	
+
 	SELECT *
 	FROM lc_attr_2
 	) lc
@@ -1744,9 +1744,9 @@ WITH ax_1 AS (
 	all_ax AS (
 		SELECT *
 		FROM ax_1
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_2
 
@@ -1754,19 +1754,19 @@ WITH ax_1 AS (
 
 		SELECT *
 		FROM ax_21
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_3
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_4
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_5
 		)
@@ -1835,7 +1835,9 @@ WHERE NOT (
 			AND a_x.sn_name NOT ILIKE '%dipstick%'
 			)
 		AND sn_name NOT ILIKE '%quantitative%'
-		);
+		)
+AND sn_code NOT IN ('315132007')
+AND lc_code NOT IN ('31204-1', '16129-9', '33462-3', '21597-0', '43588-3');
 
 --21. Build hierarchical links 'Is a' from LOINC Lab Tests to SNOMED Measurements with the use of the LOINC Ontology source (2024.02)
 INSERT INTO concept_relationship_stage (
@@ -2234,7 +2236,9 @@ WITH resulting_table AS (
                             '443833006' --Quantitative measurement of cannabinoids in urine using GC-MS
                                 )
 				    AND loinc_code NOT IN
-                            ('805-2' --Leukocytes [#/volume] in Cerebral spinal fluid by Automated count
+                            ('805-2', --Leukocytes [#/volume] in Cerebral spinal fluid by Automated count
+                            '57747-8', --Erythrocytes [#/volume] in Urine by Automated test strip
+                            '798-9' --Erythrocytes [#/volume] in Urine by Automated count
                                 )
 					) s0
 				ORDER BY s0.concept_code,
@@ -2355,7 +2359,9 @@ WITH resulting_table AS (
 							)
 						AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
 					  AND t.loinc_code NOT IN
-                            ('805-2' --Leukocytes [#/volume] in Cerebral spinal fluid by Automated count
+                            ('805-2', --Leukocytes [#/volume] in Cerebral spinal fluid by Automated count
+                            '57747-8', --Erythrocytes [#/volume] in Urine by Automated test strip
+                            '798-9' --Erythrocytes [#/volume] in Urine by Automated count
                                 )
 						AND regexp_replace(t.concept_name, '[^0-9]', '', 'g') = regexp_replace(t.snomed_name, '[^0-9]', '', 'g')
 					) s0
@@ -2463,6 +2469,13 @@ WITH resulting_table AS (
 						'444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
 					    '2341000237100', --Leucocyte number concentration in semen
 					    '4851000237100' --Neutrophil number concentration in semen
+					    )
+				  AND loinc_code NOT IN (
+						'8177-8', --Cannabinoids [Presence] in Unknown substance
+						'8178-6', --Cannabinoids [Presence] in Unknown substance by Confirmatory method
+					    '8179-4', --Cannabinoids [Presence] in Unknown substance by Screen method
+				         '57747-8', --Erythrocytes [#/volume] in Urine by Automated test strip
+                         '798-9' --Erythrocytes [#/volume] in Urine by Automated count
 					    )
 			    AND snomed_name !~* 'by deoxyribonucleic acid microarray analysis'
 				)/*,
@@ -2775,6 +2788,7 @@ SELECT l.loinc AS concept_code_1, -- updated LOINC concept
 FROM sources.map_to l,
 	vocabulary v
 WHERE v.vocabulary_id = 'LOINC'
+AND l.loinc NOT IN ('13668-9')
 
 UNION ALL
 
@@ -3435,7 +3449,12 @@ WHERE a.vocabulary_id = 'LOINC'
 			AND crs_int.relationship_id = r.relationship_id
 		);
 
---42. Clean up
+--42. Deprecate wrong relationships
+UPDATE concept_relationship_stage
+SET invalid_reason = 'D', valid_end_date = '2025-07-03'
+WHERE concept_code_1 = '13668-9' and concept_code_2 = '47808-1' and relationship_id = 'Maps to';
+
+--43. Clean up
 DROP TABLE sn_attr, lc_attr;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

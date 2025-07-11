@@ -1,0 +1,584 @@
+source_code;source_name;mapped_name;precedence;concept_code;concept_id
+767059009;Pessary;Vaginal Mechanical Pessaries with Substance;1;OMOP4913045;702776
+421366001;Dispersible tablet;Tablet for Oral Suspension;1;1861409;1592486
+16175111000001109;Intrauterine device;Intrauterine System;1;1856271;1718367
+385059007;Gastro-resistant tablet;Delayed Release Oral Tablet;1;10312;19001949
+35367211000001107;Shampoo;Medicated Shampoo;1;106332;19008697
+385165005;Vaginal cream;Vaginal Cream;1;11103;19010878
+385168007;Vaginal foam;Vaginal Foam;1;11107;19010879
+385166006;Vaginal gel;Vaginal Gel;1;11108;19010880
+385178005;Vaginal tablet;Vaginal Tablet;1;11110;19010962
+421720008;Spray;Nasal Spray;1;126542;19011167
+36407611000001102;Bladder irrigation;Irrigation Solution;1;152903;19016586
+42550611000001104;Cutaneous irrigation solution;Irrigation Solution;1;152903;19016586
+42550711000001108;Cutaneous or intravesical irrigation solution;Irrigation Solution;1;152903;19016586
+385242008;Intravesical solution;Irrigation Solution;1;152903;19016586
+3092911000001109;Irrigation;Irrigation Solution;1;152903;19016586
+16605211000001107;Irrigation solution;Irrigation Solution;1;152903;19016586
+34582011000001107;Powder and solvent for intravesical solution;Irrigation Solution;1;152903;19016586
+42572311000001105;Powder and solvent for intravesical suspension;Irrigation Solution;1;152903;19016586
+8062811000001100;Powder for reconstitution for instillation;Irrigation Solution;1;152903;19016586
+785899003;Ocular irrigation solution;Ophthalmic Irrigation Solution;1;244286;19059413
+719200003;Ophthalmic strip;Ophthalmic Irrigation Solution;1;244286;19059413
+42550811000001100;Powder and solvent for solution for intraocular irrigation;Ophthalmic Irrigation Solution;1;244286;19059413
+42729711000001103;Solution for intraocular irrigation;Ophthalmic Irrigation Solution;1;244286;19059413
+447079001;Orodispersible tablet;Disintegrating Oral Tablet;1;316942;19082076
+385054002;Modified-release capsule;Extended Release Oral Capsule;1;316943;19082077
+385061003;Modified-release tablet;Extended Release Oral Tablet;1;316945;19082079
+37981711000001101;Concentrate and solvent for solution for injection;Injectable Solution;1;316949;19082103
+1230184003;Dispersion for infusion;Injectable Solution;1;316949;19082103
+1230185002;Dispersion for injection;Injectable Solution;1;316949;19082103
+14964511000001102;Infusion;Injectable Solution;1;316949;19082103
+3092611000001103;Obsolete - Injection;Injectable Solution;1;316949;19082103
+3092811000001104;Obsolete - Intravenous infusion;Injectable Solution;1;316949;19082103
+44461211000001101;Powder and solution for solution for infusion;Injectable Solution;1;316949;19082103
+14955211000001106;Powder and solvent for solution for infusion;Injectable Solution;1;316949;19082103
+7375911000001101;Powder and solvent for solution for injection;Injectable Solution;1;316949;19082103
+1230196005;Powder for dispersion for infusion;Injectable Solution;1;316949;19082103
+7558711000001106;Powder for injection;Injectable Solution;1;316949;19082103
+1231578000;Powder for intravesical solution;Injectable Solution;1;316949;19082103
+764843001;Powder for solution for infusion;Injectable Solution;1;316949;19082103
+385223009;Powder for solution for injection;Injectable Solution;1;316949;19082103
+41410711000001105;Solution and emulsion for emulsion for injection;Injectable Solution;1;316949;19082103
+34937011000001105;Solution for blood fraction modification;Injectable Solution;1;316949;19082103
+44513711000001102;Solution for extracorporeal infusion;Injectable Solution;1;316949;19082103
+385229008;Solution for infusion;Injectable Solution;1;316949;19082103
+385219001;Solution for injection;Injectable Solution;1;316949;19082103
+42645611000001100;Solution for organ preservation;Injectable Solution;1;316949;19082103
+15881311000001107;Solution for skin-prick test;Injectable Solution;1;316949;19082103
+37238811000001105;Solvent for BCG Vaccine AJV;Injectable Solution;1;316949;19082103
+385095004;Dental suspension;Injectable Suspension;1;316950;19082104
+15647811000001107;Emulsion and suspension for emulsion for injection;Injectable Suspension;1;316950;19082104
+765367006;Emulsion for infusion;Injectable Suspension;1;316950;19082104
+385221006;Emulsion for injection;Injectable Suspension;1;316950;19082104
+763446005;Gel for injection;Injectable Suspension;1;316950;19082104
+16602411000001103;Implantation suspension;Injectable Suspension;1;316950;19082104
+42955811000001103;Obsolete - Suspension for infusion;Injectable Suspension;1;316950;19082104
+32779711000001100;Powder and solvent for prolonged-release suspension for inj;Injectable Suspension;1;316950;19082104
+16756411000001100;Powder and solvent for suspension for infusion;Injectable Suspension;1;316950;19082104
+7376011000001109;Powder and solvent for suspension for injection;Injectable Suspension;1;316950;19082104
+17036711000001108;Powder and suspension for suspension for injection;Injectable Suspension;1;316950;19082104
+1230325007;Powder for suspension for endotracheopulmonary instillation;Injectable Suspension;1;316950;19082104
+765065005;Powder for suspension for infusion;Injectable Suspension;1;316950;19082104
+385224003;Powder for suspension for injection;Injectable Suspension;1;316950;19082104
+1230186001;Prolonged-release dispersion for injection;Injectable Suspension;1;316950;19082104
+42550411000001102;Prolonged-release intraarticular implantation suspension;Injectable Suspension;1;316950;19082104
+42550511000001103;Prolonged-release intraosseous implantation suspension;Injectable Suspension;1;316950;19082104
+1231833006;Prolonged-release solution for injection;Injectable Suspension;1;316950;19082104
+420873008;Prolonged-release suspension for injection;Injectable Suspension;1;316950;19082104
+385250004;Suspension for endotracheopulmonary instillation;Injectable Suspension;1;316950;19082104
+385220007;Suspension for injection;Injectable Suspension;1;316950;19082104
+42551811000001108;Intraperitoneal solution;Intraperitoneal Solution;1;316951;19082105
+385149009;Nasal cream;Nasal Cream;1;316957;19082161
+41627611000001108;Cutaneous or nasal ointment;Nasal Ointment;1;316961;19082164
+385151008;Nasal ointment;Nasal Ointment;1;316961;19082164
+385152001;Nasal drops;Nasal Solution;1;316962;19082165
+422336005;Nasal solution;Nasal Solution;1;316962;19082165
+385122009;Eye gel;Ophthalmic Gel;1;316963;19082166
+13300101000001108;Modified-release drops;Ophthalmic Suspension;1;316964;19082167
+385049006;Capsule;Oral Capsule;1;316965;19082168
+42005711000001107;Chewable capsule;Oral Capsule;1;316965;19082168
+420692007;Oral capsule;Oral Capsule;1;316965;19082168
+19276111000001108;Concentrate for oral solution;Oral Solution;1;316968;19082170
+42551311000001104;Cutaneous or oromucosal liquid;Oral Solution;1;316968;19082170
+42551411000001106;Dental liquid;Oral Solution;1;316968;19082170
+42552311000001108;Gastroenteral or oral liquid;Oral Solution;1;316968;19082170
+385037005;Herbal tea;Oral Solution;1;316968;19082170
+421936000;Homeopathic drops;Oral Solution;1;316968;19082170
+385018001;Oral drops;Oral Solution;1;316968;19082170
+42552211000001100;Oral liquid;Oral Solution;1;316968;19082170
+385023001;Oral solution;Oral Solution;1;316968;19082170
+42551611000001109;Oromucosal liquid;Oral Solution;1;316968;19082170
+385070000;Oromucosal solution;Oral Solution;1;316968;19082170
+385025008;Oral emulsion;Oral Suspension;1;316969;19082191
+385024007;Oral suspension;Oral Suspension;1;316969;19082191
+385135000;Ear ointment;Otic Ointment;1;316972;19082194
+42551011000001102;Cutaneous or ear solution;Otic Solution;1;316973;19082195
+385136004;Ear drops;Otic Solution;1;316973;19082195
+765163001;Ear/eye drops solution;Otic Solution;1;316973;19082195
+765164007;Ear/eye/nose drops solution;Otic Solution;1;316973;19082195
+385182007;Rectal cream;Rectal Cream;1;316975;19082197
+385194003;Suppository;Rectal Suppository;1;316978;19082200
+385086007;Muco-adhesive buccal tablet;Sustained Release Buccal Tablet;1;316980;19082222
+385099005;Cream;Topical Cream;1;316982;19082224
+421628006;Cutaneous cream;Topical Cream;1;316982;19082224
+385088008;Dental gel;Topical Cream;1;316982;19082224
+764477003;Transdermal cream;Topical Cream;1;316982;19082224
+3097511000001104;Cutaneous wash;Topical Lotion;1;316983;19082225
+425753008;Cutaneous ointment;Topical Ointment;1;316985;19082227
+385101003;Ointment;Topical Ointment;1;316985;19082227
+762893001;Transdermal ointment;Topical Ointment;1;316985;19082227
+42551111000001101;Buccal liquid;Topical Solution;1;316986;19082228
+42552011000001105;Cutaneous liquid;Topical Solution;1;316986;19082228
+3095111000001104;Cutaneous paint;Topical Solution;1;316986;19082228
+385108009;Cutaneous solution;Topical Solution;1;316986;19082228
+42894411000001101;Drops;Topical Solution;1;316986;19082228
+42551511000001105;Endocervical solution;Topical Solution;1;316986;19082228
+385120001;Impregnated dressing;Topical Solution;1;316986;19082228
+420699003;Liquid;Topical Solution;1;316986;19082228
+1229992005;Powder for solution for iontophoresis;Topical Solution;1;316986;19082228
+422201009;Tablet for cutaneous solution;Topical Solution;1;316986;19082228
+385170003;Vaginal solution;Topical Solution;1;316986;19082228
+764485007;Cutaneous patch;Transdermal System;1;316987;19082229
+10984111000001107;Medicated plaster;Transdermal System;1;316987;19082229
+1230350005;Poultice;Transdermal System;1;316987;19082229
+385113008;Solution for iontophoresis;Transdermal System;1;316987;19082229
+385114002;Transdermal patch;Transdermal System;1;316987;19082229
+1231572004;Transdermal system;Transdermal System;1;316987;19082229
+764501003;Lozenge;Oral Lozenge;1;316992;19082253
+421079001;Pastille;Oral Lozenge;1;316992;19082253
+385052003;Gastro-resistant capsule;Delayed Release Oral Capsule;1;316995;19082255
+385207009;Inhalation powder;Inhalation Powder;1;317000;19082259
+17406411000001100;Powder and solvent for nebuliser solution;Inhalation Powder;1;317000;19082259
+385201005;Powder for nebuliser solution;Inhalation Powder;1;317000;19082259
+114981000001105;Pressurised inhalation;Inhalation Powder;1;317000;19082259
+385184008;Rectal ointment;Rectal Ointment;1;317005;19082282
+385084005;Sublingual tablet;Sublingual Tablet;1;317007;19082285
+35366811000001106;Bath additive;Topical Powder;1;317009;19082286
+385112003;Cutaneous powder;Topical Powder;1;317009;19082286
+385139006;Ear powder;Topical Powder;1;317009;19082286
+1230336000;Effervescent powder;Topical Powder;1;317009;19082286
+739005008;Powder;Topical Powder;1;317009;19082286
+421026006;Oral tablet;Oral Tablet;1;317541;19082573
+421701006;Soluble tablet;Oral Tablet;1;317541;19082573
+385055001;Tablet;Oral Tablet;1;317541;19082573
+385185009;Rectal foam;Rectal Foam;1;317542;19082574
+501831000001108;Eye lotion;Ophthalmic Cream;1;317544;19082576
+385123004;Eye ointment;Ophthalmic Cream;1;317544;19082576
+13299601000001101;Enema;Enema;1;317678;19082627
+385044001;Effervescent granules;Oral Granules;1;317690;19082651
+385045000;Gastro-resistant granules;Oral Granules;1;317690;19082651
+385047008;Modified-release granules;Oral Granules;1;317690;19082651
+420509004;Oral granules;Oral Granules;1;317690;19082651
+385175008;Vaginal capsule;Vaginal Suppository;1;337840;19093368
+42551211000001107;Cutaneous or inhalation liquid;Inhalation Solution;1;346161;19095898
+420641004;Inhalation solution;Inhalation Solution;1;346161;19095898
+115281000001100;Inhalation vapour;Inhalation Solution;1;346161;19095898
+1231565000;Inhalation vapour capsule;Inhalation Solution;1;346161;19095898
+1231562002;Inhalation vapour emulsion;Inhalation Solution;1;346161;19095898
+44060011000001107;Inhalation vapour liquid;Inhalation Solution;1;346161;19095898
+1231564001;Inhalation vapour ointment;Inhalation Solution;1;346161;19095898
+1231567008;Inhalation vapour solution;Inhalation Solution;1;346161;19095898
+1231837007;Nebuliser dispersion;Inhalation Solution;1;346161;19095898
+115291000001103;Nebuliser liquid;Inhalation Solution;1;346161;19095898
+385074009;Sublingual spray;Oral Spray;1;346164;19095911
+385106008;Cutaneous spray solution;Topical Spray;1;346165;19095912
+1255346009;Intestinal gel;Oral Gel;1;346169;19095916
+385038000;Oral gel;Oral Gel;1;346169;19095916
+385078007;Oromucosal gel;Oral Gel;1;346169;19095916
+1230220004;Periodontal gel;Oral Gel;1;346169;19095916
+385103000;Cutaneous foam;Topical Foam;1;346285;19095972
+421949005;Cutaneous gel;Topical Gel;1;346286;19095973
+385100002;Gel;Topical Gel;1;346286;19095973
+41166611000001104;Intrauterine gel;Topical Gel;1;346286;19095973
+33491111000001107;Powder and gel for gel;Topical Gel;1;346286;19095973
+764802001;Transdermal gel;Topical Gel;1;346286;19095973
+385041009;Oral powder;Oral Powder;1;346289;19095976
+385102005;Cutaneous paste;Paste;1;402496;19102295
+763445009;Dental paste;Paste;1;402496;19102295
+385079004;Oromucosal paste;Paste;1;402496;19102295
+739002006;Paste;Paste;1;402496;19102295
+35367011000001102;Medicated chewing-gum;Chewing Gum;1;402499;19102296
+34875411000001103;Living tissue equivalent;Drug Implant;1;657710;19124968
+385132002;Ophthalmic insert;Drug Implant;1;657710;19124968
+785910004;Prolonged-release intralesional implant;Drug Implant;1;657710;19124968
+1306759002;Prolonged-release intravitreal implant;Drug Implant;1;657710;19124968
+764296002;Prolonged-release subcutaneous implant;Drug Implant;1;657710;19124968
+18269211000001103;Solution for sealant;Drug Implant;1;657710;19124968
+70409003;Mouthwash;Mouthwash;1;7067;19126590
+385124005;Eye drops;Ophthalmic Solution;1;7670;19129634
+66076007;Chewable tablet;Chewable Tablet;1;91058;19135866
+739007000;Stick;Stick;1;OMOP332174;21014170
+11564111000001107;Impregnated cigarette;Impregnated cigarette;1;OMOP332178;21014172
+1231571006;Vaginal delivery system;Vaginal delivery system;1;OMOP332190;21014179
+385181000;Vaginal device;Vaginal delivery system;1;OMOP332190;21014179
+1230360001;Sublingual film;Sublingual Film;1;2269578;37498348
+443424002;Buccal film;Buccal Film;1;858080;40164192
+385062005;Oral lyophilisate;Buccal Film;1;858080;40164192
+447050008;Orodispersible film;Buccal Film;1;858080;40164192
+385085006;Buccal tablet;Buccal Tablet;1;970789;40175589
+35367111000001101;Medicated nail lacquer;Medicated Nail Polish;1;OMOP433048;43126087
+764780001;Effervescent tablet;Effervescent Oral Tablet;1;1535727;44817840
+385028005;Granules for oral solution;Granules for Oral Solution;1;1540453;45775489
+41625711000001105;Granules for gastroenteral or oral suspension;Granules for Oral Suspension;1;1540454;45775490
+385029002;Granules for oral suspension;Granules for Oral Suspension;1;1540454;45775490
+14945811000001105;Powder for gastroenteral liquid;Powder for Oral Solution;1;1540455;45775491
+42552111000001106;Powder for gastroenteral or oral liquid;Powder for Oral Solution;1;1540455;45775491
+385026009;Powder for oral solution;Powder for Oral Solution;1;1540455;45775491
+41599011000001106;Effervescent powder and powder for oral suspension;Powder for Oral Suspension;1;1540456;45775492
+43734811000001104;Gastro resistant powder and solvent for oral suspension;Powder for Oral Suspension;1;1540456;45775492
+896760006;Powder for oral or rectal suspension;Powder for Oral Suspension;1;1540456;45775492
+385027000;Powder for oral suspension;Powder for Oral Suspension;1;1540456;45775492
+385111005;Cutaneous emulsion;Topical Suspension;1;1649353;46234410
+41623311000001105;Granules for intrauterine suspension;Topical Suspension;1;1649353;46234410
+1231837007;Nebuliser dispersion;Inhalation Suspension;2;2107948;1356078
+115291000001103;Nebuliser liquid;Inhalation Suspension;2;2107948;1356078
+385175008;Vaginal capsule;Vaginal Insert;2;2107950;1356079
+385061003;Modified-release tablet;Delayed Release Oral Tablet;2;10312;19001949
+385055001;Tablet;Delayed Release Oral Tablet;2;10312;19001949
+385166006;Vaginal gel;Vaginal Cream;2;11103;19010878
+385168007;Vaginal foam;Vaginal Gel;2;11108;19010880
+42551511000001105;Endocervical solution;Irrigation Solution;2;152903;19016586
+42551811000001108;Intraperitoneal solution;Irrigation Solution;2;152903;19016586
+421366001;Dispersible tablet;Disintegrating Oral Tablet;2;316942;19082076
+764780001;Effervescent tablet;Disintegrating Oral Tablet;2;316942;19082076
+385052003;Gastro-resistant capsule;Extended Release Oral Capsule;2;316943;19082077
+420692007;Oral capsule;Extended Release Oral Capsule;2;316943;19082077
+385059007;Gastro-resistant tablet;Extended Release Oral Tablet;2;316945;19082079
+421026006;Oral tablet;Extended Release Oral Tablet;2;316945;19082079
+385103000;Cutaneous foam;Foam;2;316948;19082102
+36407611000001102;Bladder irrigation;Injectable Solution;2;316949;19082103
+385095004;Dental suspension;Injectable Solution;2;316949;19082103
+15647811000001107;Emulsion and suspension for emulsion for injection;Injectable Solution;2;316949;19082103
+765367006;Emulsion for infusion;Injectable Solution;2;316949;19082103
+385221006;Emulsion for injection;Injectable Solution;2;316949;19082103
+385242008;Intravesical solution;Injectable Solution;2;316949;19082103
+3092911000001109;Irrigation;Injectable Solution;2;316949;19082103
+16605211000001107;Irrigation solution;Injectable Solution;2;316949;19082103
+34582011000001107;Powder and solvent for intravesical solution;Injectable Solution;2;316949;19082103
+32779711000001100;Powder and solvent for prolonged-release suspension for inj;Injectable Solution;2;316949;19082103
+16756411000001100;Powder and solvent for suspension for infusion;Injectable Solution;2;316949;19082103
+7376011000001109;Powder and solvent for suspension for injection;Injectable Solution;2;316949;19082103
+17036711000001108;Powder and suspension for suspension for injection;Injectable Solution;2;316949;19082103
+8062811000001100;Powder for reconstitution for instillation;Injectable Solution;2;316949;19082103
+1230325007;Powder for suspension for endotracheopulmonary instillation;Injectable Solution;2;316949;19082103
+765065005;Powder for suspension for infusion;Injectable Solution;2;316949;19082103
+385224003;Powder for suspension for injection;Injectable Solution;2;316949;19082103
+1230186001;Prolonged-release dispersion for injection;Injectable Solution;2;316949;19082103
+42550411000001102;Prolonged-release intraarticular implantation suspension;Injectable Solution;2;316949;19082103
+42550511000001103;Prolonged-release intraosseous implantation suspension;Injectable Solution;2;316949;19082103
+1231833006;Prolonged-release solution for injection;Injectable Solution;2;316949;19082103
+420873008;Prolonged-release suspension for injection;Injectable Solution;2;316949;19082103
+385250004;Suspension for endotracheopulmonary instillation;Injectable Solution;2;316949;19082103
+385220007;Suspension for injection;Injectable Solution;2;316949;19082103
+37981711000001101;Concentrate and solvent for solution for injection;Injectable Suspension;2;316950;19082104
+1230184003;Dispersion for infusion;Injectable Suspension;2;316950;19082104
+1230185002;Dispersion for injection;Injectable Suspension;2;316950;19082104
+41623311000001105;Granules for intrauterine suspension;Injectable Suspension;2;316950;19082104
+14964511000001102;Infusion;Injectable Suspension;2;316950;19082104
+34875411000001103;Living tissue equivalent;Injectable Suspension;2;316950;19082104
+3092611000001103;Obsolete - Injection;Injectable Suspension;2;316950;19082104
+3092811000001104;Obsolete - Intravenous infusion;Injectable Suspension;2;316950;19082104
+44461211000001101;Powder and solution for solution for infusion;Injectable Suspension;2;316950;19082104
+42572311000001105;Powder and solvent for intravesical suspension;Injectable Suspension;2;316950;19082104
+14955211000001106;Powder and solvent for solution for infusion;Injectable Suspension;2;316950;19082104
+7375911000001101;Powder and solvent for solution for injection;Injectable Suspension;2;316950;19082104
+1230196005;Powder for dispersion for infusion;Injectable Suspension;2;316950;19082104
+7558711000001106;Powder for injection;Injectable Suspension;2;316950;19082104
+1231578000;Powder for intravesical solution;Injectable Suspension;2;316950;19082104
+764843001;Powder for solution for infusion;Injectable Suspension;2;316950;19082104
+385223009;Powder for solution for injection;Injectable Suspension;2;316950;19082104
+41410711000001105;Solution and emulsion for emulsion for injection;Injectable Suspension;2;316950;19082104
+34937011000001105;Solution for blood fraction modification;Injectable Suspension;2;316950;19082104
+44513711000001102;Solution for extracorporeal infusion;Injectable Suspension;2;316950;19082104
+385229008;Solution for infusion;Injectable Suspension;2;316950;19082104
+385219001;Solution for injection;Injectable Suspension;2;316950;19082104
+42645611000001100;Solution for organ preservation;Injectable Suspension;2;316950;19082104
+18269211000001103;Solution for sealant;Injectable Suspension;2;316950;19082104
+15881311000001107;Solution for skin-prick test;Injectable Suspension;2;316950;19082104
+37238811000001105;Solvent for BCG Vaccine AJV;Injectable Suspension;2;316950;19082104
+719200003;Ophthalmic strip;Ophthalmic Gel;2;316963;19082166
+385124005;Eye drops;Ophthalmic Suspension;2;316964;19082167
+42551111000001101;Buccal liquid;Oral Solution;2;316968;19082170
+385028005;Granules for oral solution;Oral Solution;2;316968;19082170
+420699003;Liquid;Oral Solution;2;316968;19082170
+385025008;Oral emulsion;Oral Solution;2;316968;19082170
+385024007;Oral suspension;Oral Solution;2;316968;19082170
+385026009;Powder for oral solution;Oral Solution;2;316968;19082170
+19276111000001108;Concentrate for oral solution;Oral Suspension;2;316969;19082191
+42551411000001106;Dental liquid;Oral Suspension;2;316969;19082191
+42552311000001108;Gastroenteral or oral liquid;Oral Suspension;2;316969;19082191
+41625711000001105;Granules for gastroenteral or oral suspension;Oral Suspension;2;316969;19082191
+385029002;Granules for oral suspension;Oral Suspension;2;316969;19082191
+421936000;Homeopathic drops;Oral Suspension;2;316969;19082191
+385018001;Oral drops;Oral Suspension;2;316969;19082191
+42552211000001100;Oral liquid;Oral Suspension;2;316969;19082191
+385023001;Oral solution;Oral Suspension;2;316969;19082191
+42551611000001109;Oromucosal liquid;Oral Suspension;2;316969;19082191
+385070000;Oromucosal solution;Oral Suspension;2;316969;19082191
+896760006;Powder for oral or rectal suspension;Oral Suspension;2;316969;19082191
+385027000;Powder for oral suspension;Oral Suspension;2;316969;19082191
+385136004;Ear drops;Otic Suspension;2;316974;19082196
+385139006;Ear powder;Otic Suspension;2;316974;19082196
+385184008;Rectal ointment;Rectal Cream;2;316975;19082197
+425753008;Cutaneous ointment;Topical Cream;2;316982;19082224
+385149009;Nasal cream;Topical Cream;2;316982;19082224
+385101003;Ointment;Topical Cream;2;316982;19082224
+385099005;Cream;Topical Ointment;2;316985;19082227
+421628006;Cutaneous cream;Topical Ointment;2;316985;19082227
+41627611000001108;Cutaneous or nasal ointment;Topical Ointment;2;316985;19082227
+385102005;Cutaneous paste;Topical Ointment;2;316985;19082227
+763445009;Dental paste;Topical Ointment;2;316985;19082227
+385135000;Ear ointment;Topical Ointment;2;316985;19082227
+385079004;Oromucosal paste;Topical Ointment;2;316985;19082227
+739002006;Paste;Topical Ointment;2;316985;19082227
+35366811000001106;Bath additive;Topical Solution;2;316986;19082228
+385111005;Cutaneous emulsion;Topical Solution;2;316986;19082228
+421949005;Cutaneous gel;Topical Solution;2;316986;19082228
+42550611000001104;Cutaneous irrigation solution;Topical Solution;2;316986;19082228
+42551011000001102;Cutaneous or ear solution;Topical Solution;2;316986;19082228
+42550711000001108;Cutaneous or intravesical irrigation solution;Topical Solution;2;316986;19082228
+42551311000001104;Cutaneous or oromucosal liquid;Topical Solution;2;316986;19082228
+385106008;Cutaneous spray solution;Topical Solution;2;316986;19082228
+3097511000001104;Cutaneous wash;Topical Solution;2;316986;19082228
+422336005;Nasal solution;Topical Solution;2;316986;19082228
+385113008;Solution for iontophoresis;Topical Solution;2;316986;19082228
+764477003;Transdermal cream;Transdermal System;2;316987;19082229
+764802001;Transdermal gel;Transdermal System;2;316987;19082229
+762893001;Transdermal ointment;Transdermal System;2;316987;19082229
+385049006;Capsule;Delayed Release Oral Capsule;2;316995;19082255
+385054002;Modified-release capsule;Delayed Release Oral Capsule;2;316995;19082255
+385112003;Cutaneous powder;Powder Spray;2;317004;19082281
+13299601000001101;Enema;Rectal Solution;2;317006;19082283
+385085006;Buccal tablet;Oral Tablet;2;317541;19082573
+66076007;Chewable tablet;Oral Tablet;2;317541;19082573
+764501003;Lozenge;Oral Tablet;2;317541;19082573
+385194003;Suppository;Vaginal Suppository;2;337840;19093368
+385181000;Vaginal device;Vaginal Suppository;2;337840;19093368
+385178005;Vaginal tablet;Vaginal Suppository;2;337840;19093368
+17406411000001100;Powder and solvent for nebuliser solution;Inhalation Solution;2;346161;19095898
+385201005;Powder for nebuliser solution;Inhalation Solution;2;346161;19095898
+114981000001105;Pressurised inhalation;Inhalation Solution;2;346161;19095898
+385074009;Sublingual spray;Mucosal Spray;2;346163;19095900
+421720008;Spray;Oral Spray;2;346164;19095911
+385088008;Dental gel;Oral Gel;2;346169;19095916
+385100002;Gel;Oral Gel;2;346169;19095916
+1255346009;Intestinal gel;Topical Gel;2;346286;19095973
+739005008;Powder;Oral Powder;2;346289;19095976
+385152001;Nasal drops;Nasal Suspension;2;346290;19095977
+385151008;Nasal ointment;Nasal Suspension;2;346290;19095977
+385170003;Vaginal solution;Vaginal Spray;2;479278;19112649
+16602411000001103;Implantation suspension;Drug Implant;2;657710;19124968
+42551211000001107;Cutaneous or inhalation liquid;Metered Dose Inhaler;2;721654;19126918
+420641004;Inhalation solution;Metered Dose Inhaler;2;721654;19126918
+1231565000;Inhalation vapour capsule;Metered Dose Inhaler;2;721654;19126918
+1231562002;Inhalation vapour emulsion;Metered Dose Inhaler;2;721654;19126918
+44060011000001107;Inhalation vapour liquid;Metered Dose Inhaler;2;721654;19126918
+1231564001;Inhalation vapour ointment;Metered Dose Inhaler;2;721654;19126918
+1231567008;Inhalation vapour solution;Metered Dose Inhaler;2;721654;19126918
+385207009;Inhalation powder;Dry Powder Inhaler;2;744995;19127579
+765163001;Ear/eye drops solution;Ophthalmic Solution;2;7670;19129634
+765164007;Ear/eye/nose drops solution;Ophthalmic Solution;2;7670;19129634
+13300101000001108;Modified-release drops;Ophthalmic Solution;2;7670;19129634
+785899003;Ocular irrigation solution;Ophthalmic Solution;2;7670;19129634
+42550811000001100;Powder and solvent for solution for intraocular irrigation;Ophthalmic Solution;2;7670;19129634
+42729711000001103;Solution for intraocular irrigation;Ophthalmic Solution;2;7670;19129634
+41166611000001104;Intrauterine gel;Augmented Topical Gel;2;848198;19135446
+42005711000001107;Chewable capsule;Chewable Tablet;2;91058;19135866
+385122009;Eye gel;Ophthalmic Ointment;2;91344;19135925
+501831000001108;Eye lotion;Ophthalmic Ointment;2;91344;19135925
+385123004;Eye ointment;Ophthalmic Ointment;2;91344;19135925
+1230360001;Sublingual film;Oral Film;2;2269575;37498347
+385086007;Muco-adhesive buccal tablet;Buccal Tablet;2;970789;40175589
+763446005;Gel for injection;Injectable Foam;2;1484929;44784844
+447079001;Orodispersible tablet;Effervescent Oral Tablet;2;1535727;44817840
+421701006;Soluble tablet;Effervescent Oral Tablet;2;1535727;44817840
+385044001;Effervescent granules;Granules for Oral Solution;2;1540453;45775489
+385045000;Gastro-resistant granules;Granules for Oral Suspension;2;1540454;45775490
+385047008;Modified-release granules;Granules for Oral Suspension;2;1540454;45775490
+41599011000001106;Effervescent powder and powder for oral suspension;Powder for Oral Solution;2;1540455;45775491
+43734811000001104;Gastro resistant powder and solvent for oral suspension;Powder for Oral Solution;2;1540455;45775491
+385041009;Oral powder;Powder for Oral Solution;2;1540455;45775491
+1230336000;Effervescent powder;Powder for Oral Suspension;2;1540456;45775492
+14945811000001105;Powder for gastroenteral liquid;Powder for Oral Suspension;2;1540456;45775492
+42552111000001106;Powder for gastroenteral or oral liquid;Powder for Oral Suspension;2;1540456;45775492
+42552011000001105;Cutaneous liquid;Topical Suspension;2;1649353;46234410
+3095111000001104;Cutaneous paint;Topical Suspension;2;1649353;46234410
+385108009;Cutaneous solution;Topical Suspension;2;1649353;46234410
+42894411000001101;Drops;Topical Suspension;2;1649353;46234410
+385120001;Impregnated dressing;Topical Suspension;2;1649353;46234410
+422201009;Tablet for cutaneous solution;Topical Suspension;2;1649353;46234410
+42955811000001103;Obsolete - Suspension for infusion;Injection;2;1649574;46234469
+764780001;Effervescent tablet;Tablet for Oral Suspension;3;1861409;1592486
+447079001;Orodispersible tablet;Tablet for Oral Suspension;3;1861409;1592486
+421026006;Oral tablet;Delayed Release Oral Tablet;3;10312;19001949
+763445009;Dental paste;Toothpaste;3;10652;19009068
+385079004;Oromucosal paste;Toothpaste;3;10652;19009068
+739002006;Paste;Toothpaste;3;10652;19009068
+385166006;Vaginal gel;Vaginal Foam;3;11107;19010879
+385124005;Eye drops;Ophthalmic Irrigation Solution;3;244286;19059413
+13300101000001108;Modified-release drops;Ophthalmic Irrigation Solution;3;244286;19059413
+421701006;Soluble tablet;Disintegrating Oral Tablet;3;316942;19082076
+385049006;Capsule;Extended Release Oral Capsule;3;316943;19082077
+385055001;Tablet;Extended Release Oral Tablet;3;316945;19082079
+385045000;Gastro-resistant granules;Extended Release Suspension;3;316946;19082080
+385047008;Modified-release granules;Extended Release Suspension;3;316946;19082080
+42551511000001105;Endocervical solution;Injectable Solution;3;316949;19082103
+763446005;Gel for injection;Injectable Solution;3;316949;19082103
+42551811000001108;Intraperitoneal solution;Injectable Solution;3;316949;19082103
+420699003;Liquid;Injectable Solution;3;316949;19082103
+42572311000001105;Powder and solvent for intravesical suspension;Injectable Solution;3;316949;19082103
+18269211000001103;Solution for sealant;Injectable Solution;3;316949;19082103
+36407611000001102;Bladder irrigation;Injectable Suspension;3;316950;19082104
+385242008;Intravesical solution;Injectable Suspension;3;316950;19082104
+3092911000001109;Irrigation;Injectable Suspension;3;316950;19082104
+16605211000001107;Irrigation solution;Injectable Suspension;3;316950;19082104
+34582011000001107;Powder and solvent for intravesical solution;Injectable Suspension;3;316950;19082104
+8062811000001100;Powder for reconstitution for instillation;Injectable Suspension;3;316950;19082104
+420641004;Inhalation solution;Nasal Inhalant;3;316959;19082162
+385100002;Gel;Nasal Gel;3;316960;19082163
+385151008;Nasal ointment;Nasal Gel;3;316960;19082163
+765164007;Ear/eye/nose drops solution;Nasal Solution;3;316962;19082165
+501831000001108;Eye lotion;Ophthalmic Gel;3;316963;19082166
+385123004;Eye ointment;Ophthalmic Gel;3;316963;19082166
+42550811000001100;Powder and solvent for solution for intraocular irrigation;Ophthalmic Suspension;3;316964;19082167
+385052003;Gastro-resistant capsule;Oral Capsule;3;316965;19082168
+385054002;Modified-release capsule;Oral Capsule;3;316965;19082168
+41625711000001105;Granules for gastroenteral or oral suspension;Oral Solution;3;316968;19082170
+43734811000001104;Gastro resistant powder and solvent for oral suspension;Oral Suspension;3;316969;19082191
+896760006;Powder for oral or rectal suspension;Rectal Powder;3;316976;19082198
+385085006;Buccal tablet;Sustained Release Buccal Tablet;3;316980;19082222
+385099005;Cream;Topical Lotion;3;316983;19082225
+421628006;Cutaneous cream;Topical Lotion;3;316983;19082225
+385111005;Cutaneous emulsion;Topical Lotion;3;316983;19082225
+42552011000001105;Cutaneous liquid;Topical Lotion;3;316983;19082225
+425753008;Cutaneous ointment;Topical Lotion;3;316983;19082225
+3095111000001104;Cutaneous paint;Topical Lotion;3;316983;19082225
+385108009;Cutaneous solution;Topical Lotion;3;316983;19082225
+385101003;Ointment;Topical Lotion;3;316983;19082225
+42551211000001107;Cutaneous or inhalation liquid;Topical Solution;3;316986;19082228
+765163001;Ear/eye drops solution;Topical Solution;3;316986;19082228
+785899003;Ocular irrigation solution;Topical Solution;3;316986;19082228
+420692007;Oral capsule;Delayed Release Oral Capsule;3;316995;19082255
+1231837007;Nebuliser dispersion;Inhalation Powder;3;317000;19082259
+115291000001103;Nebuliser liquid;Inhalation Powder;3;317000;19082259
+41599011000001106;Effervescent powder and powder for oral suspension;Topical Powder;3;317009;19082286
+385120001;Impregnated dressing;Topical Powder;3;317009;19082286
+385059007;Gastro-resistant tablet;Oral Tablet;3;317541;19082573
+385061003;Modified-release tablet;Oral Tablet;3;317541;19082573
+385086007;Muco-adhesive buccal tablet;Oral Tablet;3;317541;19082573
+385194003;Suppository;Urethral Suppository;3;317543;19082575
+385122009;Eye gel;Ophthalmic Cream;3;317544;19082576
+421720008;Spray;Mucosal Spray;3;346163;19095900
+385074009;Sublingual spray;Topical Spray;3;346165;19095912
+13299601000001101;Enema;Rectal Gel;3;346170;19095917
+385184008;Rectal ointment;Rectal Gel;3;346170;19095917
+385088008;Dental gel;Topical Gel;3;346286;19095973
+14945811000001105;Powder for gastroenteral liquid;Oral Powder;3;346289;19095976
+42552111000001106;Powder for gastroenteral or oral liquid;Oral Powder;3;346289;19095976
+42551111000001101;Buccal liquid;Solution;3;450530;19111276
+19276111000001108;Concentrate for oral solution;Solution;3;450530;19111276
+42550611000001104;Cutaneous irrigation solution;Solution;3;450530;19111276
+42894411000001101;Drops;Solution;3;450530;19111276
+719200003;Ophthalmic strip;Drug Implant;3;657710;19124968
+42551411000001106;Dental liquid;Mouthwash;3;7067;19126590
+42552211000001100;Oral liquid;Mouthwash;3;7067;19126590
+385207009;Inhalation powder;Metered Dose Inhaler;3;721654;19126918
+114981000001105;Pressurised inhalation;Dry Powder Inhaler;3;744995;19127579
+385181000;Vaginal device;Vaginal Film;3;1788819;35604393
+42005711000001107;Chewable capsule;Chewable Extended Release Oral Tablet;3;2269573;37498346
+1231565000;Inhalation vapour capsule;Inhalation Spray;3;2284289;37499223
+1231562002;Inhalation vapour emulsion;Inhalation Spray;3;2284289;37499223
+44060011000001107;Inhalation vapour liquid;Inhalation Spray;3;2284289;37499223
+1231564001;Inhalation vapour ointment;Inhalation Spray;3;2284289;37499223
+1231567008;Inhalation vapour solution;Inhalation Spray;3;2284289;37499223
+421366001;Dispersible tablet;Effervescent Oral Tablet;3;1535727;44817840
+385044001;Effervescent granules;Granules for Oral Suspension;3;1540454;45775490
+1230336000;Effervescent powder;Powder for Oral Solution;3;1540455;45775491
+385041009;Oral powder;Powder for Oral Suspension;3;1540456;45775492
+739005008;Powder;Powder for Oral Suspension;3;1540456;45775492
+35366811000001106;Bath additive;Topical Suspension;3;1649353;46234410
+421949005;Cutaneous gel;Topical Suspension;3;1649353;46234410
+385106008;Cutaneous spray solution;Topical Suspension;3;1649353;46234410
+3097511000001104;Cutaneous wash;Topical Suspension;3;1649353;46234410
+37981711000001101;Concentrate and solvent for solution for injection;Injection;3;1649574;46234469
+385095004;Dental suspension;Injection;3;1649574;46234469
+1230184003;Dispersion for infusion;Injection;3;1649574;46234469
+1230185002;Dispersion for injection;Injection;3;1649574;46234469
+765367006;Emulsion for infusion;Injection;3;1649574;46234469
+385221006;Emulsion for injection;Injection;3;1649574;46234469
+16602411000001103;Implantation suspension;Injection;3;1649574;46234469
+14964511000001102;Infusion;Injection;3;1649574;46234469
+34875411000001103;Living tissue equivalent;Injection;3;1649574;46234469
+3092611000001103;Obsolete - Injection;Injection;3;1649574;46234469
+3092811000001104;Obsolete - Intravenous infusion;Injection;3;1649574;46234469
+44461211000001101;Powder and solution for solution for infusion;Injection;3;1649574;46234469
+32779711000001100;Powder and solvent for prolonged-release suspension for inj;Injection;3;1649574;46234469
+14955211000001106;Powder and solvent for solution for infusion;Injection;3;1649574;46234469
+7375911000001101;Powder and solvent for solution for injection;Injection;3;1649574;46234469
+16756411000001100;Powder and solvent for suspension for infusion;Injection;3;1649574;46234469
+7376011000001109;Powder and solvent for suspension for injection;Injection;3;1649574;46234469
+17036711000001108;Powder and suspension for suspension for injection;Injection;3;1649574;46234469
+1230196005;Powder for dispersion for infusion;Injection;3;1649574;46234469
+7558711000001106;Powder for injection;Injection;3;1649574;46234469
+1231578000;Powder for intravesical solution;Injection;3;1649574;46234469
+764843001;Powder for solution for infusion;Injection;3;1649574;46234469
+385223009;Powder for solution for injection;Injection;3;1649574;46234469
+1230325007;Powder for suspension for endotracheopulmonary instillation;Injection;3;1649574;46234469
+765065005;Powder for suspension for infusion;Injection;3;1649574;46234469
+385224003;Powder for suspension for injection;Injection;3;1649574;46234469
+1230186001;Prolonged-release dispersion for injection;Injection;3;1649574;46234469
+42550411000001102;Prolonged-release intraarticular implantation suspension;Injection;3;1649574;46234469
+42550511000001103;Prolonged-release intraosseous implantation suspension;Injection;3;1649574;46234469
+1231833006;Prolonged-release solution for injection;Injection;3;1649574;46234469
+420873008;Prolonged-release suspension for injection;Injection;3;1649574;46234469
+41410711000001105;Solution and emulsion for emulsion for injection;Injection;3;1649574;46234469
+34937011000001105;Solution for blood fraction modification;Injection;3;1649574;46234469
+44513711000001102;Solution for extracorporeal infusion;Injection;3;1649574;46234469
+385229008;Solution for infusion;Injection;3;1649574;46234469
+385219001;Solution for injection;Injection;3;1649574;46234469
+42645611000001100;Solution for organ preservation;Injection;3;1649574;46234469
+15881311000001107;Solution for skin-prick test;Injection;3;1649574;46234469
+37238811000001105;Solvent for BCG Vaccine AJV;Injection;3;1649574;46234469
+385250004;Suspension for endotracheopulmonary instillation;Injection;3;1649574;46234469
+385220007;Suspension for injection;Injection;3;1649574;46234469
+1231565000;Inhalation vapour capsule;Inhalation Suspension;4;2107948;1356078
+1231562002;Inhalation vapour emulsion;Inhalation Suspension;4;2107948;1356078
+44060011000001107;Inhalation vapour liquid;Inhalation Suspension;4;2107948;1356078
+421701006;Soluble tablet;Tablet for Oral Suspension;4;1861409;1592486
+42894411000001101;Drops;Suspension;4;10269;19001144
+385181000;Vaginal device;Vaginal Tablet;4;11110;19010962
+16602411000001103;Implantation suspension;Injectable Solution;4;316949;19082103
+34875411000001103;Living tissue equivalent;Injectable Solution;4;316949;19082103
+385044001;Effervescent granules;Oral Solution;4;316968;19082170
+14945811000001105;Powder for gastroenteral liquid;Oral Solution;4;316968;19082170
+42552111000001106;Powder for gastroenteral or oral liquid;Oral Solution;4;316968;19082170
+385111005;Cutaneous emulsion;Topical Cream;4;316982;19082224
+42552011000001105;Cutaneous liquid;Topical Cream;4;316982;19082224
+3095111000001104;Cutaneous paint;Topical Cream;4;316982;19082224
+385108009;Cutaneous solution;Topical Cream;4;316982;19082224
+35366811000001106;Bath additive;Topical Ointment;4;316985;19082227
+765164007;Ear/eye/nose drops solution;Topical Solution;4;316986;19082228
+13299601000001101;Enema;Rectal Ointment;4;317005;19082282
+385106008;Cutaneous spray solution;Topical Powder;4;317009;19082286
+421366001;Dispersible tablet;Oral Tablet;4;317541;19082573
+764780001;Effervescent tablet;Oral Tablet;4;317541;19082573
+420692007;Oral capsule;Oral Tablet;4;317541;19082573
+447079001;Orodispersible tablet;Oral Tablet;4;317541;19082573
+421720008;Spray;Topical Spray;4;346165;19095912
+385099005;Cream;Topical Gel;4;346286;19095973
+421628006;Cutaneous cream;Topical Gel;4;346286;19095973
+3097511000001104;Cutaneous wash;Topical Gel;4;346286;19095973
+385100002;Gel;Urethral Gel;4;346287;19095974
+765163001;Ear/eye drops solution;Solution;4;450530;19111276
+114981000001105;Pressurised inhalation;Metered Dose Inhaler;4;721654;19126918
+385095004;Dental suspension;Prefilled Syringe;4;721656;19126920
+385221006;Emulsion for injection;Prefilled Syringe;4;721656;19126920
+3092611000001103;Obsolete - Injection;Prefilled Syringe;4;721656;19126920
+385219001;Solution for injection;Prefilled Syringe;4;721656;19126920
+15881311000001107;Solution for skin-prick test;Prefilled Syringe;4;721656;19126920
+385220007;Suspension for injection;Prefilled Syringe;4;721656;19126920
+763446005;Gel for injection;Injection;4;1649574;46234469
+385242008;Intravesical solution;Injection;4;1649574;46234469
+3092911000001109;Irrigation;Injection;4;1649574;46234469
+16605211000001107;Irrigation solution;Injection;4;1649574;46234469
+34582011000001107;Powder and solvent for intravesical solution;Injection;4;1649574;46234469
+42572311000001105;Powder and solvent for intravesical suspension;Injection;4;1649574;46234469
+8062811000001100;Powder for reconstitution for instillation;Injection;4;1649574;46234469
+18269211000001103;Solution for sealant;Injection;4;1649574;46234469
+385100002;Gel;Vaginal Gel;5;11108;19010880
+114981000001105;Pressurised inhalation;Nasal Inhalant;5;316959;19082162
+385044001;Effervescent granules;Oral Suspension;5;316969;19082191
+14945811000001105;Powder for gastroenteral liquid;Oral Suspension;5;316969;19082191
+42552111000001106;Powder for gastroenteral or oral liquid;Oral Suspension;5;316969;19082191
+385111005;Cutaneous emulsion;Topical Gel;5;346286;19095973
+42552011000001105;Cutaneous liquid;Topical Gel;5;346286;19095973
+385108009;Cutaneous solution;Topical Gel;5;346286;19095973
+765164007;Ear/eye/nose drops solution;Solution;5;450530;19111276
+763446005;Gel for injection;Prefilled Syringe;5;721656;19126920
+18269211000001103;Solution for sealant;Prefilled Syringe;5;721656;19126920
+385044001;Effervescent granules;Oral Pellet;6;317691;19082652
+44093711000001103;Inhalation vapour impregnated pad;;;;0
+44093811000001106;Inhalation vapour impregnated plug;;;;0
+42550211000001101;Powder solvent and matrix for implantation matrix;;;;0
+42550111000001107;Sealant matrix;;;;0

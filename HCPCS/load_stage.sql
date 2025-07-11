@@ -211,6 +211,8 @@ AS (
 					)
 				THEN 'Device'
 			WHEN concept_code IN (
+			        'C8004',
+			        'C8005',
 					'C8953',
 					'C8954',
 					'C8955'
@@ -219,8 +221,6 @@ AS (
 			WHEN concept_code = 'C9060'
 				THEN 'Device'
 			WHEN concept_code IN (
-			        'C8004',
-			        'C8005',
 					'C9060',
 					'C9067',
 					'C9068',
@@ -322,6 +322,9 @@ AS (
 			       AND length(concept_code) >2
 				THEN 'Device' -- all of them Level 1: E0100-E9999
 					-- G codes
+		    WHEN concept_code BETWEEN 'G0011'
+		        AND 'G0013' -- HIV pre-exposure prophylaxis
+		        THEN 'Procedure'
 			WHEN l2.str = 'Vaccine Administration'
 				THEN 'Drug' -- Level 2: G0008-G0010
 			WHEN concept_code = 'G0002'
@@ -1382,6 +1385,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+	PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo(null, '{RxNorm}', null);
 END $_$;
 
 --14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts

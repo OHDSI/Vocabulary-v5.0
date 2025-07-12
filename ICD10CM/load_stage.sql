@@ -32,8 +32,8 @@ END $_$;
 DROP TABLE IF EXISTS sn_attr_test;
 CREATE UNLOGGED TABLE sn_attr_test (n text);
 
+CREATE INDEX idx_sa_name ON sn_attr_test (n);
+
 SELECT table_schema
 FROM information_schema.tables
 WHERE table_name = 'sn_attr_test';
-
-ANALYZE sn_attr_test;

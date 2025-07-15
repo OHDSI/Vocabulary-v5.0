@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Masha Khitrun
-* Date: 2024
+* Date: 2025
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -484,7 +484,7 @@ FROM (
 						'1019105',
 						'1037591'
 						)
-					OR cs.concept_code = '1036228'
+					OR cs.concept_code IN ('1036228', '0564T')
 					OR (length(cs.concept_code) > 2
 					    AND cs.concept_code LIKE '%U') -- Proprietary Laboratory Analyses
 				THEN 'Measurement'
@@ -562,7 +562,7 @@ FROM (
 					)
 				THEN 'Device'
 			WHEN c.concept_id IS NOT NULL
-				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
+				THEN c.domain_id -- regarding the fact that CPT4 codes are met in Claims as procedures
 			ELSE 'Procedure'
 			END AS domain_id -- preserve existing domains for all other cases
 	FROM concept_stage cs
@@ -689,6 +689,8 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+	PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo(null, '{CVX, RxNorm}', null);
 END $_$;
 
 --Deprecate 'Maps to' mappings to deprecated and upgraded concepts

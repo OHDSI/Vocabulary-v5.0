@@ -60,7 +60,7 @@ SELECT c.vocabulary_id,
        c.concept_name AS new_name,
        devv5.similarity (c2.concept_name, c.concept_name)
 FROM concept c
-JOIN devv5.concept c2
+JOIN  prodv5.concept c2
     ON c.concept_id = c2.concept_id
         AND c.concept_name != c2.concept_name
 WHERE c.vocabulary_id IN (:your_vocabs)
@@ -80,8 +80,8 @@ SELECT c.concept_code,
        c.vocabulary_id,
        string_agg (DISTINCT cs.language_concept_id::text, '; ' ORDER BY cs.language_concept_id::text) AS old_language_concept_id,
        string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) AS old_synonym
-FROM devv5.concept c
-    JOIN devv5.concept_synonym cs
+FROM  prodv5.concept c
+    JOIN  prodv5.concept_synonym cs
       ON c.concept_id = cs.concept_id WHERE c.vocabulary_id IN (:your_vocabs)
 GROUP BY
     c.concept_code,
@@ -151,7 +151,7 @@ SELECT a.concept_code AS concept_code_source,
 FROM concept a
 LEFT JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Maps to'
 LEFT JOIN concept  b ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN  prodv5.concept  c ON c.concept_id = a.concept_id
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL AND b.concept_id IS NULL
 ;
@@ -183,7 +183,7 @@ JOIN concept_relationship r
            AND r.relationship_Id IN ('Maps to', 'Maps to value')
 JOIN concept b
     ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c
+LEFT JOIN  prodv5.concept  c
     ON c.concept_id = a.concept_id
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND c.concept_id IS NULL
@@ -212,7 +212,7 @@ SELECT a.concept_code AS concept_code_source,
 FROM concept a
 LEFT JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Is a'
 LEFT JOIN concept b ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN  prodv5.concept  c ON c.concept_id = a.concept_id
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL AND b.concept_id IS NULL
 ;
@@ -236,7 +236,7 @@ SELECT a.concept_code AS concept_code_source,
 FROM concept a
 JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Is a'
 JOIN concept  b ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN  prodv5.concept  c ON c.concept_id = a.concept_id
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL
 ;
@@ -245,7 +245,7 @@ AND c.concept_id IS NULL
 --In this check we manually review the changes of concept's mapping to make sure they are expected, correct and in line with the current conventions and approaches.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 --This occurrence includes 2 possible scenarios: (i) mapping changed; (ii) mapping present in one version, absent in another. To review the absent mappings cases, sort by the respective code_agg to get the NULL values first.
---Also we can assess the source which mapping comes from and at what point in the run the mapping changes occurred:
+--Also, we can assess the source which mapping comes from and at what point in the run the mapping changes occurred:
 --- "old_mapping_source" and "new_mapping_source" fields indicate whether mapping comes from concept_relationship_manual or it is built by load_stage scripts;
 --- "mapping_changes_source" field shows at what step of the vocabulary run the mapping was deprecated: concept_relationship_manual, load_stage or generic_update.
 
@@ -294,9 +294,9 @@ WITH crm AS (
             b.concept_code AS target_concept_code,
             b.concept_name AS target_concept_name,
             b.vocabulary_id AS target_vocabulary_id
-        FROM devv5.concept a
-        LEFT JOIN devv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id  LIKE 'Maps to%' AND r.invalid_reason IS NULL
-        LEFT JOIN devv5.concept b ON b.concept_id = concept_id_2
+        FROM  prodv5.concept a
+        LEFT JOIN  prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id  LIKE 'Maps to%' AND r.invalid_reason IS NULL
+        LEFT JOIN  prodv5.concept b ON b.concept_id = concept_id_2
         WHERE a.vocabulary_id IN (:your_vocabs)
         --and a.invalid_reason IS NULL --to exclude invalid concepts
   ),
@@ -450,9 +450,9 @@ SELECT a.concept_id,
        string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS relationship_agg,
        string_agg (b.concept_code, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
        string_agg (b.concept_name, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
-FROM devv5. concept a
-LEFT JOIN devv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Is a') AND r.invalid_reason IS NULL
-LEFT JOIN devv5.concept b ON b.concept_id = concept_id_2
+FROM  prodv5. concept a
+LEFT JOIN  prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Is a') AND r.invalid_reason IS NULL
+LEFT JOIN  prodv5.concept b ON b.concept_id = concept_id_2
 WHERE a.vocabulary_id IN (:your_vocabs) AND a.invalid_reason IS NULL
 GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
 )
@@ -525,7 +525,7 @@ FROM (
 		) s0
 	LEFT JOIN (
 		SELECT r_int.concept_id_1 AS concept_id
-		FROM devv5.concept_relationship r_int
+		FROM  prodv5.concept_relationship r_int
 		WHERE r_int.invalid_reason IS NULL
 			AND r_int.relationship_Id LIKE 'Maps to%'
 			--AND r_int.concept_id_1 <> r_int.concept_id_2 --use it to exclude mapping to itself
@@ -554,7 +554,7 @@ SELECT a.concept_code,
        a.domain_id,
        a.vocabulary_id
 FROM concept a
-JOIN devv5.concept b
+JOIN  prodv5.concept b
         ON a.concept_id = b.concept_id
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND b.standard_concept = 'S'
@@ -697,11 +697,11 @@ ORDER BY MAX(cr2.valid_start_date) DESC,
 -- - if the concept implies 2 or more different diseases, and you don't just split up the source concept into the pieces;
 -- - if you want to emphasis some aspects that are not follow from the hierarchy naturally;
 -- - if the hierarchy of affected concepts is wrong.
--- problem_schema field reflects the schema in which the problem occurs (devv5, current or both). If you expect concept_ancestor changes in your development process, please run concept_ancestor builder appropriately.
+-- problem_schema field reflects the schema in which the problem occurs ( prodv5, current or both). If you expect concept_ancestor changes in your development process, please run concept_ancestor builder appropriately.
 -- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings)
 
 SELECT CASE WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NOT NULL  THEN 'both'
-            WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NULL      THEN 'devv5'
+            WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NULL      THEN ' prodv5'
             WHEN ca_old.descendant_concept_id IS NULL     AND ca.descendant_concept_id IS NOT NULL  THEN 'current'
                 END AS problem_schema,
        LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
@@ -717,7 +717,7 @@ JOIN concept_relationship b
     ON a.concept_id_1 = b.concept_id_1
 JOIN concept c
     ON c.concept_id = a.concept_id_1
-LEFT JOIN devv5.concept_ancestor ca_old
+LEFT JOIN  prodv5.concept_ancestor ca_old
     ON a.concept_id_2 = ca_old.descendant_concept_id
         AND b.concept_id_2 = ca_old.ancestor_concept_id
 LEFT JOIN concept_ancestor ca
@@ -769,3 +769,372 @@ WHERE c.vocabulary_id IN (:your_vocabs)
     AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
+
+--04.
+--In this check, we identify and compare relationships absent in the previous (dev_rxnorm) and new (dev_test10) versions of RxNorm concepts. The focus is on hierarchical and non-hierarchical links between concept classes.
+--To prioritize and structure the review, results are grouped by concept_class_id, relationship_id, and c_class_2. Sorting is applied to facilitate separate analysis within logical groups.
+--Depending on the logical group, vocabulary importance, and maturity level, the results may represent multiple scenarios, such as:
+--Relationships missing in the previous version but present in the new version, indicating improvements.
+--Relationships present in the previous version but absent in the new version, suggesting regressions or intentional changes (e.g., de-standardization or mapping adjustments).
+
+--Do not treat such triples as fully-reciprocal ones, as Clinical Drug Forms may mostly have links to Clinical Drugs, while Clinical Drugs may have substantially more lacking links to forms
+--NB! Marketed Products is the RxE class of entities and due to BuilderRxE imperfection it has no proper formal structure
+WITH possible_relationships AS (
+    SELECT * FROM (
+        WITH t AS (
+            SELECT 'Brand Name' c_class_1, 'Brand name of' relationship_id, 'Branded Drug Box' c_class_2 UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Drug Comp' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Drug Form' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Drug' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Pack' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Pack Box' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Marketed Product' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Quant Branded Box' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Quant Branded Drug' UNION ALL
+            SELECT 'Branded Drug Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' UNION ALL
+            SELECT 'Branded Drug Comp', 'Constitutes', 'Branded Drug' UNION ALL
+            SELECT 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' UNION ALL
+            SELECT 'Branded Drug', 'Available as box', 'Branded Drug Box' UNION ALL
+            SELECT 'Branded Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' UNION ALL
+            SELECT 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' UNION ALL
+            SELECT 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' UNION ALL
+            SELECT 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' UNION ALL
+            SELECT 'Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp' UNION ALL
+            SELECT 'Clinical Drug Form', 'Has tradename', 'Branded Drug Form' UNION ALL
+            SELECT 'Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug' UNION ALL
+            SELECT 'Clinical Drug', 'Available as box', 'Clinical Drug Box' UNION ALL
+            SELECT 'Clinical Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Clinical Drug', 'Has tradename', 'Branded Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Pack' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Form' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Pack' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Marketed Product' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Branded Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Ingredient', 'Has brand name', 'Brand Name' UNION ALL
+            SELECT 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' UNION ALL
+            SELECT 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' UNION ALL
+            SELECT 'Marketed Product', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Supplier', 'Supplier of', 'Marketed Product' UNION ALL
+            SELECT 'Quant Branded Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' UNION ALL
+            SELECT 'Quant Branded Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'Has brand name', 'Brand Name' UNION ALL
+            SELECT 'Branded Dose Group', 'Has dose form group', 'Dose Form Group' UNION ALL
+            SELECT 'Branded Dose Group', 'Marketed form of', 'Dose Form Group' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm has ing', 'Brand Name' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Branded Drug Form' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Branded Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'Tradename of', 'Clinical Dose Group' UNION ALL
+            SELECT 'Clinical Dose Group', 'Has dose form group', 'Dose Form Group' UNION ALL
+            SELECT 'Clinical Dose Group', 'Marketed form of', 'Dose Form Group' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm has ing', 'Ingredient' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm has ing', 'Precise Ingredient' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug Form' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' UNION ALL
+            SELECT 'Precise Ingredient', 'Form of', 'Ingredient' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Clinical Pack' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Clinical Pack Box' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Branded Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Branded Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Branded Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Clinical Pack' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Clinical Pack Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Quant Branded Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Quant Branded Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Quant Branded Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Branded Pack', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Pack Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Pack', 'Available as box', 'Branded Pack Box' UNION ALL
+            SELECT 'Clinical Pack', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Pack Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Pack', 'Has tradename', 'Branded Pack' UNION ALL
+            SELECT 'Clinical Pack', 'Available as box', 'Clinical Pack Box' UNION ALL
+            SELECT 'Clinical Pack Box', 'Has tradename', 'Branded Pack Box'
+        )
+        SELECT * FROM t
+        UNION ALL
+        SELECT c_class_2, r.reverse_relationship_id, c_class_1
+        FROM t rra, prodv5.relationship r
+        WHERE rra.relationship_id = r.relationship_id
+    ) AS s1
+),
+valid_concepts_prev AS (
+    SELECT concept_id, concept_name, concept_class_id
+    FROM prodv5.concept
+    WHERE vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+    AND invalid_reason IS NULL
+),
+existing_relationships_prev AS (
+    SELECT
+        cr.concept_id_1,
+        cr.relationship_id,
+        c2.concept_class_id AS concept_class_id_2
+    FROM prodv5.concept_relationship cr
+    JOIN valid_concepts_prev vc ON cr.concept_id_1 = vc.concept_id
+    JOIN prodv5.concept c2 ON cr.concept_id_2 = c2.concept_id
+    WHERE cr.invalid_reason IS NULL
+    AND c2.invalid_reason IS NULL
+    AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+),
+absent_relationships_prev AS (
+    SELECT
+        vc.concept_class_id,
+        pr.relationship_id,
+        pr.c_class_2,
+        COUNT(DISTINCT vc.concept_id) AS concept_count
+    FROM valid_concepts_prev vc
+    CROSS JOIN possible_relationships pr
+    WHERE pr.c_class_1 = vc.concept_class_id
+    AND NOT EXISTS (
+        SELECT 1
+        FROM existing_relationships_prev er
+        WHERE er.concept_id_1 = vc.concept_id
+        AND er.relationship_id = pr.relationship_id
+        AND er.concept_class_id_2 = pr.c_class_2
+    )
+    GROUP BY vc.concept_class_id, pr.relationship_id, pr.c_class_2
+),
+valid_concepts_dev_new AS (
+    SELECT concept_id, concept_name, concept_class_id
+    FROM concept
+    WHERE vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+    AND invalid_reason IS NULL
+),
+existing_relationships_dev_new AS (
+    SELECT
+        cr.concept_id_1,
+        cr.relationship_id,
+        c2.concept_class_id AS concept_class_id_2
+    FROM concept_relationship cr
+    JOIN valid_concepts_dev_new vc ON cr.concept_id_1 = vc.concept_id
+    JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
+    WHERE cr.invalid_reason IS NULL
+    AND c2.invalid_reason IS NULL
+    AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+),
+absent_relationships_dev_new AS (
+    SELECT
+        vc.concept_class_id,
+        pr.relationship_id,
+        pr.c_class_2,
+        COUNT(DISTINCT vc.concept_id) AS concept_count
+    FROM valid_concepts_dev_new vc
+    CROSS JOIN possible_relationships pr
+    WHERE pr.c_class_1 = vc.concept_class_id
+    AND NOT EXISTS (
+        SELECT 1
+        FROM existing_relationships_dev_new er
+        WHERE er.concept_id_1 = vc.concept_id
+        AND er.relationship_id = pr.relationship_id
+        AND er.concept_class_id_2 = pr.c_class_2
+    )
+    GROUP BY vc.concept_class_id, pr.relationship_id, pr.c_class_2
+)
+SELECT
+    COALESCE(s1.concept_class_id, s2.concept_class_id) AS concept_class,
+    COALESCE(s1.relationship_id, s2.relationship_id) || ' - ' || COALESCE(s1.c_class_2, s2.c_class_2) AS missing_connections,
+    total_class_volume,
+    COALESCE(s1.concept_count, 0) AS count_in_prev,
+    COALESCE(s2.concept_count, 0) AS count_in_dev_new,
+    ABS(COALESCE(s1.concept_count, 0) - COALESCE(s2.concept_count, 0)) AS delta_abs,
+    CASE
+        WHEN COALESCE(s2.concept_count, 0) > 0
+        THEN ROUND(((COALESCE(s1.concept_count, 0) - COALESCE(s2.concept_count, 0))::FLOAT / COALESCE(s1.concept_count, 0) * 100)::NUMERIC, 2)
+        ELSE NULL
+    END AS delta_percent
+FROM absent_relationships_prev s1
+FULL OUTER JOIN absent_relationships_dev_new s2
+    ON s1.concept_class_id = s2.concept_class_id
+    AND s1.relationship_id = s2.relationship_id
+    AND s1.c_class_2 = s2.c_class_2
+JOIN  (SELECT concept_class_id,count(*) as total_class_volume from prodv5.concept where vocabulary_id IN ('RxNorm','RxNorm Extension') GROUP BY concept_class_id ) as t
+on t.concept_class_id=COALESCE(s1.concept_class_id, s2.concept_class_id)
+ORDER BY concept_class, missing_connections;
+
+
+/*--display number of new child-parent pairs compaired to prev release (exl. new codes)
+SELECT COUNT(*)
+FROM (SELECT ancestor_concept_id, descendant_concept_id
+      FROM dev_test10.concept_ancestor ca
+      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
+        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)
+      EXCEPT
+      SELECT ancestor_concept_id, descendant_concept_id
+      FROM prodv5.concept_ancestor ca
+      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
+        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)) as tab
+;
+
+--display number of lost child-parent pairs
+--should return nothing
+SELECT COUNT(*)
+FROM (SELECT ancestor_concept_id, descendant_concept_id
+      FROM prodv5.concept_ancestor ca
+      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
+        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)
+      EXCEPT
+      SELECT ancestor_concept_id, descendant_concept_id
+      FROM dev_test10.concept_ancestor ca
+      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
+        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)) as tab
+;
+
+--check to describe the changes in positions due to intercalations in ancestor
+with new_pairs as (SELECT ca.*
+      FROM dev_test10.concept_ancestor ca
+      JOIN devv5.concept c
+      on ca.ancestor_concept_id=c.concept_id
+     JOIN devv5.concept cc
+      on ca.descendant_concept_id=cc.concept_id
+      EXCEPT
+    SELECT ca.*
+      FROM dev_rxnorm.concept_ancestor ca
+      JOIN devv5.concept c
+      on ca.ancestor_concept_id=c.concept_id
+     JOIN devv5.concept cc
+      on ca.descendant_concept_id=cc.concept_id),
+    old_pairs as (
+        SELECT ca.*
+      FROM dev_rxnorm.concept_ancestor ca
+      where (ca.ancestor_concept_id,ca.descendant_concept_id) IN (SELECT ancestor_concept_id,descendant_concept_id from new_pairs)
+    )
+,
+    delta_calc_tab as (
+SELECT n.*,(n.max_levels_of_separation-o.max_levels_of_separation) max_lev_delta_n_minus_o,
+       (n.min_levels_of_separation-o.min_levels_of_separation) min_lev_delta_n_minus_o
+from new_pairs n
+JOIN old_pairs o
+on (n.descendant_concept_id,n.ancestor_concept_id)=(o.descendant_concept_id,o.ancestor_concept_id))
+
+SELECT *
+from delta_calc_tab d
+JOIN concept c
+on c.concept_id=ancestor_concept_id
+JOIN concept cc
+on cc.concept_id=descendant_concept_id
+;
+
+CREATE TABLE anc_diff_between_rel AS
+with new_pairs as (SELECT ca.*
+      FROM devv5.concept_ancestor ca
+      JOIN prodv5.concept c
+      on ca.ancestor_concept_id=c.concept_id
+     JOIN prodv5.concept cc
+      on ca.descendant_concept_id=cc.concept_id
+      EXCEPT
+    SELECT ca.*
+      FROM prodv5.concept_ancestor ca
+      JOIN prodv5.concept c
+      on ca.ancestor_concept_id=c.concept_id
+     JOIN prodv5.concept cc
+      on ca.descendant_concept_id=cc.concept_id),
+    old_pairs as (
+        SELECT ca.*
+      FROM prodv5.concept_ancestor ca
+      where (ca.ancestor_concept_id,ca.descendant_concept_id) IN (SELECT ancestor_concept_id,descendant_concept_id from new_pairs)
+    )
+,
+    delta_calc_tab as (
+SELECT n.*,(n.max_levels_of_separation-o.max_levels_of_separation) max_lev_delta_n_minus_o,
+       (n.min_levels_of_separation-o.min_levels_of_separation) min_lev_delta_n_minus_o
+from new_pairs n
+JOIN old_pairs o
+on (n.descendant_concept_id,n.ancestor_concept_id)=(o.descendant_concept_id,o.ancestor_concept_id))
+
+SELECT max_lev_delta_n_minus_o,
+       min_lev_delta_n_minus_o,
+       max_levels_of_separation,
+       min_levels_of_separation,
+
+       c.concept_id as ancestor_id,
+       c.concept_name as anc_name,
+       c.domain_id as anc_domain,
+       c.vocabulary_id  as anc_voc,
+
+        cc.concept_id as descendant_id,
+       cc.concept_name as desc_name,
+       cc.domain_id as desc_domain,
+       cc.vocabulary_id  as desc_voc
+from delta_calc_tab d
+JOIN concept c
+on c.concept_id=ancestor_concept_id
+JOIN concept cc
+on cc.concept_id=descendant_concept_id
+;
+
+SELECT *
+from dev_rxnorm.concept_ancestor
+JOIN dev_rxnorm.concept
+on ancestor_concept_id=concept_id
+and descendant_concept_id=36967490
+EXCEPT
+SELECT *
+from dev_test10.concept_ancestor
+JOIN dev_test10.concept
+on ancestor_concept_id=concept_id
+and descendant_concept_id=36967490;
+
+
+
+SELECT *
+from dev_test10.concept_ancestor
+JOIN dev_test10.concept
+on ancestor_concept_id=concept_id
+and descendant_concept_id=36967490
+EXCEPT
+SELECT *
+from dev_rxnorm.concept_ancestor
+JOIN dev_rxnorm.concept
+on ancestor_concept_id=concept_id
+and descendant_concept_id=36967490
+;
+SELECT *
+from dev_rxnorm.concept_relationship
+JOIN dev_rxnorm.concept
+on concept_relationship.concept_id_1 = concept.concept_id
+and concept_id_2=36967490
+
+EXCEPT
+
+SELECT *
+from dev_test10.concept_relationship
+JOIN dev_test10.concept
+on concept_relationship.concept_id_1 = concept.concept_id
+and concept_id_2=36967490
+;
+
+
+SELECT *
+from dev_test10.concept_ancestor
+join dev_test10.concept
+on descendant_concept_id=concept_id
+WHERE ancestor_concept_id=40213246*/
+

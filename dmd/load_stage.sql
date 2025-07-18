@@ -3974,21 +3974,9 @@ WHERE b.concept_code NOT IN (
     SELECT concept_code FROM amps_to_brands
     WHERE brand_code IS NOT NULL
     );
- 
-INSERT INTO amps_to_brands
-SELECT
-	tb.concept_code,
-	tb.concept_name,
-	ra.concept_code,
-	ra.concept_name
- FROM tofind_brands tb
- JOIN rtc_all ra ON tb.concept_name = ra.concept_name AND ra.concept_class_id = 'Brand Name' 
-AND ra.target_concept_id != 0;
 
 DELETE FROM tofind_brands --found
 WHERE concept_code IN (SELECT concept_code FROM amps_to_brands);
-
-select * from tofind_brands tb where concept_code_2 is not null
 
 /*
 -- Extract to find brands manually

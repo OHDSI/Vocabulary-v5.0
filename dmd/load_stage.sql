@@ -4039,13 +4039,13 @@ LEFT JOIN concept_relationship cr
 	ON cr.concept_id_1 = c.concept_id 
 	AND cr.relationship_id = 'Maps to'
 	AND cr.invalid_reason IS NULL
-LEFT JOIN concept_june_dev cc 
+LEFT JOIN concept cc 
 	ON cc.concept_id = cr.concept_id_2 
-LEFT JOIN concept_relationship_june_dev cr1
+LEFT JOIN concept_relationship cr1
 	ON cr1.concept_id_1 = cc.concept_id 
 	AND cr1.relationship_id = 'Has brand name'
 	AND cr1.invalid_reason IS NULL
-LEFT JOIN concept_june_dev ccc
+LEFT JOIN concept ccc
 	ON ccc.concept_id = cr1.concept_id_2 
 	AND ccc.invalid_reason IS NULL
 WHERE ccc.concept_id IS NOT NULL
@@ -4813,7 +4813,6 @@ WITH dup AS (
     ) AS rn
   FROM drug_concept_stage
 )
-
 -- 2) delete every row where rn > 1, i.e. the true duplicates
 DELETE FROM drug_concept_stage d
 USING dup

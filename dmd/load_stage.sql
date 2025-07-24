@@ -4918,14 +4918,14 @@ WHERE d.ctid = dup.ctid;
 
 --Remove relationships to attributes for concepts, processed manually
 DELETE FROM ds_stage ds WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = ds.drug_concept_code and crm.vocabulary_id_1 = 'dm+d');
-DELETE FROM internal_relationship_stage irs WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = irs.concept_code_1 and crm.vocabulary_id_1 = 'dm+d');
+DELETE FROM internal_relationship_stage irs WHERE exists (SELECT 1 FROM concept_relationship_manual crm where (crm.concept_code_1 = irs.concept_code_1 and crm.vocabulary_id_1 = 'dm+d') or (crm.concept_code_1 = irs.concept_code_2 and crm.vocabulary_id_1 = 'dm+d'));
 DELETE FROM pc_stage ps WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = ps.pack_concept_code and crm.vocabulary_id_1 = 'dm+d');
 DELETE FROM relationship_to_concept rtc WHERE exists (SELECT 1 FROM concept_relationship_manual crm where crm.concept_code_1 = rtc.concept_code_1 and crm.vocabulary_id_1 = 'dm+d');
 
 -- Some manual fixes for some drugs inc. vaccine
 DELETE FROM drug_concept_stage dcs
 WHERE
-  dcs.source_concept_class_id IN ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
+  dcs.source_concept_class_id IN ('Dose Form', 'Brand Name')
   AND NOT EXISTS (
     SELECT 1
     FROM internal_relationship_stage ir

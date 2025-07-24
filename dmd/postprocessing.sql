@@ -376,7 +376,11 @@ AND crs.concept_code_2 = c2.concept_code
 AND crs.vocabulary_id_1 = c.vocabulary_id
 AND crs.vocabulary_id_2 = c2.vocabulary_id
 AND crs.relationship_id = 'Maps to'
-;
+AND NOT EXISTS (
+	SELECT 1 FROM concept_relationship_manual crm
+	WHERE crm.concept_code_1 = crs.concept_code_1
+	AND crm.vocabulary_id_1 = crs.vocabulary_id_1 
+);
 
 --Final manual changes
 UPDATE concept_stage SET concept_name = trim(concept_name);

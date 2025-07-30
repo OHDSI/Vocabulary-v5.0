@@ -1717,7 +1717,6 @@ JOIN vmpps v ON
 JOIN vmpps vx ON
 	vx.vppid = p.drug_concept_code;
 
-
 TRUNCATE internal_relationship_stage;
 --! Step 7. internal_relationship_stage population
 INSERT INTO internal_relationship_stage
@@ -1836,7 +1835,6 @@ INSERT INTO internal_relationship_stage
 SELECT vpid, dose_code
 FROM dose_form_fix
 WHERE dose_code IS NOT NULL;
-
 
 INSERT INTO internal_relationship_stage
 -- AMP to dose form
@@ -3575,7 +3573,6 @@ WHERE
 	t.concept_id IS NULL AND
 	t.source_code IN (SELECT concept_code_2 FROM internal_relationship_stage)
 */
-
  
 TRUNCATE relationship_to_concept;
 INSERT INTO relationship_to_concept
@@ -4018,7 +4015,12 @@ SELECT
 	o.brand_code,
 	t.brand_name
 FROM tofind_brands_man t
-JOIN brand_codes o ON LOWER (o.brand_name) = LOWER (t.brand_name);
+JOIN brand_codes o ON LOWER (o.brand_name) = LOWER (t.brand_name)
+UNION
+SELECT concept_code, concept_name, brand_id::text, brand_name
+FROM tofind_brands_man
+WHERE brand_id IS NOT NULL
+;
 
 WITH missing_brand_amps AS (
 SELECT DISTINCT dcs.concept_code, dcs.concept_name
@@ -4211,14 +4213,16 @@ LEFT JOIN concept c ON
 	c.invalid_reason IS NULL AND
 	c.vocabulary_id LIKE 'RxN%'
 WHERE
-	t.mapped_id IS NULL ;
+	t.mapped_id IS NULL 
+	AND t.concept_code IN (SELECT concept_code_2 FROM internal_relationship_stage)
+	; 
 
 ALTER TABLE tomap_bn_man
 ALTER COLUMN invalid_reason TYPE VARCHAR(50);
 
 ALTER TABLE tomap_bn_man
 ALTER COLUMN standard_concept TYPE VARCHAR(50);
-*/
+*/ 
 
 INSERT INTO relationship_to_concept
 SELECT DISTINCT
@@ -4243,7 +4247,7 @@ SELECT DISTINCT
 	NULL :: NUMERIC
 FROM tomap_bn_man tbm
 JOIN drug_concept_stage c ON
-	c.concept_name = tbm.concept_name AND
+	lower(c.concept_name) = lower(tbm.concept_name) AND
 	c.concept_class_id = 'Brand Name'
 WHERE tbm.mapped_id IS NOT NULL;
 
@@ -4931,6 +4935,40 @@ WHERE
     FROM internal_relationship_stage ir
     WHERE ir.concept_code_2 = dcs.concept_code
   );
+
+DELETE FROM internal_relationship_stage irs
+WHERE concept_code_2 IN (
+SELECT concept_code_1 
+FROM relationship_to_concept rtc 
+JOIN drug_concept_stage dcs
+on dcs.concept_code = rtc.concept_code_1
+WHERE rtc.concept_id_2 = 0
+AND dcs.concept_class_id in ('Dose Form','Ingredient')); 
+ 
+DELETE FROM internal_relationship_stage irs1 
+WHERE NOT EXISTS (
+SELECT 1
+FROM internal_relationship_stage irs 
+JOIN drug_concept_stage dcs 
+ON dcs.concept_code = irs.concept_code_2 
+AND dcs.concept_class_id = 'Ingredient'
+WHERE irs1.concept_code_1 = irs.concept_code_1);
+
+DELETE FROM ds_stage ds
+WHERE NOT EXISTS (SELECT 1
+FROM internal_relationship_stage irs 
+JOIN drug_concept_stage dcs 
+ON dcs.concept_code = irs.concept_code_2 
+AND dcs.concept_class_id = 'Ingredient'
+WHERE ds.drug_concept_code = irs.concept_code_1);
+
+DELETE FROM relationship_to_concept rtc
+WHERE concept_id_2 = 0
+AND EXISTS (
+SELECT 1 
+FROM drug_concept_stage dcs 
+WHERE dcs.concept_code = rtc.concept_code_1 
+AND dcs.concept_class_id = 'Ingredient');
 
 --Changing column types as they should be for BuildRxE
 ALTER TABLE relationship_to_concept ALTER COLUMN conversion_factor TYPE NUMERIC;

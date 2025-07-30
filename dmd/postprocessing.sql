@@ -143,6 +143,34 @@ WHERE
 	WHERE CS.CONCEPT_CODE = CRS.NEW_CODE)
 	AND VOCABULARY_ID LIKE 'Rx%';
 
+-- delete dublicates by name that alread exists in concept
+DROP TABLE IF EXISTS crs_remove_rxe_dublicates;
+
+CREATE TABLE crs_remove_rxe_dublicates AS
+SELECT DISTINCT crs.*, c.concept_code AS new_code
+FROM concept_stage cs
+JOIN concept_relationship_stage crs 
+ON crs.concept_code_2 = cs.concept_code 
+AND crs.relationship_id IN ('Source - RxNorm eq','Maps to')
+JOIN concept c 
+ON cs.concept_name = c.concept_name 
+AND c.vocabulary_id = cs.vocabulary_id
+AND c.invalid_reason is null
+WHERE cs.vocabulary_id = 'RxNorm Extension' 
+AND crs.vocabulary_id_1 = 'dm+d'
+;
+
+UPDATE concept_relationship_stage a 
+SET concept_code_2 = b.new_code
+FROM crs_remove_rxe_dublicates b
+WHERE a.concept_code_1 = b.concept_code_1 
+AND a.concept_code_2 = b.concept_code_2;
+
+DELETE FROM concept_stage 
+WHERE concept_code IN (
+SELECT DISTINCT concept_code_2 
+FROM crs_remove_rxe_dublicates);
+
 --Devices can and should be mapped to SNOMED as they are the same concepts
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
@@ -306,7 +334,7 @@ JOIN concept_stage cs ON
 JOIN concept c2 ON
 	c2.concept_id = r.concept_id_2
 WHERE
-	NOT exists
+	NOT EXISTS
 		(
 			SELECT 1
 			FROM concept_relationship_stage
@@ -325,32 +353,8 @@ FROM concept_relationship_stage
 WHERE exists (
     SELECT 1 FROM concept_relationship_manual crm
     WHERE crm.concept_code_1 = concept_relationship_stage.concept_code_1
-    and crm.vocabulary_id_1 = concept_relationship_stage.vocabulary_id_1
+    AND crm.vocabulary_id_1 = concept_relationship_stage.vocabulary_id_1
           );
-
---Integration of manual mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
--- Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
--- Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
--- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
 
 --deprecate old ingredient mappings
 UPDATE concept_relationship_stage crs
@@ -376,11 +380,35 @@ AND crs.concept_code_2 = c2.concept_code
 AND crs.vocabulary_id_1 = c.vocabulary_id
 AND crs.vocabulary_id_2 = c2.vocabulary_id
 AND crs.relationship_id = 'Maps to'
-AND NOT EXISTS (
-	SELECT 1 FROM concept_relationship_manual crm
-	WHERE crm.concept_code_1 = crs.concept_code_1
-	AND crm.vocabulary_id_1 = crs.vocabulary_id_1 
+AND NOT EXISTS (SELECT 1 FROM concept_relationship_manual crm
+WHERE crm.concept_code_1 = crs.concept_code_1 
+AND crm.vocabulary_id_1 = crs.vocabulary_id_1 
 );
+
+
+--Integration of manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+-- Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+-- Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+-- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
 
 --Final manual changes
 UPDATE concept_stage SET concept_name = trim(concept_name);
@@ -465,3 +493,11 @@ WHERE NOT EXISTS (SELECT	1
 	FROM CONCEPT CS
 	WHERE CRS.CONCEPT_CODE_2 = CS.CONCEPT_CODE
 		AND CRS.VOCABULARY_ID_2 = CS.VOCABULARY_ID);
+	
+DELETE FROM concept_stage cs
+WHERE vocabulary_id = 'dm+d'
+  AND NOT EXISTS (SELECT 1 FROM concept_relationship_stage crs WHERE cs.concept_code = crs.concept_code_1 AND invalid_reason IS NULL) 
+  AND NOT EXISTS (SELECT 1 FROM concept c WHERE cs.concept_code = c.concept_code AND cs.vocabulary_id = c.vocabulary_id)
+  AND concept_class_id IN ('Brand Name','Ingredient')
+  AND concept_code LIKE 'OMOP%'
+  ; 

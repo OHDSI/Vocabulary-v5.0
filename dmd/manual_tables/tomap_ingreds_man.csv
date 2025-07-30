@@ -1,13 +1,10 @@
 "source_code";"source_name";"concept_id";"precedence"
 "10901611000001102";Cimicifuga tincture;45776108;1
 "11170811000001106";Varicella-Zoster virus live attenuated (Oka strain);;1
-"11171911000001108";Influenza virus surface antigens;;1
 "11172011000001101";Influenza virus surface antigens virosome;;1
-"11172111000001100";Influenza virus split virion;;1
 "1332140007";Foscarbidopa;740560;1
 "1332139005";Foslevodopa;789578;1
 "15651811000001103";Influenza H1N1 vaccine;;1
-"19699211000001101";Influenza virus live attenuated;;1
 "20114111000001107";Varicella-Zoster virus live attenuated (Oka/Merck strain);;1
 "23605011000001108";Neisseria meningitidis group B NadA protein;;1
 "23605111000001109";Neisseria meningitidis group B fHbp fusion protein;;1
@@ -114,7 +111,6 @@
 "42000611000001106";House dust mite (Blomia tropicalis) allergen extract;;1
 "42047611000001101";Soya bean allergen extract;40171087;1
 "42048111000001105";Shrimp allergen extract;40171317;1
-"42238011000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF3) antigen;;1
 "42416111000001108";Beech (Fagus grandifolia) pollen allergen extract;40161542;1
 "42416111000001108";Beech (Fagus grandifolia) pollen allergen extract;40684632;2
 "42430411000001106";Plane tree (Platanus acerifolia) pollen allergen extract;36939856;1
@@ -160,8 +156,6 @@
 "42539111000001101";White mulberry (Morus alba) pollen allergen extract;40162132;1
 "42539611000001109";Juniper (Juniperus oxycedrus) pollen allergen extract;;1
 "42542711000001105";Enterococcus faecalis Inactivated;19000813;1
-"42577411000001100";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup A;;1
-"42577511000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup B;;1
 "42594111000001107";Cytisinicline;35606016;1
 "42927511000001109";Common reed (Phragmites communis) pollen allergen extract;;1
 "42928611000001107";Brown rice / Wild rice pollen allergen extract;35201788;1
@@ -179,7 +173,6 @@
 "43292811000001107";Pelargonium root;42899638;1
 "43996311000001103";PTH(1-34);1521987;1
 "44459011000001103";Nonoxinol 9;969444;1
-"45150511000001106";Zoonotic influenza (H5N8) surface antigens;;1
 "48540004";Patent blue V sodium;19022170;1
 "713337000";N(2)-L-alanyl-L-glutamine;42904285;1
 "768559003";Colestyramine anhydrous;19095309;1
@@ -189,5 +182,12 @@
 "11142111000001104";Hexaminolevulinate;43532423;1
 "32615011000001102";Corticorelin ovine;19048699;1
 "4174011000001101";Follicle stimulating hormone human;1588712;1
-"78447009";Phospholipids;0;
-"44155911000001102";Menotrophin;0;
+"11171911000001108";Influenza virus surface antigens;40213158;1
+"11172111000001100";Influenza virus split virion;40213158;1
+"19699211000001101";Influenza virus live attenuated;40213158;1
+"42238011000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF3) antigen;1734538;1
+"42577411000001100";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup A;1734538;1
+"42577511000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup B;1734538;1
+"45150511000001106";Zoonotic influenza (H5N8) surface antigens;708292;1
+"78447009";Phospholipids;0;1
+"44155911000001102";Menotrophin;0;1

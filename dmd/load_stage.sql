@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SETLatestUPDATE(
 	pVocabularyName			=> 'dm+d',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM dev_dmd.f_lookup2 LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM dev_dmd.f_lookup2 LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.f_lookup2 LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.f_lookup2 LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_DMD'
 );
 	PERFORM VOCABULARY_PACK.SETLatestUPDATE(
@@ -120,7 +120,7 @@ SELECT unnest(xpath('/VMPS/VMP/IDCURRENT/text()', i.xmlfield))::VARCHAR AS curre
        to_date(unnest(xpath('/VMPS/VMP/STARTDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') AS start_date,
        to_date(unnest(xpath('/VMPS/VMP/ENDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') AS end_date
 FROM (SELECT unnest(xpath('/HISTORY/VMPS', i.xmlfield)) xmlfield
-      FROM dev_dmd.f_history i) AS i;
+      FROM sources.f_history i) AS i;
    
 --3.2. vtms: Virtual Therapeutic Moiety
 CREATE TABLE vtms AS
@@ -132,7 +132,7 @@ SELECT
 	unnest(xpath('/VTM/INVALID/text()', i.xmlfield))::VARCHAR INVALID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-	FROM dev_dmd.f_vtm2 i
+	FROM sources.f_vtm2 i
 	) AS i;
 
 UPDATE vtms SET invalid = '0' WHERE invalid IS NULL;
@@ -161,7 +161,7 @@ SELECT
 	unnest(xpath('/VMPP/ABBREVNM/text()', i.xmlfield))::VARCHAR ABBREVNM
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-	FROM dev_dmd.f_vmpp2 i
+	FROM sources.f_vmpp2 i
 	) AS i;
 
 UPDATE vmpps SET invalid = '0' WHERE invalid IS NULL;
@@ -172,7 +172,7 @@ SELECT
 	unnest(xpath('/CCONTENT/CHLDVPPID/text()', i.xmlfield))::VARCHAR CHLDVPPID
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
-	FROM dev_dmd.f_vmpp2 i
+	FROM sources.f_vmpp2 i
 	) AS i;
 
 --3.4. vmps: Virtual Medicinal Product
@@ -195,7 +195,7 @@ SELECT unnest(xpath('/VMP/NM/text()', i.xmlfield))::VARCHAR AS nm,
 	unnest(xpath('/VMP/PRES_STATCD/text()', i.xmlfield))::VARCHAR AS pres_statcd
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_vmp2 i
+	FROM sources.f_vmp2 i
 	) AS i;
 
 UPDATE vmps SET invalid = '0' WHERE invalid IS NULL;
@@ -226,7 +226,7 @@ SELECT unnest(xpath('/VPI/VPID/text()', i.xmlfield))::VARCHAR AS vpid,
 	unnest(xpath('/VPI/STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR AS strnt_dnmtr_uomcd
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_vmp2 i
+	FROM sources.f_vmp2 i
 	) AS i;
 
 --replace nanoliters with ml in amount
@@ -241,7 +241,7 @@ SELECT unnest(xpath('/ONT/VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('/ONT/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/ONT_DRUG_FORM/ONT', i.xmlfield)) xmlfield
-	FROM dev_dmd.f_vmp2 i
+	FROM sources.f_vmp2 i
 	) AS i;
 
 CREATE TABLE drug_form AS
@@ -249,7 +249,7 @@ SELECT unnest(xpath('/DFORM/VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('/DFORM/FORMCD/text()', i.xmlfield))::VARCHAR FORMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
-	FROM dev_dmd.f_vmp2 i
+	FROM sources.f_vmp2 i
 	) AS i;
 
 
@@ -267,7 +267,7 @@ SELECT unnest(xpath('/AMP/NM/text()', i.xmlfield))::VARCHAR AS nm,
 	unnest(xpath('/AMP/LIC_AUTHCD/text()', i.xmlfield))::VARCHAR AS lic_authcd
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_amp2 i
+	FROM sources.f_amp2 i
 	) AS i;
 
 UPDATE amps SET invalid = '0' WHERE invalid IS NULL;
@@ -278,7 +278,7 @@ SELECT
 	unnest(xpath('/LIC_ROUTE/ROUTECD/text()', i.xmlfield))::VARCHAR AS routecd
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_amp2 i
+	FROM sources.f_amp2 i
 	) AS i;
 
 --3.6. ampps: Actual Medicinal Product Pack
@@ -293,7 +293,7 @@ FROM (
 		to_date(unnest(xpath('/AMPP/DISCDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') AS discdt
 	FROM (
 		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) AS xmlfield
-		FROM dev_dmd.f_ampp2 i
+		FROM sources.f_ampp2 i
 		) AS i;
 
 UPDATE ampps SET invalid = '0' WHERE invalid IS NULL;
@@ -303,7 +303,7 @@ SELECT unnest(xpath('/CCONTENT/PRNTAPPID/text()', i.xmlfield))::VARCHAR AS prnta
 	   unnest(xpath('/CCONTENT/CHLDAPPID/text()', i.xmlfield))::VARCHAR AS chldappid
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_ampp2 i
+	FROM sources.f_ampp2 i
 	) AS i;
 
 --3.7. Ingredients
@@ -314,7 +314,7 @@ SELECT unnest(xpath('/ING/NM/text()', i.xmlfield))::VARCHAR AS nm,
        unnest(xpath('/ING/INVALID/text()', i.xmlfield))::VARCHAR AS invalid,
        unnest(xpath('/ING/ISIDPREV/text()', i.xmlfield))::VARCHAR AS isidprev
 FROM (SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) AS xmlfield
-      FROM dev_dmd.f_ingredient2 i
+      FROM sources.f_ingredient2 i
       ) AS i;
 
 UPDATE ingredient_substances SET invalid = '0' WHERE invalid IS NULL;
@@ -324,7 +324,7 @@ CREATE TABLE combination_pack_ind AS
 SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR AS info_desc,
        unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR AS cd
 FROM (SELECT unnest(xpath('/LOOKUP/COMBINATION_PACK_IND/INFO', i.xmlfield)) AS xmlfield
-      FROM dev_dmd.f_lookup2 i
+      FROM sources.f_lookup2 i
       ) AS i;
 
 --3.9. Combination products
@@ -333,7 +333,7 @@ SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR AS info_desc,
 	unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR AS cd
 FROM (
 	SELECT unnest(xpath('/LOOKUP/COMBINATION_PROD_IND/INFO', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_lookup2 i
+	FROM sources.f_lookup2 i
 	) AS i
 ;
 
@@ -344,7 +344,7 @@ SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR AS info_desc,
        to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') AS cddt
 FROM (
       SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) AS xmlfield
-      FROM dev_dmd.f_lookup2 i
+      FROM sources.f_lookup2 i
 	) AS i
 ;
 
@@ -355,7 +355,7 @@ SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR AS info_desc,
 	to_date(unnest(xpath('/INFO/CDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') AS cddt
 FROM (
 	SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_lookup2 i
+	FROM sources.f_lookup2 i
 	) AS i
 ;
 
@@ -369,7 +369,7 @@ WITH supp_temp AS
 			unnest(xpath('/INFO/INVALID/text()', i.xmlfield))::VARCHAR AS invalid
 		FROM (
 			SELECT unnest(xpath('/LOOKUP/SUPPLIER/INFO', i.xmlfield)) AS xmlfield
-			FROM dev_dmd.f_lookup2 i
+			FROM sources.f_lookup2 i
 			) AS i
 	),
 supp_cut AS
@@ -418,7 +418,7 @@ SELECT unnest(xpath('/INFO/DESC/text()', i.xmlfield))::VARCHAR AS info_desc,
 	   unnest(xpath('/INFO/CD/text()', i.xmlfield))::VARCHAR AS cd
 FROM (
 	SELECT unnest(xpath('/LOOKUP/DF_INDICATOR/INFO', i.xmlfield)) AS xmlfield
-	FROM dev_dmd.f_lookup2 i
+	FROM sources.f_lookup2 i
 	) AS i;
 
 --Creating indexes

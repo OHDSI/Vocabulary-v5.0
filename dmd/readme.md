@@ -47,9 +47,14 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 
 11. Run automated and manual checks before the next step.
 
-12. Run [`build_RxE.sql`](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/BuildRxE.sql) to construct the RxNorm Extension content filling gaps where RxNorm lacks coverage for UK-specific medicinal products.
-
-13. Run [`postprocessing.sql`](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/dmd/postprocessing.sql) to deprecate outdated mappings, prioritize mappings to SNOMED CT for devices, reconstruct valid `Maps to` relationships from updated sources, restore essential mappings for deprecated VMP and clean and deduplicate all staging tables.  
+12. Run
+```sql
+   DO $_$
+   BEGIN
+       PERFORM vocabulary_pack.BuildRxE();
+   END $_$;
+   ```
+13. Run postprocessing.sql
 
 14. Run generic_update:
    ```sql

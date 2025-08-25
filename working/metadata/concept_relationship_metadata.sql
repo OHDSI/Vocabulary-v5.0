@@ -14,16 +14,11 @@ reviewer VARCHAR(50),
 FOREIGN KEY (concept_id_1, concept_id_2, relationship_id)
 REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
 CONSTRAINT chk_relationship_predicate_id
-CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch')),
+CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch','eq', 'up', 'down')),
 CONSTRAINT xpk_concept_relationship_metadata
 UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
 );
 
-DROP TABLE IF EXISTS dev_voc_metadata.cc_mapping;
-CREATE TABLE dev_voc_metadata.cc_mapping AS
-SELECT *
-FROM dev_test4.cc_mapping
-;
 
 --Community contribution
 INSERT INTO concept_relationship_metadata
@@ -147,11 +142,11 @@ FROM (SELECT DISTINCT c.concept_id     AS concept_id_1,
                       NULL::float as confidence,
                       REPLACE(SPLIT_PART(a.mapping_source[1], '-', 2), 'OMOP', 'OHDSI')         AS mapping_source,
                      NULL::int as relationship_group,
-                     CASE WHEN length(trim(a.relationship_predicate_id))=0 then null
-          when lower(trim(a.relationship_predicate_id))='eq' then 'exactMatch'
-           when lower(trim(a.relationship_predicate_id))='up' then 'broadMatch'
-           when lower(trim(a.relationship_predicate_id))='down' then 'narrowMatch'
-          else a.relationship_predicate_id end as  relationship_predicate_id
+                     CASE WHEN length(trim(a.relationship_id_predicate))=0 then null
+          when lower(trim(a.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(a.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(a.relationship_id_predicate))='down' then 'narrowMatch'
+          else a.relationship_id_predicate end as  relationship_predicate_id
       FROM dev_cdisc.cdisc_automapped a
                JOIN devv5.concept c
                     ON c.concept_code = a.concept_code

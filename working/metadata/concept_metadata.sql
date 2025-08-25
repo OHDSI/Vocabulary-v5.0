@@ -21,11 +21,16 @@ SELECT DISTINCT
     c.concept_id,
    'RF' as reuse_status
 FROM
-    dev_voc_metadata.reused_concepts rr
+    dev_voc_metadata.reused_concepts rr--table that equal to github wiki page -- https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
     JOIN concept c
         ON rr.concept_id = c.concept_id
+where not exists(SELECT 1
+                 from dev_voc_metadata.concept_metadata cm
+                 where (cm.concept_id)=rr.concept_id)
+and exists (SELECT 1
+                 from dev_voc_metadata.concept  с
+                 where (c.concept_id)=rr.concept_id)
 ;
-
 -- Apparent Junk from various OMOPed terminologies
 INSERT INTO concept_metadata (concept_id,concept_category)
 WITH JUNK_POOL AS (SELECT DISTINCT c.*
@@ -76,6 +81,12 @@ UNION ALL
 SELECT flag, concept_id, concept_category, concept_name, vocabulary_id
 FROM junk_direct_rule_based
 ) as tab
+where not exists(SELECT 1
+                 from dev_voc_metadata.concept_metadata cm
+                 where (cm.concept_id)=tab.concept_id)
+and exists (SELECT 1
+                 from dev_voc_metadata.concept xx
+                 where xx.concept_id=tab.concept_id)
 ;
 
 -- Metadata attribute
@@ -92,6 +103,18 @@ where domain_id='Metadata'
 	IS DISTINCT FROM
 	ROW (excluded.concept_category)
 	;
+
+INSERT INTO concept_metadata (concept_id,concept_category)
+SELECT DISTINCT     concept_id, 'M' as concept_category
+FROM devv5.concept tab
+where domain_id='Metadata'
+and not exists(SELECT 1
+                 from dev_voc_metadata.concept_metadata cm
+                 where (cm.concept_id)=tab.concept_id)
+and exists (SELECT 1
+                 from dev_voc_metadata.concept xx
+                 where xx.concept_id=tab.concept_id)
+;
 
 
 -- Attributes attribute
@@ -135,6 +158,45 @@ OR
 	;
 ;
 
+INSERT INTO concept_metadata (concept_id,concept_category)
+SELECT DISTINCT concept_id, 'A' as concept_category
+FROM devv5.concept tab
+where ((
+concept_class_id IN (
+'AU Qualifier',
+'Supplier',
+'Trade Product',
+'Brand Name',
+'Dose Form',
+'Drug form',
+'Form',
+'Chemical Structure',
+'Pharmacokinetics',
+'Supplier'
+    )
+and domain_id='Drug')
+OR (
+concept_class_id IN (
+'LOINC Component',
+'LOINC Method',
+'LOINC Property',
+'LOINC Scale',
+'LOINC System',
+'LOINC Time')
+    )
+OR
+    (vocabulary_id IN ('SNOMED','SNOMED Veterinary','Nebraska Lexicon','OMOP Extension')
+       and concept_class_id IN ('Qualifier Value','Attribute')
+        ))
+and not exists(SELECT 1
+                 from dev_voc_metadata.concept_metadata cm
+                 where (cm.concept_id)=tab.concept_id)
+and exists (SELECT 1
+                 from dev_voc_metadata.concept xx
+                 where xx.concept_id=tab.concept_id)
+;
+
+
 --NO DUPLICATES EXISTS
 SELECT (SELECT count(*)
 FROM concept_metadata) - (SELECT count(distinct concept_id)
@@ -161,7 +223,3 @@ where  not exists (
     where cmt.concept_id=cm.concept_id
 )
 ;
-
-
-
-

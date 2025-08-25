@@ -1,5 +1,6 @@
 -- DDL:
 --DROP TABLE concept_relationship_metadata;
+TRUNCATE concept_relationship_metadata;
 CREATE TABLE concept_relationship_metadata (
 concept_id_1 int NOT NULL,
 concept_id_2 int NOT NULL,
@@ -41,6 +42,14 @@ JOIN devv5.concept c ON (cc.concept_code_1, cc.vocabulary_id_1) = (c.concept_cod
 JOIN devv5.concept c1 ON (cc.concept_code_2, cc.vocabulary_id_2) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr ON (c.concept_id, c1.concept_id, cc.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
 WHERE cr.invalid_reason is null;
+
+UPDATE  concept_relationship_metadata
+    SEt mapping_tool='MM_U'
+where mapping_tool IN (
+'exactMatch',
+'Atlas, Databricks, and human',
+'Athena'
+    );
 
 
 --ICDs
@@ -122,7 +131,7 @@ SELECT DISTINCT
        relationship_id,
        relationship_predicate_id,
        relationship_group,
-       mapping_source,
+    (array_agg( DISTINCT mapping_source))[1] as mapping_source,
        confidence,
        mapping_tool,
        mapper,
@@ -191,6 +200,15 @@ UNION ALL
       and a.relationship_id=cr.relationship_id
       )
     AS cdisc_concept_relationship_meta_bypass
+WHERE (concept_id_1,relationship_id,concept_id_2) NOT IN (SELECT  c.concept_id_1,c.relationship_id,c.concept_id_2 FROM concept_relationship_metadata as c)
+GROUP BY concept_id_1,
+       concept_id_2,
+       relationship_id,
+       relationship_predicate_id,
+       relationship_group,confidence,
+       mapping_tool,
+       mapper,
+       reviewer
 ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
 
@@ -434,6 +452,14 @@ and relationship_predicate_id is NULL
 UPDATE concept_relationship_metadata
 SET mapping_tool = 'AM-lib_U'
 WHERE mapping_tool ='AM-lib_C'
+and mapper is NULL
+and reviewer is NULL
+;
+
+UPDATE concept_relationship_metadata
+SET mapping_tool = 'MM_U',
+    mapping_source=NULL
+WHERE mapping_source ='MannualMapping'
 and mapper is NULL
 and reviewer is NULL
 ;

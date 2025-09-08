@@ -103,7 +103,7 @@ AND crm.relationship_id = m.relationship_id
 AND crm.invalid_reason IS NOT NULL
 ;
 
---5.2.7 Create concept_mapped table and populate it with the resulting manual table of the previous SNOMED refresh
+--5.2.7 Create concept_mapped table and populate it with the resulting manual table of the previous CPT4 refresh
 /*CREATE TABLE concept_mapped
 (
        id SERIAL PRIMARY KEY,

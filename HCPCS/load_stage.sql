@@ -200,7 +200,7 @@ AS (
 					'C1450'
 					)
 				THEN 'Procedure'
-			WHEN concept_code BETWEEN 'C7500' AND 'C7560'
+			WHEN concept_code BETWEEN 'C7500' AND 'C7565'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'C7900' AND 'C7903'
 				THEN 'Observation'
@@ -211,6 +211,8 @@ AS (
 					)
 				THEN 'Device'
 			WHEN concept_code IN (
+			        'C8004',
+			        'C8005',
 					'C8953',
 					'C8954',
 					'C8955'
@@ -233,6 +235,7 @@ AS (
 					'C9222',
 					'C9246',
 					'C9247',
+			        'C9300',
 					'C9458',
 					'C9459',
 					'C9461'
@@ -260,7 +263,7 @@ AS (
 					AND 'C9803'
 					OR concept_code = 'C9901'
 				THEN 'Procedure'
-			WHEN concept_code = 'C9703'
+			WHEN concept_code IN ('C9703','C9610')
 				THEN 'Device'
 			WHEN l1.str = 'C Codes - CMS Hospital Outpatient System'
 				THEN 'Device' -- default for Level 1: C1000-C9999
@@ -319,6 +322,9 @@ AS (
 			       AND length(concept_code) >2
 				THEN 'Device' -- all of them Level 1: E0100-E9999
 					-- G codes
+		    WHEN concept_code BETWEEN 'G0011'
+		        AND 'G0013' -- HIV pre-exposure prophylaxis
+		        THEN 'Procedure'
 			WHEN l2.str = 'Vaccine Administration'
 				THEN 'Drug' -- Level 2: G0008-G0010
 			WHEN concept_code = 'G0002'
@@ -370,7 +376,8 @@ AS (
 			WHEN concept_code BETWEEN 'G0179'
 					AND 'G0182'
 				THEN 'Observation' -- Level 2: G0179-G0182 previously 'Physician Services'
-			WHEN concept_code = 'G0202'
+			WHEN concept_code IN ('G0202',
+                'G0183')
 				THEN 'Measurement'
 			WHEN concept_code BETWEEN 'G0237'
 					AND 'G0239'
@@ -506,8 +513,9 @@ AS (
 			WHEN concept_code BETWEEN 'G0507'
 					AND 'G0514'
 				THEN 'Observation' -- Preventive services
-			WHEN concept_code = 'G0659'
-				THEN 'Measurement' --Drug test
+			WHEN concept_code IN ('G0659',
+                'G0567')
+				THEN 'Measurement'
 			WHEN concept_code = 'G2250'
 				THEN 'Procedure' --	Remote assessment of recorded video and/or images
 			WHEN concept_code BETWEEN 'G0908'
@@ -824,7 +832,7 @@ AS (
 				THEN 'Observation'
 			WHEN concept_code = 'Q0515'
 				THEN 'Drug'
-			WHEN concept_code BETWEEN 'Q0516' AND 'Q0518'
+			WHEN concept_code BETWEEN 'Q0516' AND 'Q0521'
 				THEN 'Observation'
 			WHEN concept_code BETWEEN 'Q1001'
 					AND 'Q1005'
@@ -856,7 +864,7 @@ AS (
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4333'
+					AND 'Q4382'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
@@ -941,7 +949,9 @@ AS (
 			WHEN concept_code BETWEEN 'S4030'
 					AND 'S4031'
 				THEN 'Observation' -- Sperm procurement and cryopreservation services
-			WHEN concept_code BETWEEN 'S4005'
+			WHEN concept_code = 'S4024'
+		        THEN 'Device'
+		    WHEN concept_code BETWEEN 'S4005'
 					AND 'S4042'
 				THEN 'Procedure' -- IVF procedures
 			WHEN concept_code BETWEEN 'S4988'
@@ -1141,7 +1151,7 @@ FROM t_domains t
 WHERE cs.concept_code = t.concept_code
 	AND cs.concept_class_id <> 'HCPCS Class';
 
--- 5.2. If some codes does not have domain_id pick it up from existing concept table
+-- 5.2. If some codes do not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs
 SET domain_id = c.domain_id
 FROM concept c
@@ -1375,6 +1385,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+	PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo(null, '{RxNorm}', null);
 END $_$;
 
 --14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -1388,6 +1399,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
-
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

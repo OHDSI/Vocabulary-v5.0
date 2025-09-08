@@ -105,7 +105,10 @@ SELECT DISTINCT
 	'ICD10PCS Hierarchy' AS concept_class_id,
 	'S' AS standard_concept, -- non-billable Hierarchy concepts are met in patient data, that is why they are considered to be Standard as well
 	code AS concept_code,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(	SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10PCS'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.mrconso mr
@@ -131,6 +134,11 @@ FROM sources.mrconso mr
 LEFT JOIN concept_stage cs ON cs.concept_code = mr.code
 	AND LOWER(cs.concept_name) = LOWER(mr.str)
 WHERE mr.sab = 'ICD10PCS'
+  	AND mr.suppress NOT IN (
+		'E',
+		'O',
+		'Y'
+		)
 	AND cs.concept_code IS NULL;
 
 --6. "Resurrect" previously deprecated concepts using the basic tables (they, being encountered in patient data, must remain Standard!)
@@ -291,5 +299,20 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
+
+--15. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
+UPDATE concept_stage cs
+SET domain_id = 'Drug'
+FROM concept_relationship_stage crs
+WHERE crs.vocabulary_id_2 IN (
+		'RxNorm',
+		'RxNorm Extension',
+		'CVX'
+		)
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND cs.concept_class_id = 'ICD10PCS'
+	AND cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

@@ -449,37 +449,48 @@ BEGIN
 	ANALYZE vocab_combinations$;
 
 	--prepare temp table concept_relationship_upd$
-	--this table will be used to update the "main" table concept_relationship and the only reason it is created is to take advantage of PG concurrency (parallel workers)
-	CREATE UNLOGGED TABLE concept_relationship_upd$ AS
-	--Whether the combination of vocab1, vocab2 and relationship exists (in vocab_combinations$)
-	--(intended to be covered by this particular vocab udpate)
-	--And both concepts exist (don't deprecate relationships of deprecated concepts)
-	SELECT cr.concept_id_1,
-		cr.concept_id_2,
-		cr.relationship_id,
-		vc.max_latest_update
-	FROM concept_relationship cr
-	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-	JOIN vocab_combinations$ vc ON vc.vocabulary_id_1 = c1.vocabulary_id
-		AND vc.vocabulary_id_2 = c2.vocabulary_id
-		AND vc.relationship_id = cr.relationship_id
-	LEFT JOIN concept_relationship_stage crs ON crs.concept_id_1 = cr.concept_id_1
-		AND crs.concept_id_2 = cr.concept_id_2
-		AND crs.relationship_id = cr.relationship_id
-	WHERE cr.invalid_reason IS NULL --And the record is currently fresh and not already deprecated
-		--And it was started before or equal the release date
-		AND cr.valid_start_date <= vc.max_latest_update
-		--And it is missing from the new concept_relationship_stage
-		AND crs.concept_id_1 IS NULL;
+    CREATE UNLOGGED TABLE IF NOT EXISTS concept_rel_temp$ AS
+    SELECT  cr.concept_id_1,
+            cr.concept_id_2,
+            cr.relationship_id,
+            vc.max_latest_update
+    FROM concept_relationship cr
+        JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+            AND c1.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+        JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+            AND c2.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+        JOIN vocab_combinations$ vc ON vc.vocabulary_id_1 = c1.vocabulary_id
+            AND vc.vocabulary_id_2 = c2.vocabulary_id
+            AND vc.relationship_id = cr.relationship_id
+        WHERE  cr.invalid_reason IS NULL --And the record is currently fresh and not already deprecated
+            --And it was started before or equal the release date
+            AND cr.valid_start_date <= vc.max_latest_update;
+
+    CREATE INDEX concept_rel_temp_idx ON concept_rel_temp$(concept_id_1, concept_id_2, relationship_id);
+
+    ANALYZE concept_rel_temp$;
+
+    CREATE UNLOGGED TABLE concept_relationship_upd$ AS
+    SELECT cr.concept_id_1,
+            cr.concept_id_2,
+            cr.relationship_id,
+            cr.max_latest_update
+    FROM concept_rel_temp$ cr
+    LEFT JOIN concept_relationship_stage crs 
+           ON crs.concept_id_1 = cr.concept_id_1
+          AND crs.concept_id_2 = cr.concept_id_2
+          AND crs.relationship_id = cr.relationship_id
+    WHERE crs.concept_id_1 IS NULL --And it is missing from the new concept_relationship_stage;
 
 	ANALYZE concept_relationship_upd$;
 
 	--update 'main' table from a temporary table
 	UPDATE concept_relationship cr
-	SET valid_end_date = crt.max_latest_update - 1,
+	SET valid_end_date = CASE 
+                              WHEN (crt.max_latest_update - 1) < cr.valid_start_date 
+                              THEN CURRENT_DATE - 1
+                              ELSE crt.max_latest_update - 1 
+                         END,
 		invalid_reason = 'D'
 	FROM concept_relationship_upd$ crt
 	WHERE cr.concept_id_1 = crt.concept_id_1
@@ -487,7 +498,7 @@ BEGIN
 		AND cr.relationship_id = crt.relationship_id;
 
 	--clean up
-	DROP TABLE vocab_combinations$, concept_relationship_upd$;
+	DROP TABLE vocab_combinations$, concept_relationship_upd$, concept_rel_temp$;
 
 	--17. Deprecate old 'Maps to', 'Maps to value' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 	--part 1 (direct mappings)
@@ -507,11 +518,20 @@ BEGIN
 	)
 	UPDATE concept_relationship r
 	SET valid_end_date  =
-			GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-				FROM vocabulary v
-			WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id) --take both concept ids to get proper latest_update
-			)),
-			invalid_reason = 'D'
+			CASE 
+                WHEN GREATEST(r.valid_start_date, 
+                              (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                 FROM vocabulary v
+                                WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
+                     ) < r.valid_start_date
+                THEN CURRENT_DATE - 1
+                ELSE GREATEST(r.valid_start_date, 
+                              (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in   concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                 FROM vocabulary v
+                                WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)) --take both concept ids to get proper latest_update
+                     )
+                END,
+        invalid_reason = 'D'
 	FROM concept c1, concept c2, relationships rel
 	WHERE r.concept_id_1=c1.concept_id
 	AND r.concept_id_2=c2.concept_id

@@ -47,33 +47,29 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
                                 include_deprecated_rels=> true, include_synonyms=> true);
 ```
 15. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/load_stage.sql).
-16. Run check_stage_tables function (should retrieve NULL):
-```sql
-SELECT * FROM qa_tests.check_stage_tables();
-```
-17. Run generic_update:
+16. Run generic_update:
 ```sql
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 ```
-18. Run basic tables check (should retrieve NULL):
+17. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-19. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) file in the 'manual_work' folder.
+18. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) file in the 'manual_work' folder.
 
-20. Repeat steps 11-15.
+19. Repeat steps 11-15.
 
-21. Run scripts to get summary, and interpret the results:
+20. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
 SELECT * FROM qa_tests.get_summary('concept_relationship');
 ```
-22. Run scripts to collect statistics, and interpret the results:
+21. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_domain_changes();
 ```
@@ -90,6 +86,6 @@ SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 SELECT * FROM qa_tests.get_changes_concept_mapping();
 ```
 
-23. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
-24. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql), and interpret the results.
-25. If no problems, enjoy!
+22. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+23. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql), and interpret the results.
+24. If no problems, enjoy!

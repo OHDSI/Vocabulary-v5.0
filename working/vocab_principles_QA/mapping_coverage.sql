@@ -1,7 +1,7 @@
 -- 1. This script collects comparative numbers on the categories of the non-standard concepts, grouped by vocabularies and their status, between two latest releases.
 --- Used to generate the report on mapping_coverage: https://github.com/OHDSI/Vocabulary-v5.0/wiki/Quality-Management-System-reports
 
-with aug_2025 as(
+with recent_release as(
 select case when c.vocabulary_id in ('AMIS', 'BDPM', 'CGI', 'DPD', 'EphMRA ATC', 'ETC', 'GCN_SEQNO', 'GPI', 'Indication', 'ISBT', 'ISBT Attribute',
                                     'KNHIS', 'Korean Revenue Code', 'MMI', 'Multilex', 'Multum', 'NDFRT', 'NFC', 'OncoKB', 'OncoTree', 'OSM', 'OXMIS',
                                     'PCORNet', 'SUS', 'SAP', 'Death Type', 'Device Type', 'Drug Type', 'Episode Type', 'Note Type', 'Observation Type',
@@ -32,7 +32,7 @@ group by vocab_status,-- c.vocabulary_id,
          category
 order by 1,2,3),
 
-    feb_2025 as (
+    previous_release as (
 select case when c.vocabulary_id in ('AMIS', 'BDPM', 'CGI', 'DPD', 'EphMRA ATC', 'ETC', 'GCN_SEQNO', 'GPI', 'Indication', 'ISBT', 'ISBT Attribute',
                                     'KNHIS', 'Korean Revenue Code', 'MMI', 'Multilex', 'Multum', 'NDFRT', 'NFC', 'OncoKB', 'OncoTree', 'OSM', 'OXMIS',
                                     'PCORNet', 'SUS','SAP', 'Death Type', 'Device Type', 'Drug Type', 'Episode Type', 'Note Type', 'Observation Type',
@@ -67,8 +67,8 @@ order by 1,2,3
 
 select a.vocab_status/*, a.vocabulary_id*/, a.category,
        f.count as previous_cnt, a.count as recent_cnt
-       from aug_2025 a
-join feb_2025 f using (vocab_status/*, vocabulary_id*/, category);
+       from recent_release a
+join previous_release f using (vocab_status/*, vocabulary_id*/, category);
 
 
 -- 2. Investigational scripts:

@@ -17,8 +17,8 @@ SELECT new.concept_code,
        old.domain_id AS old_domain_id,
        new.domain_id AS new_domain_id
 FROM concept new
-JOIN devv5.concept old
-    USING (concept_id)
+JOIN prodv5.concept old
+    USING (concept_code, vocabulary_id)
 WHERE old.domain_id != new.domain_id
     AND new.vocabulary_id IN (:your_vocabs)
 ;
@@ -39,8 +39,9 @@ SELECT c1.concept_code,
        c1.standard_concept,
        c1.domain_id AS new_domain
 FROM concept c1
-LEFT JOIN devv5.concept c2
-    ON c1.concept_id = c2.concept_id
+LEFT JOIN prodv5.concept c2
+    ON c1.concept_code = c2.concept_code
+       AND c1.vocabulary_id = c2.vocabulary_id
 WHERE c2.vocabulary_id IS NULL
     AND c1.vocabulary_id IN (:your_vocabs)
 ;
@@ -60,8 +61,9 @@ SELECT c.vocabulary_id,
        c.concept_name AS new_name,
        devv5.similarity (c2.concept_name, c.concept_name)
 FROM concept c
-JOIN  prodv5.concept c2
-    ON c.concept_id = c2.concept_id
+JOIN prodv5.concept c2
+    ON c.concept_code = c2.concept_code
+        AND c.vocabulary_id = c2.vocabulary_id
         AND c.concept_name != c2.concept_name
 WHERE c.vocabulary_id IN (:your_vocabs)
 ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
@@ -80,8 +82,8 @@ SELECT c.concept_code,
        c.vocabulary_id,
        string_agg (DISTINCT cs.language_concept_id::text, '; ' ORDER BY cs.language_concept_id::text) AS old_language_concept_id,
        string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) AS old_synonym
-FROM  prodv5.concept c
-    JOIN  prodv5.concept_synonym cs
+FROM prodv5.concept c
+    JOIN prodv5.concept_synonym cs
       ON c.concept_id = cs.concept_id WHERE c.vocabulary_id IN (:your_vocabs)
 GROUP BY
     c.concept_code,
@@ -150,8 +152,8 @@ SELECT a.concept_code AS concept_code_source,
        b.vocabulary_id AS vocabulary_id_target
 FROM concept a
 LEFT JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Maps to'
-LEFT JOIN concept  b ON b.concept_id = r.concept_id_2
-LEFT JOIN  prodv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN concept b ON b.concept_id = r.concept_id_2
+LEFT JOIN prodv5.concept c ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL AND b.concept_id IS NULL
 ;
@@ -183,8 +185,8 @@ JOIN concept_relationship r
            AND r.relationship_Id IN ('Maps to', 'Maps to value')
 JOIN concept b
     ON b.concept_id = r.concept_id_2
-LEFT JOIN  prodv5.concept  c
-    ON c.concept_id = a.concept_id
+LEFT JOIN prodv5.concept  c
+    ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND c.concept_id IS NULL
     --AND a.concept_id != b.concept_id --use it to exclude mapping to itself
@@ -212,7 +214,7 @@ SELECT a.concept_code AS concept_code_source,
 FROM concept a
 LEFT JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Is a'
 LEFT JOIN concept b ON b.concept_id = r.concept_id_2
-LEFT JOIN  prodv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN prodv5.concept c ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL AND b.concept_id IS NULL
 ;
@@ -235,8 +237,8 @@ SELECT a.concept_code AS concept_code_source,
        b.vocabulary_id AS vocabulary_id_target
 FROM concept a
 JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Is a'
-JOIN concept  b ON b.concept_id = r.concept_id_2
-LEFT JOIN  prodv5.concept  c ON c.concept_id = a.concept_id
+JOIN concept b ON b.concept_id = r.concept_id_2
+LEFT JOIN prodv5.concept c ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL
 ;
@@ -409,7 +411,9 @@ SELECT b.source_vocabulary_id AS vocabulary_id,
        b.name_agg AS new_name_agg
 FROM old_map a
 JOIN new_map b
-ON a.source_concept_id = b.source_concept_id  AND  ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
+ON a.source_code = b.source_code
+       AND a.source_vocabulary_id = b.source_vocabulary_id
+       AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
 ORDER BY a.source_code
 ;
 
@@ -450,9 +454,9 @@ SELECT a.concept_id,
        string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS relationship_agg,
        string_agg (b.concept_code, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
        string_agg (b.concept_name, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
-FROM  prodv5. concept a
-LEFT JOIN  prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Is a') AND r.invalid_reason IS NULL
-LEFT JOIN  prodv5.concept b ON b.concept_id = concept_id_2
+FROM prodv5. concept a
+LEFT JOIN prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Is a') AND r.invalid_reason IS NULL
+LEFT JOIN prodv5.concept b ON b.concept_id = concept_id_2
 WHERE a.vocabulary_id IN (:your_vocabs) AND a.invalid_reason IS NULL
 GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
 )
@@ -467,9 +471,11 @@ SELECT b.vocabulary_id AS vocabulary_id,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
        b.name_agg AS new_name_agg
-FROM old_map  a
+FROM old_map a
 JOIN new_map b
-ON a.concept_id = b.concept_id AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
+ON a.concept_code = b.concept_code
+       AND a.vocabulary_id = b.vocabulary_id
+       AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
 ORDER BY a.concept_code
 ;
 
@@ -484,61 +490,64 @@ ORDER BY a.concept_code
 SELECT *
 FROM (
 	SELECT s0.vocabulary_id,
-		s0.concept_code_source,
-		s0.concept_name_source,
-		s0.concept_class_id_source,
-		s0.domain_id_source,
+		s0.source_concept_code,
+		s0.source_concept_name,
+		s0.source_concept_class_id,
+		s0.source_domain_id,
 		s0.relationship_id,
-		s0.concept_code_target,
-		s0.concept_name_target,
-		s0.vocabulary_id_target,
+		s0.target_concept_code,
+		s0.target_concept_name,
+		s0.target_vocabulary_id,
 		s0.max_vsd_in_group,
 		(l.concept_id IS NULL) AS new_1_to_many_mappings
 	FROM (
 		SELECT a.concept_id,
 			a.vocabulary_id,
-			a.concept_code AS concept_code_source,
-			a.concept_name AS concept_name_source,
-			a.concept_class_id AS concept_class_id_source,
-			a.domain_id AS domain_id_source,
+			a.concept_code AS source_concept_code,
+			a.concept_name AS source_concept_name,
+			a.concept_class_id AS source_concept_class_id,
+			a.domain_id AS source_domain_id,
 			r.relationship_id,
-			b.concept_code AS concept_code_target,
+			b.concept_code AS target_concept_code,
 			CASE
 				WHEN a.concept_id = b.concept_id
 					THEN '<Mapped to itself>'
 				ELSE b.concept_name
-				END AS concept_name_target,
+				END AS target_concept_name,
 			CASE
 				WHEN a.concept_id = b.concept_id
 					THEN '<Mapped to itself>'
 				ELSE b.vocabulary_id
-				END AS vocabulary_id_target,
+				END AS target_vocabulary_id,
 			COUNT(*) OVER (PARTITION BY a.concept_id) AS mappings_cnt,
 			MAX(r.valid_start_date) OVER (PARTITION BY a.concept_id) AS max_vsd_in_group
 		FROM concept a
 		JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
 			AND r.invalid_reason IS NULL
-			AND r.relationship_Id LIKE  'Maps to%'
+			AND r.relationship_Id LIKE 'Maps to%'
 		JOIN concept b ON b.concept_id = r.concept_id_2
 		WHERE a.vocabulary_id IN (:your_vocabs)
 		--AND r.concept_id_1 <> r.concept_id_2 --use it to exclude mapping to itself
 		) s0
 	LEFT JOIN (
-		SELECT r_int.concept_id_1 AS concept_id
-		FROM  prodv5.concept_relationship r_int
+		SELECT r_int.concept_id_1 AS concept_id,
+		       c1.concept_code,
+		       c1.vocabulary_id
+		FROM prodv5.concept_relationship r_int
+		JOIN prodv5.concept c1 ON c1.concept_id = r_int.concept_id_1
 		WHERE r_int.invalid_reason IS NULL
 			AND r_int.relationship_Id LIKE 'Maps to%'
 			--AND r_int.concept_id_1 <> r_int.concept_id_2 --use it to exclude mapping to itself
-		GROUP BY r_int.concept_id_1
+		GROUP BY r_int.concept_id_1, c1.concept_code, c1.vocabulary_id
 		HAVING COUNT(*) > 1
-		) l USING (concept_id)
+		) l ON (s0.source_concept_code, s0.vocabulary_id) = (l.concept_code, l.vocabulary_id)
 	WHERE s0.mappings_cnt > 1
 	) s1
 ORDER BY s1.max_vsd_in_group DESC,
 	s1.new_1_to_many_mappings DESC,
 	s1.vocabulary_id,
-	s1.concept_code_source,
-	s1.concept_code_target;
+	s1.source_concept_code,
+	s1.target_concept_code;
 
 --02.8. Concepts became non-Standard with no mapping replacement
 --In this check we manually review the changes of concept's Standard status to non-Standard where 'Maps to' mapping replacement link is missing to make sure changes are expected, correct and in line with the current conventions and approaches.
@@ -554,8 +563,9 @@ SELECT a.concept_code,
        a.domain_id,
        a.vocabulary_id
 FROM concept a
-JOIN  prodv5.concept b
-        ON a.concept_id = b.concept_id
+JOIN prodv5.concept b
+        ON a.concept_code = b.concept_code
+           AND a.vocabulary_id = b.vocabulary_id
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND b.standard_concept = 'S'
     AND a.standard_concept IS NULL
@@ -599,7 +609,7 @@ WITH vaccine_exclusion AS (SELECT
     )
 ,
      vaccine_inclusion AS (
-         SELECT  unnest(regexp_split_to_array(vaccine_inclusion,  '\|(?![^(]*\))')) AS mask FROM dev_rxe.vaccine_inclusion)
+         SELECT  unnest(regexp_split_to_array(vaccine_inclusion, '\|(?![^(]*\))')) AS mask FROM dev_rxe.vaccine_inclusion)
 
 SELECT DISTINCT array_agg(DISTINCT coalesce(vi.mask,vi2.mask )) AS mask_array,
                 c.concept_code,
@@ -646,7 +656,7 @@ GROUP BY
 -- Please adjust inclusion/exclusion in the master branch if found some flaws
 -- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings).
 
-WITH covid_inclusion AS (SELECT covid_inclusion,unnest(regexp_split_to_array(covid_inclusion,  '\|(?![^(]*\))')) AS mask
+WITH covid_inclusion AS (SELECT covid_inclusion,unnest(regexp_split_to_array(covid_inclusion, '\|(?![^(]*\))')) AS mask
                          FROM (SELECT 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' AS covid_inclusion
                                        ) AS t
     ),
@@ -695,16 +705,11 @@ ORDER BY MAX(cr2.valid_start_date) DESC,
 --We expect this check to return nothing because in most of the cases such mapping is not consistent since any concept implies the semantics of its every ancestor.
 --In some cases it may be consistent and done by the purpose:
 -- - if the concept implies 2 or more different diseases, and you don't just split up the source concept into the pieces;
--- - if you want to emphasis some aspects that are not follow from the hierarchy naturally;
+-- - if you want to emphasize some aspects that do not follow from the hierarchy naturally;
 -- - if the hierarchy of affected concepts is wrong.
--- problem_schema field reflects the schema in which the problem occurs ( prodv5, current or both). If you expect concept_ancestor changes in your development process, please run concept_ancestor builder appropriately.
--- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings)
+-- Use the valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old or recent mappings)
 
-SELECT CASE WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NOT NULL  THEN 'both'
-            WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NULL      THEN ' prodv5'
-            WHEN ca_old.descendant_concept_id IS NULL     AND ca.descendant_concept_id IS NOT NULL  THEN 'current'
-                END AS problem_schema,
-       LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
+SELECT LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
        c.vocabulary_id,
        c.concept_code,
        c.concept_name,
@@ -717,12 +722,9 @@ JOIN concept_relationship b
     ON a.concept_id_1 = b.concept_id_1
 JOIN concept c
     ON c.concept_id = a.concept_id_1
-LEFT JOIN  prodv5.concept_ancestor ca_old
+LEFT JOIN prodv5.concept_ancestor ca_old
     ON a.concept_id_2 = ca_old.descendant_concept_id
         AND b.concept_id_2 = ca_old.ancestor_concept_id
-LEFT JOIN concept_ancestor ca
-    ON a.concept_id_2 = ca.descendant_concept_id
-        AND b.concept_id_2 = ca.ancestor_concept_id
 LEFT JOIN concept c_des
     ON a.concept_id_2 = c_des.concept_id
 LEFT JOIN concept c_anc
@@ -735,14 +737,14 @@ WHERE a.concept_id_2 != b.concept_id_2
     AND b.relationship_id = 'Maps to'
     AND a.invalid_reason IS NULL
     AND b.invalid_reason IS NULL
-    AND (ca_old.descendant_concept_id IS NOT NULL OR ca.descendant_concept_id IS NOT NULL)
+    AND ca_old.descendant_concept_id IS NOT NULL
 ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
          c.vocabulary_id,
          c.concept_code
 ;
 
---03. Concepts have replacement link, but miss "Maps to" link
--- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
+--03. Concepts have a replacement link, but miss the "Maps to" link
+-- This check controls that all replacement links are repeated with the 'Maps to' links that are used by ETL.
 
 SELECT DISTINCT c.vocabulary_id,
                 c.concept_class_id,
@@ -756,17 +758,13 @@ JOIN concept c
 LEFT JOIN concept cc
     ON cc.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-    AND EXISTS (SELECT concept_id_1
-                FROM concept_relationship cr1
-                WHERE cr1.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
-                    AND cr1.invalid_reason IS NULL
-                    AND cr1.concept_id_1 = cr.concept_id_1)
     AND NOT EXISTS (SELECT concept_id_1
                     FROM concept_relationship cr2
                     WHERE cr2.relationship_id IN ('Maps to')
                         AND cr2.invalid_reason IS NULL
                         AND cr2.concept_id_1 = cr.concept_id_1)
     AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+    AND cr.invalid_reason is null
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
 
@@ -777,8 +775,8 @@ ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 --Relationships missing in the previous version but present in the new version, indicating improvements.
 --Relationships present in the previous version but absent in the new version, suggesting regressions or intentional changes (e.g., de-standardization or mapping adjustments).
 
---Do not treat such triples as fully-reciprocal ones, as Clinical Drug Forms may mostly have links to Clinical Drugs, while Clinical Drugs may have substantially more lacking links to forms
---NB! Marketed Products is the RxE class of entities and due to BuilderRxE imperfection it has no proper formal structure
+--Do not treat such triples as fully reciprocal ones, as Clinical Drug Forms may mostly have links to Clinical Drugs, while Clinical Drugs may have substantially more lacking links to forms
+--NB! Marketed Products is the RxE class of entities and, due to BuilderRxE imperfection, it has no proper formal structure
 WITH possible_relationships AS (
     SELECT * FROM (
         WITH t AS (

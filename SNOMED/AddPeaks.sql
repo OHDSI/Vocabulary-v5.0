@@ -108,7 +108,6 @@ BEGIN
 		('300232005',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20160322', 'YYYYMMDD'),	NULL), -- Oral cavity, dental and salivary finding
 		('364830008',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20160322', 'YYYYMMDD'),	NULL), -- Position of body and posture - finding
 		('248982007',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20160322', 'YYYYMMDD'),	NULL), -- Pregnancy, childbirth and puerperium finding
-		('128254003',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20160322', 'YYYYMMDD'),	NULL), -- Respiratory auscultation finding
 		('397773008',			'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20160322', 'YYYYMMDD'),	NULL), -- Surgical contraindication
 		('386053000',			'Measurement',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20150311', 'YYYYMMDD'),	NULL), -- evaluation procedure
 		('127789004',			'Measurement',	TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20150311', 'YYYYMMDD'),	NULL), -- laboratory procedure categorized by method
@@ -1177,6 +1176,29 @@ BEGIN
 		('365690003',  		'Measurement',  TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Presence of organism - finding
 		--history: on
 
+		-- 2025-04-24
+		('234167006',  		'Condition',    TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Situational syncope
+		--History: on
+		('128254003',		'Observation',  TO_DATE('20150119', 'YYYYMMDD'),	TO_DATE('20160322', 'YYYYMMDD'),	NULL), -- Respiratory auscultation finding
+		('128254003',  		'Condition',    TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Respiratory auscultation finding
+		--History: off
+
+		('408574004',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Imaging result abnormal
+		('168501001',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Radiology result abnormal
+		('391060008',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('391065003',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('391066002',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('391061007',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('391070005',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('391071009',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('440099005',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('440100002',  		'Condition',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL),
+		('281260000',  		'Observation',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Sample administration finding
+		('737294004',  		'Observation',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Transplant present
+		('737290008',  		'Observation',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Intestinal anastomosis present
+		('881221000124104', 'Observation',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Specimen condition finding
+
+
 		--Context-dependent
 		('395098000',			'Condition',	TO_DATE('20200518', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Disorder confirmed
 		('443938003',			'Observation',  TO_DATE('20220504', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure carried out on subject
@@ -1696,6 +1718,9 @@ BEGIN
 
 		('364324000',		'Measurement',  TO_DATE('20241013', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Measure of pregnancy
 
+		('252116004',		'Measurement',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Observation parameter
+		('364592005',		'Measurement',  TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Component of Apgar score
+
 		-- Physical Object
 		('303624006',  		'Device', 		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Musculoskeletal device
 		('303620002',  		'Device', 		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Urogenital device
@@ -1899,6 +1924,9 @@ BEGIN
 		('426945003',  			'Procedure', 	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Plain X-ray of bone
 		('169443000',  			'Procedure', 	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Preventive procedure
 		('223464006',  			'Observation', 	TO_DATE('20241023', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Procedure education
+	--2025-04-10
+		('104137002',  			'Procedure', 	TO_DATE('20250410', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Bone marrow processing to eliminate cells
+		('113040003',  			'Procedure', 	TO_DATE('20250410', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- T cell depletion of bone marrow for transplantation
 
 		--Qualifier Value
 		('260245000',			'Meas Value',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding Value
@@ -1956,6 +1984,9 @@ BEGIN
 
 		('420719007',			'Route',		TO_DATE('20230914', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Intraventricular route
 
+    -- 2025-05-14
+		('281296001',			'Meas Value',	TO_DATE('20250410', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Result comments
+
 		--Social context
 		--history:on
 		('223366009',			'Provider Specialty',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20190201', 'YYYYMMDD'),	NULL), -- Healthcare professional
@@ -1966,6 +1997,7 @@ BEGIN
 		('125677006',		'Relationship',	TO_DATE('20141218', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Relationship
 		('224620002',		'Observation', 	TO_DATE('20230925', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Human aid to communication
 		('1295407004',		'Observation', 	TO_DATE('20240510', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- ICD-10 glaucoma staging
+		('373929005',		'Observation', 	TO_DATE('20250424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Orphan
 
 		--Staging|Scales
 		('258257007',		'Meas Value',	TO_DATE('20240503', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), --Additional tumour staging descriptor

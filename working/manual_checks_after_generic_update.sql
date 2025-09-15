@@ -745,7 +745,6 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
 
 --03. Concepts have a replacement link, but miss the "Maps to" link
 -- This check controls that all replacement links are repeated with the 'Maps to' links that are used by ETL.
-
 SELECT DISTINCT c.vocabulary_id,
                 c.concept_class_id,
                 cr.concept_id_1,
@@ -765,15 +764,17 @@ WHERE c.vocabulary_id IN (:your_vocabs)
                         AND cr2.concept_id_1 = cr.concept_id_1)
     AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
     AND cr.invalid_reason is null
+    AND cc.standard_concept = 'S' -- exclude cases where replacement leads to non-standard concepts (no mapping is possible)
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
 
---04.
---In this check, we identify and compare relationships absent in the previous (dev_rxnorm) and new (dev_test10) versions of RxNorm concepts. The focus is on hierarchical and non-hierarchical links between concept classes.
---To prioritize and structure the review, results are grouped by concept_class_id, relationship_id, and c_class_2. Sorting is applied to facilitate separate analysis within logical groups.
---Depending on the logical group, vocabulary importance, and maturity level, the results may represent multiple scenarios, such as:
---Relationships missing in the previous version but present in the new version, indicating improvements.
---Relationships present in the previous version but absent in the new version, suggesting regressions or intentional changes (e.g., de-standardization or mapping adjustments).
+--04. Relationships between concept classes
+-- In this check, we identify and compare relationships absent in the previous (prodv5 by default) and new (current by default) versions of RxNorm/RxE concepts.
+-- The focus is on hierarchical and non-hierarchical links between concept classes.
+-- To prioritize and structure the review, results are grouped by concept_class_id, relationship_id, and c_class_2. Sorting is applied to facilitate separate analysis within logical groups.
+-- Depending on the logical group, vocabulary importance, and maturity level, the results may represent multiple scenarios, such as following:
+--- Relationships missing in the previous version but present in the new version, indicating improvements;
+--- Relationships present in the previous version but absent in the new version, suggesting regressions or intentional changes (e.g., de-standardization or mapping adjustments).
 
 --Do not treat such triples as fully reciprocal ones, as Clinical Drug Forms may mostly have links to Clinical Drugs, while Clinical Drugs may have substantially more lacking links to forms
 --NB! Marketed Products is the RxE class of entities and, due to BuilderRxE imperfection, it has no proper formal structure
@@ -962,10 +963,11 @@ SELECT
     total_class_volume,
     COALESCE(s1.concept_count, 0) AS count_in_prev,
     COALESCE(s2.concept_count, 0) AS count_in_dev_new,
-    ABS(COALESCE(s1.concept_count, 0) - COALESCE(s2.concept_count, 0)) AS delta_abs,
+    COALESCE(s2.concept_count, 0) - COALESCE(s1.concept_count, 0) AS delta_abs,
     CASE
         WHEN COALESCE(s2.concept_count, 0) > 0
-        THEN ROUND(((COALESCE(s1.concept_count, 0) - COALESCE(s2.concept_count, 0))::FLOAT / COALESCE(s1.concept_count, 0) * 100)::NUMERIC, 2)
+            AND COALESCE(s1.concept_count, 0) > 0
+        THEN ROUND(((COALESCE(s2.concept_count, 0) - COALESCE(s1.concept_count, 0))::FLOAT / COALESCE(s1.concept_count, 0) * 100)::NUMERIC, 2)
         ELSE NULL
     END AS delta_percent
 FROM absent_relationships_prev s1
@@ -973,166 +975,9 @@ FULL OUTER JOIN absent_relationships_dev_new s2
     ON s1.concept_class_id = s2.concept_class_id
     AND s1.relationship_id = s2.relationship_id
     AND s1.c_class_2 = s2.c_class_2
-JOIN  (SELECT concept_class_id,count(*) as total_class_volume from prodv5.concept where vocabulary_id IN ('RxNorm','RxNorm Extension') GROUP BY concept_class_id ) as t
+JOIN  (SELECT concept_class_id,count(*) as total_class_volume
+       from prodv5.concept
+       where vocabulary_id IN ('RxNorm','RxNorm Extension')
+       GROUP BY concept_class_id ) as t
 on t.concept_class_id=COALESCE(s1.concept_class_id, s2.concept_class_id)
 ORDER BY concept_class, missing_connections;
-
-
-/*--display number of new child-parent pairs compaired to prev release (exl. new codes)
-SELECT COUNT(*)
-FROM (SELECT ancestor_concept_id, descendant_concept_id
-      FROM dev_test10.concept_ancestor ca
-      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
-        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)
-      EXCEPT
-      SELECT ancestor_concept_id, descendant_concept_id
-      FROM prodv5.concept_ancestor ca
-      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
-        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)) as tab
-;
-
---display number of lost child-parent pairs
---should return nothing
-SELECT COUNT(*)
-FROM (SELECT ancestor_concept_id, descendant_concept_id
-      FROM prodv5.concept_ancestor ca
-      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
-        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)
-      EXCEPT
-      SELECT ancestor_concept_id, descendant_concept_id
-      FROM dev_test10.concept_ancestor ca
-      WHERE ca.ancestor_concept_id IN (SELECT concept_id FROM devv5.concept)
-        AND ca.descendant_concept_id IN (SELECT concept_id FROM devv5.concept)) as tab
-;
-
---check to describe the changes in positions due to intercalations in ancestor
-with new_pairs as (SELECT ca.*
-      FROM dev_test10.concept_ancestor ca
-      JOIN devv5.concept c
-      on ca.ancestor_concept_id=c.concept_id
-     JOIN devv5.concept cc
-      on ca.descendant_concept_id=cc.concept_id
-      EXCEPT
-    SELECT ca.*
-      FROM dev_rxnorm.concept_ancestor ca
-      JOIN devv5.concept c
-      on ca.ancestor_concept_id=c.concept_id
-     JOIN devv5.concept cc
-      on ca.descendant_concept_id=cc.concept_id),
-    old_pairs as (
-        SELECT ca.*
-      FROM dev_rxnorm.concept_ancestor ca
-      where (ca.ancestor_concept_id,ca.descendant_concept_id) IN (SELECT ancestor_concept_id,descendant_concept_id from new_pairs)
-    )
-,
-    delta_calc_tab as (
-SELECT n.*,(n.max_levels_of_separation-o.max_levels_of_separation) max_lev_delta_n_minus_o,
-       (n.min_levels_of_separation-o.min_levels_of_separation) min_lev_delta_n_minus_o
-from new_pairs n
-JOIN old_pairs o
-on (n.descendant_concept_id,n.ancestor_concept_id)=(o.descendant_concept_id,o.ancestor_concept_id))
-
-SELECT *
-from delta_calc_tab d
-JOIN concept c
-on c.concept_id=ancestor_concept_id
-JOIN concept cc
-on cc.concept_id=descendant_concept_id
-;
-
-CREATE TABLE anc_diff_between_rel AS
-with new_pairs as (SELECT ca.*
-      FROM devv5.concept_ancestor ca
-      JOIN prodv5.concept c
-      on ca.ancestor_concept_id=c.concept_id
-     JOIN prodv5.concept cc
-      on ca.descendant_concept_id=cc.concept_id
-      EXCEPT
-    SELECT ca.*
-      FROM prodv5.concept_ancestor ca
-      JOIN prodv5.concept c
-      on ca.ancestor_concept_id=c.concept_id
-     JOIN prodv5.concept cc
-      on ca.descendant_concept_id=cc.concept_id),
-    old_pairs as (
-        SELECT ca.*
-      FROM prodv5.concept_ancestor ca
-      where (ca.ancestor_concept_id,ca.descendant_concept_id) IN (SELECT ancestor_concept_id,descendant_concept_id from new_pairs)
-    )
-,
-    delta_calc_tab as (
-SELECT n.*,(n.max_levels_of_separation-o.max_levels_of_separation) max_lev_delta_n_minus_o,
-       (n.min_levels_of_separation-o.min_levels_of_separation) min_lev_delta_n_minus_o
-from new_pairs n
-JOIN old_pairs o
-on (n.descendant_concept_id,n.ancestor_concept_id)=(o.descendant_concept_id,o.ancestor_concept_id))
-
-SELECT max_lev_delta_n_minus_o,
-       min_lev_delta_n_minus_o,
-       max_levels_of_separation,
-       min_levels_of_separation,
-
-       c.concept_id as ancestor_id,
-       c.concept_name as anc_name,
-       c.domain_id as anc_domain,
-       c.vocabulary_id  as anc_voc,
-
-        cc.concept_id as descendant_id,
-       cc.concept_name as desc_name,
-       cc.domain_id as desc_domain,
-       cc.vocabulary_id  as desc_voc
-from delta_calc_tab d
-JOIN concept c
-on c.concept_id=ancestor_concept_id
-JOIN concept cc
-on cc.concept_id=descendant_concept_id
-;
-
-SELECT *
-from dev_rxnorm.concept_ancestor
-JOIN dev_rxnorm.concept
-on ancestor_concept_id=concept_id
-and descendant_concept_id=36967490
-EXCEPT
-SELECT *
-from dev_test10.concept_ancestor
-JOIN dev_test10.concept
-on ancestor_concept_id=concept_id
-and descendant_concept_id=36967490;
-
-
-
-SELECT *
-from dev_test10.concept_ancestor
-JOIN dev_test10.concept
-on ancestor_concept_id=concept_id
-and descendant_concept_id=36967490
-EXCEPT
-SELECT *
-from dev_rxnorm.concept_ancestor
-JOIN dev_rxnorm.concept
-on ancestor_concept_id=concept_id
-and descendant_concept_id=36967490
-;
-SELECT *
-from dev_rxnorm.concept_relationship
-JOIN dev_rxnorm.concept
-on concept_relationship.concept_id_1 = concept.concept_id
-and concept_id_2=36967490
-
-EXCEPT
-
-SELECT *
-from dev_test10.concept_relationship
-JOIN dev_test10.concept
-on concept_relationship.concept_id_1 = concept.concept_id
-and concept_id_2=36967490
-;
-
-
-SELECT *
-from dev_test10.concept_ancestor
-join dev_test10.concept
-on descendant_concept_id=concept_id
-WHERE ancestor_concept_id=40213246*/
-

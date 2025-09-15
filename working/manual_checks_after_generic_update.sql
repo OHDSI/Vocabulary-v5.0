@@ -185,7 +185,7 @@ JOIN concept_relationship r
            AND r.relationship_Id IN ('Maps to', 'Maps to value')
 JOIN concept b
     ON b.concept_id = r.concept_id_2
-LEFT JOIN prodv5.concept  c
+LEFT JOIN prodv5.concept c
     ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND c.concept_id IS NULL
@@ -296,9 +296,9 @@ WITH crm AS (
             b.concept_code AS target_concept_code,
             b.concept_name AS target_concept_name,
             b.vocabulary_id AS target_vocabulary_id
-        FROM  prodv5.concept a
-        LEFT JOIN  prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id  LIKE 'Maps to%' AND r.invalid_reason IS NULL
-        LEFT JOIN  prodv5.concept b ON b.concept_id = concept_id_2
+        FROM prodv5.concept a
+        LEFT JOIN prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id LIKE 'Maps to%' AND r.invalid_reason IS NULL
+        LEFT JOIN prodv5.concept b ON b.concept_id = concept_id_2
         WHERE a.vocabulary_id IN (:your_vocabs)
         --and a.invalid_reason IS NULL --to exclude invalid concepts
   ),
@@ -959,7 +959,7 @@ absent_relationships_dev_new AS (
 )
 SELECT
     COALESCE(s1.concept_class_id, s2.concept_class_id) AS concept_class,
-    COALESCE(s1.relationship_id, s2.relationship_id) || ' - ' || COALESCE(s1.c_class_2, s2.c_class_2) AS missing_connections,
+    COALESCE(s1.relationship_id, s2.relationship_id) || ' - ' || COALESCE(s1.c_class_2, s2.c_class_2) AS relationships,
     total_class_volume,
     COALESCE(s1.concept_count, 0) AS count_in_prev,
     COALESCE(s2.concept_count, 0) AS count_in_dev_new,
@@ -980,4 +980,4 @@ JOIN  (SELECT concept_class_id,count(*) as total_class_volume
        where vocabulary_id IN ('RxNorm','RxNorm Extension')
        GROUP BY concept_class_id ) as t
 on t.concept_class_id=COALESCE(s1.concept_class_id, s2.concept_class_id)
-ORDER BY concept_class, missing_connections;
+ORDER BY concept_class, relationships;

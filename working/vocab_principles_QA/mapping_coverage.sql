@@ -3,70 +3,100 @@
 
 with recent_release as(
 select case when c.vocabulary_id in ('AMIS', 'BDPM', 'CGI', 'DPD', 'EphMRA ATC', 'ETC', 'GCN_SEQNO', 'GPI', 'Indication', 'ISBT', 'ISBT Attribute',
-                                    'KNHIS', 'Korean Revenue Code', 'MMI', 'Multilex', 'Multum', 'NDFRT', 'NFC', 'OncoKB', 'OncoTree', 'OSM', 'OXMIS',
-                                    'PCORNet', 'SUS', 'SAP', 'Death Type', 'Device Type', 'Drug Type', 'Episode Type', 'Note Type', 'Observation Type',
-                                    'Obs Period Type', 'Procedure Type', 'Specimen Type', 'SMQ','Visit Type')
-    then 'Abandoned'
-    when c.vocabulary_id in ('CIEL', 'EDI', 'EORTC QLQ', 'HemOnc', 'ICDO3', 'JMDC', 'KCD7', 'KDC', 'SNOMED Veterinary', 'Nebraska Lexicon', 'NCIt', 'NAACCR')
-        then 'Steward'
-    when c.vocabulary_id in ('CPT4', 'HCPCS', 'SNOMED', 'MedDRA', 'ICD10CM', 'ICD9CM', 'ICD10', 'ICD10CN', 'ICD10GM',
-                            'CIM10', 'KCD7', 'Mesh', 'UK Biobank', 'ICD9Proc', 'VANDF', 'OMOP Invest Drug', 'Read', 'RxNorm',
-                             'RxNorm Extension', 'CVX', 'NDC', 'SPL', 'ATC', 'LOINC', 'ICD10PCS') then 'Roadmap'
-        else 'neglect' end as vocab_status,
-   -- c.vocabulary_id,
-    case when m.concept_category = 'M' then 'Metadata'
-        when m.concept_category = 'A' then 'Attribute'
-        when m.concept_category = 'J' then 'Junk'
-        when m.concept_category is null and c.standard_concept = 'C' then 'Source Classification'
-        else 'Mappable' end as category,
-    count(*) as count
+                                     'KNHIS', 'Korean Revenue Code', 'MMI', 'Multilex', 'Multum', 'NDFRT', 'NFC', 'OncoKB', 'OncoTree', 'OSM', 'OXMIS',
+                                     'PCORNet', 'SUS', 'SAP',  'SMQ','Visit Type', 'AMT', 'APC', 'CAP', 'CCAM', 'CTD',
+                                    -- those that were refreshed in the past 4 years but for which we need stewards
+                                     'CDT', 'DRG', 'Gemscript', 'GGR', 'GRR',  'ICD9ProcCN', 'JAX', 'MeSH', 'NCCD', 'NUCC', 'OPCS4', 'OPS', 'SOPT',
+                                     'UB04 Point of Origin', 'UB04 Pt dis status', 'UB04 Typ bill', 'VA Class'
+                                    )
+                then 'Abandoned'
+            when c.vocabulary_id in ('CIEL', 'EDI', 'EORTC QLQ', 'HemOnc', 'ICDO3', 'JMDC', 'KCD7', 'KDC', 'SNOMED Veterinary', 'Nebraska Lexicon',
+                                     'NCIt', 'NAACCR', 'PPI', 'Cancer Modifier', 'CDISC', 'CIViC', 'ClinVar', 'CO-CONNECT', 'CO-CONNECT MIABIS',
+                                    'CO-CONNECT TWINS','COSMIC', 'DA_France', 'dm+d', 'LPD_Australia', 'LPD_Belgium', 'OMOP Genomic', 'PPI'
+                                    )
+                then 'Steward'
+            when c.vocabulary_id in ('CPT4', 'HCPCS', 'SNOMED', 'MedDRA', 'ICD10CM', 'ICD9CM', 'ICD10', 'ICD10CN', 'ICD10GM',
+                                     'CIM10', 'KCD7', 'Mesh', 'UK Biobank', 'ICD9Proc', 'VANDF', 'OMOP Invest Drug', 'Read', 'RxNorm',
+                                     'RxNorm Extension', 'CVX', 'NDC', 'SPL', 'ATC', 'LOINC', 'ICD10PCS', 'Gender', 'Race', 'UCUM',
+                                     'CMS Place of Service', 'Medicare Specialty', 'HES Specialty'
+                                    ) then 'Roadmap'
+            else 'neglect' end as vocab_status,
+    --c.vocabulary_id,
+       case when m.concept_category = 'M' then 'Metadata'
+            when m.concept_category = 'A' then 'Attribute'
+            when m.concept_category = 'J' then 'Junk'
+            else 'Mappable' end as category
+     ,  count(*) as count
 from prodv5.concept c
-left join prodv5.concept_metadata m using (concept_id)
-where (c.standard_concept is null or c.standard_concept = 'C')
-and not exists (select 1
-                from prodv5.concept_relationship cr
-                where cr.relationship_id = 'Maps to'
-                and cr.concept_id_1 = c.concept_id
-                and cr.invalid_reason is null)
+         left join prodv5.concept_metadata m using (concept_id)
+where (c.standard_concept is null and c.invalid_reason is null)
+  and not exists (select 1
+                  from prodv5.concept_relationship cr
+                  where cr.relationship_id = 'Maps to'
+                    and cr.concept_id_1 = c.concept_id
+                    and cr.invalid_reason is null)
+  and vocabulary_id not in ('Metadata', 'Concept Class', 'Condition Type', 'Cost Type', 'Death Type',
+                           'Device Type', 'Domain', 'Episode Type','Episode', 'Meas Type', 'None',
+                           'Observation Type', 'Procedure Type', 'Relationship', 'Visit Type',
+                           'Vocabulary', 'Supplier', 'Drug Type', 'Death Type', 'Device Type', 'Episode Type', 'Note Type', 'Observation Type',
+                           'Obs Period Type', 'Procedure Type', 'Specimen Type'
+    ) -- supporting vocabs
+
 group by vocab_status,-- c.vocabulary_id,
          category
 order by 1,2,3),
 
     previous_release as (
 select case when c.vocabulary_id in ('AMIS', 'BDPM', 'CGI', 'DPD', 'EphMRA ATC', 'ETC', 'GCN_SEQNO', 'GPI', 'Indication', 'ISBT', 'ISBT Attribute',
-                                    'KNHIS', 'Korean Revenue Code', 'MMI', 'Multilex', 'Multum', 'NDFRT', 'NFC', 'OncoKB', 'OncoTree', 'OSM', 'OXMIS',
-                                    'PCORNet', 'SUS','SAP', 'Death Type', 'Device Type', 'Drug Type', 'Episode Type', 'Note Type', 'Observation Type',
-                                    'Obs Period Type', 'Procedure Type', 'Specimen Type', 'SMQ','Visit Type')
-    then 'Abandoned'
-    when c.vocabulary_id in ('CIEL', 'EDI', 'EORTC QLQ', 'HemOnc', 'ICDO3', 'JMDC', 'KCD7', 'KDC', 'SNOMED Veterinary', 'Nebraska Lexicon', 'NCIt', 'NAACCR')
-        then 'Steward'
-    when c.vocabulary_id in ('CPT4', 'HCPCS', 'SNOMED', 'MedDRA', 'ICD10CM', 'ICD9CM', 'ICD10', 'ICD10CN', 'ICD10GM',
-                            'CIM10', 'KCD7', 'Mesh', 'UK Biobank', 'ICD9Proc', 'VANDF', 'OMOP Invest Drug', 'Read', 'RxNorm',
-                             'RxNorm Extension', 'CVX', 'NDC', 'SPL', 'ATC', 'LOINC', 'ICD10PCS') then 'Roadmap'
-        else 'neglect' end as vocab_status,
+                                     'KNHIS', 'Korean Revenue Code', 'MMI', 'Multilex', 'Multum', 'NDFRT', 'NFC', 'OncoKB', 'OncoTree', 'OSM', 'OXMIS',
+                                     'PCORNet', 'SUS', 'SAP',  'SMQ','Visit Type', 'AMT', 'APC', 'CAP', 'CCAM', 'CTD',
+                                    -- those that were refreshed in the past 4 years but for which we need stewards
+                                     'CDT', 'DRG', 'Gemscript', 'GGR', 'GRR',  'ICD9ProcCN', 'JAX', 'MeSH', 'NCCD', 'NUCC', 'OPCS4', 'OPS', 'SOPT',
+                                     'UB04 Point of Origin', 'UB04 Pt dis status', 'UB04 Typ bill', 'VA Class'
+                                    )
+                then 'Abandoned'
+            when c.vocabulary_id in ('CIEL', 'EDI', 'EORTC QLQ', 'HemOnc', 'ICDO3', 'JMDC', 'KCD7', 'KDC', 'SNOMED Veterinary', 'Nebraska Lexicon',
+                                     'NCIt', 'NAACCR', 'PPI', 'Cancer Modifier', 'CDISC', 'CIViC', 'ClinVar', 'CO-CONNECT', 'CO-CONNECT MIABIS',
+                                    'CO-CONNECT TWINS','COSMIC', 'DA_France', 'dm+d', 'LPD_Australia', 'LPD_Belgium', 'OMOP Genomic', 'PPI'
+                                    )
+                then 'Steward'
+            when c.vocabulary_id in ('CPT4', 'HCPCS', 'SNOMED', 'MedDRA', 'ICD10CM', 'ICD9CM', 'ICD10', 'ICD10CN', 'ICD10GM',
+                                     'CIM10', 'KCD7', 'Mesh', 'UK Biobank', 'ICD9Proc', 'VANDF', 'OMOP Invest Drug', 'Read', 'RxNorm',
+                                     'RxNorm Extension', 'CVX', 'NDC', 'SPL', 'ATC', 'LOINC', 'ICD10PCS', 'Gender', 'Race', 'UCUM',
+                                     'CMS Place of Service', 'Medicare Specialty', 'HES Specialty'
+                                    ) then 'Roadmap'
+            else 'neglect' end as vocab_status,
     --c.vocabulary_id,
-    case when m.concept_category = 'M' then 'Metadata'
-        when m.concept_category = 'A' then 'Attribute'
-        when m.concept_category = 'J' then 'Junk'
-        when m.concept_category is null and c.standard_concept = 'C' then 'Source Classification'
-        else 'Mappable' end as category,
-    count(*) as count
+       case when m.concept_category = 'M' then 'Metadata'
+            when m.concept_category = 'A' then 'Attribute'
+            when m.concept_category = 'J' then 'Junk'
+            else 'Mappable' end as category
+     ,  count(*) as count
 from dev_qaathena.concept c
-left join dev_qaathena.concept_metadata m using (concept_id)
-where (c.standard_concept is null or c.standard_concept = 'C')
-and not exists (select 1
-                from dev_qaathena.concept_relationship cr
-                where cr.relationship_id = 'Maps to'
-                and cr.concept_id_1 = c.concept_id
-                and cr.invalid_reason is null)
---and c.vocabulary_id not in ()
-group by vocab_status, --c.vocabulary_id,
+         left join dev_qaathena.concept_metadata m using (concept_id)
+where (c.standard_concept is null and c.invalid_reason is null)
+  and not exists (select 1
+                  from dev_qaathena.concept_relationship cr
+                  where cr.relationship_id = 'Maps to'
+                    and cr.concept_id_1 = c.concept_id
+                    and cr.invalid_reason is null)
+  and vocabulary_id not in ('Metadata', 'Concept Class', 'Condition Type', 'Cost Type', 'Death Type',
+                           'Device Type', 'Domain', 'Episode Type','Episode', 'Meas Type', 'None',
+                           'Observation Type', 'Procedure Type', 'Relationship', 'Visit Type',
+                           'Vocabulary', 'Supplier', 'Drug Type', 'Death Type', 'Device Type', 'Episode Type', 'Note Type', 'Observation Type',
+                           'Obs Period Type', 'Procedure Type', 'Specimen Type'
+    ) -- supporting vocabs
+group by vocab_status,-- c.vocabulary_id,
          category
 order by 1,2,3
     )
 
-select a.vocab_status/*, a.vocabulary_id*/, a.category,
-       f.count as previous_cnt, a.count as recent_cnt
+select a.vocab_status,
+       --a.vocabulary_id,
+       a.category,
+       f.count as previous_cnt,
+       a.count as recent_cnt,
+       a.count - f.count as delta
        from recent_release a
 join previous_release f using (vocab_status/*, vocabulary_id*/, category);
 

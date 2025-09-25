@@ -1,5 +1,5 @@
---- This group of checks allows to compare numbers of concepts with fully homonymic concept names
---- These checks are case insensitive to ensure better sensitivity, but it causes lower specificity in some cases (e.g., blood phenotype determination)
+--- This group of checks allows comparing numbers of concepts with fully homonymic concept names
+--- These checks are case-insensitive to ensure better sensitivity, but it causes lower specificity in some cases (e.g., blood phenotype determination)
 
 --1. Analysis of duplicates within one domain
 --- 1.1 Summary of intra-domain duplicates

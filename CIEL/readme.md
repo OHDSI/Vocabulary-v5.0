@@ -1,16 +1,38 @@
-Update of CIEL
+# CIEL Vocabulary
+Data dictionary avaliable here __
 
-CIEL vocabulary source files can be requested from Andrew Kanter (IMO). 
-These source files come already with mapping that is translated to OMOP relationships in the process of "load stage".
 
-The files had to be post-processed for a couple of small formatting issues (e.g. extra TAB characters)
-The processed csv files can be found here:
-https://drive.google.com/drive/folders/15omdYTgmftnUm0TA3D498yE8aSWw-SG3?usp=sharing
-
-Prerequisites:
+## Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 - RxNorm, ICD10 (WHO), NDFRT, UCUM, LOINC and SNOMED must be loaded first.
-- Working directory CIEL.
+- Schema SOURCES
+
+## Source loading
+
+1. Go to folder **_source_load_**
+1. Run script _create_source_tables.sql_
+2. Run script _additional_functions.sql_ for **API** and **JSON** work
+3. Run scripts _load_ciel_concepts.sql_ **and** _load_ciel_mappings.sql_ **and** _load_ciel_source_versions.sql_ **and**  _get_ciel_concept_retired_version.sql_
+4. Run script _load_ciel_all.sql_
+
+### To load source us one of the following:
+
+**Full load of latest version**
+>SELECT * FROM sources.load_ciel_all \
+>  ( \
+>  p_token          := 'YOUR_TOKEN', \
+>  p_source_version := NULL, \
+>  p_clear          := true  \
+> );
+
+**Fixed version of CIEL _(now CIEL provides only 10000 concepts via this approach, can be used when they fix on their side)_**
+> SELECT * FROM sources.load_ciel_all( \
+> p_token          := 'YOUR_TOKEN', \
+> p_source_version := 'v2025-10-19', \
+> p_clear          := true \
+> );
+
+## IN DEVELOPMENT
 
 1. Run create_source_tables.sql
 2. Import source files into source tables

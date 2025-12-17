@@ -71,8 +71,7 @@ BEGIN
           JOIN concept c2 ON c2.concept_id = cr.concept_id_2
           JOIN vocabulary v1 ON v1.vocabulary_id = c1.vocabulary_id
           JOIN vocabulary v2 ON v2.vocabulary_id = c2.vocabulary_id
-         WHERE r.is_hierarchical = 1
-               AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
+         WHERE COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
                AND r.defines_ancestry = 1
                AND c2.standard_concept IS NOT NULL
                AND cr.invalid_reason IS NULL
@@ -89,8 +88,7 @@ BEGIN
           JOIN concept_relationship_stage crs ON crs.relationship_id = r.relationship_id
           JOIN concept c1 ON c1.concept_code = crs.concept_code_1 AND crs.vocabulary_id_1 = c1.vocabulary_id
           JOIN concept c2 ON c2.concept_code = crs.concept_code_2 AND crs.vocabulary_id_2 = c2.vocabulary_id
-         WHERE r.is_hierarchical = 1
-               AND r.defines_ancestry = 1
+         WHERE r.defines_ancestry = 1
                AND c2.standard_concept IS NOT NULL
                AND crs.invalid_reason IS NULL;
 
@@ -171,7 +169,7 @@ BEGIN
         JOIN relationship r
              ON r.relationship_id = cr.relationship_id   -- Join with relationship metadata
              AND r.defines_ancestry = 1                  -- Must define ancestry
-             AND r.is_hierarchical = 1                   -- Must be hierarchical relationships
+             --AND r.is_hierarchical = 1                   -- Must be hierarchical relationships
                                                          -- Group by flag, parent class ID, relationship ID, child class ID
         UNION ALL
         --staged inputs
@@ -193,7 +191,7 @@ BEGIN
         JOIN relationship r
              ON r.relationship_id = cr.relationship_id   -- Join with relationship metadata
              AND r.defines_ancestry = 1                  -- Must define ancestry
-             AND r.is_hierarchical = 1 
+             --AND r.is_hierarchical = 1 
     )
     -- Step 2: Perform the main SELECT query for the controlled Rx/RxE Hierarchy
     SELECT DISTINCT
@@ -212,7 +210,7 @@ BEGIN
     JOIN relationship r
          ON r.relationship_id = cr.relationship_id               -- Join with relationship metadata
          AND r.defines_ancestry = 1                              -- Must define ancestry
-         AND r.is_hierarchical = 1                               -- Must be hierarchical relationships
+         --AND r.is_hierarchical = 1                               -- Must be hierarchical relationships
     WHERE
         NOT EXISTS (                                             -- Exclude concepts already in the "Correct Rx Hierarchy"
             SELECT 1

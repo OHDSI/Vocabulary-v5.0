@@ -1,19 +1,53 @@
-Update of CIEL
+## CIEL Refresh Runbook
 
-CIEL vocabulary source files can be requested from Andrew Kanter (IMO). 
-These source files come already with mapping that is translated to OMOP relationships in the process of "load stage".
+This readme describes the end-to-end OMOP CIEL refresh.
 
-The files had to be post-processed for a couple of small formatting issues (e.g. extra TAB characters)
-The processed csv files can be found here:
-https://drive.google.com/drive/folders/15omdYTgmftnUm0TA3D498yE8aSWw-SG3?usp=sharing
+### Environment prerequisites
 
-Prerequisites:
-- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
-- RxNorm, ICD10 (WHO), NDFRT, UCUM, LOINC and SNOMED must be loaded first.
-- Working directory CIEL.
+- A development vocabulary schema (e.g. `devv5`) with:
+  - Fresh copies of `concept`, `concept_relationship`, `concept_synonym` and `concept_ancestor` from production.
+  - All standard indexes and constraints in place.
+- CIEL source data loaded into the `sources` schema:
+  - `sources.ciel_source_versions`
+  - `sources.ciel_concepts`
+  - `sources.ciel_concept_names`
+  - `sources.ciel_concept_retired_history`
+  - `sources.ciel_mappings`
+- Manual override table:
+  - refreshed `concept_relationship_manual`called `concept_relationship_manual_updated`
+- Vocabulary utilities and QA functions available:
+  - `vocabulary_pack.*`
+  - `qa_tests.Check_Stage_Tables()`
+  - `qa_tests.get_checks();`
+  - `qa_tests.get_summary();`
 
-1. Run create_source_tables.sql
-2. Import source files into source tables
-   (in DevV5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('CIEL',TO_DATE('20210312','YYYYMMDD'),'OpenMRS 2.11.0 20210312');
-3. Run load_stage.sql
-4. Run generic_update: devv5.GenericUpdate();
+A typical CIEL refresh run looks as follows:
+
+1. **Reset dev schema**  
+   Run:
+   ```sql
+   SELECT devv5.FastRecreateSchema(
+     include_concept_ancestor => TRUE,
+     include_deprecated_rels  => TRUE,
+     include_synonyms         => TRUE
+   );
+
+2. **Prepare CIEL mapping input**
+- Load or refresh CIEL source tables under sources.
+3. **Run maps_for_load_stage.sql** to populate the ranked mapping table maps_for_load_stage in the dev shema.
+4. Load concept_relationship_manual_updated into the dev schema and **run crm_changes.sql** to refresh manual mapping overrides.
+5. **Run load_stage.sql**
+- Rebuild concept_stage, concept_synonym_stage, and concept_relationship_stage for CIEL based on:
+  - the latest CIEL snapshot in sources.
+  - the prioritized mappings in maps_for_load_stage
+  - manual overrides.
+6. **Run staging QA scripts**
+- `SELECT * FROM qa_tests.Check_Stage_Tables();`
+- `load_stage_qa.sql`     
+7. **Run generic update**
+- `SELECT devv5.genericupdate();` This moves staged CIEL content into the main concept and concept_relationship tables in your dev schema.
+8. **Run after_generic_qa.sql**
+- Address any blocking issues before promoting dev to production.
+9. **Promote to production**
+  
+After all the vocabulary is refreshed.

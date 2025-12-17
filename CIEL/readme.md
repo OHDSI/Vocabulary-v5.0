@@ -2,6 +2,32 @@
 
 This readme describes the end-to-end OMOP CIEL refresh.
 
+## Source loading
+Source Data dictionary avaliable here [neet to add link to GD]
+
+1. Go to folder **_source_load_**
+1. Run script _create_source_tables.sql_
+2. Run script _additional_functions.sql_ for **API** and **JSON** work
+3. Run scripts _load_ciel_concepts.sql_ **and** _load_ciel_mappings.sql_ **and** _load_ciel_source_versions.sql_ **and**  _get_ciel_concept_retired_version.sql_
+4. Run script _load_ciel_all.sql_
+
+### To load source us one of the following:
+
+**Full load of latest version**
+>SELECT * FROM sources.load_ciel_all \
+>  ( \
+>  p_token          := 'YOUR_TOKEN', \
+>  p_source_version := NULL, \
+>  p_clear          := true  \
+> );
+
+**Fixed version of CIEL _(now CIEL provides only 10000 concepts via this approach, can be used when they fix on their side)_**
+> SELECT * FROM sources.load_ciel_all( \
+> p_token          := 'YOUR_TOKEN', \
+> p_source_version := 'v2025-10-19', \
+> p_clear          := true \
+> );
+
 ### Environment prerequisites
 
 - A development vocabulary schema (e.g. `devv5`) with:

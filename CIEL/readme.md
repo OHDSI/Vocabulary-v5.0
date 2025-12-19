@@ -46,9 +46,7 @@ SELECT * FROM sources.load_ciel_all(
   - refreshed `concept_relationship_manual`called `concept_relationship_manual_updated`
 - Vocabulary utilities and QA functions available:
   - `vocabulary_pack.*`
-  - `qa_tests.Check_Stage_Tables()`
-  - `qa_tests.get_checks();`
-  - `qa_tests.get_summary();`
+  - `qa_tests.*`
 
 ### Action sequence
 
@@ -71,13 +69,26 @@ SELECT * FROM sources.load_ciel_all(
   - the prioritized mappings in maps_for_load_stage
   - manual overrides.
 6. **Run staging QA scripts**
-- `SELECT * FROM qa_tests.Check_Stage_Tables();` 
+```sql
+SELECT * FROM qa_tests.Check_Stage_Tables();
+```
 7. **Run generic update**
-- `SELECT devv5.genericupdate();` This moves staged CIEL content into the main concept and concept_relationship tables in your dev schema.
-8. **Prform QA after generic run**
-- `SELECT qa_tests.get_checks();`
-- `SELECT * FROM qa_tests.Get_Summary ('concept','devv5');`
-- `SELECT * FROM qa_tests.Get_Summary ('concept_relationship','devv5');`
+```sql
+SELECT devv5.genericupdate();
+```
+This moves staged CIEL content into the main concept and concept_relationship tables in your dev schema.
+
+8. **Perform QA after generic run**
+```sql
+SELECT qa_tests.get_checks();
+SELECT * FROM qa_tests.get_summary ('concept','devv5');
+SELECT * FROM qa_tests.get_summary ('concept_relationship','devv5');
+SELECT * FROM qa_tests.get_domain_changes();
+SELECT * FROM qa_tests.get_newly_concepts(); 
+SELECT * FROM  qa_tests.get_standard_concept_changes();
+SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+SELECT * FROM  qa_tests.get_changes_concept_mapping();
+```
 - Address any blocking issues before promoting dev to production.
 9. **Run metadata.sql**
 10. **Promote to production**

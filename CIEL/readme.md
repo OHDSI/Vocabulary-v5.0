@@ -3,14 +3,14 @@
 This readme describes the end-to-end OMOP CIEL refresh.
 
 ## Source loading
-Source Data dictionary avaliable here [neet to add link to GD]
+Source Data dictionary avaliable here: [link](https://docs.google.com/spreadsheets/d/1SEPF6SWBtQT5RCjy5UdnBTB_5HdqD-GY/edit?usp=drive_link&ouid=113306385753414474534&rtpof=true&sd=true)
 
-1. Go to folder **_source_load_**
-1. Run script _`create_source_tables.sql`_
-2. Run script _`additional_functions.sql`_ for **API** and **JSON** work
-3. Run scripts _`load_ciel_concepts.sql`_ **and** _`load_ciel_mappings.sql`_ \
-**and** _`load_ciel_source_versions.sql`_ **and**  _`get_ciel_concept_retired_version.sql`_
-4. Run script _`load_ciel_all.sql`_
+1. Go to folder **source_load**
+1. Run script `create_source_tables.sql`
+2. Run script `additional_functions.sql` for **API** and **JSON** work
+3. Run scripts `load_ciel_concepts.sql` **and** `load_ciel_mappings.sql`\
+**and** `load_ciel_source_versions.sql` **and**  `get_ciel_concept_retired_version.sql`
+4. Run script `load_ciel_all.sql`
 
 ### To load source us one of the following:
 
@@ -50,7 +50,7 @@ SELECT * FROM sources.load_ciel_all(
   - `qa_tests.get_checks();`
   - `qa_tests.get_summary();`
 
-A typical CIEL refresh run looks as follows:
+### Action sequence
 
 1. **Reset dev schema**  
    Run:
@@ -61,7 +61,6 @@ A typical CIEL refresh run looks as follows:
      include_synonyms         => TRUE
    );
    ```
-
 2. **Prepare CIEL mapping input**
 - Load or refresh CIEL source tables under sources.
 3. **Run maps_for_load_stage.sql** to populate the ranked mapping table maps_for_load_stage in the dev shema.
@@ -72,12 +71,17 @@ A typical CIEL refresh run looks as follows:
   - the prioritized mappings in maps_for_load_stage
   - manual overrides.
 6. **Run staging QA scripts**
-- `SELECT * FROM qa_tests.Check_Stage_Tables();`
-- `load_stage_qa.sql`     
+- `SELECT * FROM qa_tests.Check_Stage_Tables();` 
 7. **Run generic update**
 - `SELECT devv5.genericupdate();` This moves staged CIEL content into the main concept and concept_relationship tables in your dev schema.
-8. **Run after_generic_qa.sql**
+8. **Prform QA after generic run**
+- `SELECT qa_tests.get_checks();`
+- `SELECT * FROM qa_tests.Get_Summary ('concept','devv5');`
+- `SELECT * FROM qa_tests.Get_Summary ('concept_relationship','devv5');`
 - Address any blocking issues before promoting dev to production.
-9. **Promote to production**
+9. **Run metadata.sql**
+10. **Promote to production**
   
 After all the vocabulary is refreshed.
+
+> You can read more about the CIEL refresh logic here: [link](https://docs.google.com/document/d/1f2D-YDlSYS0OG6qTuqdcaSPnra1tjNBVrgmat2-MN1k/edit?usp=drive_link).

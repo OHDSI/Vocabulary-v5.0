@@ -1,3 +1,4 @@
+--- Total script execution time: 1m 43s
 /* ===========================================================
    PREPARE CIEL SOURCE MAPPING LOOKUP FOR THE LOAD STAGE
    =========================================================== */
@@ -356,7 +357,6 @@ many_same_as_first_value_others AS (
   FROM snomed_candidates s
   WHERE s.rn = 1
 )
-
 SELECT * FROM one_same_as
 UNION ALL
 SELECT * FROM many_same_as_combo_drugs
@@ -423,7 +423,6 @@ bad_composite_codes AS (
         '127253','127274','136617','131951'
     ]) AS source_code
 ),
-
 -- Hard-coded exclusions for vaccination procedures (to preserve maps to drugs only)
 vaccine_procedure_codes AS (
     SELECT unnest(ARRAY[
@@ -805,12 +804,34 @@ many_broader_labs AS (
       AND n.source_class = 'Test'
       AND NOT EXISTS (SELECT 1 FROM one_broader x WHERE x.source_code = n.source_code)
       AND NOT EXISTS (SELECT 1 FROM many_broader_radiology x WHERE x.source_code = n.source_code)
+),
+/* ===========================================================
+   3.04: one BROADER-THAN LOINC Test
+   =========================================================== */
+one_broader_labs AS (
+    SELECT
+        n.*,
+        'Maps to' AS relationship_id,
+        1 AS rank_num,
+        '3.04: one BROADER-THAN LOINC Test' AS rule_applied
+    FROM  ciel_mapping_lookup n
+    WHERE n.target_vocabulary_id = 'LOINC'
+      AND n.source_class = 'Test'
+      AND n.map_type = 'BROADER-THAN'
+      AND EXISTS (SELECT 1 FROM ciel_mapping_lookup x WHERE x.source_code = n.source_code AND x.map_type = 'NARROWER-THAN' AND x.target_vocabulary_id = 'SNOMED')
+     AND source_code IN (SELECT source_code FROM ciel_mapping_lookup GROUP BY source_code HAVING COUNT(1)= 2)
+     AND NOT EXISTS (SELECT 1 FROM one_broader x WHERE x.source_code = n.source_code)
+     AND NOT EXISTS (SELECT 1 FROM many_broader_radiology x WHERE x.source_code = n.source_code)
+     AND NOT EXISTS (SELECT 1 FROM many_broader_labs x WHERE x.source_code = n.source_code)
 )
 SELECT * FROM one_broader
 UNION ALL
 SELECT * FROM many_broader_radiology
 UNION ALL
-SELECT * FROM many_broader_labs;
+SELECT * FROM many_broader_labs
+UNION ALL
+SELECT * FROM one_broader_labs
+;
 /* ===========================================================
    Add missing ingredients for combo drugs
    =========================================================== */
@@ -907,7 +928,7 @@ DROP TABLE IF EXISTS ciel_rank_2_same_as;
 CREATE TABLE ciel_rank_2_same_as AS
 WITH
 /* ===========================================================
-   0. Base: unmapped CIEL rows (no rank-1 mappings)
+   Base: unmapped CIEL rows (no rank-1 mappings)
    =========================================================== */
 unmapped AS (
     SELECT *
@@ -917,7 +938,7 @@ unmapped AS (
       AND source_code NOT IN (SELECT source_code FROM ciel_rank_1_broader_than)
 ),
 /* ===========================================================
-   1. Non-standard SAME-AS rows only
+   Non-standard SAME-AS rows only
    =========================================================== */
 nonstd_sameas AS (
     SELECT *
@@ -933,7 +954,7 @@ sameas_counts AS (
     GROUP BY source_code
 ),
 /* ===========================================================
-   2. Crosswalk via concept_relationship to Standard concepts
+   Crosswalk via concept_relationship to Standard concepts
    =========================================================== */
 crosswalk_base AS (
     SELECT
@@ -1092,7 +1113,7 @@ many_non_s_same_as_other AS (
         b.target_invalid_reason,
         b.relationship_id,
         2 AS rank_num,
-        '5.05: many non-Standard SAME-AS Other classes to Standard (OMOP crosswalk)' AS rule_applied
+        '5.05: many non-Standard SAME-AS Other classes → Standard (OMOP crosswalk)' AS rule_applied
     FROM base_multi b
     WHERE b.source_class NOT IN ('Diagnosis','Drug','Finding','Symptom/Finding')
       AND b.relationship_id IN ('Maps to','Maps to value')
@@ -1297,6 +1318,7 @@ many_non_s_narrower_drug_regimen AS (
 ),
 /* ===========================================================
    6.05: many non-Standard NARROWER-THAN Others to Standard
+   - everything else, excluding specific bad case
    =========================================================== */
 many_non_s_narrower_others AS (
     SELECT DISTINCT
@@ -1536,7 +1558,6 @@ problematic_standard AS (
 SELECT * FROM no_standard
 UNION ALL
 SELECT * FROM problematic_standard; -- 1160
-
 /* ===========================================================
    2.15: Missing SNOMED Regimens
    =========================================================== */
@@ -1677,11 +1698,16 @@ USING to_delete d
 WHERE m.source_code = d.source_code
   AND m.target_concept_id = d.target_concept_id; -- 263
   
--- Remove wrong automated non-S-to-S OMOP crosswalk for 5FU / Leucovorin
+-- Remove wrong automated non-S-to-S OMOP crosswalks
 DELETE
 FROM maps_for_load_stage
-WHERE source_code IN ('163068','163063')
+WHERE source_code IN ('163068','163063') -- 5FU / Leucovorin
 AND   target_concept_id IN (37498183);
+
+DELETE
+FROM maps_for_load_stage
+WHERE source_code IN ('167458','162201')
+AND   target_concept_id IN (19011093); -- 2 (tenofovir vs tenofovir disoproxil)
 
 --- Remove wrong ingredients which came from automated non-S-to-S OMOP crosswalks
 -- for multi-ingredient Drug concepts where the number of mapped ingredients
@@ -1738,6 +1764,11 @@ DELETE FROM maps_for_load_stage m
 USING candidates c
 WHERE m.source_code = c.source_code
 AND m.target_concept_id = c.target_concept_id; --27
+
+-- Remove mappings for selected codes that have better manual mappings OR are on hold until the OHDSI Standardized Vocabularies are refreshed with the new SNOMED/RxNorm target concepts for them.
+DELETE
+FROM maps_for_load_stage
+WHERE source_code IN ('78629','104528','166655','140730','11080','112044','159933','145185','144441'); -- 13
 
 -- Clean up - remove all interim tables
 DROP TABLE ciel_mapping_lookup;

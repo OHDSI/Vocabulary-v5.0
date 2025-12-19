@@ -16,6 +16,8 @@
 * Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz, Polina Talapova
 * Date: 2020, 2021, 2025
 **************************************************************************/
+-- Total script execution time: 3m 31s
+
 --1. Update latest_update field to new date 
 DO $_$
 DECLARE
@@ -24,13 +26,13 @@ BEGIN
     -- Get the latest CIEL version date from strings like 'v2025-11-20'
     SELECT MAX(
              to_date(
-               regexp_replace(btrim(version), '^[vV]', ''),  -- drop leading v/V if present
+               regexp_replace(btrim(version), '^[vV]', ''), -- drop leading v/V if present
                'YYYY-MM-DD'
              )
            )
     INTO v_date
     FROM sources.ciel_source_versions
-    WHERE NULLIF(btrim(version), '') ~* '^v?\d{4}-\d{2}-\d{2}$';  -- only versions that look like vYYYY-MM-DD / YYYY-MM-DD
+    WHERE NULLIF(btrim(version), '') ~* '^v?\d{4}-\d{2}-\d{2}$'; -- only versions that look like vYYYY-MM-DD / YYYY-MM-DD
 
     IF v_date IS NULL THEN
         RAISE EXCEPTION
@@ -76,7 +78,7 @@ WITH base AS (
         AND n.name_type  = 'FULLY_SPECIFIED'
     )
 ),
--- duplicate-name awareness: does a normalized name have an active (non-retired) twin?
+-- duplicate-name awareness
 name_flags AS (
   SELECT
     b.norm_name,
@@ -186,8 +188,8 @@ final_ranked AS (
     ROW_NUMBER() OVER (
       PARTITION BY concept_code
       ORDER BY
-        (invalid_reason IS NULL) DESC,        -- prefer active
-        (invalid_reason = 'U') DESC,          -- then 'U'
+        (invalid_reason IS NULL) DESC, -- prefer active
+        (invalid_reason = 'U') DESC, -- then 'U'
         CASE WHEN start_pre >= end_val THEN created_on_date ELSE start_pre END ASC,
         end_val DESC
     ) AS rn
@@ -219,7 +221,7 @@ concept_name,
 	valid_end_date,
 	invalid_reason
 	)
-WITH max_ver AS (  -- latest known CIEL snapshot date
+WITH max_ver AS ( -- latest known CIEL snapshot date
   SELECT MAX(
            CASE
              WHEN NULLIF(btrim(version),'') ~* '^v?\d{4}-\d{2}-\d{2}$'
@@ -235,11 +237,11 @@ missing AS (  -- OMOP CIEL concepts missing in source OR not present in manual
   WHERE c.vocabulary_id = 'CIEL'
     AND (
           NOT EXISTS (SELECT 1 FROM sources.ciel_concepts s WHERE s.id::varchar = c.concept_code)
-       OR NOT EXISTS (SELECT 1 FROM ciel_concept_manual  m WHERE m.concept_code   = c.concept_code)
+       OR NOT EXISTS (SELECT 1 FROM ciel_concept_manual  m WHERE m.concept_code = c.concept_code)
         )
 )
 SELECT DISTINCT ON (c.concept_code)
-  c.concept_name AS concept_name,   -- prefer source name if available (but ES language violate OMOP rules)
+  c.concept_name AS concept_name, -- prefer source name if available (but ES language violate OMOP rules)
   c.domain_id,
   c.vocabulary_id,
   c.concept_class_id,
@@ -264,14 +266,14 @@ LEFT JOIN LATERAL (
       ch.retired_since_on::date
     ) AS end_date
   FROM sources.ciel_concept_retired_history ch
-  WHERE ch.concept_id = k.id::text      -- ties to the source row; yields NULL if k is NULL
+  WHERE ch.concept_id = k.id::text -- ties to the source row; yields NULL if k is NULL
   ORDER BY end_date DESC NULLS LAST, ch.pulled_at DESC NULLS LAST
   LIMIT 1
 ) h ON TRUE
 ORDER BY c.concept_code; -- 1 
 
 --4. Add synonyms to the concept_synonym_stage
-INSERT INTO concept_synonym_stage --ciel_concept_synonym_manual
+INSERT INTO concept_synonym_stage 
 (
   synonym_name,
   synonym_concept_code,
@@ -296,7 +298,7 @@ WITH locale_map(locale, language_concept_id) AS (
     ('ti',4182356),     -- Tigrinya
     ('ur',4059788),     -- Urdu
     ('vi',4181526),     -- Vietnamese
-   -- ('in',4183663),     -- Indonesian  (NB: source uses 'in'; ISO 639-1 is 'id' - error in prev. CIEL versions) 
+   -- ('in',4183663),   -- Indonesian  (NB: source uses 'in'; ISO 639-1 is 'id' - error in prev. CIEL versions) 
     ('id',4183663),     -- Indonesian
     ('km',4183770),     -- Khmer
     ('ne',4175908),     -- Nepali
@@ -304,7 +306,7 @@ WITH locale_map(locale, language_concept_id) AS (
 ),
 src_syn AS (
   SELECT
- btrim(replace(n.name, chr(160), ' '), E' \t\r\n\f\v') AS synonym_name,
+    btrim(replace(n.name, chr(160), ' '), E' \t\r\n\f\v') AS synonym_name,
     n.concept_id::varchar AS synonym_concept_code,
     lower(n.locale) AS locale
   FROM sources.ciel_concept_names n
@@ -319,18 +321,18 @@ SELECT
 FROM src_syn s
 JOIN locale_map m ON m.locale = s.locale
 JOIN concept_stage c ON c.concept_code = s.synonym_concept_code
-AND NOT EXISTS (SELECT 1 FROM concept_synonym_stage cs
-WHERE cs.synonym_concept_code = s.synonym_concept_code::VARCHAR
-AND   lower(cs.synonym_name) = lower(BTRIM(REPLACE(s.synonym_name,CHR(160),' '),E' \t\r\n\f\v'))
-AND   cs.language_concept_id = m.language_concept_id)
-AND NOT EXISTS (SELECT 1 FROM concept_synonym cs
+AND NOT EXISTS (SELECT 1 FROM concept_stage c -- exclude names from concept_stage
+WHERE c.concept_code = s.synonym_concept_code::VARCHAR
+AND   lower(c.concept_name) = lower(BTRIM(REPLACE(s.synonym_name,CHR(160),' '),E' \t\r\n\f\v'))
+)
+AND NOT EXISTS (SELECT 1 FROM concept_synonym cs -- exclude already existing synonyms
   JOIN concept c
     ON c.concept_id = cs.concept_id
    AND c.vocabulary_id = 'CIEL'
 WHERE lower(cs.concept_synonym_name) = lower(BTRIM(REPLACE(s.synonym_name,CHR(160),' '),E' \t\r\n\f\v'))
 AND   cs.language_concept_id = m.language_concept_id)
-  );  -- 56986 
-
+; -- 121200
+  
 --5. Add automated mappings to concept_relationship_stage
 INSERT INTO concept_relationship_stage (
   concept_code_1,
@@ -348,7 +350,7 @@ SELECT DISTINCT
   'CIEL' AS vocabulary_id_1,
   a.target_vocabulary_id AS vocabulary_id_2,
   a.relationship_id AS relationship_id,
-  /* Prefer existing valid_start_date; otherwise use CIEL mapping version date */
+-- Prefer existing valid_start_date; otherwise use CIEL mapping version date
   COALESCE(
     r.valid_start_date,
     to_date(btrim(b.version_updated_on::text), 'YYYY-MM-DD')
@@ -369,7 +371,7 @@ LEFT JOIN concept_relationship r
  AND r.invalid_reason IS NULL
 WHERE a.target_concept_code IS NOT NULL
   AND a.relationship_id IS NOT NULL
-  AND rank_num in (1, 2); -- 57950
+  AND rank_num in (1, 2); -- 57972
 
 --6. Remove relationships processed manually
 DELETE

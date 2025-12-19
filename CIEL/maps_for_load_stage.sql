@@ -440,11 +440,7 @@ one_narrower_1 AS (
         '2.01: 1 NARROWER-THAN SNOMED vs SAME-AS ICD10' AS rule_applied
     FROM nt_single n
     WHERE n.target_vocabulary_id = 'SNOMED'
-      AND EXISTS (
-            SELECT 1
-            FROM ciel_mapping_lookup x
-            WHERE x.source_code = n.source_code AND x.map_type = 'SAME-AS'
-              AND x.target_vocabulary_id = 'ICD10'
+      AND EXISTS (SELECT 1 FROM ciel_mapping_lookup x WHERE x.source_code = n.source_code AND x.map_type = 'SAME-AS' AND x.target_vocabulary_id = 'ICD10'
           )
 ),
 /* ===========================================================
@@ -459,6 +455,7 @@ one_narrower_2 AS (
     FROM nt_single n
     WHERE n.target_vocabulary_id = 'SNOMED'
       AND NOT EXISTS (SELECT 1 FROM one_narrower_1 x WHERE x.source_code = n.source_code)
+      AND NOT EXISTS (SELECT 1 FROM ciel_mapping_lookup x WHERE x.source_code = n.source_code AND x.source_class = 'Test' AND x.map_type = 'BROADER-THAN' AND x.target_vocabulary_id = 'LOINC')  
 ),
 /* ===========================================================
    2.03: 1 NARROWER-THAN CVX alone

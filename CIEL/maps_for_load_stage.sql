@@ -1110,7 +1110,7 @@ many_non_s_same_as_other AS (
         b.target_invalid_reason,
         b.relationship_id,
         2 AS rank_num,
-        '5.05: many non-Standard SAME-AS Other classes → Standard (OMOP crosswalk)' AS rule_applied
+        '5.05: many non-Standard SAME-AS Other classes to Standard (OMOP crosswalk)' AS rule_applied
     FROM base_multi b
     WHERE b.source_class NOT IN ('Diagnosis','Drug','Finding','Symptom/Finding')
       AND b.relationship_id IN ('Maps to','Maps to value')
@@ -1593,7 +1593,7 @@ missing_regimens_sn AS (
         c.invalid_reason AS target_invalid_reason,
         'Maps to' AS relationship_id,
         1 AS rank_num,
-        '2.14: Missing SNOMED Regimens' AS rule_applied
+        '2.15: Missing SNOMED Regimens' AS rule_applied
     FROM ranked_sources n
     JOIN concept c
       ON c.concept_id = 4045950  -- Therapeutic regimen

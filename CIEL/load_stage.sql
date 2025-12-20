@@ -231,13 +231,13 @@ WITH max_ver AS ( -- latest known CIEL snapshot date
          ) AS max_version_date
   FROM sources.ciel_source_versions
 ),
-missing AS (  -- OMOP CIEL concepts missing in source OR not present in manual
+missing AS (  -- OMOP CIEL concepts missing in source OR not present in concept stage
   SELECT c.*
   FROM concept c
   WHERE c.vocabulary_id = 'CIEL'
     AND (
           NOT EXISTS (SELECT 1 FROM sources.ciel_concepts s WHERE s.id::varchar = c.concept_code)
-       OR NOT EXISTS (SELECT 1 FROM ciel_concept_manual  m WHERE m.concept_code = c.concept_code)
+       OR NOT EXISTS (SELECT 1 FROM concept_stage m WHERE m.concept_code = c.concept_code)
         )
 )
 SELECT DISTINCT ON (c.concept_code)
@@ -520,3 +520,4 @@ WHERE r.invalid_reason IS NULL
 SELECT * FROM qa_tests.Check_Stage_Tables(); -- should be empty
 
 -- THE END
+

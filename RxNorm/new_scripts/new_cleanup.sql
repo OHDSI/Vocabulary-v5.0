@@ -212,6 +212,11 @@ BEGIN
 		PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 	END $_$;
 
+    DO $_$
+    BEGIN
+        PERFORM vocabulary_pack.addpropagatedhierarchymapsto();
+    END $_$;
+
 	--9. AddFreshMAPSTO creates RxNorm(ATC)-RxNorm links that need to be removed
 	DELETE
 	FROM concept_relationship_stage crs_o

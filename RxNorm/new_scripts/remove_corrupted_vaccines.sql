@@ -6,7 +6,7 @@ select t2.concept_name,
        t2.standard_concept,
        t2.concept_code,
        t2.valid_start_date,
-       TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
+       TO_DATE(CURRENT_DATE::TEXT, 'YYYY-MM-DD')  AS valid_end_date,
        'D' as invalid_reason
 from devv5.concept t1
      join devv5.concept_ancestor ca on t1.concept_id = ca.ancestor_concept_id
@@ -29,7 +29,7 @@ select t2.concept_name,
        t2.standard_concept,
        t2.concept_code,
        t2.valid_start_date,
-       TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
+       TO_DATE(CURRENT_DATE::TEXT, 'YYYY-MM-DD')  AS valid_end_date,
        'D' as invalid_reason
 from devv5.concept t1
      join devv5.concept_ancestor ca on t1.concept_id = ca.descendant_concept_id
@@ -42,6 +42,4 @@ from devv5.concept t1
                                                         'Branded Drug Box',
                                                         'Marketed Product',
                                                         'Quant Branded Box',
-                                                        'Quant Branded Drug')
-
-;
+                                                        'Quant Branded Drug');

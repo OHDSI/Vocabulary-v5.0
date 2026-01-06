@@ -1529,8 +1529,7 @@ END $_$;
 -- END $_$;
 
 
-select admin_pack.VirtualLog;
-
+select admin_pack.VirtualLogIn();
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();

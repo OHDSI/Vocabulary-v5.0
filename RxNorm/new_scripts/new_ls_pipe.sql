@@ -17,7 +17,7 @@
 * Date: 2021
 **************************************************************************/
 
-SELECT devv5.FastRecreateSchema(main_schema_name=>'dev_rxnorm', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 
 
 -- 1. Update latest_update field to new date
@@ -27,7 +27,7 @@ BEGIN
 	pVocabularyName			=> 'RxNorm',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.rxnatomarchive LIMIT 1),
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.rxnatomarchive LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_ATATUR'
+	pVocabularyDevSchema	=> 'DEV_RXNORM'
 );
 END $_$;
 
@@ -1517,6 +1517,10 @@ BEGIN
 END $_$;
 
 
+---------------------------------------------------------
+    ---- Run manual scripts
+--------------------------------------------------------
+
 -- 19. Run RxE clean up
 DO $_$
 BEGIN
@@ -1530,6 +1534,7 @@ END $_$;
 
 
 select admin_pack.VirtualLogIn();
+
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();

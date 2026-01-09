@@ -1713,7 +1713,7 @@ WITH mapping_counts AS (
     SELECT
         source_name,
         COUNT(DISTINCT target_concept_id)   AS mapped_ingredient_count,
-        regexp_count(source_name, '/') + 1  AS expected_ingredient_count
+        1 +(LENGTH(COALESCE(source_name,'')) -LENGTH(REPLACE(COALESCE(source_name,''),'/',''))) AS expected_ingredient_count
     FROM maps_for_load_stage
     WHERE source_class = 'Drug'
       AND rank_num IN (1, 2)
@@ -1765,7 +1765,15 @@ AND m.target_concept_id = c.target_concept_id; --27
 -- Remove mappings for selected codes that have better manual mappings OR are on hold until the OHDSI Standardized Vocabularies are refreshed with the new SNOMED/RxNorm target concepts for them.
 DELETE
 FROM maps_for_load_stage
-WHERE source_code IN ('78629','104528','166655','140730','11080','112044','159933','145185','144441'); -- 13
+WHERE source_code IN ('78629','104528','166655','140730','11080','112044','159933','145185','144441', '169187', '163435', '163200',
+'110826', '111526', '111604', '111634', '112522', '112836', '113339', '115220', '115684', '116870', '117533', '119626', '122497', '125145',
+'126554', '126657', '127069', '127253', '127254', '127274', '131944', '131951', '131953', '131955', '132026', '132054', '132106', '133690',
+'133928', '135281', '138085', '138540', '139005', '139651', '140241', '141512', '141635', '1422', '142523', '142609', '142746', '142747',
+'142755', '142791', '142968', '143791', '144841', '144911', '146687', '1467', '146774', '146785', '146811', '146882', '147515', '147621',
+'148962', '150479', '150490', '150739', '152567', '153322', '153645', '153741', '154445', '155493', '155785', '156047', '160078', '160151',
+'160152', '160153', '160154', '160161', '160232', '160596', '160654', '160981', '161030', '161031', '161032', '161180', '163036', '163065',
+'163066', '163067', '163069', '163072', '1632', '163338', '163738', '163825', '165087', '166007', '166014', '167717', '167785', '168736',
+'169533', '170172', '5092', '5272', '5275', '5596', '85471'); -- 165
 
 -- Clean up - remove all interim tables
 DROP TABLE ciel_mapping_lookup;

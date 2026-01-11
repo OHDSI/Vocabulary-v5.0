@@ -17,6 +17,7 @@
 *
 * Date: 2024
 **************************************************************************/
+-- SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
 
 --1. Update a 'latest_update' field to a new date
 DO
@@ -38,6 +39,8 @@ TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
+
+SELECT dev_atc.update_atc_relationships();
 
 --3. Populate concept_stage
 INSERT INTO concept_stage
@@ -492,3 +495,27 @@ $_$
 $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
+
+select admin_pack.VirtualLogIn('dev_atatur', 'wheoIFrevy!212');
+
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+
+
+SELECT dev_atc.build_class_to_drug();
+
+DO $_$
+BEGIN
+    PERFORM VOCABULARY_PACK.pConceptAncestor();
+END $_$;
+
+select vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       invalid_reason,
+       concept_delta,
+       concept_delta_percentage
+from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'prodv5');/

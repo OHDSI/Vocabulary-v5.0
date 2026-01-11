@@ -27,7 +27,7 @@ BEGIN
 	pVocabularyName			=> 'RxNorm',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.rxnatomarchive LIMIT 1),
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.rxnatomarchive LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_RXNORM'
+	pVocabularyDevSchema	=> 'DEV_TEST10'
 );
 END $_$;
 
@@ -1409,7 +1409,7 @@ ANALYZE concept_relationship_stage;
 
 DO $_$
     BEGIN
-    PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo('{RxNorm - CVX, CVX - RxNorm}', -- exclusion of specific rel-ns
+    PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo_fixed('{RxNorm - CVX, CVX - RxNorm}', -- exclusion of specific rel-ns
                                                          '{RxNorm Extension}', -- and exclusion of specific voc-s
                                                          '{RxNorm Extension}') -- and exclusion of specific voc-s
     ;
@@ -1522,10 +1522,16 @@ END $_$;
 --------------------------------------------------------
 
 -- 19. Run RxE clean up
+
 DO $_$
 BEGIN
-	PERFORM dev_atatur.RxECleanUP();
+	PERFORM dev_test10.rxecleanup_new();
 END $_$;
+
+-- DO $_$
+-- BEGIN
+-- 	PERFORM dev_rxnorm.rxecleanup_new();
+-- END $_$;
 
 -- DO $_$
 -- BEGIN
@@ -1533,7 +1539,7 @@ END $_$;
 -- END $_$;
 
 
-select admin_pack.VirtualLogIn();
+select admin_pack.VirtualLogIn('dev_atatur', 'wheoIFrevy!212');
 
 DO $_$
 BEGIN
@@ -1546,7 +1552,7 @@ CREATE TABLE class_to_drug as
 
 DO $_$
 BEGIN
-	PERFORM vocabulary_pack.pConceptAncestor();
+	PERFORM vocabulary_pack.pConceptAncestor(is_small=>TRUE);
 END $_$;
 
 

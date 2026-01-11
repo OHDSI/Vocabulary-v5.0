@@ -168,7 +168,7 @@ BEGIN
 			) --with reverse
 		AND cs.invalid_reason = 'X';
 
-	--6. Add new replacements
+	--6a. Add new replacements EXCEPT cases when RxE - Maps to - RxN exists
 	INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		concept_code_2,
@@ -187,7 +187,56 @@ BEGIN
 		TO_DATE('20991231', 'yyyymmdd')
 	FROM concept_stage cs
 	JOIN concept c ON c.concept_id = cs.concept_id
-	WHERE cs.invalid_reason = 'X';
+	WHERE cs.invalid_reason = 'X'
+        and (cs.concept_code, c.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual)
+        and NOT EXISTS (SELECT 1
+                        FROM concept_relationship_manual crm
+                        WHERE cs.concept_code = crm.concept_code_1
+                        AND cs.vocabulary_id = 'RxNorm Extension'
+                        and crm.vocabulary_id_1 = 'RxNorm Extension'
+                        and crm.vocabulary_id_2 = 'RxNorm'
+                        and crm.relationship_id = 'Maps to'
+                        and crm.invalid_reason is NULL);
+
+
+        -- 6b. For those RxE concepts, that have duplicates, but duplicate has already RxN mapping.
+    	INSERT INTO concept_relationship_stage (
+		concept_code_1,
+		concept_code_2,
+		vocabulary_id_1,
+		vocabulary_id_2,
+		relationship_id,
+		valid_start_date,
+		valid_end_date
+		)
+    	WITH CTE as (
+    	    SELECT *
+    	    FROM concept_relationship_manual
+    	    WHERE vocabulary_id_1 = 'RxNorm Extension'
+    	    and vocabulary_id_2 = 'RxNorm'
+    	    and relationship_id = 'Maps to'
+    	    and invalid_reason is NULL
+        )
+        SELECT cs.concept_code,
+            t1.concept_code_2,
+            cs.vocabulary_id,
+            t1.vocabulary_id_2,
+            'Maps to',
+            CURRENT_DATE,
+            TO_DATE('20991231', 'yyyymmdd')
+        FROM concept_stage cs
+        JOIN concept c ON c.concept_id = cs.concept_id
+        join CTE t1 on cs.concept_code = t1.concept_code_1
+        WHERE cs.invalid_reason = 'X'
+        and (cs.concept_code, c.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual)
+        and EXISTS (SELECT 1
+                        FROM concept_relationship_manual crm
+                        WHERE cs.concept_code = crm.concept_code_1
+                        AND cs.vocabulary_id = 'RxNorm Extension'
+                        and crm.vocabulary_id_1 = 'RxNorm Extension'
+                        and crm.vocabulary_id_2 = 'RxNorm'
+                        and crm.relationship_id = 'Maps to');
+
 
 	--7. Update concept_stage (set 'U' for all 'X')
 	UPDATE concept_stage
@@ -225,7 +274,7 @@ BEGIN
 
     DO $_$
     BEGIN
-        PERFORM vocabulary_pack.addpropagatedhierarchymapsto();
+        PERFORM vocabulary_pack.AddPropagatedHierarchyMapsTo_fixed();
     END $_$;
 
 	--9. AddFreshMAPSTO creates RxNorm(ATC)-RxNorm links that need to be removed
@@ -261,3 +310,4 @@ BEGIN
 		AND c.vocabulary_id = 'RxNorm Extension';
 	END;
 $$;
+

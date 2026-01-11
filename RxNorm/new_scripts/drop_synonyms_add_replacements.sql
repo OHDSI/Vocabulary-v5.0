@@ -280,5 +280,3 @@ select DISTINCT
 from dev_rxnorm.rxn_rxe_duplicates_manual t1
 );
 
-
-

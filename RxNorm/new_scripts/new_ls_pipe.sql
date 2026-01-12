@@ -27,7 +27,7 @@ BEGIN
 	pVocabularyName			=> 'RxNorm',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.rxnatomarchive LIMIT 1),
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.rxnatomarchive LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_TEST10'
+	pVocabularyDevSchema	=> 'DEV_RXNORM'
 );
 END $_$;
 
@@ -1525,13 +1525,8 @@ END $_$;
 
 DO $_$
 BEGIN
-	PERFORM dev_test10.rxecleanup_new();
+	PERFORM dev_rxnorm.rxecleanup_new();
 END $_$;
-
--- DO $_$
--- BEGIN
--- 	PERFORM dev_rxnorm.rxecleanup_new();
--- END $_$;
 
 -- DO $_$
 -- BEGIN

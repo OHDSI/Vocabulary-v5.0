@@ -5,6 +5,7 @@ FROM concept_relationship_manual a
 WHERE EXISTS (SELECT 1
               FROM maps_for_load_stage x
               WHERE rank_num in (1,2) AND x.source_code = a.concept_code_1
+              AND a.vocabulary_id_1 = 'CIEL'
               AND   x.target_concept_code = a.concept_code_2
               AND   x.target_vocabulary_id = a.vocabulary_id_2
               AND   x.relationship_id = a.relationship_id); -- 62
@@ -98,4 +99,4 @@ WHERE NOT EXISTS (
       AND x.vocabulary_id_1 = m.vocabulary_id_1
       AND x.vocabulary_id_2 = m.vocabulary_id_2
       AND x.relationship_id = m.relationship_id
-); -- 415
+); -- 509

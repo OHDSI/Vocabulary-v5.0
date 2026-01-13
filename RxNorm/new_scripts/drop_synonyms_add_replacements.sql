@@ -77,7 +77,7 @@ select DISTINCT t2.concept_name,
        t2.domain_id,
        t2.vocabulary_id,
        t2.concept_class_id,
-       t2.standard_concept,
+       NULL as standard_concept,
        t2.concept_code,
        t2.valid_start_date,
        TO_DATE(CURRENT_DATE::TEXT, 'YYYY-MM-DD') as valid_end_date,
@@ -93,7 +93,7 @@ select DISTINCT t2.concept_name,
        t2.domain_id,
        t2.vocabulary_id,
        t2.concept_class_id,
-       t2.standard_concept,
+       NULL as standard_concept,
        t2.concept_code,
        t2.valid_start_date,
        TO_DATE(CURRENT_DATE::TEXT, 'YYYY-MM-DD') as valid_end_date,
@@ -111,7 +111,7 @@ select DISTINCT t2.concept_name,
        t2.domain_id,
        t2.vocabulary_id,
        t2.concept_class_id,
-       t2.standard_concept,
+       NULL as standard_concept,
        t2.concept_code,
        t2.valid_start_date,
        TO_DATE(CURRENT_DATE::TEXT, 'YYYY-MM-DD') as valid_end_date,
@@ -130,14 +130,16 @@ select DISTINCT t2.concept_name,
        t2.domain_id,
        t2.vocabulary_id,
        t2.concept_class_id,
-       t2.standard_concept,
+       NULL as standard_concept,
        t2.concept_code,
        t2.valid_start_date,
        TO_DATE(CURRENT_DATE::TEXT, 'YYYY-MM-DD') as valid_end_date,
        'U' as invalid_reason
 from dev_rxnorm.rxn_rxe_duplicates_manual t1
      join devv5.concept t2 on t1.source_code = t2.concept_code and t1.source_vocabulary_id = t2.vocabulary_id
-);
+)
+ON CONFLICT DO NOTHING
+;
 
 
 
@@ -278,5 +280,10 @@ select DISTINCT
        TO_DATE('2099-12-31', 'YYYY-MM-DD') as valid_end_date,
         NULL as invalid_reason
 from dev_rxnorm.rxn_rxe_duplicates_manual t1
-);
+)
+ON CONFLICT DO NOTHING
 
+;
+
+select *
+from dev_rxnorm.rxn_rxe_duplicates_manual t1;

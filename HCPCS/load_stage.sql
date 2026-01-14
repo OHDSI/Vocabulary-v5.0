@@ -757,8 +757,10 @@ AS (
 					'M0100', --Intragastric hypothermia using gastric freezing
 					'M0201', -- Covid-19 vaccine administration
 					'M0300', --Iv chelation therapy (chemical endarterectomy)
-					'M0301'
-					) --Fabric wrapping of abdominal aneurysm
+					'M0301', --Fabric wrapping of abdominal aneurysm
+					'M0235', -- Intravenous infusion, monoclonal antibody products
+			        'M0236'
+			                     ) --Fabric wrapping of abdominal aneurysm
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'M0220'
 					AND 'M0250'
@@ -809,7 +811,9 @@ AS (
 				THEN 'Observation' -- Level 2: Q0092-Q0092, only setup
 			WHEN l2.str = 'Laboratory (CMS Temporary Codes)'
 				THEN 'Measurement' -- Level 2: Q0111-Q0115
-			WHEN concept_code BETWEEN 'Q0136'
+			WHEN concept_code in ('Q0188', 'Q0235')
+				THEN 'Procedure'
+		    WHEN concept_code BETWEEN 'Q0136'
 					AND 'Q0249'
 				AND concept_code NOT BETWEEN 'Q0182'
 					AND 'Q0188'
@@ -823,8 +827,6 @@ AS (
 				THEN 'Device'
 			WHEN concept_code = 'Q0186'
 				THEN 'Observation'
-			WHEN concept_code in ('Q0188', 'Q0235')
-				THEN 'Procedure'
 			WHEN l2.str = 'Ventricular Assist Devices (CMS Temporary Codes)'
 				THEN 'Device' -- Level 2: Q0477-Q0509
 			WHEN concept_code BETWEEN 'Q0510'
@@ -1401,5 +1403,11 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
+
+--16. All non-standard "zombie" concepts should be deprecated:
+UPDATE concept_stage c
+SET invalid_reason = 'D'
+WHERE c.valid_end_date < current_date
+AND c.standard_concept is null;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

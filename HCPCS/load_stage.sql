@@ -1408,6 +1408,7 @@ END $_$;
 UPDATE concept_stage c
 SET invalid_reason = 'D'
 WHERE c.valid_end_date < current_date
-AND c.standard_concept is null;
+AND c.standard_concept IS NULL
+AND c.invalid_reason IS NULL;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

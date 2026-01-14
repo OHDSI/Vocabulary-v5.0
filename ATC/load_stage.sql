@@ -70,13 +70,76 @@ SELECT t1.concept_id,
        valid_start_date,
        valid_end_date,
        invalid_reason
-FROM (WITH CTE
-               AS ---Subquery to add 4th lvl class name before uninformative 5th class names combinations, various, various combinations
+FROM (
+        WITH CTE AS ---Subquery to add 4th lvl class name before uninformative 5th class names combinations, various, various combinations
                (SELECT atc_1.class_code AS class_code,
                        LOWER(atc_2.class_name) || ' - ' || atc_1.class_name AS combo_name
                 FROM sources.atc_codes atc_1
                          JOIN sources.atc_codes atc_2 ON LEFT(atc_1.class_code, 5) = atc_2.class_code AND LOWER(atc_1.class_name) IN ('combinations', 'various', 'various combinations')
-                                                                                                      AND LENGTH(atc_1.class_code) = 7)
+                                                                                                      AND LENGTH(atc_1.class_code) = 7),
+            CTE_2 as (
+                        select
+                                class_code,
+                                class_name,
+                                CASE
+
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A01AB' THEN 'local oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A01AC' THEN 'local oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A01AD' THEN 'local oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A06AG' THEN 'rectal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A10AE' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B03AA' THEN 'oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B03AB' THEN 'oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B03AC' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B05BA' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B05XX' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'C05AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'C05BA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'C05BB' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D01AE' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D02BA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D04AA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D04AB' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D05AD' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D05AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D06AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D10AD' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D10AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D10BX' THEN 'oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D11AE' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'G02BA' THEN 'implant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'G02BB' THEN 'vaginal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'G02CC' THEN 'vaginal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'M02AA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'M02AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'N01AA' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'N01AB' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'R01AX' THEN 'nasal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'R03BX' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'V03AN' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'V09EA' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'V09EB' THEN 'parenteral'
+
+                                    WHEN adm_r = 'Chewing gum' THEN 'chewing gum'
+                                    WHEN adm_r IN ('Inhal', 'Inhal. powder', 'Inhal.aerosol', 'Inhal.powder', 'Inhal.solution') THEN 'inhalant'
+                                    WHEN adm_r = 'Instill.solution' THEN 'instillation solution'
+                                    WHEN adm_r = 'N' THEN 'nasal'
+                                    WHEN adm_r = 'O' THEN 'oral'
+                                    WHEN adm_r IN ('O,P', '"O,P"') THEN 'oral, parenteral'
+                                    WHEN adm_r = 'P' THEN 'parenteral'
+                                    WHEN adm_r = 'R' THEN 'rectal'
+                                    WHEN adm_r = 'SL' THEN 'sublingual'
+                                    WHEN adm_r = 'TD' THEN 'transdermal'
+                                    WHEN adm_r = 'V' THEN 'vaginal'
+                                    WHEN adm_r IN ('implant', 's.c. implant', 'urethral') THEN 'implant'
+                                    WHEN adm_r = 'intravesical' THEN 'intravesical'
+                                    WHEN adm_r = 'lamella' THEN 'lamella'
+                                    WHEN adm_r = 'ointment' THEN 'ointment'
+                                    WHEN adm_r = 'oral aerosol' THEN 'local oral'
+                                    ELSE NULL
+                                END as adm_r
+                            from sources.atc_codes
+                        )
       SELECT DISTINCT NULL::INT AS concept_id,
                       CASE
                           WHEN (active = 'NA' OR active = 'C') AND t1.class_name NOT IN ('combinations', 'various', 'various combinations')
@@ -87,7 +150,7 @@ FROM (WITH CTE
                               THEN '[' || active || '] ' || t3.combo_name --- If D or U and name in ('combinations', 'various', 'various combinations')
                           ELSE '[' || active || '] ' || t1.class_name
                           END AS name,
-                      t2.new AS adm_r,
+                      t2.adm_r AS adm_r,
                       'Drug' AS domain_id,
                       'ATC' AS vocabulary_id,
                       CASE
@@ -112,7 +175,7 @@ FROM (WITH CTE
                           ELSE active
                           END AS invalid_reason
       FROM sources.atc_codes t1
-               LEFT JOIN dev_atc.new_adm_r t2 ON t1.class_code = t2.class_code
+               LEFT JOIN CTE_2 t2 ON t1.class_code = t2.class_code
                LEFT JOIN CTE t3 ON t1.class_code = t3.class_code
       WHERE t1.active != 'C') t1;
 

@@ -24,6 +24,10 @@
 -- 	SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
 -- 	FROM sources.dmdbonus i
 -- 	) AS i;
+CREATE OR REPLACE FUNCTION collect_atc_rxnorm_from_sources()
+RETURNS void AS
+$$
+BEGIN
 
 --1. Create temporary table to store source data to ATC relationships
 DROP TABLE IF EXISTS class_ATC_RXN_huge_temp;
@@ -490,3 +494,7 @@ DROP TABLE IF EXISTS atc_step_aside_final;
 DROP TABLE IF EXISTS class_ATC_RXN_huge_fin;
 DROP TABLE IF EXISTS class_ATC_RXN_huge_temp;
 DROP TABLE IF EXISTS class_ATC_RXN_huge_ancestor_temp;
+
+END;
+$$
+LANGUAGE plpgsql;

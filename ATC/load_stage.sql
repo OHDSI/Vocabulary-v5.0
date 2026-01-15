@@ -17,7 +17,13 @@
 *
 * Date: 2024
 **************************************************************************/
-SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
+
+DO $$ --- should be run only in dev_atc schema.
+BEGIN
+    IF current_schema() != 'devv5' THEN
+        PERFORM FROM devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
+    END IF;
+END $$;
 
 --1. Update a 'latest_update' field to a new date
 DO
@@ -40,10 +46,15 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
-----collect ATC-RxNorm connections from sources
-select dev_atc.collect_atc_rxnorm_from_sources();
-----apply all manual changes
-SELECT dev_atc.update_atc_relationships();
+DO $$ --- should be run only in dev_atc schema.
+BEGIN
+    IF current_schema() != 'devv5' THEN
+        -- collect all new sources
+        PERFORM FROM dev_atc.collect_atc_rxnorm_from_sources();
+        -- apply all manual changes
+        PERFORM FROM dev_atc.update_atc_relationships();
+    END IF;
+END $$;
 
 --3. Populate concept_stage
 INSERT INTO concept_stage
@@ -652,10 +663,5 @@ BEGIN
     PERFORM VOCABULARY_PACK.pConceptAncestor(is_small=>TRUE);
 END $_$;
 
-select vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id,
-       invalid_reason,
-       concept_delta,
-       concept_delta_percentage
-from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'prodv5');
+select *
+from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'prodv5');

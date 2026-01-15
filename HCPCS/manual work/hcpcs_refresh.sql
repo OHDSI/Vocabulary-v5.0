@@ -78,7 +78,7 @@ INSERT INTO dev_hcpcs.concept_relationship_manual AS mapped
            m.cr_invalid_reason
 	FROM dev_hcpcs.hcpcs_mapped m
 	--Only related to HCPCS vocabulary
-	WHERE (source_vocabulary_id = 'HCPCS' OR target_vocabulary_id = 'hcpcs')
+	WHERE (source_vocabulary_id = 'HCPCS' OR target_vocabulary_id = 'HCPCS')
 	    AND (target_concept_id != 0 OR target_concept_id IS NULL)
 
 	ON CONFLICT ON CONSTRAINT unique_manual_relationships

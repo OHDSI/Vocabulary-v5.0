@@ -68,17 +68,13 @@ SELECT * FROM sources.load_ciel_all(
   - the latest CIEL snapshot in sources.
   - the prioritized mappings in maps_for_load_stage
   - manual overrides.
-6. **Run staging QA scripts**
-```sql
-SELECT * FROM qa_tests.Check_Stage_Tables();
-```
-7. **Run generic update**
+6. **Run generic update**
 ```sql
 SELECT devv5.genericupdate();
 ```
 This moves staged CIEL content into the main concept and concept_relationship tables in your dev schema.
 
-8. **Perform QA after generic run**
+7. **Perform QA after generic run**
 ```sql
 SELECT qa_tests.get_checks();
 SELECT * FROM qa_tests.get_summary ('concept','devv5');
@@ -90,8 +86,8 @@ SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 SELECT * FROM  qa_tests.get_changes_concept_mapping();
 ```
 - Address any blocking issues before promoting dev to production.
-9. **Run metadata.sql**
-10. **Promote to production**
+8. **Run metadata.sql**
+9. **Promote to production**
   
 After all the vocabulary is refreshed.
 

@@ -517,7 +517,4 @@ WHERE r.invalid_reason IS NULL
           AND s.vocabulary_id_2 = d.vocabulary_id
       );
 
-SELECT * FROM qa_tests.Check_Stage_Tables(); -- should be empty
-
--- THE END
-
+-- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

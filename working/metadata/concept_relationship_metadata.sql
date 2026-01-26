@@ -356,6 +356,44 @@ AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
+--CIEL
+    INSERT INTO concept_relationship_metadata (
+    concept_id_1,
+    concept_id_2,
+    relationship_id,
+    relationship_predicate_id,
+    relationship_group,
+    mapping_source,
+    confidence,
+    mapping_tool,
+    mapper,
+    reviewer
+)
+SELECT
+    c.concept_id AS concept_id_1,
+    target_concept_id AS concept_id_2,
+    relationship_id as relationship_id,
+    -- SSSOM Predicates based on Mapping Direction
+    CASE
+        -- EQ: Equivalent [exactMatch]
+        WHEN rule_applied ~* '^1\.01' THEN 'eq'
+        -- UP: Uphill [broadMatch]
+        WHEN rule_applied ~* '^1\.02|^2\.06|^2\.10|^2\.12|^2\.14|^2\.15'
+           THEN 'up'
+    END AS relationship_predicate_id, -- returns "violates check constraint "chk_relationship_predicate_id"" but relationship_predicate_id are 'eq' and 'up'
+  NULL AS relationship_group,
+    'CIEL' AS mapping_source,
+    1 AS confidence,
+    'AM-lib_C' AS mapping_tool,
+    'Andrew S. Kanter' AS mapper,
+    NULL AS reviewer
+FROM maps_for_load_stage a
+JOIN concept c
+  ON a.source_code = c.concept_code
+WHERE c.vocabulary_id = 'CIEL'
+AND rule_applied ~* '^1\.01|^1\.02|^2\.06|^2\.10|^2\.12|^2\.14|^2\.15'
+;
+
 
 --Insertion of relationships that are currently not injested
 -- Scope is limited to Valid Triples
@@ -474,25 +512,25 @@ and confidence is NULL
 ;
 
 
-
 --Set emails of reviewer
 UPDATE concept_relationship_metadata AS b
     SET reviewer = CASE
                WHEN upper(trim(a.reviewer)) ='DB' THEN 'dmitry.buralkin@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) ='MS'or  a.reviewer ilike '%salavei%' THEN 'mikita.salavei@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='MS'or  a.reviewer ilike '%salavei%' THEN 'mikita_salavei@epam.com'
                WHEN upper(trim(a.reviewer)) ='JC' THEN 'janice.cruz@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='OZ' or a.reviewer ilike '%zhuk%'   THEN 'oleg.zhuk@odysseusinc.com'
                WHEN upper(trim(a.reviewer))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='YK'  then 'yuri.korin@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='IZ'  then 'irina.zherko@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) IN ('AT')  then 'anton.tatur@epam.com'
+               WHEN upper(trim(a.reviewer)) IN ('AT')  then 'anton_tatur1@epam.com'
               WHEN upper(trim(a.reviewer)) IN ('VALUE:')  then 'Vocabulary Team@epam.com'
                WHEN upper(trim(a.reviewer)) IN ('AY')  then 'aliaksand.yurchanka3@epam.com'
-               WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
-               WHEN upper(trim(a.reviewer)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
+               WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer like '%khitrun%' then 'maria_khitrun@epam.com'
+               WHEN upper(trim(a.reviewer)) ='MR' then 'maria_rahozhkina@epam.com'
+               WHEN upper(trim(a.reviewer)) ='VS'  then 'varvara_savitskaya@epam.com'
+               WHEN upper(trim(a.reviewer)) ='TS'  then 'tatsiana_skuhareuskaya@epam.com'
                WHEN length(trim(a.reviewer)) = 0 then NULL
         ELSE a.reviewer
               END
@@ -578,6 +616,7 @@ where  not exists (
 )
 GROUP BY c.vocabulary_id
 ;
+
 
 
 

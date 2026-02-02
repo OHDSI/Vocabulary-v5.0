@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Timur Vakhitov, Seng Chan You, Yiju Park
-* Date: 2024
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Seng Chan You, Yiju Park, Masha Khitrun
+* Date: 2026
 **************************************************************************/
 
 --1. UPDATE latest_update field to new date
@@ -62,31 +62,7 @@ SELECT TRIM(SUBSTR(e.concept_name, 1, 255)) AS concept_name,
 		END AS invalid_reason
 FROM sources.edi_data e;
 
---4. Create concept_relationship_stage only from manual source 
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---5. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---6. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---7. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---8. Create concept_synonym_stage
+--4. Create concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -102,10 +78,37 @@ FROM sources.edi_data e
 UNION ALL
 
 SELECT e.concept_code,
-	TRIM(SUBSTR(e.concept_synonym, 1, 1000)) AS synonym_name,
+       TRIM(SUBSTR(e.concept_synonym, 1, 1000)),
 	'EDI' AS synonym_vocabulary_id,
 	4175771 AS language_concept_id -- Korean
 FROM sources.edi_data e
-WHERE LOWER(TRIM(e.concept_name)) <> LOWER(TRIM(e.concept_synonym));
+WHERE LOWER(TRIM(e.concept_name)) <> LOWER(TRIM(e.concept_synonym))
+AND e.concept_synonym != 'NULL';
+
+--5. Process manual tables:
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--6. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--7. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--8. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -1,13 +1,5 @@
 --- That script creates manual tables for further work
 
-CREATE TABLE new_adm_r
-(
-    class_code TEXT,
-    class_name TEXT,
-    old        TEXT,
-    new        TEXT
-);
-
 CREATE TABLE new_atc_codes_ings_for_manual
 (
     source          TEXT,

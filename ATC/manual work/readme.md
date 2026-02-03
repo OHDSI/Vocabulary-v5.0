@@ -2,16 +2,7 @@
 * run *create_manual_tables.sql*
 * extract the [respective сsv files](https://drive.google.com/drive/u/0/folders/1RwWqj3mgP9CdEt56dIA2aLI1EzCczrBP) into newly created tables.
 
-* extract the [respective сsv file](https://drive.google.com/file/d/1fr1ZvUl16ytBDXIqoej8_i8EqlKQK9jO/view?usp=drive_link) into the *ned_adm_r* table. The file was generated using the query:
-```sql
-SELECT 
-       class_code,
-       class_name,
-       old,
-       new
-FROM new_adm_r
-```
-* extract the [respective сsv file](https://drive.google.com/file/d/15nqYISdr097mRHowTiHTqC53vSInYeZ7/view?usp=drive_link) into the *new_atc_codes_ings_for_manual* table. The file was generated using the query:
+* extract the [respective сsv file](https://docs.google.com/spreadsheets/d/1aUWrP4lQLFA27VAt86NsbzfhnQ9BkJN5CMsj2ra_LSo/edit?gid=1629777695#gid=1629777695) into the *new_atc_codes_ings_for_manual* table. The file was generated using the query:
 ```sql
 SELECT
     source,
@@ -23,7 +14,7 @@ SELECT
 FROM new_atc_codes_ings_for_manual
 ```
 
-* extract the [respective сsv file](https://drive.google.com/file/d/1vS1VWJTfK6ARy6i64J_VZ9jVh61r_U4Y/view?usp=drive_link) into the *bdpm_atc_codes* table. The file was generated using the query:
+* extract the [respective сsv file](https://docs.google.com/spreadsheets/d/1vnvT0dakOxcVseP2yj81dHhPHkklNCoLdcdvodQxwF0/edit?gid=795496822#gid=795496822) into the *bdpm_atc_codes* table. The file was generated using the query:
 ```sql
 SELECT 
        id,
@@ -31,7 +22,7 @@ SELECT
 FROM bdpm_atc_codes;
 ```
 
-* extract the [respective сsv file](https://drive.google.com/file/d/1IU6q-QqFONzKfg1VYs4zfxdSL9N67QNL/view?usp=drive_link) into the *norske_result* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/drive/u/0/folders/1RwWqj3mgP9CdEt56dIA2aLI1EzCczrBP) into the *norske_result* table. The file was generated using the query:
 ```sql
 SELECT
     concept_id,
@@ -64,7 +55,7 @@ SELECT
     concept_id_atc,
     concept_code_atc,
     concept_name,
-    source,
+    drop,
     concept_id_rx,
     concept_name_rx
 FROM atc_rxnorm_to_drop_in_sources;
@@ -82,7 +73,7 @@ SELECT
     to_check
 FROM existent_atc_rxnorm_to_drop;
 ```
-* extract the [respective сsv file](https://drive.google.com/file/d/1BIlGZiFtr1W-tyj-cnLXq4f2s9DIZVfn/view?usp=drive_link) into the *covid19_atc_rxnorm_manual* table. The file was generated using the query:
+* extract the [respective сsv file](https://drive.google.com/drive/u/0/folders/1RwWqj3mgP9CdEt56dIA2aLI1EzCczrBP) into the *covid19_atc_rxnorm_manual* table. The file was generated using the query:
 ```sql
 SELECT
     concept_code_atc,

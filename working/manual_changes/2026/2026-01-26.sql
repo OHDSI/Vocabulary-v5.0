@@ -1,4 +1,4 @@
---Add new vocabulary HPO
+-- 1. Add new vocabulary HPO:
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewVocabulary(
@@ -14,3 +14,8 @@ BEGIN
 	pSEQ_VIP_gen	    => FALSE --TRUE if VIP
 );
 END $_$;
+
+-- 2. Correct typo in the vocabulary name:
+UPDATE vocabulary
+SET vocabulary_name = 'Korean Standard Classification of Diseases and Causes of Death, 7th Revision (STATISTICS KOREA)'
+WHERE vocabulary_id = 'KCD7';

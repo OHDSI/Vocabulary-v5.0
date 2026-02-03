@@ -111,6 +111,22 @@ BEGIN
         THEN
             cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.*\.zip".+?\.zip">.+'),'yyyymmdd');
             cVocabVer := 'Snomed Release '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_INT'
+        THEN
+            cVocabDate := to_date(SUBSTRING(cVocabHTML FROM 'Release Date: ([A-Za-z]+ \d{1,2}, \d{4})'), 'Month DD, YYYY');
+            cVocabVer := 'Snomed International '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_US'
+        THEN
+            cVocabDate := TO_DATE(SUBSTRING(cVocabHTML FROM '<p><strong>Release Date:</strong> ([A-Za-z]+ \d{1,2}, \d{4})'), 'Month DD, YYYY');
+            cVocabVer := 'Snomed US '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_UK_DE'
+        THEN
+            cVocabDate := TO_DATE(SUBSTRING(cVocabHTML FROM '(\d+\s+[A-Za-z]+\s+\d+)\s+major release.'), 'DD Month YYYY');
+            cVocabVer := 'Snomed UK_DE '||TO_CHAR(cVocabDate,'YYYYMMDD');
+        WHEN cVocabularyName = 'SNOMED_UK'
+        THEN
+            cVocabDate := TO_DATE(SUBSTRING(cVocabHTML FROM '(\d+\s+[A-Za-z]+\s+\d+)\s+major release.'), 'DD Month YYYY');
+            cVocabVer := 'Snomed UK '||TO_CHAR(cVocabDate,'YYYYMMDD');
         WHEN cVocabularyName = 'HCPCS'
         THEN
             --cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<span class=.*?hcpcs quarterly update</span>.*?<li>.*?<a data-entity-substitution.*?href=.+?\.zip" title="(.+?) alpha-numeric hcpcs files*">'),'month yyyy');
@@ -254,7 +270,7 @@ BEGIN
           cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
         WHEN cVocabularyName = 'HEMONC'
         THEN
-          cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'Mon dd, yyyy');
+          cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'hemonc knowledgebase.+?<span class="text-muted">(.+?)</span>'),'Mon dd, yyyy');
           cVocabVer := 'HemOnc '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
         WHEN cVocabularyName = 'DMD'
         THEN
@@ -328,6 +344,20 @@ BEGIN
                 cVocabDate := cVocabSrcDate;
                 cVocabVer := cVocabSrcVer;
             END IF;
+        WHEN cVocabularyName = 'EORTC '
+        THEN
+            cVocabDate := CURRENT_DATE;
+            cVocabVer := 'EORTC '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
+            cVocabOldDate := COALESCE(cVocabOldDate,cVocabSrcDate);
+            cVocabOldVer := COALESCE(cVocabOldVer,cVocabSrcVer);
+        WHEN cVocabularyName = 'EMA'
+        THEN
+            cVocabDate := CURRENT_DATE;
+            cVocabVer := 'EMA '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
+            -- update should happen every weekend
+            cVocabSrcDate := CURRENT_DATE - 1;
+            cVocabOldDate := COALESCE(cVocabOldDate,cVocabSrcDate);
+            cVocabOldVer := COALESCE(cVocabOldVer,cVocabSrcVer);            
         ELSE
             RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
     END CASE;

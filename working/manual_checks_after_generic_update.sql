@@ -17,8 +17,8 @@ SELECT new.concept_code,
        old.domain_id AS old_domain_id,
        new.domain_id AS new_domain_id
 FROM concept new
-JOIN devv5.concept old
-    USING (concept_id)
+JOIN prodv5.concept old
+    USING (concept_code, vocabulary_id)
 WHERE old.domain_id != new.domain_id
     AND new.vocabulary_id IN (:your_vocabs)
 ;
@@ -39,8 +39,9 @@ SELECT c1.concept_code,
        c1.standard_concept,
        c1.domain_id AS new_domain
 FROM concept c1
-LEFT JOIN devv5.concept c2
-    ON c1.concept_id = c2.concept_id
+LEFT JOIN prodv5.concept c2
+    ON c1.concept_code = c2.concept_code
+       AND c1.vocabulary_id = c2.vocabulary_id
 WHERE c2.vocabulary_id IS NULL
     AND c1.vocabulary_id IN (:your_vocabs)
 ;
@@ -60,8 +61,9 @@ SELECT c.vocabulary_id,
        c.concept_name AS new_name,
        devv5.similarity (c2.concept_name, c.concept_name)
 FROM concept c
-JOIN devv5.concept c2
-    ON c.concept_id = c2.concept_id
+JOIN prodv5.concept c2
+    ON c.concept_code = c2.concept_code
+        AND c.vocabulary_id = c2.vocabulary_id
         AND c.concept_name != c2.concept_name
 WHERE c.vocabulary_id IN (:your_vocabs)
 ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
@@ -78,30 +80,27 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 WITH old_syn AS (
 SELECT c.concept_code,
        c.vocabulary_id,
-       cs.language_concept_id as old_language_concept_id,
-       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as old_synonym
-FROM devv5.concept c
-JOIN devv5.concept_synonym cs
-    ON c.concept_id = cs.concept_id
-WHERE c.vocabulary_id IN (:your_vocabs)
+       string_agg (DISTINCT cs.language_concept_id::text, '; ' ORDER BY cs.language_concept_id::text) AS old_language_concept_id,
+       string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) AS old_synonym
+FROM prodv5.concept c
+    JOIN prodv5.concept_synonym cs
+      ON c.concept_id = cs.concept_id WHERE c.vocabulary_id IN (:your_vocabs)
 GROUP BY
     c.concept_code,
-       c.vocabulary_id,
-       cs.language_concept_id
-),
+    c.vocabulary_id
+         ),
 new_syn AS (
 SELECT c.concept_code,
        c.vocabulary_id,
-       cs.language_concept_id as new_language_concept_id,
-       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as new_synonym
+       string_agg (DISTINCT cs.language_concept_id::text, '; ' ORDER BY cs.language_concept_id::text) AS new_language_concept_id,
+       string_agg (cs.concept_synonym_name, '; ' ORDER BY cs.language_concept_id, cs.concept_synonym_name) AS new_synonym
 FROM concept c
 JOIN concept_synonym cs
     ON c.concept_id = cs.concept_id
 WHERE c.vocabulary_id IN (:your_vocabs)
 GROUP BY
     c.concept_code,
-       c.vocabulary_id,
-       cs.language_concept_id
+       c.vocabulary_id
 )
 SELECT DISTINCT
     o.concept_code,
@@ -153,8 +152,8 @@ SELECT a.concept_code AS concept_code_source,
        b.vocabulary_id AS vocabulary_id_target
 FROM concept a
 LEFT JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Maps to'
-LEFT JOIN concept  b ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN concept b ON b.concept_id = r.concept_id_2
+LEFT JOIN prodv5.concept c ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL AND b.concept_id IS NULL
 ;
@@ -186,8 +185,8 @@ JOIN concept_relationship r
            AND r.relationship_Id IN ('Maps to', 'Maps to value')
 JOIN concept b
     ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c
-    ON c.concept_id = a.concept_id
+LEFT JOIN prodv5.concept c
+    ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND c.concept_id IS NULL
     --AND a.concept_id != b.concept_id --use it to exclude mapping to itself
@@ -215,7 +214,7 @@ SELECT a.concept_code AS concept_code_source,
 FROM concept a
 LEFT JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Is a'
 LEFT JOIN concept b ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c ON c.concept_id = a.concept_id
+LEFT JOIN prodv5.concept c ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL AND b.concept_id IS NULL
 ;
@@ -226,7 +225,6 @@ AND c.concept_id IS NULL AND b.concept_id IS NULL
 --Depending on the logical group (use case), result should be critically analyzed and may represent multiple scenarios, e.g.:
 --TODO: add scenarios
 --In this check we are not aiming on reviewing the semantics or quality of relationships. The completeness of content (versus 02.3 check) and alignment of the source use cases and mapping scenarios is the subject matter in this check.
-
 
 SELECT a.concept_code AS concept_code_source,
        a.concept_name AS concept_name_source,
@@ -239,8 +237,8 @@ SELECT a.concept_code AS concept_code_source,
        b.vocabulary_id AS vocabulary_id_target
 FROM concept a
 JOIN concept_relationship r ON a.concept_id= r.concept_id_1 AND r.invalid_reason IS NULL AND r.relationship_Id ='Is a'
-JOIN concept  b ON b.concept_id = r.concept_id_2
-LEFT JOIN devv5.concept  c ON c.concept_id = a.concept_id
+JOIN concept b ON b.concept_id = r.concept_id_2
+LEFT JOIN prodv5.concept c ON (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
 WHERE a.vocabulary_id IN (:your_vocabs)
 AND c.concept_id IS NULL
 ;
@@ -249,65 +247,174 @@ AND c.concept_id IS NULL
 --In this check we manually review the changes of concept's mapping to make sure they are expected, correct and in line with the current conventions and approaches.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id and vocabulary_id fields. Then the content to be reviewed separately within the groups.
 --This occurrence includes 2 possible scenarios: (i) mapping changed; (ii) mapping present in one version, absent in another. To review the absent mappings cases, sort by the respective code_agg to get the NULL values first.
---In this check we review the actual concept-level content and mapping quality, and for prioritization purposes more artifacts can be found in the following scenarios:
--- - mapping presented before, but is missing now;
--- - multiple 'Maps to' and/or 'Maps to value' links (sort by relationship_id to find such cases);
--- - frequent target concept (sort by new_code_agg or old_code_agg fields to find such cases).
---TODO: add logical groups for suspicious target domains
+--Also, we can assess the source which mapping comes from and at what point in the run the mapping changes occurred:
+--- "old_mapping_source" and "new_mapping_source" fields indicate whether mapping comes from concept_relationship_manual or it is built by load_stage scripts;
+--- "mapping_changes_source" field shows at what step of the vocabulary run the mapping was deprecated: concept_relationship_manual, load_stage or generic_update.
 
-WITH new_map AS (
-SELECT a.concept_id,
-       a.vocabulary_id,
-       a.concept_class_id,
-       a.standard_concept,
-       a.concept_code,
-       a.concept_name,
-       string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS relationship_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
-FROM concept a
-LEFT JOIN concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason IS NULL
-LEFT JOIN concept b ON b.concept_id = concept_id_2
-WHERE a.vocabulary_id IN (:your_vocabs)
-    --AND a.invalid_reason IS NULL --to exclude invalid concepts
-GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
-)
-,
-old_map AS (
-SELECT a.concept_id,
-       a.vocabulary_id,
-       a.concept_class_id,
-       a.standard_concept,
-       a.concept_code,
-       a.concept_name,
-       string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS relationship_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_code end, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
-       string_agg (case when a.concept_id = b.concept_id then '<Mapped to itself>' else b.concept_name end, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
-FROM devv5.concept a
-LEFT JOIN devv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Maps to', 'Maps to value') AND r.invalid_reason IS NULL
-LEFT JOIN devv5.concept b ON b.concept_id = concept_id_2
-WHERE a.vocabulary_id IN (:your_vocabs)
-    --AND a.invalid_reason IS NULL --to exclude invalid concepts
-GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
-)
-SELECT b.vocabulary_id AS vocabulary_id,
-       b.concept_class_id,
-       b.standard_concept,
-       b.concept_code AS source_code,
-       b.concept_name AS source_name,
+WITH crm AS (
+    SELECT concept_code_1,
+           vocabulary_id_1,
+           relationship_id,
+           concept_code_2,
+           vocabulary_id_2,
+           invalid_reason
+    FROM concept_relationship_manual
+    WHERE vocabulary_id_1 IN (:your_vocabs)
+     AND relationship_id LIKE 'Maps to%'
+   ),
+
+    new_cr AS (
+        SELECT a.concept_id AS source_concept_id,
+            a.vocabulary_id AS source_vocabulary_id,
+            a.concept_class_id AS source_concept_class_id,
+            a.standard_concept AS source_standard_concept,
+            a.concept_code AS source_code,
+            a.concept_name AS source_name,
+            r.relationship_id,
+            r.invalid_reason,
+            b.concept_id AS target_concept_id,
+            b.concept_code AS target_concept_code,
+            b.concept_name AS target_concept_name,
+            b.vocabulary_id AS target_vocabulary_id
+        FROM concept a
+        LEFT JOIN concept_relationship r on a.concept_id = concept_id_1 AND r.relationship_id LIKE 'Maps to%' AND r.invalid_reason IS NULL
+        LEFT JOIN concept b ON b.concept_id = concept_id_2
+        WHERE a.vocabulary_id IN (:your_vocabs)
+        --and a.invalid_reason IS NULL --to exclude invalid concepts
+  ),
+
+    old_cr AS (
+        SELECT a.concept_id AS source_concept_id,
+            a.vocabulary_id AS source_vocabulary_id,
+            a.concept_class_id AS source_concept_class_id,
+            a.standard_concept AS source_standard_concept,
+            a.concept_code AS source_code,
+            a.concept_name AS source_name,
+            r.relationship_id,
+            r.invalid_reason,
+            b.concept_id AS target_concept_id,
+            b.concept_code AS target_concept_code,
+            b.concept_name AS target_concept_name,
+            b.vocabulary_id AS target_vocabulary_id
+        FROM prodv5.concept a
+        LEFT JOIN prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id LIKE 'Maps to%' AND r.invalid_reason IS NULL
+        LEFT JOIN prodv5.concept b ON b.concept_id = concept_id_2
+        WHERE a.vocabulary_id IN (:your_vocabs)
+        --and a.invalid_reason IS NULL --to exclude invalid concepts
+  ),
+
+    new_map AS (
+        SELECT source_concept_id,
+           source_vocabulary_id,
+           source_concept_class_id,
+           source_standard_concept,
+           source_code,
+           source_name,
+           string_agg (relationship_id, '-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS relationship_agg,
+           string_agg (CASE WHEN source_concept_id = target_concept_id THEN '<Mapped to itself>' ELSE target_concept_code END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS code_agg,
+           string_agg (CASE WHEN source_concept_id = target_concept_id THEN '<Mapped to itself>' ELSE target_concept_name END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS name_agg,
+           string_agg (CASE WHEN source_concept_id = target_concept_id THEN '<Mapped to itself>' ELSE target_vocabulary_id END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS vocabulary_agg,
+           string_agg (CASE WHEN EXISTS (SELECT 1
+                                         FROM crm
+                                         WHERE concept_code_1 = n.source_code
+                                            AND vocabulary_id_1 = n.source_vocabulary_id
+                                            AND relationship_id = n.relationship_id
+                                            AND concept_code_2 = target_concept_code
+                                            AND vocabulary_id_2 = n.target_vocabulary_id
+                                            AND invalid_reason IS NULL
+                                         )
+                            THEN 'manual mapping' ELSE 'load_stage' END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS source_agg
+    FROM new_cr n
+    GROUP BY source_concept_id, source_vocabulary_id, source_concept_class_id, source_standard_concept, source_code, source_name
+   ),
+
+    old_map AS (
+        SELECT source_concept_id,
+           source_vocabulary_id,
+           source_concept_class_id,
+           source_standard_concept,
+           source_code,
+           source_name,
+           string_agg (relationship_id, '-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS relationship_agg,
+           string_agg (CASE WHEN source_concept_id = target_concept_id THEN '<Mapped to itself>' ELSE target_concept_code END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS code_agg,
+           string_agg (CASE WHEN source_concept_id = target_concept_id THEN '<Mapped to itself>' ELSE target_concept_name END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS name_agg,
+           string_agg (CASE WHEN EXISTS (SELECT 1
+                                         FROM crm
+                                         WHERE concept_code_1 = o.source_code
+                                            AND vocabulary_id_1 = o.source_vocabulary_id
+                                            AND relationship_id = o.relationship_id
+                                            AND concept_code_2 = o.target_concept_code
+                                            AND vocabulary_id_2 = o.target_vocabulary_id
+                                            AND invalid_reason = 'D'
+                                         )
+                           THEN 'deprecated manually'
+                           WHEN EXISTS
+                                        (SELECT 1
+                                         FROM concept_relationship_stage
+                                          WHERE concept_code_1 = o.source_code
+                                            AND vocabulary_id_1 = o.source_vocabulary_id
+                                            AND relationship_id = o.relationship_id
+                                            AND concept_code_2 = o.target_concept_code
+                                            AND vocabulary_id_2 = o.target_vocabulary_id
+                                            AND invalid_reason IS NULL)
+                                 AND EXISTS
+                                         (SELECT 1
+                                          FROM concept_relationship
+                                          WHERE concept_id_1 = o.source_concept_id
+                                            AND relationship_id = o.relationship_id
+                                            AND concept_id_2 = o.target_concept_id
+                                            AND invalid_reason = 'D'
+                                            AND relationship_id LIKE 'Maps to%'
+                                            AND concept_id_1 IN (SELECT concept_id FROM concept c WHERE c.vocabulary_id IN (:your_vocabs)))
+                           THEN 'deprecated by generic'
+                           WHEN EXISTS
+                                         (SELECT 1
+                                          FROM concept_relationship
+                                          WHERE concept_id_1 = o.source_concept_id
+                                            AND relationship_id = o.relationship_id
+                                            AND concept_id_2 = o.target_concept_id
+                                            AND invalid_reason = 'D'
+                                            AND relationship_id LIKE 'Maps to%'
+                                          AND concept_id_1 IN (SELECT concept_id FROM concept c WHERE c.vocabulary_id IN (:your_vocabs)))
+                           THEN 'deprecated by load_stage'
+                           ELSE 'valid' END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS changes_agg,
+           string_agg (CASE WHEN EXISTS (SELECT 1
+                                         FROM crm
+                                         WHERE concept_code_1 = o.source_code
+                                            AND vocabulary_id_1 = o.source_vocabulary_id
+                                            AND relationship_id = o.relationship_id
+                                            AND concept_code_2 = o.target_concept_code
+                                            AND vocabulary_id_2 = o.target_vocabulary_id
+                                            AND invalid_reason IS NULL
+                                         )
+                        THEN 'manual mapping' ELSE 'load_stage' END, '-/-' ORDER BY relationship_id, target_concept_code, target_vocabulary_id) AS source_agg
+    FROM old_cr o
+    GROUP BY source_concept_id, source_vocabulary_id, source_concept_class_id, source_standard_concept, source_code, source_name
+    )
+
+SELECT b.source_vocabulary_id AS vocabulary_id,
+       b.source_concept_class_id,
+       b.source_standard_concept,
+       b.source_code,
+       b.source_name,
+       CASE WHEN a.code_agg IS NULL THEN NULL
+           ELSE a.source_agg END AS old_mapping_source,
        a.relationship_agg AS old_relat_agg,
        a.code_agg AS old_code_agg,
        a.name_agg AS old_name_agg,
+       CASE WHEN a.code_agg IS NULL THEN NULL
+           ELSE a.changes_agg END AS mapping_changes_source,
+       CASE WHEN b.code_agg IS NULL THEN NULL
+           ELSE b.source_agg END AS new_mapping_source,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
-       b.name_agg AS new_name_agg,
-       devv5.similarity(  a.name_agg,b.name_agg) AS old_new_similarity,
-       devv5.similarity(  a.name_agg,b.concept_name) AS old_source_similarity,
-       devv5.similarity(  b.name_agg,b.concept_name) AS new_source_similarity
+       b.name_agg AS new_name_agg
 FROM old_map a
 JOIN new_map b
-ON a.concept_id = b.concept_id AND ((COALESCE(a.code_agg, '') != COALESCE(b.code_agg, '')) OR (COALESCE(a.relationship_agg, '') != COALESCE(b.relationship_agg, '')))
-ORDER BY a.concept_code,old_new_similarity NULLS FIRST,old_source_similarity NULLS FIRST,new_source_similarity NULLS FIRST
+ON a.source_code = b.source_code
+       AND a.source_vocabulary_id = b.source_vocabulary_id
+       AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
+ORDER BY a.source_code
 ;
 
 --02.6. Concepts changed their ancestry ('Is a')
@@ -347,9 +454,9 @@ SELECT a.concept_id,
        string_agg (r.relationship_id, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS relationship_agg,
        string_agg (b.concept_code, '-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS code_agg,
        string_agg (b.concept_name, '-/-' ORDER BY r.relationship_id, b.concept_code, b.vocabulary_id) AS name_agg
-FROM devv5. concept a
-LEFT JOIN devv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Is a') AND r.invalid_reason IS NULL
-LEFT JOIN devv5.concept b ON b.concept_id = concept_id_2
+FROM prodv5. concept a
+LEFT JOIN prodv5.concept_relationship r ON a.concept_id = concept_id_1 AND r.relationship_id IN ('Is a') AND r.invalid_reason IS NULL
+LEFT JOIN prodv5.concept b ON b.concept_id = concept_id_2
 WHERE a.vocabulary_id IN (:your_vocabs) AND a.invalid_reason IS NULL
 GROUP BY a.concept_id, a.vocabulary_id, a.concept_class_id, a.standard_concept, a.concept_code, a.concept_name
 )
@@ -363,14 +470,13 @@ SELECT b.vocabulary_id AS vocabulary_id,
        a.name_agg AS old_name_agg,
        b.relationship_agg AS new_relat_agg,
        b.code_agg AS new_code_agg,
-       b.name_agg AS new_name_agg,
-       devv5.similarity(  a.name_agg,b.name_agg) AS old_new_similarity,
-       devv5.similarity(  a.name_agg,b.concept_name) AS old_source_similarity,
-       devv5.similarity(  b.name_agg,b.concept_name) AS new_source_similarity
-FROM old_map  a
+       b.name_agg AS new_name_agg
+FROM old_map a
 JOIN new_map b
-ON a.concept_id = b.concept_id AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
-ORDER BY a.concept_code,old_new_similarity NULLS FIRST,old_source_similarity NULLS FIRST,new_source_similarity NULLS FIRST
+ON a.concept_code = b.concept_code
+       AND a.vocabulary_id = b.vocabulary_id
+       AND ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) OR (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
+ORDER BY a.concept_code
 ;
 
 --02.7. Concepts with 1-to-many mapping -- multiple 'Maps to%' present
@@ -384,61 +490,64 @@ ORDER BY a.concept_code,old_new_similarity NULLS FIRST,old_source_similarity NUL
 SELECT *
 FROM (
 	SELECT s0.vocabulary_id,
-		s0.concept_code_source,
-		s0.concept_name_source,
-		s0.concept_class_id_source,
-		s0.domain_id_source,
+		s0.source_concept_code,
+		s0.source_concept_name,
+		s0.source_concept_class_id,
+		s0.source_domain_id,
 		s0.relationship_id,
-		s0.concept_code_target,
-		s0.concept_name_target,
-		s0.vocabulary_id_target,
+		s0.target_concept_code,
+		s0.target_concept_name,
+		s0.target_vocabulary_id,
 		s0.max_vsd_in_group,
 		(l.concept_id IS NULL) AS new_1_to_many_mappings
 	FROM (
 		SELECT a.concept_id,
 			a.vocabulary_id,
-			a.concept_code AS concept_code_source,
-			a.concept_name AS concept_name_source,
-			a.concept_class_id AS concept_class_id_source,
-			a.domain_id AS domain_id_source,
+			a.concept_code AS source_concept_code,
+			a.concept_name AS source_concept_name,
+			a.concept_class_id AS source_concept_class_id,
+			a.domain_id AS source_domain_id,
 			r.relationship_id,
-			b.concept_code AS concept_code_target,
+			b.concept_code AS target_concept_code,
 			CASE
 				WHEN a.concept_id = b.concept_id
 					THEN '<Mapped to itself>'
 				ELSE b.concept_name
-				END AS concept_name_target,
+				END AS target_concept_name,
 			CASE
 				WHEN a.concept_id = b.concept_id
 					THEN '<Mapped to itself>'
 				ELSE b.vocabulary_id
-				END AS vocabulary_id_target,
+				END AS target_vocabulary_id,
 			COUNT(*) OVER (PARTITION BY a.concept_id) AS mappings_cnt,
 			MAX(r.valid_start_date) OVER (PARTITION BY a.concept_id) AS max_vsd_in_group
 		FROM concept a
 		JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
 			AND r.invalid_reason IS NULL
-			AND r.relationship_Id LIKE  'Maps to%'
+			AND r.relationship_Id LIKE 'Maps to%'
 		JOIN concept b ON b.concept_id = r.concept_id_2
 		WHERE a.vocabulary_id IN (:your_vocabs)
 		--AND r.concept_id_1 <> r.concept_id_2 --use it to exclude mapping to itself
 		) s0
 	LEFT JOIN (
-		SELECT r_int.concept_id_1 AS concept_id
-		FROM devv5.concept_relationship r_int
+		SELECT r_int.concept_id_1 AS concept_id,
+		       c1.concept_code,
+		       c1.vocabulary_id
+		FROM prodv5.concept_relationship r_int
+		JOIN prodv5.concept c1 ON c1.concept_id = r_int.concept_id_1
 		WHERE r_int.invalid_reason IS NULL
 			AND r_int.relationship_Id LIKE 'Maps to%'
 			--AND r_int.concept_id_1 <> r_int.concept_id_2 --use it to exclude mapping to itself
-		GROUP BY r_int.concept_id_1
+		GROUP BY r_int.concept_id_1, c1.concept_code, c1.vocabulary_id
 		HAVING COUNT(*) > 1
-		) l USING (concept_id)
+		) l ON (s0.source_concept_code, s0.vocabulary_id) = (l.concept_code, l.vocabulary_id)
 	WHERE s0.mappings_cnt > 1
 	) s1
 ORDER BY s1.max_vsd_in_group DESC,
 	s1.new_1_to_many_mappings DESC,
 	s1.vocabulary_id,
-	s1.concept_code_source,
-	s1.concept_code_target;
+	s1.source_concept_code,
+	s1.target_concept_code;
 
 --02.8. Concepts became non-Standard with no mapping replacement
 --In this check we manually review the changes of concept's Standard status to non-Standard where 'Maps to' mapping replacement link is missing to make sure changes are expected, correct and in line with the current conventions and approaches.
@@ -454,8 +563,9 @@ SELECT a.concept_code,
        a.domain_id,
        a.vocabulary_id
 FROM concept a
-JOIN devv5.concept b
-        ON a.concept_id = b.concept_id
+JOIN prodv5.concept b
+        ON a.concept_code = b.concept_code
+           AND a.vocabulary_id = b.vocabulary_id
 WHERE a.vocabulary_id IN (:your_vocabs)
     AND b.standard_concept = 'S'
     AND a.standard_concept IS NULL
@@ -499,7 +609,7 @@ WITH vaccine_exclusion AS (SELECT
     )
 ,
      vaccine_inclusion AS (
-         SELECT  unnest(regexp_split_to_array(vaccine_inclusion,  '\|(?![^(]*\))')) AS mask FROM dev_rxe.vaccine_inclusion)
+         SELECT  unnest(regexp_split_to_array(vaccine_inclusion, '\|(?![^(]*\))')) AS mask FROM dev_rxe.vaccine_inclusion)
 
 SELECT DISTINCT array_agg(DISTINCT coalesce(vi.mask,vi2.mask )) AS mask_array,
                 c.concept_code,
@@ -546,7 +656,7 @@ GROUP BY
 -- Please adjust inclusion/exclusion in the master branch if found some flaws
 -- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings).
 
-WITH covid_inclusion AS (SELECT covid_inclusion,unnest(regexp_split_to_array(covid_inclusion,  '\|(?![^(]*\))')) AS mask
+WITH covid_inclusion AS (SELECT covid_inclusion,unnest(regexp_split_to_array(covid_inclusion, '\|(?![^(]*\))')) AS mask
                          FROM (SELECT 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' AS covid_inclusion
                                        ) AS t
     ),
@@ -595,16 +705,11 @@ ORDER BY MAX(cr2.valid_start_date) DESC,
 --We expect this check to return nothing because in most of the cases such mapping is not consistent since any concept implies the semantics of its every ancestor.
 --In some cases it may be consistent and done by the purpose:
 -- - if the concept implies 2 or more different diseases, and you don't just split up the source concept into the pieces;
--- - if you want to emphasis some aspects that are not follow from the hierarchy naturally;
+-- - if you want to emphasize some aspects that do not follow from the hierarchy naturally;
 -- - if the hierarchy of affected concepts is wrong.
--- problem_schema field reflects the schema in which the problem occurs (devv5, current or both). If you expect concept_ancestor changes in your development process, please run concept_ancestor builder appropriately.
--- Use valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old and recent mappings)
+-- Use the valid_start_date field to prioritize the current mappings under the old ones ('1970-01-01' placeholder can be used for either old or recent mappings)
 
-SELECT CASE WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NOT NULL  THEN 'both'
-            WHEN ca_old.descendant_concept_id IS NOT NULL AND ca.descendant_concept_id IS NULL      THEN 'devv5'
-            WHEN ca_old.descendant_concept_id IS NULL     AND ca.descendant_concept_id IS NOT NULL  THEN 'current'
-                END AS problem_schema,
-       LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
+SELECT LEAST (a.valid_start_date, b.valid_start_date) AS valid_start_date,
        c.vocabulary_id,
        c.concept_code,
        c.concept_name,
@@ -617,12 +722,9 @@ JOIN concept_relationship b
     ON a.concept_id_1 = b.concept_id_1
 JOIN concept c
     ON c.concept_id = a.concept_id_1
-LEFT JOIN devv5.concept_ancestor ca_old
+LEFT JOIN prodv5.concept_ancestor ca_old
     ON a.concept_id_2 = ca_old.descendant_concept_id
         AND b.concept_id_2 = ca_old.ancestor_concept_id
-LEFT JOIN concept_ancestor ca
-    ON a.concept_id_2 = ca.descendant_concept_id
-        AND b.concept_id_2 = ca.ancestor_concept_id
 LEFT JOIN concept c_des
     ON a.concept_id_2 = c_des.concept_id
 LEFT JOIN concept c_anc
@@ -635,315 +737,14 @@ WHERE a.concept_id_2 != b.concept_id_2
     AND b.relationship_id = 'Maps to'
     AND a.invalid_reason IS NULL
     AND b.invalid_reason IS NULL
-    AND (ca_old.descendant_concept_id IS NOT NULL OR ca.descendant_concept_id IS NOT NULL)
+    AND ca_old.descendant_concept_id IS NOT NULL
 ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
          c.vocabulary_id,
          c.concept_code
 ;
 
--- 02.13. Mapping of visit concepts
---In this check we manually review the mapping of visits to the 'Visit' domain.
--- -- Three flags are used:
--- -- - 'incorrect mapping' - indicates the concepts that are probably visits but mapped to domains other than 'Visit';
--- -- - 'review mapping to visit' - indicates concepts that are mapped to the 'Visit' domain but the target_concept_id differs from the reference;
--- -- - 'correct mapping' - indicates the concepts mapped to the expected target visits.
--- -- The flag_visit_should_be field contains the most commonly used types of visits that could be the target for your mapping, and also flag 'other visit' that may indicate the relatively rarely used concepts in the 'Visit' domain.
--- Because of mapping complexity and trickiness, and depending on the way the mappings were produced, full manual review may be needed.
--- Please adjust inclusion/exclusion in the master branch if found some flaws
-
---- 02.13.01 This check is highly sensitive and adjusted for the Procedure vocabularies only.
-
-WITH home_visit AS (SELECT ('(?<!(morp))home(?!(tr|opath|less|ria|ostasis))|domiciliary') AS home_visit),
-    outpatient_visit AS (SELECT ('outpatient|out.patient|ambul(?!(ance|ation|ism))|office(?!(r))') AS outpatient_visit),
-    ambulance_visit AS (SELECT ('ambulance(\W)|transport(?!(er))') AS ambulance_visit),
-    emergency_room_visit AS (SELECT ('emerg(?!(ence|omyces))|(\W)ER(\W)') AS emergency_room_visit),
-    pharmacy_visit AS (SELECT ('(\W)pharm(\s)|pharmacy') AS pharmacy_visit),
-    inpatient_visit AS (SELECT ('inpatient|in.patient|(\W)hosp(?!(ice|h|ira))') AS inpatient_visit),
-    telehealth AS (SELECT ('(?<!(pla))tele(?!(t|scop|ctasis))|remote|video') AS telehealth),
-    other_visit AS (SELECT ('clinic(?!(al))|esrd|(\W)center(\W)|(\W)facility|visit|institution|encounter|rehab|hospice|nurs|school|(\W)unit(\W)|(\W)nicu(\W)') AS other_visit),
-    ER_exclusion AS (SELECT ('estrogen') AS ER_exclusion),
-    ambulance_exclusion AS (SELECT ('accident|collision|metabol') AS ambulance_exclusion),
-
-flag AS (SELECT DISTINCT c.concept_code,
-                c.concept_name,
-                c.vocabulary_id,
-                b.concept_id AS target_concept_id,
-                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
-                    ELSE b.concept_name END AS target_concept_name,
-                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
-                    ELSE b.vocabulary_id END AS target_vocabulary_id,
-                b.domain_id AS target_domain_id,
-                              CASE WHEN c.concept_name ~* (SELECT home_visit FROM home_visit) AND
-                                       b.concept_id != '581476' THEN 'home visit'
-                                  WHEN c.concept_name ~* (SELECT outpatient_visit FROM outpatient_visit) AND
-                                       b.concept_id != '9202' THEN 'outpatient visit'
-                                  WHEN c.concept_name ~* (SELECT ambulance_visit FROM ambulance_visit)
-                                           AND c.concept_name !~* (SELECT ambulance_exclusion FROM ambulance_exclusion)
-                                           AND b.concept_id NOT IN ('581478', '38004353') THEN 'ambulance visit'
-                                  WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit)
-                                           AND c.concept_name !~* (SELECT ER_exclusion FROM ER_exclusion)
-                                           AND b.concept_id != '9203' THEN 'emergency room visit'
-                                  WHEN c.concept_name ~* (SELECT pharmacy_visit FROM pharmacy_visit) AND
-                                       b.concept_id != '581458' THEN 'pharmacy visit'
-                                  WHEN c.concept_name ~* (SELECT inpatient_visit FROM inpatient_visit) AND
-                                       b.concept_id != '9201' THEN 'inpatient visit'
-                                  WHEN c.concept_name ~* (SELECT telehealth FROM telehealth) AND
-                                       b.concept_id != '5083' THEN 'telehealth'
-                                  WHEN c.concept_name ~* (SELECT other_visit FROM other_visit)
-                                        THEN 'other visit'
-                                  END AS flag_visit_should_be
-FROM concept c
-LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
-LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id IN (:your_vocabs)
-),
-
-incorrect_mapping AS (SELECT concept_code,
-                concept_name,
-                vocabulary_id,
-                target_concept_id,
-                target_concept_name,
-                target_vocabulary_id,
-                'incorrect_mapping' AS flag,
-                flag_visit_should_be
-FROM flag
-WHERE target_domain_id != 'Visit'),
-
-review_mapping_to_visit AS (SELECT concept_code,
-                concept_name,
-                vocabulary_id,
-                target_concept_id,
-                target_concept_name,
-                target_vocabulary_id,
-                'review_mapping_to_visit' AS flag,
-                flag_visit_should_be
-FROM flag
-WHERE target_domain_id = 'Visit'),
-
-correct_mapping AS (SELECT DISTINCT c.concept_code,
-                c.concept_name,
-                c.vocabulary_id,
-                b.concept_id AS target_concept_id,
-                b.concept_name AS target_concept_name,
-                b.vocabulary_id AS target_vocabulary_id,
-                'correct mapping' AS flag,
-                NULL AS flag_visit_should_be
-FROM concept c
-LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
-LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id IN (:your_vocabs)
-AND b.concept_id IN (581476, 9202, 581478, 38004353, 9203, 581458, 9201, 5083)
-)
-
-SELECT vocabulary_id,
-       concept_code,
-       concept_name,
-       flag,
-       flag_visit_should_be,
-       target_concept_id,
-       target_concept_name,
-       target_vocabulary_id
-FROM incorrect_mapping
-WHERE flag_visit_should_be IS NOT NULL
-             AND concept_code NOT IN (SELECT concept_code FROM review_mapping_to_visit) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
-             AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
-
-UNION ALL
-
-SELECT vocabulary_id,
-       concept_code,
-       concept_name,
-       flag,
-       flag_visit_should_be,
-       target_concept_id,
-       target_concept_name,
-       target_vocabulary_id
-FROM review_mapping_to_visit
-WHERE flag_visit_should_be IS NOT NULL
-              AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- do not include concepts, already mentioned in correct_mapping and mistakenly defined as 'other visit' by regex
-
-UNION ALL
-
-SELECT vocabulary_id,
-       concept_code,
-       concept_name,
-       flag,
-       flag_visit_should_be,
-       target_concept_id,
-       target_concept_name,
-       target_vocabulary_id
-FROM correct_mapping
-
-ORDER BY flag,
-    flag_visit_should_be,
-    vocabulary_id,
-    concept_code
-;
-
---- 02.13.02 This check presents higher specificity, and it's adjusted for non-Procedure vocabs (Conditions, Measurements, Drugs, etc.)
-
-WITH home_visit AS (SELECT ('home visit|home care|home service|home assessment|home therapy|home health aide|(\W)at.home|domiciliary') AS home_visit),
-    outpatient_visit AS (SELECT ('outpatient(\s)|(\s)out.patient|ambul(?!(ance|ation|ism|ant|ating))') AS outpatient_visit),
-    ambulance_visit AS (SELECT ('ambulance(\W)') AS ambulance_visit),
-    emergency_room_visit AS (SELECT ('emergency department|emergency room|(\s)ER(\s)') AS emergency_room_visit),
-    pharmacy_visit AS (SELECT ('(\s)pharmacy') AS pharmacy_visit),
-    inpatient_visit AS (SELECT ('inpatient|(\W)hospit') AS inpatient_visit),
-    telehealth AS (SELECT ('telehealth|telepractice|telephone|telemedicine|video') AS telehealth),
-    other_visit AS (SELECT ('clinic(\s)|esrd|(\W)center(\W)|(\W)facility|(\s)visit(?!(or))|hospice|nursing(\W)unit(\W)|(\W)nicu(\W)') AS other_visit),
-
-    ER_exclusion AS (SELECT ('estrogen|signposting|refer') AS ER_exclusion),
-    ambulance_exclusion AS (SELECT ('accident|collision|refer|signposting') AS ambulance_exclusion),
-    home_exclusion AS (SELECT ('nursing|refer|occurrence') AS home_exclusion),
-    inpatient_exclusion AS (SELECT ('quality|grade|refer|signposting|suppl|ltd|born|risk') AS inpatient_exclusion),
-    other_exclusion AS (SELECT ('refer|signposting|follic|ossification|claim') AS other_exclusion),
-    outpatient_exclusion AS (SELECT ('refer|signposting') AS outpatient_exclusion),
-    pharmacy_exclusion AS (SELECT ('ltd') AS pharmacy_exclusion),
-    telehealth_exclusion AS (SELECT ('number|operator|technician|manager|fitter|user|cassette|printer|(\w)scop') AS telehealth_exclusion),
-
-flag AS (SELECT DISTINCT c.concept_code,
-                c.concept_name,
-                c.vocabulary_id,
-                b.concept_id AS target_concept_id,
-                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
-                    ELSE b.concept_name END AS target_concept_name,
-                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
-                    ELSE b.vocabulary_id END AS target_vocabulary_id,
-                b.domain_id AS target_domain_id,
-                              CASE WHEN c.concept_name ~* (SELECT home_visit FROM home_visit)
-                                            AND c.concept_name !~* (SELECT home_exclusion FROM home_exclusion)
-                                            AND b.concept_id != '581476' THEN 'home visit'
-                                  WHEN c.concept_name ~* (SELECT outpatient_visit FROM outpatient_visit)
-                                            AND c.concept_name !~* (SELECT outpatient_exclusion FROM outpatient_exclusion)
-                                            AND b.concept_id != '9202' THEN 'outpatient visit'
-                                  WHEN c.concept_name ~* (SELECT ambulance_visit FROM ambulance_visit)
-                                           AND c.concept_name !~* (SELECT ambulance_exclusion FROM ambulance_exclusion)
-                                           AND b.concept_id NOT IN ('581478', '38004353') THEN 'ambulance visit'
-                                  WHEN c.concept_name ~* (SELECT emergency_room_visit FROM emergency_room_visit)
-                                           AND c.concept_name !~* (SELECT ER_exclusion FROM ER_exclusion)
-                                           AND b.concept_id != '9203' THEN 'emergency room visit'
-                                  WHEN c.concept_name ~* (SELECT pharmacy_visit FROM pharmacy_visit)
-                                      AND c.concept_name !~* (SELECT pharmacy_exclusion FROM pharmacy_exclusion)
-                                      AND b.concept_id != '581458' THEN 'pharmacy visit'
-                                  WHEN c.concept_name ~* (SELECT inpatient_visit FROM inpatient_visit)
-                                           AND c.concept_name !~* (SELECT inpatient_exclusion FROM inpatient_exclusion)
-                                           AND b.concept_id != '9201' THEN 'inpatient visit'
-                                  WHEN c.concept_name ~* (SELECT telehealth FROM telehealth)
-                                       AND c.concept_name !~* (SELECT telehealth_exclusion FROM telehealth_exclusion)
-                                       AND b.concept_id != '5083' THEN 'telehealth'
-                                  WHEN c.concept_name ~* (SELECT other_visit FROM other_visit)
-                                        AND c.concept_name !~* (SELECT other_exclusion FROM other_exclusion)
-                                        THEN 'other visit'
-                                  END AS flag_visit_should_be
-FROM concept c
-LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
-LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id IN (:your_vocabs)
-),
-
-incorrect_mapping AS (SELECT concept_code,
-                concept_name,
-                vocabulary_id,
-                target_concept_id,
-                target_concept_name,
-                target_vocabulary_id,
-                'incorrect_mapping' AS flag,
-                flag_visit_should_be
-FROM flag
-WHERE target_domain_id != 'Visit'),
-
-review_mapping_to_visit AS (SELECT concept_code,
-                concept_name,
-                vocabulary_id,
-                target_concept_id,
-                target_concept_name,
-                target_vocabulary_id,
-                'review_mapping_to_visit' AS flag,
-                flag_visit_should_be
-FROM flag
-WHERE target_domain_id = 'Visit'),
-
-correct_mapping AS (SELECT DISTINCT c.concept_code,
-                c.concept_name,
-                c.vocabulary_id,
-                b.concept_id AS target_concept_id,
-                b.concept_name AS target_concept_name,
-                b.vocabulary_id AS target_vocabulary_id,
-                'correct mapping' AS flag,
-                NULL AS flag_visit_should_be
-FROM concept c
-LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND relationship_id ='Maps to' AND cr.invalid_reason IS NULL
-LEFT JOIN concept b ON b.concept_id = cr.concept_id_2
-WHERE c.vocabulary_id IN (:your_vocabs)
-AND b.concept_id IN (581476, 9202, 581478, 38004353, 9203, 581458, 9201, 5083)
-)
-
-SELECT vocabulary_id,
-       concept_code,
-       concept_name,
-       flag,
-       flag_visit_should_be,
-       target_concept_id,
-       target_concept_name,
-       target_vocabulary_id
-FROM incorrect_mapping
-WHERE flag_visit_should_be IS NOT NULL
-             AND concept_code NOT IN (SELECT concept_code FROM review_mapping_to_visit) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
-             AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- concepts mapped 1-to-many to visit + other domain should not be flagged as incorrect
-
-UNION ALL
-
-SELECT vocabulary_id,
-       concept_code,
-       concept_name,
-       flag,
-       flag_visit_should_be,
-       target_concept_id,
-       target_concept_name,
-       target_vocabulary_id
-FROM review_mapping_to_visit
-WHERE flag_visit_should_be IS NOT NULL
-              AND concept_code NOT IN (SELECT concept_code FROM correct_mapping) -- do not include concepts, already mentioned in correct_mapping and mistakenly defined as 'other visit' by regex
-
-
-UNION ALL
-
-SELECT vocabulary_id,
-       concept_code,
-       concept_name,
-       flag,
-       flag_visit_should_be,
-       target_concept_id,
-       target_concept_name,
-       target_vocabulary_id
-FROM correct_mapping
-
-ORDER BY flag,
-    flag_visit_should_be,
-    vocabulary_id,
-    concept_code,
-    target_concept_id
-;
-
---03. Check we don't add duplicative concepts
--- This check retrieves the list of duplicative concepts with the same names and the flag indicator whether the concepts are new.
--- This may be indication on the source wrong processing or duplication of content in it, and has to be further investigated.
-SELECT CASE WHEN string_agg (DISTINCT c2.concept_id::text, '-') IS NULL THEN 'new concept' ELSE 'old concept' END AS when_added,
-       c.concept_name,
-       string_agg (DISTINCT c2.concept_id::text, '-') AS concept_id
-FROM concept c
-LEFT JOIN devv5.concept c2
-    ON c.concept_id = c2.concept_id
-WHERE c.vocabulary_id IN (:your_vocabs)
-    AND c.invalid_reason IS NULL
-GROUP BY c.concept_name
-HAVING COUNT (*) >1
-ORDER BY when_added, concept_name
-;
-
---04. Concepts have replacement link, but miss "Maps to" link
--- This check controls that all replacement links are repeated with the 'Maps to' link that are used by ETL.
---TODO: at the moment it's not resolved in SNOMED and some other places and requires additional attention. Review p.5 of "What's New" chapter [here](https://github.com/OHDSI/Vocabulary-v5.0/releases/tag/v20220829_1661776786)
-
+--03. Concepts have a replacement link, but miss the "Maps to" link
+-- This check controls that all replacement links are repeated with the 'Maps to' links that are used by ETL.
 SELECT DISTINCT c.vocabulary_id,
                 c.concept_class_id,
                 cr.concept_id_1,
@@ -956,33 +757,227 @@ JOIN concept c
 LEFT JOIN concept cc
     ON cc.concept_id = cr.concept_id_2
 WHERE c.vocabulary_id IN (:your_vocabs)
-    AND EXISTS (SELECT concept_id_1
-                FROM concept_relationship cr1
-                WHERE cr1.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
-                    AND cr1.invalid_reason IS NULL
-                    AND cr1.concept_id_1 = cr.concept_id_1)
     AND NOT EXISTS (SELECT concept_id_1
                     FROM concept_relationship cr2
                     WHERE cr2.relationship_id IN ('Maps to')
                         AND cr2.invalid_reason IS NULL
                         AND cr2.concept_id_1 = cr.concept_id_1)
     AND cr.relationship_id IN ('Concept replaced by', 'Concept same_as to', 'Concept alt_to to', 'Concept was_a to')
+    AND cr.invalid_reason is null
+    AND cc.standard_concept = 'S' -- exclude cases where replacement leads to non-standard concepts (no mapping is possible)
 ORDER BY cr.relationship_id, cc.standard_concept, cr.concept_id_1
 ;
 
---05. Check the presence of symmetric relationships in the manual tables.
---- We expect this check to return nothing. Normally we don't store symmetric relationships in manual tables since they're created by generic_update.sql.
---- Otherwise you should find out why these relationships are stored in manual tables and consider dropping them if they're useless.
+--04. Relationships between concept classes
+-- In this check, we identify and compare relationships absent in the previous (prodv5 by default) and new (current by default) versions of RxNorm/RxE concepts.
+-- The focus is on hierarchical and non-hierarchical links between concept classes.
+-- To prioritize and structure the review, results are grouped by concept_class_id, relationship_id, and c_class_2. Sorting is applied to facilitate separate analysis within logical groups.
+-- Depending on the logical group, vocabulary importance, and maturity level, the results may represent multiple scenarios, such as following:
+--- Relationships missing in the previous version but present in the new version, indicating improvements;
+--- Relationships present in the previous version but absent in the new version, suggesting regressions or intentional changes (e.g., de-standardization or mapping adjustments).
 
-SELECT crm1.concept_code_1, crm1.vocabulary_id_1, crm1.relationship_id, crm1.concept_code_2, crm1.vocabulary_id_2,
-        crm2.concept_code_1, crm2.vocabulary_id_1, crm2.relationship_id, crm2.concept_code_2, crm2.vocabulary_id_2
-FROM concept_relationship_manual crm1
-         JOIN concept_relationship_manual crm2 ON crm1.concept_code_1 = crm2.concept_code_2
-         AND crm1.concept_code_2 = crm2.concept_code_1
-WHERE (crm1.relationship_id = 'Maps to' AND crm2.relationship_id = 'Mapped from')
-OR (crm1.relationship_id = 'Is a' AND crm2.relationship_id = 'Subsumes')
-OR (crm1.relationship_id = 'Maps to value' AND crm2.relationship_id = 'Value mapped from')
-AND crm1.vocabulary_id_1 = crm2.vocabulary_id_2
-AND crm2.vocabulary_id_1 = crm1.vocabulary_id_2
-AND crm1.vocabulary_id_1 IN (:your_vocabs)
-ORDER BY crm1.concept_code_1;
+--Do not treat such triples as fully reciprocal ones, as Clinical Drug Forms may mostly have links to Clinical Drugs, while Clinical Drugs may have substantially more lacking links to forms
+--NB! Marketed Products is the RxE class of entities and, due to BuilderRxE imperfection, it has no proper formal structure
+WITH possible_relationships AS (
+    SELECT * FROM (
+        WITH t AS (
+            SELECT 'Brand Name' c_class_1, 'Brand name of' relationship_id, 'Branded Drug Box' c_class_2 UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Drug Comp' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Drug Form' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Drug' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Pack' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Branded Pack Box' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Marketed Product' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Quant Branded Box' UNION ALL
+            SELECT 'Brand Name', 'Brand name of', 'Quant Branded Drug' UNION ALL
+            SELECT 'Branded Drug Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' UNION ALL
+            SELECT 'Branded Drug Comp', 'Constitutes', 'Branded Drug' UNION ALL
+            SELECT 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' UNION ALL
+            SELECT 'Branded Drug', 'Available as box', 'Branded Drug Box' UNION ALL
+            SELECT 'Branded Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' UNION ALL
+            SELECT 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' UNION ALL
+            SELECT 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' UNION ALL
+            SELECT 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' UNION ALL
+            SELECT 'Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp' UNION ALL
+            SELECT 'Clinical Drug Form', 'Has tradename', 'Branded Drug Form' UNION ALL
+            SELECT 'Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug' UNION ALL
+            SELECT 'Clinical Drug', 'Available as box', 'Clinical Drug Box' UNION ALL
+            SELECT 'Clinical Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Clinical Drug', 'Has tradename', 'Branded Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Branded Pack' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Form' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Clinical Pack' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Marketed Product' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Branded Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' UNION ALL
+            SELECT 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Ingredient', 'Has brand name', 'Brand Name' UNION ALL
+            SELECT 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' UNION ALL
+            SELECT 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' UNION ALL
+            SELECT 'Marketed Product', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Supplier', 'Supplier of', 'Marketed Product' UNION ALL
+            SELECT 'Quant Branded Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' UNION ALL
+            SELECT 'Quant Branded Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'Has brand name', 'Brand Name' UNION ALL
+            SELECT 'Branded Dose Group', 'Has dose form group', 'Dose Form Group' UNION ALL
+            SELECT 'Branded Dose Group', 'Marketed form of', 'Dose Form Group' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm has ing', 'Brand Name' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Branded Drug Form' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Branded Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Branded Dose Group', 'Tradename of', 'Clinical Dose Group' UNION ALL
+            SELECT 'Clinical Dose Group', 'Has dose form group', 'Dose Form Group' UNION ALL
+            SELECT 'Clinical Dose Group', 'Marketed form of', 'Dose Form Group' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm has ing', 'Ingredient' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm has ing', 'Precise Ingredient' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug Form' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' UNION ALL
+            SELECT 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' UNION ALL
+            SELECT 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' UNION ALL
+            SELECT 'Precise Ingredient', 'Form of', 'Ingredient' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Clinical Pack' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Clinical Pack Box' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Clinical Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Branded Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Branded Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Branded Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Clinical Pack' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Clinical Pack Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Quant Clinical Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Quant Branded Drug', 'Contained in', 'Branded Pack' UNION ALL
+            SELECT 'Quant Branded Drug', 'Contained in', 'Branded Pack Box' UNION ALL
+            SELECT 'Quant Branded Drug', 'Contained in', 'Marketed Product' UNION ALL
+            SELECT 'Branded Pack', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Pack Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Branded Pack', 'Available as box', 'Branded Pack Box' UNION ALL
+            SELECT 'Clinical Pack', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Pack Box', 'Has marketed form', 'Marketed Product' UNION ALL
+            SELECT 'Clinical Pack', 'Has tradename', 'Branded Pack' UNION ALL
+            SELECT 'Clinical Pack', 'Available as box', 'Clinical Pack Box' UNION ALL
+            SELECT 'Clinical Pack Box', 'Has tradename', 'Branded Pack Box'
+        )
+        SELECT * FROM t
+        UNION ALL
+        SELECT c_class_2, r.reverse_relationship_id, c_class_1
+        FROM t rra, prodv5.relationship r
+        WHERE rra.relationship_id = r.relationship_id
+    ) AS s1
+),
+valid_concepts_prev AS (
+    SELECT concept_id, concept_name, concept_class_id
+    FROM prodv5.concept
+    WHERE vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+    AND invalid_reason IS NULL
+),
+existing_relationships_prev AS (
+    SELECT
+        cr.concept_id_1,
+        cr.relationship_id,
+        c2.concept_class_id AS concept_class_id_2
+    FROM prodv5.concept_relationship cr
+    JOIN valid_concepts_prev vc ON cr.concept_id_1 = vc.concept_id
+    JOIN prodv5.concept c2 ON cr.concept_id_2 = c2.concept_id
+    WHERE cr.invalid_reason IS NULL
+    AND c2.invalid_reason IS NULL
+    AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+),
+absent_relationships_prev AS (
+    SELECT
+        vc.concept_class_id,
+        pr.relationship_id,
+        pr.c_class_2,
+        COUNT(DISTINCT vc.concept_id) AS concept_count
+    FROM valid_concepts_prev vc
+    CROSS JOIN possible_relationships pr
+    WHERE pr.c_class_1 = vc.concept_class_id
+    AND NOT EXISTS (
+        SELECT 1
+        FROM existing_relationships_prev er
+        WHERE er.concept_id_1 = vc.concept_id
+        AND er.relationship_id = pr.relationship_id
+        AND er.concept_class_id_2 = pr.c_class_2
+    )
+    GROUP BY vc.concept_class_id, pr.relationship_id, pr.c_class_2
+),
+valid_concepts_dev_new AS (
+    SELECT concept_id, concept_name, concept_class_id
+    FROM concept
+    WHERE vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+    AND invalid_reason IS NULL
+),
+existing_relationships_dev_new AS (
+    SELECT
+        cr.concept_id_1,
+        cr.relationship_id,
+        c2.concept_class_id AS concept_class_id_2
+    FROM concept_relationship cr
+    JOIN valid_concepts_dev_new vc ON cr.concept_id_1 = vc.concept_id
+    JOIN concept c2 ON cr.concept_id_2 = c2.concept_id
+    WHERE cr.invalid_reason IS NULL
+    AND c2.invalid_reason IS NULL
+    AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+),
+absent_relationships_dev_new AS (
+    SELECT
+        vc.concept_class_id,
+        pr.relationship_id,
+        pr.c_class_2,
+        COUNT(DISTINCT vc.concept_id) AS concept_count
+    FROM valid_concepts_dev_new vc
+    CROSS JOIN possible_relationships pr
+    WHERE pr.c_class_1 = vc.concept_class_id
+    AND NOT EXISTS (
+        SELECT 1
+        FROM existing_relationships_dev_new er
+        WHERE er.concept_id_1 = vc.concept_id
+        AND er.relationship_id = pr.relationship_id
+        AND er.concept_class_id_2 = pr.c_class_2
+    )
+    GROUP BY vc.concept_class_id, pr.relationship_id, pr.c_class_2
+)
+SELECT
+    COALESCE(s1.concept_class_id, s2.concept_class_id) AS concept_class,
+    COALESCE(s1.relationship_id, s2.relationship_id) || ' - ' || COALESCE(s1.c_class_2, s2.c_class_2) AS relationships,
+    total_class_volume,
+    COALESCE(s1.concept_count, 0) AS count_in_prev,
+    COALESCE(s2.concept_count, 0) AS count_in_dev_new,
+    COALESCE(s2.concept_count, 0) - COALESCE(s1.concept_count, 0) AS delta_abs,
+    CASE
+        WHEN COALESCE(s2.concept_count, 0) > 0
+            AND COALESCE(s1.concept_count, 0) > 0
+        THEN ROUND(((COALESCE(s2.concept_count, 0) - COALESCE(s1.concept_count, 0))::FLOAT / COALESCE(s1.concept_count, 0) * 100)::NUMERIC, 2)
+        ELSE NULL
+    END AS delta_percent
+FROM absent_relationships_prev s1
+FULL OUTER JOIN absent_relationships_dev_new s2
+    ON s1.concept_class_id = s2.concept_class_id
+    AND s1.relationship_id = s2.relationship_id
+    AND s1.c_class_2 = s2.c_class_2
+JOIN  (SELECT concept_class_id,count(*) as total_class_volume
+       from prodv5.concept
+       where vocabulary_id IN ('RxNorm','RxNorm Extension')
+       GROUP BY concept_class_id ) as t
+on t.concept_class_id=COALESCE(s1.concept_class_id, s2.concept_class_id)
+ORDER BY concept_class, relationships;

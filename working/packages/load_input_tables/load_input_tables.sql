@@ -424,7 +424,7 @@ begin
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
       --execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER'; --use csvcut (pip3 install csvkit --user) for parsing and ignoring new last columns
       execute 'COPY sources.loinc_forms FROM PROGRAM ''/var/lib/pgsql/.local/bin/csvcut --columns=1-28 "'||pVocabularyPath||'panelsandforms.csv" '' delimiter '','' csv HEADER';
-      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
+      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology, sources.loinc_consumer_name;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'parentgroupattributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
       execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'grouploincterms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
@@ -437,9 +437,10 @@ begin
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
       execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'cpt_mrsmap.rrf'' delimiter ''|'' csv';
       execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'documentontology.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_consumer_name FROM '''||pVocabularyPath||'ConsumerName.csv'' delimiter '','' csv HEADER';
       PERFORM sources_archive.AddVocabularyToArchive('LOINC', ARRAY['loinc','map_to','source_organization','loinc_hierarchy','loinc_documentontology','loinc_answerslist','loinc_answerslistlink','loinc_forms',
         'loinc_group','loinc_parentgroupattributes','loinc_grouploincterms','loinc_partlink_primary','loinc_partlink_supplementary','loinc_part','loinc_radiology','loinc_class','cpt_mrsmap',
-        'scccrefset_expressionassociation_int','scccrefset_mapcorrorfull_int'], COALESCE(pVocabularyDate,current_date), 'archive.loinc_version', 10);
+        'scccrefset_expressionassociation_int','scccrefset_mapcorrorfull_int','loinc_consumer_name'], COALESCE(pVocabularyDate,current_date), 'archive.loinc_version', 100);
   when 'HCPCS' then
       truncate table sources.anweb_v2;
       insert into sources.anweb_v2 
@@ -543,6 +544,260 @@ begin
       execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       PERFORM sources_archive.AddVocabularyToArchive('SNOMED', ARRAY['sct2_concept_full_merged','sct2_desc_full_merged','sct2_rela_full_merged','der2_crefset_assreffull_merged','der2_crefset_language_merged',
         'der2_srefset_simplemapfull_int','der2_ssrefset_moduledependency_merged','der2_iisssccrefset_extendedmapfull_us','der2_crefset_attributevalue_full_merged'], COALESCE(pVocabularyDate,current_date), 'archive.snomed_version', 10);
+  when 'SNOMED_INT' then
+    truncate table sources.sct2_concept_full_int, 
+                   sources.sct2_desc_full_int, 
+                   sources.sct2_rela_full_int, 
+                   sources.der2_crefset_assreffull_int, 
+                   sources.der2_crefset_attributevalue_full_int, 
+                   sources.der2_crefset_language_int;
+
+    drop index sources.idx_concept_int_id;
+    drop index sources.idx_desc_int_id;
+    drop index sources.idx_rela_int_id;
+    drop index sources.idx_lang_int_refid;
+
+    execute 'COPY sources.sct2_concept_full_int (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+    
+    update sources.sct2_concept_full_int 
+       set vocabulary_date = COALESCE(pVocabularyDate,current_date), 
+           vocabulary_version = COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+
+    execute 'COPY sources.sct2_desc_full_int FROM ''' || pVocabularyPath || 'sct2_Description_Full-en_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.sct2_rela_full_int FROM ''' || pVocabularyPath || 'sct2_Relationship_Full_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_assreffull_int FROM ''' || pVocabularyPath || 'der2_cRefset_AssociationFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_attributevalue_full_int FROM ''' || pVocabularyPath || 'der2_cRefset_AttributeValueFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    CREATE INDEX idx_concept_int_id ON sources.sct2_concept_full_int (id);
+    CREATE INDEX idx_desc_int_id ON sources.sct2_desc_full_int (conceptid);
+    CREATE INDEX idx_rela_int_id ON sources.sct2_rela_full_int (id);
+    
+    analyze sources.sct2_concept_full_int;
+    analyze sources.sct2_desc_full_int;
+    analyze sources.sct2_rela_full_int;
+
+    truncate table sources.der2_srefset_simplemapfull_int;
+    execute 'COPY sources.der2_srefset_simplemapfull_int FROM ''' || pVocabularyPath || 'der2_sRefset_SimpleMapFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_language_int (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM ''' || pVocabularyPath || 'der2_sRefset_LanguageFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    update sources.der2_crefset_language_int 
+       set source_file_id = 'INT' 
+     where source_file_id is null;
+
+    CREATE INDEX idx_lang_int_refid ON sources.der2_crefset_language_int (referencedcomponentid);
+    analyze sources.der2_crefset_language_int;
+
+    execute 'COPY sources.der2_ssrefset_moduledependency_int FROM ''' || pVocabularyPath || 'der2_ssRefset_ModuleDependencyFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    PERFORM sources_archive.AddVocabularyToArchive(
+        'SNOMED_INT', 
+        ARRAY['sct2_concept_full_int',
+              'sct2_desc_full_int',
+              'sct2_rela_full_int',
+              'der2_crefset_assreffull_int',
+              'der2_crefset_language_int',
+              'der2_srefset_simplemapfull_int',
+              'der2_ssrefset_moduledependency_int',
+              'der2_crefset_attributevalue_full_int'], 
+              COALESCE(pVocabularyDate, current_date), 
+              'archive.snomed_int_version', 20);
+
+  WHEN 'SNOMED_US' THEN
+    truncate table sources.sct2_concept_full_us, 
+                   sources.sct2_desc_full_us, 
+                   sources.sct2_rela_full_us, 
+                   sources.der2_crefset_assreffull_us, 
+                   sources.der2_crefset_attributevalue_full_us, 
+                   sources.der2_crefset_language_us;
+                   
+    drop index sources.idx_concept_us_id;
+    drop index sources.idx_desc_us_id;
+    drop index sources.idx_rela_us_id;
+    drop index sources.idx_lang_us_refid;
+
+    execute 'COPY sources.sct2_concept_full_us (id,effectivetime,active,moduleid,statusid) FROM ''' || pVocabularyPath || 'sct2_Concept_Full_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    update sources.sct2_concept_full_us
+       set vocabulary_date = COALESCE(pVocabularyDate, current_date), 
+           vocabulary_version = COALESCE(pVocabularyVersion, pVocabularyID || ' ' || current_date);
+
+    execute 'COPY sources.sct2_desc_full_us FROM ''' || pVocabularyPath || 'sct2_Description_Full-en_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.sct2_rela_full_us FROM ''' || pVocabularyPath || 'sct2_Relationship_Full_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_assreffull_us FROM ''' || pVocabularyPath || 'der2_cRefset_AssociationFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_attributevalue_full_us FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    CREATE INDEX idx_concept_us_id ON sources.sct2_concept_full_us (id);
+    CREATE INDEX idx_desc_us_id ON sources.sct2_desc_full_us (conceptid);
+    CREATE INDEX idx_rela_us_id ON sources.sct2_rela_full_us (id);
+    
+    analyze sources.sct2_concept_full_us;
+    analyze sources.sct2_desc_full_us;
+    analyze sources.sct2_rela_full_us;
+
+    execute 'COPY sources.der2_crefset_language_us (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM '''||pVocabularyPath||'der2_sRefset_LanguageFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+    
+    update sources.der2_crefset_language_us
+       set source_file_id = 'US' 
+     where source_file_id is null;
+
+    CREATE INDEX idx_lang_us_refid ON sources.der2_crefset_language_us (referencedcomponentid);
+    
+    analyze sources.der2_crefset_language_us;
+    
+    truncate table sources.der2_ssrefset_moduledependency_us;
+
+    execute 'COPY sources.der2_ssrefset_moduledependency_us FROM ''' || pVocabularyPath || 'der2_ssRefset_ModuleDependencyFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    truncate table sources.der2_iisssccrefset_extendedmapfull_us;
+
+    execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    PERFORM sources_archive.AddVocabularyToArchive(
+        'SNOMED_US', 
+        ARRAY['sct2_concept_full_us',
+              'sct2_desc_full_us',
+              'sct2_rela_full_us',
+              'der2_crefset_assreffull_us',
+              'der2_crefset_language_us',
+              'der2_ssrefset_moduledependency_us',
+              'der2_crefset_attributevalue_full_us',
+              'der2_iisssccrefset_extendedmapfull_us'], 
+              COALESCE(pVocabularyDate, current_date), 
+              'archive.snomed_us_version', 
+              20);
+
+  WHEN 'SNOMED_UK_DE' THEN
+
+    truncate table sources.sct2_concept_full_gb_de, 
+                   sources.sct2_desc_full_gb_de, 
+                   sources.sct2_rela_full_gb_de, 
+                   sources.der2_crefset_assreffull_gb_de, 
+                   sources.der2_crefset_attributevalue_full_gb_de, 
+                   sources.der2_crefset_language_gb_de;
+                   
+    drop index sources.idx_concept_gb_de_id;
+    drop index sources.idx_desc_gb_de_id;
+    drop index sources.idx_rela_gb_de_id;
+    drop index sources.idx_lang_gb_de_refid;
+
+    execute 'COPY sources.sct2_concept_full_gb_de (id,effectivetime,active,moduleid,statusid) FROM ''' || pVocabularyPath || 'sct2_Concept_Full_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    update sources.sct2_concept_full_gb_de
+       set vocabulary_date = COALESCE(pVocabularyDate, current_date), 
+           vocabulary_version = COALESCE(pVocabularyVersion, pVocabularyID || ' ' || current_date);
+
+    execute 'COPY sources.sct2_desc_full_gb_de FROM ''' || pVocabularyPath || 'sct2_Description_Full-en-GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.sct2_rela_full_gb_de FROM ''' || pVocabularyPath || 'sct2_Relationship_Full_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_assreffull_gb_de FROM ''' || pVocabularyPath || 'der2_cRefset_AssociationFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_attributevalue_full_gb_de FROM '''||pVocabularyPath||'der2_cRefset_AttributeValue_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    CREATE INDEX idx_concept_gb_de_id ON sources.sct2_concept_full_gb_de (id);
+    CREATE INDEX idx_desc_gb_de_id ON sources.sct2_desc_full_gb_de (conceptid);
+    CREATE INDEX idx_rela_gb_de_id ON sources.sct2_rela_full_gb_de (id);
+    
+    analyze sources.sct2_concept_full_gb_de;
+    analyze sources.sct2_desc_full_gb_de;
+    analyze sources.sct2_rela_full_gb_de;
+
+    execute 'COPY sources.der2_crefset_language_gb_de (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM ''' || pVocabularyPath || 'der2_sRefset_LanguageFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+    
+    update sources.der2_crefset_language_gb_de 
+       set source_file_id = 'GB_DE' 
+     where source_file_id is null;
+     
+    CREATE INDEX idx_lang_gb_de_refid ON sources.der2_crefset_language_gb_de (referencedcomponentid);
+
+    analyze sources.der2_crefset_language_gb_de;
+
+    truncate table sources.der2_ssrefset_moduledependency_gb_de;
+
+    execute 'COPY sources.der2_ssrefset_moduledependency_gb_de FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    PERFORM sources_archive.AddVocabularyToArchive(
+        'SNOMED_UK_DE', 
+        ARRAY['sct2_concept_full_gb_de',
+              'sct2_desc_full_gb_de',
+              'sct2_rela_full_gb_de',
+              'der2_crefset_assreffull_gb_de',
+              'der2_crefset_language_gb_de',
+              'der2_ssrefset_moduledependency_gb_de',
+              'der2_crefset_attributevalue_full_gb_de'], 
+              COALESCE(pVocabularyDate, current_date), 
+              'archive.snomed_gb_de_version', 
+              20);
+
+  when 'SNOMED_UK' then
+    truncate table sources.sct2_concept_full_uk, 
+                   sources.sct2_desc_full_uk, 
+                   sources.sct2_rela_full_uk, 
+                   sources.der2_crefset_assreffull_uk, 
+                   sources.der2_crefset_attributevalue_full_uk, 
+                   sources.der2_crefset_language_uk;
+                   
+    drop index sources.idx_concept_uk_id;
+    drop index sources.idx_desc_uk_id;
+    drop index sources.idx_rela_uk_id;
+    drop index sources.idx_lang_uk_refid;
+
+    execute 'COPY sources.sct2_concept_full_uk (id,effectivetime,active,moduleid,statusid) FROM ''' || pVocabularyPath || 'sct2_Concept_Full-UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    update sources.sct2_concept_full_uk 
+       set vocabulary_date = COALESCE(pVocabularyDate,current_date), 
+           vocabulary_version = COALESCE(pVocabularyVersion, pVocabularyID || ' ' || current_date);
+
+    execute 'COPY sources.sct2_desc_full_uk FROM ''' || pVocabularyPath || 'sct2_Description_Full-UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.sct2_rela_full_uk FROM ''' || pVocabularyPath || 'sct2_Relationship_Full-UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_assreffull_uk FROM ''' || pVocabularyPath || 'der2_cRefset_AssociationFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    execute 'COPY sources.der2_crefset_attributevalue_full_uk FROM '''||pVocabularyPath||'der2_cRefset_AttributeValueFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    CREATE INDEX idx_concept_uk_id ON sources.sct2_concept_full_uk (id);
+    CREATE INDEX idx_desc_uk_id ON sources.sct2_desc_full_uk (conceptid);
+    CREATE INDEX idx_rela_uk_id ON sources.sct2_rela_full_uk (id);
+    
+    analyze sources.sct2_concept_full_uk;
+    analyze sources.sct2_desc_full_uk;
+    analyze sources.sct2_rela_full_uk;
+
+    execute 'COPY sources.der2_crefset_language_uk (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM ''' || pVocabularyPath || 'der2_sRefset_LanguageFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+    
+    update sources.der2_crefset_language_uk 
+       set source_file_id = 'UK' 
+     where source_file_id is null;
+
+    CREATE INDEX idx_lang_uk_refid ON sources.der2_crefset_language_uk (referencedcomponentid);
+    
+    analyze sources.der2_crefset_language_uk;
+
+    truncate table sources.der2_ssrefset_moduledependency_uk;
+
+    execute 'COPY sources.der2_ssrefset_moduledependency_uk FROM ''' || pVocabularyPath || 'der2_ssRefset_ModuleDependencyFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+
+    PERFORM sources_archive.AddVocabularyToArchive(
+        'SNOMED_UK', 
+        ARRAY['sct2_concept_full_uk',
+              'sct2_desc_full_uk',
+              'sct2_rela_full_uk',
+              'der2_crefset_assreffull_uk',
+              'der2_crefset_language_uk',
+              'der2_ssrefset_moduledependency_uk',
+              'der2_crefset_attributevalue_full_uk'], 
+              COALESCE(pVocabularyDate, current_date), 
+              'archive.snomed_uk_version', 
+              20);
+
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';
@@ -815,9 +1070,12 @@ begin
   when 'HEMONC' then
       truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
       alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
-      execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
-      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason HEADER';
-      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id,valid_start_date,valid_end_date,invalid_reason HEADER';
+
+      execute 'COPY sources.hemonc_cs (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_name, vocabulary_id, concept_class_id, concept_code, valid_start_date, valid_end_date, invalid_reason HEADER';
+
+      execute 'COPY sources.hemonc_crs (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason) FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id HEADER';
+
+      execute 'COPY sources.hemonc_css (synonym_concept_id, synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id, valid_start_date, valid_end_date, invalid_reason) FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id, synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id, valid_start_date, valid_end_date, invalid_reason HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
       alter table sources.hemonc_cs alter column valid_end_date type date using valid_end_date::date; --return proper type
@@ -913,6 +1171,23 @@ begin
       analyze sources.meta_ncimeme;
       
       PERFORM sources_archive.AddVocabularyToArchive('META', ARRAY['meta_mrconso','meta_mrhier','meta_mrmap','meta_mrsmap','meta_mrsat','meta_mrrel','meta_mrsty','meta_mrdef','meta_mrsab','meta_ncimeme'], COALESCE(pVocabularyDate,current_date), 'archive.meta_version', 5);
+    WHEN 'EORTC'
+    THEN 
+        TRUNCATE TABLE sources.eortc_questionnaires CASCADE;
+        TRUNCATE TABLE sources.eortc_languages CASCADE;
+        
+        PERFORM vocabulary_download.py_load_eortc_qlq(pVocabularyPath);
+        
+        UPDATE sources.eortc_questionnaires
+           SET vocabulary_date = pvocabularydate,
+               vocabulary_version = pvocabularyversion;
+               
+        PERFORM sources_archive.AddVocabularyToArchive(
+            'EORTC', 
+            ARRAY['eortc_questionnaires', 'eortc_questions', 'eortc_question_items', 'eortc_recommended_wordings', 'eortc_languages'], 
+            COALESCE(pVocabularyDate, current_date), 
+            'archive.eortc_version', 
+            10);
     WHEN 'ATC'
     THEN 
         TRUNCATE TABLE sources.atc_codes;
@@ -953,6 +1228,12 @@ begin
             COALESCE(pVocabularyDate, current_date), 
             'archive.atc_version', 
             10);
+    WHEN 'EMA'
+    THEN 
+        PERFORM sources.insert_ema_medicines_output_medicines_en(pVocabularyPath || 'work/medicines-output-medicines-report_en.xlsx');
+        PERFORM sources.insert_ema_medicines_output_post_authorisation_en(pVocabularyPath || 'work/medicines-output-post_authorisation-report_en.xlsx');
+        PERFORM sources.insert_ema_medicines_output_orphan_designations_en(pVocabularyPath || 'work/medicines-output-orphan_designations-report_en.xlsx');
+        PERFORM sources.insert_ema_medicines_output_herbal_medicines(pVocabularyPath || 'work/medicines-output-herbal_medicines-report_en.xlsx');            
   ELSE
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   END CASE;

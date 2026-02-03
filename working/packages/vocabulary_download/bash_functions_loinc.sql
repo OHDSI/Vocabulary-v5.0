@@ -24,6 +24,7 @@ BEGIN
     unzip -oqj "$2.zip" "AccessoryFiles/PartFile/LoincPartLink_Supplementary.csv" -d . && \
     unzip -oqj "$2.zip" "AccessoryFiles/PartFile/LoincPartLink_Primary.csv" -d . && \
     unzip -oqj "$2.zip" "AccessoryFiles/LoincRsnaRadiologyPlaybook/LoincRsnaRadiologyPlaybook.csv" -d . && \
+    unzip -oqj "$2.zip" "AccessoryFiles/ConsumerName/ConsumerName.csv" -d . && \
     unzip -oqj "$2_cpt.zip" "MRSMAP.RRF" -d .
     
     #move result to original folder
@@ -45,6 +46,7 @@ BEGIN
     mv work/LoincPartLink_Supplementary.csv "loincpartlink_supplementary.csv" && \
     mv work/LoincPartLink_Primary.csv "loincpartlink_primary.csv" && \
     mv work/LoincRsnaRadiologyPlaybook.csv "loincrsnaradiologyplaybook.csv" && \
+    mv work/ConsumerName.csv "ConsumerName.csv" && \
     mv work/MRSMAP.RRF "cpt_mrsmap.rrf"
     $BODY$
     LANGUAGE 'plsh'

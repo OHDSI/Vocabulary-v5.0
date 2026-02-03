@@ -1,4 +1,9 @@
-CREATE OR REPLACE FUNCTION vocabulary_pack.ConceptAncestorCore (pVocabularies TEXT, pDebugLoops BOOLEAN)
+CREATE OR REPLACE FUNCTION vocabulary_pack.ConceptAncestorCore (
+    pVocabularies TEXT, 
+    pDebugLoops BOOLEAN, 
+    pIncludeNonStandard BOOLEAN DEFAULT FALSE,
+    pIncludeInvalidReason BOOLEAN DEFAULT FALSE
+)
 RETURNS VOID AS
 $BODY$
 	/*
@@ -38,18 +43,18 @@ BEGIN
 	JOIN relationship s ON s.relationship_id = r.relationship_id
 		AND s.defines_ancestry = 1
 	JOIN concept c1 ON c1.concept_id = r.concept_id_1
-		AND c1.invalid_reason IS NULL
+		AND (pIncludeInvalidReason OR c1.invalid_reason IS NULL)
 		AND (
 			c1.vocabulary_id = ANY (iVocabularies)
 			OR iVocabularies IS NULL
 			)
 	JOIN concept c2 ON c2.concept_id = r.concept_id_2
-		AND c2.invalid_reason IS NULL
+		AND (pIncludeInvalidReason OR c2.invalid_reason IS NULL)
 		AND (
 			c2.vocabulary_id = ANY (iVocabularies)
 			OR iVocabularies IS NULL
 			)
-	WHERE r.invalid_reason IS NULL;
+    WHERE r.invalid_reason IS NULL;
 
 	CREATE INDEX idx_temp_ca_base$ ON temporary_ca_base$ (ancestor_concept_id) INCLUDE (descendant_concept_id, levels_of_separation) WITH (FILLFACTOR=100);
 	ANALYZE temporary_ca_base$;
@@ -84,12 +89,12 @@ BEGIN
 					ca.levels_of_separation,
 					ARRAY [descendant_concept_id] AS full_path
 				FROM temporary_ca_base$ ca
-				WHERE EXISTS (
+				WHERE (pIncludeNonStandard OR EXISTS (
 						SELECT 1
 						FROM concept c_int
 						WHERE c_int.concept_id = ca.ancestor_concept_id
 							AND c_int.standard_concept IS NOT NULL --remove non-standard records in ancestor_concept_id
-						)
+						))
 					AND ca.ancestor_concept_id > cRecord.ancestor_concept_id_min
 					AND ca.ancestor_concept_id <= cRecord.ancestor_concept_id_max
 				
@@ -120,23 +125,27 @@ BEGIN
 			hc.descendant_concept_id;
 	END LOOP;
 
-	--remove non-standard records in descendant_concept_id
-	DELETE
-	FROM temporary_ca$ ca
-	USING concept c
-	WHERE c.standard_concept IS NULL
-		AND c.concept_id = ca.descendant_concept_id;
-
+    IF NOT pIncludeNonStandard THEN
+        --remove non-standard records in descendant_concept_id
+        DELETE
+        FROM temporary_ca$ ca
+        USING concept c
+        WHERE c.standard_concept IS NULL
+            AND c.concept_id = ca.descendant_concept_id;
+    END IF;
+    
 	IF pDebugLoops THEN
 		--in debug mode we preserve the temporary_ca$ for future use 
 		RETURN;
 	END IF;
 
-	PERFORM FROM temporary_ca$ ca WHERE ca.ancestor_concept_id=ca.descendant_concept_id LIMIT 1;
-	IF FOUND THEN
-		--loops found, e.g. code1 'Subsumes' code2 'Subsumes' code1, which leads to the creation of an code1-code1 chain
-		RAISE EXCEPTION $$Loops in the ancestor were found, please run SELECT vocabulary_pack.GetAncestorLoops(pVocabularies=>'%'); For view chains you can also use SELECT * FROM vocabulary_pack.GetAncestorPath_in_DEV(ancestor_id, descendant_id)$$, pVocabularies;
-	END IF;
+    IF NOT (pIncludeNonStandard OR pIncludeInvalidReason) THEN 
+        PERFORM FROM temporary_ca$ ca WHERE ca.ancestor_concept_id=ca.descendant_concept_id LIMIT 1;
+        IF FOUND THEN
+            --loops found, e.g. code1 'Subsumes' code2 'Subsumes' code1, which leads to the creation of an code1-code1 chain
+            RAISE EXCEPTION $$Loops in the ancestor were found, please run SELECT vocabulary_pack.GetAncestorLoops(pVocabularies=>'%'); For view chains you can also use SELECT * FROM vocabulary_pack.GetAncestorPath_in_DEV(ancestor_id, descendant_id)$$, pVocabularies;
+        END IF;
+    END IF;
 
 	--Add connections to self for those vocabs having at least one concept in the concept_relationship table
 	INSERT INTO temporary_ca$
@@ -149,10 +158,10 @@ BEGIN
 			SELECT c_int.vocabulary_id
 			FROM concept_relationship cr_int
 			JOIN concept c_int ON c_int.concept_id = cr_int.concept_id_1
-			WHERE cr_int.invalid_reason IS NULL
+            WHERE cr_int.invalid_reason IS NULL
 			)
-		AND c.invalid_reason IS NULL
-		AND c.standard_concept IS NOT NULL;
+		AND (pIncludeInvalidReason OR c.invalid_reason IS NULL)
+		AND (pIncludeNonStandard OR c.standard_concept IS NOT NULL);
 
 	CREATE INDEX idx_tmp_ca$ ON temporary_ca$ (ancestor_concept_id, descendant_concept_id) INCLUDE (min_levels_of_separation, max_levels_of_separation) WITH (FILLFACTOR=100);
 	ANALYZE temporary_ca$;
@@ -168,15 +177,22 @@ BEGIN
 			);
 
 	--Add new records and update existing
-	INSERT INTO concept_ancestor AS ca
-	SELECT *
-	FROM temporary_ca$ 
-	ON CONFLICT ON CONSTRAINT xpkconcept_ancestor
-	DO UPDATE
-	SET min_levels_of_separation = excluded.min_levels_of_separation,
-		max_levels_of_separation = excluded.max_levels_of_separation
-	WHERE ca.min_levels_of_separation <> excluded.min_levels_of_separation
-		OR ca.max_levels_of_separation <> excluded.max_levels_of_separation;
+    INSERT INTO concept_ancestor AS ca
+    SELECT 
+      ancestor_concept_id, 
+      descendant_concept_id, 
+      MIN(min_levels_of_separation) AS min_levels_of_separation, 
+      MAX(max_levels_of_separation) AS max_levels_of_separation
+    FROM temporary_ca$  
+    GROUP BY 
+        ancestor_concept_id, 
+        descendant_concept_id
+    ON CONFLICT ON CONSTRAINT xpkconcept_ancestor
+    DO UPDATE
+    SET min_levels_of_separation = excluded.min_levels_of_separation,
+        max_levels_of_separation = excluded.max_levels_of_separation
+    WHERE ca.min_levels_of_separation <> excluded.min_levels_of_separation
+        OR ca.max_levels_of_separation <> excluded.max_levels_of_separation;
 
 	ANALYZE concept_ancestor;
 

@@ -18,14 +18,7 @@
 * Date: 2024
 **************************************************************************/
 
-DO $$ --- should be run only in dev_atc schema.
-BEGIN
-    IF current_schema() != 'devv5' THEN
-        PERFORM FROM devv5.FastRecreateSchema(main_schema_name=>'dev_rxnorm', include_concept_ancestor=>false, include_deprecated_rels=>true, include_synonyms=>true);
-    END IF;
-END $$;
-
---1. Update a 'latest_update' field to a new date
+-- 1. Update the 'latest_update' field to a new date
 DO
 $_$
     BEGIN
@@ -39,24 +32,24 @@ $_$
 $_$;
 
 
---2. Truncate all working tables
+-- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
-DO $$ --- should be run only in dev_atc schema.
-BEGIN
-    IF current_schema() != 'devv5' THEN
-        -- collect all new sources
-        PERFORM FROM dev_atc.collect_atc_rxnorm_from_sources();
-        -- apply all manual changes
-        PERFORM FROM dev_atc.update_atc_relationships();
-    END IF;
-END $$;
+    DO $$
+    BEGIN
+        IF current_schema() != 'devv5' THEN -- should be run only in dev_atc schema.
+            -- collect all new sources
+            PERFORM FROM   dev_atc.collect_atc_rxnorm_from_sources();
+            -- apply all manual changes
+            PERFORM FROM   dev_atc.update_atc_relationships();
+        END IF;
+    END $$;
 
---3. Populate concept_stage
+-- 3. Populate concept_stage
 INSERT INTO concept_stage
             (concept_id,
              concept_name,
@@ -90,7 +83,7 @@ FROM (
                 FROM sources.atc_codes atc_1
                          JOIN sources.atc_codes atc_2 ON LEFT(atc_1.class_code, 5) = atc_2.class_code AND LOWER(atc_1.class_name) IN ('combinations', 'various', 'various combinations')
                                                                                                       AND LENGTH(atc_1.class_code) = 7),
-            CTE_2 as (
+            CTE_2 AS (
                         select
                                 DISTINCT class_code,
                                 class_name,
@@ -150,12 +143,12 @@ FROM (
                                     WHEN adm_r = 'ointment' THEN 'ointment'
                                     WHEN adm_r = 'oral aerosol' THEN 'local oral'
                                     ELSE NULL
-                                END as adm_r
-                            from sources.atc_codes
+                                END AS adm_r
+                            FROM  sources.atc_codes
                         ),
-            CTE_3 as (
+            CTE_3 AS (
                 SELECT class_code,
-                       string_agg(distinct adm_r,', ') as adm_r
+                       string_agg(distinct adm_r,', ') AS adm_r
                 FROM CTE_2
                 GROUP BY class_code
             )
@@ -200,11 +193,11 @@ FROM (
 
 --3. Populate concept_synonym_stage
 INSERT INTO concept_synonym_stage
-(synonym_concept_id,
- synonym_name,
- synonym_concept_code,
- synonym_vocabulary_id,
- language_concept_id)
+            (synonym_concept_id,
+             synonym_name,
+             synonym_concept_code,
+             synonym_vocabulary_id,
+             language_concept_id)
 SELECT DISTINCT NULL::INT AS synonym_concept_id,
                 CASE
                     WHEN t1.synonym_name IS NULL THEN TRIM(t2.class_name)
@@ -256,9 +249,9 @@ FROM (SELECT class_code AS synonym_concept_code,
        WHERE LENGTH(class_code) = 7)) t1
          JOIN sources.atc_codes t2 ON t1.synonym_concept_code = t2.class_code;
 
---concept_relationship_stage population
 
---4a. Insert ATC - Ingredient relationships (except ATC - RxNorm sec up)
+-- 4. Populate concept_relationship_stage
+-- 4a. Insert ATC - Ingredient relationships (except ATC - RxNorm sec up)
 INSERT INTO concept_relationship_stage
             (concept_id_1,
              concept_id_2,
@@ -284,68 +277,64 @@ FROM (SELECT DISTINCT class_code,
              class_name,
              relationship_id,
              UNNEST(STRING_TO_ARRAY(ids, ', ')) AS concept_id_2
-      FROM dev_atc.new_atc_codes_ings_for_manual
+      FROM   new_atc_codes_ings_for_manual
       WHERE relationship_id != 'ATC - RxNorm sec up'
       ) t1
-         join devv5.concept_relationship cr on t1.CONCEPT_ID_2::INT = cr.concept_id_1 and cr.invalid_reason is NULL and cr.relationship_id = 'Maps to'
+         JOIN devv5.concept_relationship cr on t1.CONCEPT_ID_2::INT = cr.concept_id_1 AND cr.invalid_reason IS NULL AND cr.relationship_id = 'Maps to'
          JOIN devv5.concept t2 ON cr.concept_id_2::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
 
---4b. Insert ATC - RxNorm sec up relationships (auto-collection based on ATC - RxNorm connections)
-    INSERT INTO concept_relationship_stage
-                (concept_id_1,
-                 concept_id_2,
-                 concept_code_1,
-                 concept_code_2,
-                 vocabulary_id_1,
-                 vocabulary_id_2,
-                 relationship_id,
-                 valid_start_date,
-                 valid_end_date,
-                 invalid_reason)
-    WITH all_ids_except_secups as
+-- 4b. Insert ATC - RxNorm sec up relationships (auto-collection based on ATC - RxNorm connections)
+INSERT INTO concept_relationship_stage
+            (concept_id_1,
+            concept_id_2,
+            concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
+            relationship_id,
+            valid_start_date,
+            valid_end_date,
+            invalid_reason)
+    WITH all_ids_except_secups AS
+             (WITH sec_up_conns AS
+                       (SELECT *
+                        FROM new_atc_codes_ings_for_manual
+                        WHERE relationship_id = 'ATC - RxNorm sec up')
+              SELECT class_code,
+                     string_agg(ids, ',') AS ids
+              FROM new_atc_codes_ings_for_manual
+              WHERE class_code IN (SELECT class_code FROM sec_up_conns)
+                AND relationship_id != 'ATC - RxNorm sec up'
+              GROUP BY class_code),
+    main_query AS
     (
-        WITH sec_up_conns as
-        (
-            select *
-            from dev_atc.new_atc_codes_ings_for_manual
-            where relationship_id = 'ATC - RxNorm sec up'
-        )
-        SELECT class_code,
-               string_agg(ids, ',') as ids
-        FROM dev_atc.new_atc_codes_ings_for_manual
-        where class_code in (select class_code from sec_up_conns)
-          and relationship_id != 'ATC - RxNorm sec up'
-        GROUP BY class_code
+        SELECT t1.class_code,
+               string_agg(DISTINCT c.concept_id::TEXT, ',') AS all_ids_on_markt,
+               t2.ids AS except_secups
+        FROM new_unique_atc_codes_rxnorm t1
+             JOIN devv5.concept_ancestor ca ON ca.descendant_concept_id = t1.ids
+             JOIN devv5.concept c ON ca.ancestor_concept_id = c.concept_id
+                                    AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                    AND c.concept_class_id IN ('Ingredient', 'Precise Ingredient')
+             JOIN all_ids_except_secups t2 ON t1.class_code = t2.class_code
+        GROUP BY t1.class_code, t2.ids
     ),
-    main_query as
-    (
-        select t1.class_code,
-               string_agg(DISTINCT c.concept_id::text, ',') as all_ids_on_markt,
-               t2.ids as except_secups
-        from dev_atc.new_unique_atc_codes_rxnorm t1
-             join devv5.concept_ancestor ca on ca.descendant_concept_id = t1.ids
-             join devv5.concept c on ca.ancestor_concept_id = c.concept_id
-                                    and c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-                                    and c.concept_class_id in ('Ingredient', 'Precise Ingredient')
-             join all_ids_except_secups t2 on t1.class_code = t2.class_code
-        group by t1.class_code, t2.ids
-    ),
-        ONLY_SEC_UPS as (
+        only_sec_ups AS (
                         SELECT class_code,
                                (SELECT string_agg(id::text, ',')
-                                FROM (SELECT unnest(string_to_array(all_ids_on_markt, ',')::bigint[]) as id
+                                FROM (SELECT unnest(string_to_array(all_ids_on_markt, ',')::bigint[]) AS id
                                       EXCEPT
-                                      SELECT unnest(string_to_array(except_secups, ',')::bigint[]) as id
+                                      SELECT unnest(string_to_array(except_secups, ',')::bigint[]) AS id
                                      ) t
-                               ) as result_ids_only_secups
+                               ) AS result_ids_only_secups
                         FROM main_query),
-        class_code_secup_id as (
+        class_code_secup_id AS (
                                 SELECT
                                     class_code,
-                                    unnest(string_to_array(result_ids_only_secups, ','))::INT as ids
-                                FROM ONLY_SEC_UPS)
+                                    unnest(string_to_array(result_ids_only_secups, ','))::INT AS ids
+                                FROM only_sec_ups)
         SELECT
-            NULL::INT AS concept_id_1,
+           NULL::INT AS concept_id_1,
            NULL::INT AS concept_id_2,
            t1.class_code AS concept_code_1,
            t2.concept_code AS concept_code_2,
@@ -355,11 +344,11 @@ FROM (SELECT DISTINCT class_code,
            CURRENT_DATE AS valid_start_date,
            TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
            NULL AS invalid_reason
-        FROM CLASS_CODE_SECUP_ID t1 join concept t2 on t1.ids = t2.concept_id
-                                                    and t2.invalid_reason is NULL
-                                                    and t2.standard_concept = 'S';
+        FROM class_code_secup_id t1 JOIN devv5.concept t2 ON t1.ids = t2.concept_id
+                                                    AND t2.invalid_reason IS NULL
+                                                    AND t2.standard_concept = 'S';
 
---5. Insert Maps to relationships
+-- 5. Insert 'Maps to' relationships
 INSERT INTO concept_relationship_stage
             (concept_id_1,
              concept_id_2,
@@ -371,11 +360,11 @@ INSERT INTO concept_relationship_stage
              valid_start_date,
              valid_end_date,
              invalid_reason)
-WITH CTE as (SELECT class_code,
+WITH CTE AS (SELECT class_code,
              class_name,
              relationship_id,
              UNNEST(STRING_TO_ARRAY(ids, ', ')) AS concept_id_2
-      FROM dev_atc.new_atc_codes_ings_for_manual
+      FROM   new_atc_codes_ings_for_manual
       WHERE relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat'))
 
 SELECT DISTINCT NULL::INT AS concept_id_1,
@@ -389,16 +378,16 @@ SELECT DISTINCT NULL::INT AS concept_id_1,
                 TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
                 NULL AS invalid_reason
 FROM  CTE t1
-      join devv5.concept_relationship cr on t1.CONCEPT_ID_2::INT = cr.concept_id_1 and cr.invalid_reason is NULL and cr.relationship_id = 'Maps to' --- only fresh mappings, anaolog of AddFreshMapsTo
+      JOIN devv5.concept_relationship cr on t1.CONCEPT_ID_2::INT = cr.concept_id_1 AND cr.invalid_reason IS NULL AND cr.relationship_id = 'Maps to' --- only fresh mappings, anaolog of AddFreshMapsTo
       JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 WHERE (class_code, t2.concept_code) NOT IN (SELECT source_code_atc, source_code_rx
-                                            FROM dev_atc.drop_maps_to);
+                                            FROM   drop_maps_to);
 
---6. Insert ATC - RxNorm relationships
+-- 6. Insert 'ATC - RxNorm' relationships
 DROP TABLE IF EXISTS new_unique_atc_codes_rxnorm;
 CREATE UNLOGGED TABLE new_unique_atc_codes_rxnorm AS
 SELECT DISTINCT class_code, ids
-FROM dev_atc.new_atc_codes_rxnorm
+FROM   new_atc_codes_rxnorm
 WHERE LENGTH(class_code) = 7
   AND concept_class_id = 'Clinical Drug Form';
 
@@ -426,7 +415,7 @@ SELECT NULL::INT AS concept_id_1,
 FROM new_unique_atc_codes_rxnorm t1
          JOIN devv5.concept t2 ON t1.ids::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
 
---7. Insert replacement relationships
+-- 7. Insert replacement relationships
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -445,7 +434,7 @@ SELECT class_code AS concept_code_1,
 FROM sources.atc_codes
 WHERE active = 'U';
 
---8. Insert ATC - SNOMED and internal relationships
+-- 8. Insert ATC - SNOMED and internal relationships
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -499,8 +488,8 @@ WHERE uppr.invalid_reason IS NULL
     );
 
 
----9. Insert all valid connections to ATC from devv5.concept_relationship (except Ings connections,
--- because their full list in table dev_atc.new_atc_codes_ings_for_manual), which are not in stage table
+-- 9. Insert all valid connections to ATC from devv5.concept_relationship (except Ings connections,
+-- because their full list in table new_atc_codes_ings_for_manual), which are not in concept_relationship_stage
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -529,14 +518,14 @@ WHERE cr.relationship_id LIKE 'ATC%'
       (SELECT t1.atc_code, --- Concept not in manually reviewed list of existent codes
               'ATC - RxNorm' AS relationship,
               t2.concept_code
-       FROM dev_atc.existent_atc_rxnorm_to_drop t1
+       FROM existent_atc_rxnorm_to_drop t1
                 JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
        WHERE to_drop = 'D')
   AND (c1.concept_code, cr.relationship_id, c2.concept_code) NOT IN
       (SELECT DISTINCT t1.concept_code_atc, ---- Not in manually reviwed drop-list of source codes
                        'ATC - RxNorm' AS relationship,
                        t2.concept_code
-       FROM dev_atc.atc_rxnorm_to_drop_in_sources t1
+       FROM atc_rxnorm_to_drop_in_sources t1
                 JOIN devv5.concept t2 ON t1.concept_id_rx::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
        WHERE drop = 'D')
   AND (c1.concept_code, cr.relationship_id, c2.concept_code) NOT IN
@@ -566,7 +555,7 @@ WHERE (concept_code_1, relationship_id, concept_code_2) IN
          AND cr.invalid_reason = 'D')
   AND invalid_reason IS NULL;
 
------ deprecate all alive ingredient connections that are already in CR table and didn't appear in stage through manual tables
+-- 11. Deprecate all alive ingredient connections that are already in CR table and didn't appear in stage through manual tables
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -583,22 +572,21 @@ SELECT t1.concept_code,
        cr.relationship_id,
        cr.valid_start_date,
        CURRENT_DATE AS valid_end_date,
-       'D' as invalid_reason
-from concept_relationship cr
-     join concept t1 on cr.concept_id_1 = t1.concept_id
-                                    and cr.invalid_reason is null
-                                    and t1.vocabulary_id = 'ATC'
-                                    and cr.relationship_id in ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
-     join concept t2 on cr.concept_id_2 = t2.concept_id
-                                    and t2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-where (t1.concept_code, t2.concept_code) not in   (SELECT crs.concept_code_1, crs.concept_code_2
+       'D' AS invalid_reason
+FROM concept_relationship cr
+     JOIN concept t1 on cr.concept_id_1 = t1.concept_id
+                                    AND cr.invalid_reason IS NULL
+                                    AND t1.vocabulary_id = 'ATC'
+                                    AND cr.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+     JOIN concept t2 on cr.concept_id_2 = t2.concept_id
+                                    AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+where (t1.concept_code, t2.concept_code) NOT IN   (SELECT crs.concept_code_1, crs.concept_code_2
                                                   FROM concept_relationship_stage crs
-                                                  where crs.relationship_id in ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+                                                  WHERE  crs.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
                                                   );
 
 
-
--- 11. COVID-19 Manual mapping. Kill all ATC - RxNorm that came from sources (because they are not representative
+-- 12. COVID-19 Manual mapping. Kill all ATC - RxNorm that came from sources (because they are not representative
 -- while they are on Clinical Drug Form level)
 UPDATE concept_relationship_stage
 SET invalid_reason = 'D',
@@ -606,7 +594,7 @@ SET invalid_reason = 'D',
 WHERE (concept_code_1, concept_code_2) IN
       (SELECT concept_code_atc,
               c1.concept_code AS concept_code_rxnorm
-       FROM dev_atc.covid19_atc_rxnorm_manual cov
+       FROM covid19_atc_rxnorm_manual cov
                 JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                                                                         AND cov.to_drop = 'D');
 --- and add manually mapped (on clinical Drugs)
@@ -625,12 +613,12 @@ SELECT concept_code_atc AS concept_code_1,
        'ATC - RxNorm' AS relationship_id,
        TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
        TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
-FROM dev_atc.covid19_atc_rxnorm_manual cov
+FROM covid19_atc_rxnorm_manual cov
          JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                                                                  AND cov.to_drop IS NULL
-WHERE (concept_code_atc, c1.concept_code) not in (select concept_code_1, concept_code_2 FROM concept_relationship_stage);
+WHERE (concept_code_atc, c1.concept_code) NOT IN (SELECT concept_code_1, concept_code_2 FROM concept_relationship_stage);
 
---12. Process manual relationships
+-- 13. Process manual relationships
 DO
 $_$
     BEGIN
@@ -638,10 +626,9 @@ $_$
     END
 $_$;
 
-
 ANALYZE concept_relationship_stage;
 
---13. Working with replacement mappings
+-- 14. Working with replacement mappings
 DO
 $_$
     BEGIN
@@ -650,7 +637,7 @@ $_$
 $_$;
 
 
---14. Add mapping from deprecated to fresh concepts
+--15. Add mapping from deprecated to fresh concepts
 DO
 $_$
     BEGIN
@@ -658,7 +645,7 @@ $_$
     END
 $_$;
 
---15. Add mapping (to value) from deprecated to fresh concepts
+--16. Add mapping (to value) from deprecated to fresh concepts
 DO
 $_$
     BEGIN
@@ -666,7 +653,7 @@ $_$
     END
 $_$;
 
---16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO
 $_$
     BEGIN
@@ -674,7 +661,7 @@ $_$
     END
 $_$;
 
---17. Delete ambiguous 'Maps to' mappings
+--18. Delete ambiguous 'Maps to' mappings
 DO
 $_$
     BEGIN
@@ -684,20 +671,3 @@ $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 
-select admin_pack.VirtualLogIn('dev_atatur', 'wheoIFrevy!212');
-
-DO $_$
-BEGIN
-	PERFORM devv5.GenericUpdate();
-END $_$;
-
------compile class_to_drug table
-DO $_$
-BEGIN
-	PERFORM dev_atc.build_class_to_drug();
-END $_$;
-
-DO $_$
-BEGIN
-    PERFORM VOCABULARY_PACK.pConceptAncestor(is_small := TRUE);
-END $_$;

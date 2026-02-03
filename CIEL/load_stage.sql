@@ -306,32 +306,41 @@ WITH locale_map(locale, language_concept_id) AS (
 ),
 src_syn AS (
   SELECT
-    btrim(replace(n.name, chr(160), ' '), E' \t\r\n\f\v') AS synonym_name,
+    btrim(regexp_replace(replace(n.name, chr(160), ' '), '[[:space:]]+', ' ', 'g')) AS synonym_name, -- NBSP-to-space, collapse whitespace runs to single space, then trim (prevents double spaces / edge artifacts)
     n.concept_id::varchar AS synonym_concept_code,
     lower(n.locale) AS locale
   FROM sources.ciel_concept_names n
-    WHERE n.locale IS NOT NULL AND name <> '' 
-    AND (name_type in ('FULLY_SPECIFIED','SHORT') OR name_type IS NULL)
+  WHERE n.locale IS NOT NULL
+    AND n.name <> ''
+    AND (n.name_type IN ('FULLY_SPECIFIED','SHORT') OR n.name_type IS NULL)
+),
+src_syn2 AS (
+  SELECT * FROM src_syn WHERE synonym_name <> ''
 )
 SELECT
   s.synonym_name,
   s.synonym_concept_code,
   'CIEL'::varchar,
   m.language_concept_id
-FROM src_syn s
+FROM src_syn2 s
 JOIN locale_map m ON m.locale = s.locale
-JOIN concept_stage c ON c.concept_code = s.synonym_concept_code
-AND NOT EXISTS (SELECT 1 FROM concept_stage c -- exclude names from concept_stage
-WHERE c.concept_code = s.synonym_concept_code::VARCHAR
-AND   lower(c.concept_name) = lower(BTRIM(REPLACE(s.synonym_name,CHR(160),' '),E' \t\r\n\f\v'))
+JOIN concept_stage cs ON cs.concept_code = s.synonym_concept_code
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM concept_stage cs2
+  WHERE cs2.concept_code = s.synonym_concept_code
+    AND s.locale = 'en'
+    AND lower(cs2.concept_name) = lower(s.synonym_name)
 )
-AND NOT EXISTS (SELECT 1 FROM concept_synonym cs -- exclude already existing synonyms
+AND NOT EXISTS (
+  SELECT 1
+  FROM concept_synonym csy
   JOIN concept c
-    ON c.concept_id = cs.concept_id
+    ON c.concept_id = csy.concept_id
    AND c.vocabulary_id = 'CIEL'
-WHERE lower(cs.concept_synonym_name) = lower(BTRIM(REPLACE(s.synonym_name,CHR(160),' '),E' \t\r\n\f\v'))
-AND   cs.language_concept_id = m.language_concept_id)
-; -- 121200
+  WHERE lower(csy.concept_synonym_name) = lower(s.synonym_name)
+    AND csy.language_concept_id = m.language_concept_id
+); -- 123465
   
 --5. Add automated mappings to concept_relationship_stage
 INSERT INTO concept_relationship_stage (
@@ -520,4 +529,5 @@ WHERE r.invalid_reason IS NULL
 SELECT * FROM qa_tests.Check_Stage_Tables(); -- should be empty
 
 -- THE END
+
 

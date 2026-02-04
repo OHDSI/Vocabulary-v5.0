@@ -70,7 +70,7 @@ map as (
     c.standard_concept AS target_standard_concept,
     c.invalid_reason AS target_invalid_reason
   FROM src s
-  LEFT JOIN devv5.concept c
+  LEFT JOIN concept c
     ON c.vocabulary_id = s.target_vocab_norm
    AND c.concept_code  = s.to_concept_code)
 SELECT DISTINCT source_code,

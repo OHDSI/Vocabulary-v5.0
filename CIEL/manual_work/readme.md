@@ -6,7 +6,7 @@ This refresh is driven by the table `concept_relationship_manual_updated` and th
 1. Prepare concept_relationship_manual_updated
 - Make sure the table concept_relationship_manual_updated exists.
 - Its structure must be identical to concept_relationship_manual (you can reuse the same DDL).
-- Load the updated set of manual mappings into concept_relationship_manual_updated from the CSV export: [link](https://drive.google.com/file/d/1ESQg9iDcCVDOYsYC1KYRamQwDWL7Jny4/view?usp=drive_link)
+- Load the updated set of manual mappings into [concept_relationship_manual_updated](https://drive.google.com/file/d/1_BAaHx6rzklLOy0Ej9gsmh1jNP09s7ws/view?usp=sharing) from the CSV export.
 - Load it via COPY, bulk import, or your preferred ETL mechanism.
 At this point, concept_relationship_manual_updated should contain the complete, current manual mapping set you want to use (not just deltas).
 2. Run QA on the updated manual mappings

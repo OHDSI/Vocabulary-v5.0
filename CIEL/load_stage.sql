@@ -331,16 +331,7 @@ WHERE NOT EXISTS (
   WHERE cs2.concept_code = s.synonym_concept_code
     AND s.locale = 'en'
     AND lower(cs2.concept_name) = lower(s.synonym_name)
-)
-AND NOT EXISTS (
-  SELECT 1
-  FROM concept_synonym csy
-  JOIN concept c
-    ON c.concept_id = csy.concept_id
-   AND c.vocabulary_id = 'CIEL'
-  WHERE lower(csy.concept_synonym_name) = lower(s.synonym_name)
-    AND csy.language_concept_id = m.language_concept_id
-); -- 123465
+); -- 123480
   
 --5. Add automated mappings to concept_relationship_stage
 INSERT INTO concept_relationship_stage (
@@ -529,5 +520,6 @@ WHERE r.invalid_reason IS NULL
 SELECT * FROM qa_tests.Check_Stage_Tables(); -- should be empty
 
 -- THE END
+
 
 

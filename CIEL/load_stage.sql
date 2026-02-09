@@ -357,7 +357,7 @@ SELECT DISTINCT
   ) AS valid_start_date,
   DATE '2099-12-31' AS valid_end_date,
   NULL::varchar AS invalid_reason
-FROM maps_for_load_stage a
+FROM dev_ciel.maps_for_load_stage a
 JOIN sources.ciel_mappings b
   ON btrim(b.from_concept_code) = btrim(a.source_code)
  AND b.retired IS FALSE

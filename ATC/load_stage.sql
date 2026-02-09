@@ -381,7 +381,7 @@ FROM cte t1
       JOIN devv5.concept_relationship cr on t1.concept_id_2::INT = cr.concept_id_1 AND cr.invalid_reason IS NULL AND cr.relationship_id = 'Maps to' --- only fresh mappings, anaolog of AddFreshMapsTo
       JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 WHERE (class_code, t2.concept_code) NOT IN (SELECT source_code_atc, source_code_rx
-                                            FROM drop_maps_to);
+                                            FROM dev_atc.drop_maps_to);
 
 -- 6. Insert 'ATC - RxNorm' relationships
 DROP TABLE IF EXISTS new_unique_atc_codes_rxnorm;

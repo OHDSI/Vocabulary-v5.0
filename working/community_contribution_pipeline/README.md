@@ -23,15 +23,23 @@ This pipeline enables users to:
 
 ## Architecture
 
-The system consists of 7 modular Google Apps Script files:
+The system consists of:
+
+### Google Apps Script Files (7 modules):
 
 1. **Code.gs** - Main controller and UI menu
 2. **DataSanitization.gs** - SQL injection prevention and data cleaning
-3. **DatabaseValidation.gs** - Database connection and validation execution
+3. **DatabaseValidation.gs** - API connection and validation execution
 4. **AuditLog.gs** - Comprehensive audit logging
 5. **ResultsOutput.gs** - Results formatting and visualization
 6. **Submission.gs** - Final submission workflow
-7. **ValidationRules.gs** - Template-specific validation rules
+7. **ValidationRules.gs** - Helper functions (deprecated - see below)
+
+### Validation Rules:
+
+- **ValidationRules.sql** - SQL validation queries for all template types
+- Rules are loaded and executed by the Azure Proxy API server
+- Shared queries across templates use comma-separated template IDs
 
 ## Setup Instructions
 
@@ -50,23 +58,34 @@ The system consists of 7 modular Google Apps Script files:
 1. Open your Google Sheet
 2. Go to **Extensions > Apps Script**
 3. Delete any existing code
-4. Create 7 script files with the names and contents from this repository:
+4. Create 7 script files with the names and contents from the `gs_scripts/` folder:
    - Code.gs
    - DataSanitization.gs
    - DatabaseValidation.gs
    - AuditLog.gs
    - ResultsOutput.gs
    - Submission.gs
-   - ValidationRules.gs
+   - ValidationRules.gs (contains helper functions only)
 
 ### 3. Configure API Connection
 
-1. In your Google Sheet, go to **OHDSI Validation > Admin > Configure Database**
-2. Enter your API credentials:
-   - **Endpoint URL**: somepublicendpoint.com
-   - **API KEY**: somesupersecretkey
+**One-time setup after deployment:**
 
-**Security Note**: Credentials are stored in Script Properties (encrypted by Google).
+1. Open the Apps Script editor (**Extensions > Apps Script**)
+2. Open **DatabaseValidation.gs**
+3. Find the `configureDatabaseConnection()` function
+4. Replace the placeholder values with your actual credentials:
+   ```javascript
+   const PROXY_URL = 'https://your-actual-url.com';
+   const API_KEY = 'your-actual-api-key';
+   ```
+5. Click **Run** to execute the function
+6. **IMPORTANT:** Replace the values back with placeholders before committing to GitHub
+
+**Security Note**:
+- Credentials are stored in Script Properties (encrypted by Google)
+- They are NOT visible in the code or copied when users duplicate the spreadsheet
+- The Azure Proxy API URL and API Key are kept secure server-side
 
 ### 4. Setup Required Sheets
 
@@ -82,7 +101,29 @@ The system consists of 7 modular Google Apps Script files:
 
 ### 6. Customize Validation Rules (Optional)
 
-Edit `ValidationRules.gs` to customize validation queries for your specific needs. Each template type (T1-T7) has its own set of validation rules.
+Edit `ValidationRules.sql` to customize validation queries for your specific needs:
+
+1. Open **ValidationRules.sql** in the repository root
+2. Add or modify queries following the metadata comment format:
+   ```sql
+   -- TEMPLATE: T1,T2  (comma-separated templates that use this query)
+   -- RULE: MY_CUSTOM_RULE
+   -- LEVEL: ERROR
+   -- FIELD: field_name
+   -- MESSAGE: Error message
+   SELECT
+     source_row_number,
+     'Detailed error message' AS validation_message,
+     'field_name' AS field_name
+   FROM {TEMP_TABLE}
+   WHERE some_condition;
+   ```
+3. Reload the rules (no redeployment needed):
+   ```bash
+   curl -X POST https://your-server-url.com/reload-rules \
+     -H "Authorization: Bearer YOUR_API_KEY"
+   ```
+4. See the "Customization" section below for detailed examples
 
 ## Template Types
 
@@ -210,28 +251,93 @@ The Output sheet will show:
 
 ### Adding New Validation Rules
 
-**NOTE**
-If using a proxy API, the validation happens via the API process, so the validation checks will need to be updated there!
+Validation rules are stored in **ValidationRules.sql** and loaded by the Azure Proxy API server.
 
+#### Step 1: Edit ValidationRules.sql
 
-Edit `ValidationRules.gs` and add to the `VALIDATION_RULES` object:
+Add your new validation query to the SQL file:
 
-```javascript
-'T1': [
-  {
-    name: 'MY_CUSTOM_RULE',
-    level: 'ERROR',  // or 'WARNING', 'INFO'
-    field: 'field_name',
-    message: 'Error message',
-    sql: `
-      SELECT
-        source_row_number,
-        'Detailed message' AS validation_message,
-        'field_name' AS field_name
-      FROM {TEMP_TABLE}
-      WHERE some_condition
-    `
-  }
-]
+```sql
+-- TEMPLATE: T1,T2
+-- RULE: MY_CUSTOM_RULE
+-- LEVEL: ERROR
+-- FIELD: field_name
+-- MESSAGE: Error message
+SELECT
+  source_row_number,
+  'Detailed error message: ' || problematic_value AS validation_message,
+  'field_name' AS field_name
+FROM {TEMP_TABLE}
+WHERE some_condition;
 ```
+
+#### Step 2: Metadata Comments Explained
+
+- **TEMPLATE:** Comma-separated list of templates (T1-T7) that use this rule
+- **RULE:** Unique identifier for the rule (uppercase with underscores)
+- **LEVEL:** Severity level - `ERROR`, `WARNING`, or `INFO`
+- **FIELD:** The field being validated (or `ALL` for multiple fields)
+- **MESSAGE:** Default error message shown to users
+
+#### Step 3: SQL Query Requirements
+
+- Must return three columns:
+  - `source_row_number` - Row number from the input data
+  - `validation_message` - Specific error message for this violation
+  - `field_name` - Name of the field that failed validation
+- Use `{TEMP_TABLE}` as a placeholder for the temporary table name
+- End each query with a semicolon `;`
+
+#### Step 4: Shared Queries
+
+To use the same query for multiple templates, list them comma-separated:
+
+```sql
+-- TEMPLATE: T1,T2,T5
+-- RULE: CONCEPT_NAME_LENGTH
+-- LEVEL: WARNING
+-- FIELD: concept_name
+-- MESSAGE: Concept name is very long
+SELECT
+  source_row_number,
+  'Concept name exceeds 255 characters (length: ' || LENGTH(concept_name) || ')' AS validation_message,
+  'concept_name' AS field_name
+FROM {TEMP_TABLE}
+WHERE concept_name IS NOT NULL
+  AND LENGTH(concept_name) > 255;
+```
+
+This rule will be applied to templates T1, T2, and T5.
+
+#### Step 5: Reload Rules (No Redeployment Needed!)
+
+After editing ValidationRules.sql:
+1. Commit changes to the repository
+2. Update the file on the server (via git pull, deployment, or file sync)
+3. Call the reload endpoint:
+   ```bash
+   curl -X POST https://your-server-url.com/reload-rules \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer YOUR_API_KEY"
+   ```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Validation rules reloaded successfully",
+  "rules": {
+    "T1": 6,
+    "T2": 4,
+    "T3": 6,
+    "T4": 4,
+    "T5": 3,
+    "T6": 3,
+    "T7": 1
+  },
+  "timestamp": "2026-02-26T10:30:00.000Z"
+}
+```
+
+**Note:** No server redeployment or restart needed! The rules are reloaded in-memory.
 

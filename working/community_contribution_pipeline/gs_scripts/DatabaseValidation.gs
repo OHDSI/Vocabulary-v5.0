@@ -154,150 +154,67 @@ function testAzureProxyConnection() {
 }
 
 /**
- * Configuration dialog for Azure proxy connection
+ * INITIAL SETUP: Configure database connection credentials
+ *
+ * IMPORTANT: Run this function ONCE after deployment to set up your credentials.
+ *
+ * HOW TO USE:
+ * 1. Open the Apps Script editor (Extensions > Apps Script)
+ * 2. Open this file (DatabaseValidation.gs)
+ * 3. Replace YOUR_PROXY_URL_HERE and YOUR_API_KEY_HERE below with your actual values
+ * 4. Click the "Run" button (or press Ctrl/Cmd + R) to execute this function
+ * 5. After running successfully, REPLACE the values back with placeholders before committing to GitHub
+ *
+ * The credentials will be stored securely in Script Properties (encrypted by Google)
+ * and will NOT be visible in the code or copied when users duplicate this spreadsheet.
  */
 function configureDatabaseConnection() {
-  const ui = SpreadsheetApp.getUi();
   const scriptProperties = PropertiesService.getScriptProperties();
 
-  // Show configuration dialog
-  const htmlOutput = HtmlService.createHtmlOutput(`
-    <style>
-      body { font-family: Arial, sans-serif; padding: 20px; }
-      label { display: block; margin-top: 15px; font-weight: bold; }
-      input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; }
-      button { margin-top: 20px; padding: 10px 20px; background: #4285f4; color: white; border: none; cursor: pointer; }
-      button:hover { background: #357ae8; }
-      .help-text { font-size: 12px; color: #666; margin-top: 5px; }
-      .success { color: green; margin-top: 10px; }
-      .error { color: red; margin-top: 10px; }
-      #testResult { margin-top: 15px; padding: 10px; display: none; }
-    </style>
+  // REPLACE THESE VALUES with your actual credentials:
+  const PROXY_URL = 'YOUR_PROXY_URL_HERE';  // e.g., 'https://your-app.azurecontainerapps.io'
+  const API_KEY = 'YOUR_API_KEY_HERE';       // Your API key from Azure deployment
 
-    <h3>Azure Proxy Configuration</h3>
-    <p>Configure your Azure Container Instance validation proxy:</p>
-
-    <form>
-      <label>Proxy URL:</label>
-      <input type="text" id="proxyUrl" value="${scriptProperties.getProperty('AZURE_PROXY_URL') || ''}"
-             placeholder="https://your-app.azurecontainerapps.io">
-      <div class="help-text">The URL of your Azure Container App (with HTTPS) or Container Instance</div>
-
-      <label>API Key:</label>
-      <input type="password" id="apiKey" value="${scriptProperties.getProperty('AZURE_API_KEY') || ''}"
-             placeholder="Your API key from Azure deployment">
-      <div class="help-text">The API_KEY environment variable from your container deployment</div>
-
-      <button type="button" onclick="testConnection()">Test Connection</button>
-      <button type="button" onclick="saveConfig()">Save Configuration</button>
-    </form>
-
-    <div id="testResult"></div>
-
-    <script>
-      function testConnection() {
-        const proxyUrl = document.getElementById('proxyUrl').value;
-        const apiKey = document.getElementById('apiKey').value;
-        const resultDiv = document.getElementById('testResult');
-
-        if (!proxyUrl || !apiKey) {
-          resultDiv.className = 'error';
-          resultDiv.innerHTML = '❌ Please fill in both fields';
-          resultDiv.style.display = 'block';
-          return;
-        }
-
-        resultDiv.innerHTML = '⏳ Testing connection...';
-        resultDiv.style.display = 'block';
-        resultDiv.className = '';
-
-        // Save temporarily
-        const tempConfig = {
-          proxyUrl: proxyUrl,
-          apiKey: apiKey
-        };
-
-        google.script.run
-          .withSuccessHandler(function(result) {
-            if (result.success) {
-              resultDiv.className = 'success';
-              resultDiv.innerHTML = '✅ Connection successful!<br>' +
-                'Database: ' + (result.database || 'Connected') + '<br>' +
-                (result.version ? 'Version: ' + result.version : '');
-            } else {
-              resultDiv.className = 'error';
-              resultDiv.innerHTML = '❌ Connection failed: ' + result.message;
-            }
-          })
-          .withFailureHandler(function(error) {
-            resultDiv.className = 'error';
-            resultDiv.innerHTML = '❌ Test failed: ' + error.message;
-          })
-          .testProxyConnection(tempConfig);
-      }
-
-      function saveConfig() {
-        const config = {
-          proxyUrl: document.getElementById('proxyUrl').value,
-          apiKey: document.getElementById('apiKey').value
-        };
-
-        if (!config.proxyUrl || !config.apiKey) {
-          alert('Please fill in both fields');
-          return;
-        }
-
-        google.script.run
-          .withSuccessHandler(function() {
-            alert('Configuration saved successfully!');
-            google.script.host.close();
-          })
-          .withFailureHandler(function(error) {
-            alert('Error saving configuration: ' + error.message);
-          })
-          .saveProxyConfig(config);
-      }
-    </script>
-  `)
-  .setWidth(500)
-  .setHeight(500);
-
-  ui.showModalDialog(htmlOutput, 'Azure Proxy Configuration');
-}
-
-/**
- * Tests proxy connection (called from dialog)
- */
-function testProxyConnection(config) {
-  try {
-    // Temporarily save config for testing
-    const scriptProperties = PropertiesService.getScriptProperties();
-    scriptProperties.setProperty('AZURE_PROXY_URL', config.proxyUrl);
-    scriptProperties.setProperty('AZURE_API_KEY', config.apiKey);
-
-    // Test the connection
-    return testAzureProxyConnection();
-
-  } catch (error) {
-    return {
-      success: false,
-      message: error.message
-    };
+  // Validate that values have been updated
+  if (PROXY_URL === 'YOUR_PROXY_URL_HERE' || API_KEY === 'YOUR_API_KEY_HERE') {
+    throw new Error('Please update PROXY_URL and API_KEY in the configureDatabaseConnection() function before running.');
   }
+
+  // Save to Script Properties (encrypted, server-side storage)
+  scriptProperties.setProperty('AZURE_PROXY_URL', PROXY_URL);
+  scriptProperties.setProperty('AZURE_API_KEY', API_KEY);
+
+  Logger.log('✅ Configuration saved successfully!');
+  Logger.log('Proxy URL: ' + PROXY_URL);
+  Logger.log('API Key: ' + (API_KEY.substring(0, 10) + '...'));
+
+  // Test the connection
+  Logger.log('Testing connection...');
+  const testResult = testAzureProxyConnection();
+
+  if (testResult.success) {
+    Logger.log('✅ Connection test PASSED!');
+    Logger.log('Database: ' + (testResult.database || 'Connected'));
+    if (testResult.version) {
+      Logger.log('Version: ' + testResult.version);
+    }
+
+    // Show success message to user
+    SpreadsheetApp.getUi().alert(
+      'Configuration Successful!',
+      'Database connection has been configured and tested successfully.\n\n' +
+      'Database: ' + (testResult.database || 'Connected') + '\n' +
+      (testResult.version ? 'Version: ' + testResult.version : ''),
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+  } else {
+    Logger.log('❌ Connection test FAILED: ' + testResult.message);
+    throw new Error('Connection test failed: ' + testResult.message);
+  }
+
+  Logger.log('\n⚠️  IMPORTANT: Remember to replace your credentials with placeholders before committing to GitHub!');
 }
 
-/**
- * Saves Azure proxy configuration
- */
-function saveProxyConfig(config) {
-  const scriptProperties = PropertiesService.getScriptProperties();
-
-  scriptProperties.setProperty('AZURE_PROXY_URL', config.proxyUrl);
-  scriptProperties.setProperty('AZURE_API_KEY', config.apiKey);
-
-  Logger.log('Azure proxy configuration saved');
-  return true;
-}
 
 /**
  * Gets current proxy configuration (for debugging)
@@ -311,27 +228,3 @@ function getProxyConfig() {
   };
 }
 
-/**
- * Manual configuration function (run from Script Editor)
- * Use this if the UI dialog doesn't work
- */
-function configureProxyManually() {
-  const scriptProperties = PropertiesService.getScriptProperties();
-
-  // Update these values:
-  const PROXY_URL = 'https://your-app.azurecontainerapps.io';  // Change this (use HTTPS if available)
-  const API_KEY = 'YOUR-API-KEY-HERE';                          // Change this
-
-  scriptProperties.setProperty('AZURE_PROXY_URL', PROXY_URL);
-  scriptProperties.setProperty('AZURE_API_KEY', API_KEY);
-
-  Logger.log('Configuration saved manually');
-  Logger.log('Proxy URL: ' + PROXY_URL);
-  Logger.log('API Key: ' + (API_KEY.length > 10 ? API_KEY.substring(0, 10) + '...' : 'Set'));
-
-  // Test connection
-  const result = testAzureProxyConnection();
-  Logger.log('Connection test result: ' + JSON.stringify(result));
-
-  return result;
-}

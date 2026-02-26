@@ -8,6 +8,8 @@
 const express = require('express');
 const { Pool } = require('pg'); // or 'mysql2' for MySQL
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -310,174 +312,145 @@ function isValidDate(value) {
 }
 
 /**
+ * Parses ValidationRules.sql file and extracts validation rules
+ */
+function parseValidationRules() {
+  const sqlFilePath = path.join(__dirname, '..', 'ValidationRules.sql');
+
+  if (!fs.existsSync(sqlFilePath)) {
+    console.error('ValidationRules.sql not found at:', sqlFilePath);
+    return {};
+  }
+
+  const fileContent = fs.readFileSync(sqlFilePath, 'utf-8');
+  const lines = fileContent.split('\n');
+
+  const rules = {
+    'T1': [], 'T2': [], 'T3': [], 'T4': [], 'T5': [], 'T6': [], 'T7': []
+  };
+
+  let currentRule = null;
+  let currentSQL = [];
+  let currentTemplates = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+
+    // Parse metadata comments
+    if (line.startsWith('-- TEMPLATE:')) {
+      const templateStr = line.substring(12).trim();
+      currentTemplates = templateStr.split(',').map(t => t.trim());
+    } else if (line.startsWith('-- RULE:')) {
+      if (currentRule && currentSQL.length > 0) {
+        // Save previous rule
+        const sqlText = currentSQL.join('\n').trim();
+        if (sqlText && !sqlText.endsWith(';')) {
+          // Query might not be complete yet
+        } else {
+          saveRule(rules, currentTemplates, currentRule, sqlText.replace(/;$/, ''));
+          currentSQL = [];
+        }
+      }
+      currentRule = {
+        name: line.substring(8).trim()
+      };
+    } else if (line.startsWith('-- LEVEL:')) {
+      if (currentRule) currentRule.level = line.substring(9).trim();
+    } else if (line.startsWith('-- FIELD:')) {
+      if (currentRule) currentRule.field = line.substring(9).trim();
+    } else if (line.startsWith('-- MESSAGE:')) {
+      if (currentRule) currentRule.message = line.substring(11).trim();
+    } else if (line.startsWith('--') || line === '' || line.startsWith('/**') || line.startsWith('*/') || line.startsWith('*')) {
+      // Skip comments and blank lines
+      continue;
+    } else {
+      // SQL content
+      if (currentRule) {
+        currentSQL.push(lines[i]); // Keep original formatting
+
+        // Check if this is the end of a query (ends with semicolon)
+        if (line.endsWith(';')) {
+          const sqlText = currentSQL.join('\n').trim().replace(/;$/, '');
+          saveRule(rules, currentTemplates, currentRule, sqlText);
+          currentRule = null;
+          currentSQL = [];
+          currentTemplates = [];
+        }
+      }
+    }
+  }
+
+  // Save last rule if any
+  if (currentRule && currentSQL.length > 0) {
+    const sqlText = currentSQL.join('\n').trim().replace(/;$/, '');
+    saveRule(rules, currentTemplates, currentRule, sqlText);
+  }
+
+  return rules;
+}
+
+/**
+ * Helper function to save a rule to multiple templates
+ */
+function saveRule(rules, templates, rule, sql) {
+  const ruleObj = {
+    name: rule.name,
+    level: rule.level || 'ERROR',
+    field: rule.field || 'ALL',
+    message: rule.message || '',
+    sql: sql
+  };
+
+  for (const template of templates) {
+    if (rules[template]) {
+      rules[template].push(ruleObj);
+    }
+  }
+}
+
+// Load validation rules at startup
+let VALIDATION_RULES = parseValidationRules();
+console.log('Loaded validation rules:', Object.keys(VALIDATION_RULES).map(k => `${k}: ${VALIDATION_RULES[k].length} rules`).join(', '));
+
+/**
  * Gets validation queries for template type
  */
 function getValidationQueries(templateType) {
-  // Validation rules with vocab. schema prefix
-  const rules = {
-    'T1': [
-      {
-        name: 'REQUIRED_FIELDS',
-        level: 'ERROR',
-        field: 'ALL',
-        message: 'Required fields are missing',
-        sql: `
-          SELECT
-            source_row_number,
-            'Required field is empty: ' || missing_field AS validation_message,
-            missing_field AS field_name
-          FROM (
-            SELECT
-              source_row_number,
-              CASE
-                WHEN concept_name IS NULL OR TRIM(concept_name) = '' THEN 'concept_name'
-                WHEN concept_code IS NULL OR TRIM(concept_code) = '' THEN 'concept_code'
-                WHEN vocabulary_id IS NULL OR TRIM(vocabulary_id) = '' THEN 'vocabulary_id'
-                WHEN domain_id IS NULL OR TRIM(domain_id) = '' THEN 'domain_id'
-                WHEN concept_class_id IS NULL OR TRIM(concept_class_id) = '' THEN 'concept_class_id'
-              END AS missing_field
-            FROM {TEMP_TABLE}
-          ) missing
-          WHERE missing_field IS NOT NULL
-        `
-      },
-      {
-        name: 'VOCABULARY_EXISTS',
-        level: 'ERROR',
-        field: 'vocabulary_id',
-        message: 'Vocabulary does not exist',
-        sql: `
-          SELECT
-            t.source_row_number,
-            'Vocabulary ID does not exist: ' || t.vocabulary_id AS validation_message,
-            'vocabulary_id' AS field_name
-          FROM {TEMP_TABLE} t
-          LEFT JOIN vocab.vocabulary v ON v.vocabulary_id = t.vocabulary_id
-          WHERE v.vocabulary_id IS NULL
-            AND t.vocabulary_id IS NOT NULL
-            AND TRIM(t.vocabulary_id) != ''
-        `
-      },
-      {
-        name: 'DOMAIN_EXISTS',
-        level: 'ERROR',
-        field: 'domain_id',
-        message: 'Domain does not exist',
-        sql: `
-          SELECT
-            t.source_row_number,
-            'Domain ID does not exist: ' || t.domain_id AS validation_message,
-            'domain_id' AS field_name
-          FROM {TEMP_TABLE} t
-          LEFT JOIN vocab.domain d ON d.domain_id = t.domain_id
-          WHERE d.domain_id IS NULL
-            AND t.domain_id IS NOT NULL
-            AND TRIM(t.domain_id) != ''
-        `
-      },
-      {
-        name: 'CONCEPT_CLASS_EXISTS',
-        level: 'ERROR',
-        field: 'concept_class_id',
-        message: 'Concept class does not exist',
-        sql: `
-          SELECT
-            t.source_row_number,
-            'Concept Class ID does not exist: ' || t.concept_class_id AS validation_message,
-            'concept_class_id' AS field_name
-          FROM {TEMP_TABLE} t
-          LEFT JOIN vocab.concept_class cc ON cc.concept_class_id = t.concept_class_id
-          WHERE cc.concept_class_id IS NULL
-            AND t.concept_class_id IS NOT NULL
-            AND TRIM(t.concept_class_id) != ''
-        `
-      },
-      {
-        name: 'CONCEPT_CODE_UNIQUE',
-        level: 'ERROR',
-        field: 'concept_code',
-        message: 'Concept code already exists',
-        sql: `
-          SELECT
-            t.source_row_number,
-            'Concept code already exists: ' || t.concept_code || ' in vocabulary ' || t.vocabulary_id AS validation_message,
-            'concept_code' AS field_name
-          FROM {TEMP_TABLE} t
-          INNER JOIN vocab.concept c ON c.concept_code = t.concept_code
-            AND c.vocabulary_id = t.vocabulary_id
-          WHERE t.concept_code IS NOT NULL
-            AND TRIM(t.concept_code) != ''
-        `
-      },
-      {
-        name: 'CONCEPT_NAME_LENGTH',
-        level: 'WARNING',
-        field: 'concept_name',
-        message: 'Concept name is very long',
-        sql: `
-          SELECT
-            source_row_number,
-            'Concept name exceeds 255 characters (length: ' || LENGTH(concept_name) || ')' AS validation_message,
-            'concept_name' AS field_name
-          FROM {TEMP_TABLE}
-          WHERE concept_name IS NOT NULL
-            AND LENGTH(concept_name) > 255
-        `
-      }
-    ],
-    'T2': [
-      {
-        name: 'REQUIRED_FIELDS',
-        level: 'ERROR',
-        field: 'ALL',
-        message: 'Required fields are missing',
-        sql: `
-          SELECT
-            source_row_number,
-            'Required field is empty: ' || missing_field AS validation_message,
-            missing_field AS field_name
-          FROM (
-            SELECT
-              source_row_number,
-              CASE
-                WHEN concept_name IS NULL OR TRIM(concept_name) = '' THEN 'concept_name'
-                WHEN concept_code IS NULL OR TRIM(concept_code) = '' THEN 'concept_code'
-                WHEN vocabulary_id IS NULL OR TRIM(vocabulary_id) = '' THEN 'vocabulary_id'
-                WHEN domain_id IS NULL OR TRIM(domain_id) = '' THEN 'domain_id'
-                WHEN concept_class_id IS NULL OR TRIM(concept_class_id) = '' THEN 'concept_class_id'
-              END AS missing_field
-            FROM {TEMP_TABLE}
-          ) missing
-          WHERE missing_field IS NOT NULL
-        `
-      },
-      {
-        name: 'VOCABULARY_EXISTS',
-        level: 'ERROR',
-        field: 'vocabulary_id',
-        message: 'Vocabulary does not exist',
-        sql: `
-          SELECT
-            t.source_row_number,
-            'Vocabulary ID does not exist: ' || t.vocabulary_id AS validation_message,
-            'vocabulary_id' AS field_name
-          FROM {TEMP_TABLE} t
-          LEFT JOIN vocab.vocabulary v ON v.vocabulary_id = t.vocabulary_id
-          WHERE v.vocabulary_id IS NULL
-            AND t.vocabulary_id IS NOT NULL
-            AND TRIM(t.vocabulary_id) != ''
-        `
-      }
-    ],
-    'T3': [],
-    'T4': [],
-    'T5': [],
-    'T6': [],
-    'T7': []
-  };
-
-  return rules[templateType] || [];
+  return VALIDATION_RULES[templateType] || [];
 }
+
+/**
+ * Reload validation rules endpoint (authenticated)
+ * Call this after updating ValidationRules.sql to reload without redeploying
+ */
+app.post('/reload-rules', authenticateApiKey, (req, res) => {
+  try {
+    console.log('Reloading validation rules...');
+
+    // Reload rules from file
+    VALIDATION_RULES = parseValidationRules();
+
+    const ruleCount = Object.keys(VALIDATION_RULES).map(k => `${k}: ${VALIDATION_RULES[k].length} rules`).join(', ');
+    console.log('Reloaded validation rules:', ruleCount);
+
+    res.json({
+      success: true,
+      message: 'Validation rules reloaded successfully',
+      rules: Object.keys(VALIDATION_RULES).reduce((acc, key) => {
+        acc[key] = VALIDATION_RULES[key].length;
+        return acc;
+      }, {}),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error reloading rules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reload validation rules',
+      message: error.message
+    });
+  }
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

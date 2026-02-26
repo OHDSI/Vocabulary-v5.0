@@ -116,7 +116,7 @@ function createSubmissionPackage(metadata, hasErrors) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
   // Get or create submission folder
-  const submissionFolder = getOrCreateSubmissionFolder();
+  const submissionFolder = getOrCreateSubmissionFolder(metadata);
 
   // Create timestamped subfolder
   const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss');
@@ -169,10 +169,21 @@ function createSubmissionPackage(metadata, hasErrors) {
 /**
  * Gets or creates the submission folder in Google Drive
  *
+ * @param {Object} metadata - Submission metadata
  * @return {GoogleAppsScript.Drive.Folder} Submission folder
  */
-function getOrCreateSubmissionFolder() {
-  const folderName = 'OHDSI_Vocabulary_Submissions';
+function getOrCreateSubmissionFolder(metadata) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const metadataSheet = ss.getSheetByName('Metadata');
+
+  // Get B7 cell content from Metadata sheet
+  const b7Content = metadataSheet.getRange('B7').getValue();
+
+  // Get author name and sanitize it
+  const authorName = (metadata['Author Name'] || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
+
+  // Construct folder name: authorName_B7Content
+  const folderName = `${authorName}_${b7Content}`;
 
   // Check if folder exists
   const folders = DriveApp.getFoldersByName(folderName);

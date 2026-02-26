@@ -74,7 +74,9 @@ For each of the 7 script files, follow these steps:
 - AuditLog.gs
 - ResultsOutput.gs
 - Submission.gs
-- ValidationRules.gs
+- ValidationRules.gs (helper functions only - validation queries are in ValidationRules.sql)
+
+**Note:** Validation queries are stored in **ValidationRules.sql** (in the repository root) and loaded by the Azure Proxy API server.
 
 ### 4. Set Up Script Permissions
 
@@ -137,25 +139,40 @@ API Key: supersecretke
 
 ### 8. Customize Validation Rules
 
-Edit `ValidationRules.gs` to match your database schema:
+Edit `ValidationRules.sql` to match your database schema:
 
-1. In Apps Script editor, open **ValidationRules.gs**
-2. Find your template type (e.g., `'T1'`)
-3. Review/modify SQL queries:
-   - Table names must match your schema
+1. Open **ValidationRules.sql** in the repository root
+2. Find the validation query you want to modify
+3. Update SQL to match your schema:
+   - Table names must match your schema (e.g., `vocab.vocabulary`)
    - Column names must match your schema
    - Adjust validation logic as needed
 
 Example customization:
-```javascript
-// If your vocabulary table has a different name
-sql: `
-  SELECT t.source_row_number, ...
-  FROM {TEMP_TABLE} t
-  LEFT JOIN my_vocabulary_table v ON v.vocab_id = t.vocabulary_id
-  -- Change 'vocabulary' to 'my_vocabulary_table'
-`
+```sql
+-- TEMPLATE: T1,T2
+-- RULE: VOCABULARY_EXISTS
+-- LEVEL: ERROR
+-- FIELD: vocabulary_id
+-- MESSAGE: Vocabulary does not exist
+SELECT
+  t.source_row_number,
+  'Vocabulary ID does not exist: ' || t.vocabulary_id AS validation_message,
+  'vocabulary_id' AS field_name
+FROM {TEMP_TABLE} t
+LEFT JOIN my_schema.my_vocabulary_table v ON v.vocab_id = t.vocabulary_id
+-- Changed from 'vocab.vocabulary' to 'my_schema.my_vocabulary_table'
+WHERE v.vocabulary_id IS NULL
+  AND t.vocabulary_id IS NOT NULL
+  AND TRIM(t.vocabulary_id) != '';
 ```
+
+4. **Important:** After editing ValidationRules.sql, reload the rules:
+   ```bash
+   curl -X POST https://your-server-url.com/reload-rules \
+     -H "Authorization: Bearer YOUR_API_KEY"
+   ```
+   No server redeployment needed!
 
 ### 9. Test the Complete Workflow
 
@@ -231,9 +248,9 @@ Once everything is working:
 - Check database connection is still valid
 
 **As needed:**
-- Update validation queries when schema changes
+- Update ValidationRules.sql when schema changes (call `/reload-rules` endpoint after)
 - Add new template types
-- Customize error messages
+- Customize error messages in ValidationRules.sql
 
 
 **Deployment Complete!** 🎉

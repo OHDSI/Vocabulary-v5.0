@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OHDSI Vocabulary Validation Templates</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            padding: 40px 20px;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .template-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .template-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .template-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .template-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-right: 15px;
+        }
+
+        .template-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .template-description {
+            color: #718096;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .template-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .template-features li {
+            padding: 5px 0;
+            color: #4a5568;
+            font-size: 0.9em;
+        }
+
+        .template-features li:before {
+            content: "✓ ";
+            color: #48bb78;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .template-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            width: 100%;
+        }
+
+        .template-button:hover {
+            opacity: 0.9;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-section h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .info-section p {
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .steps {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            padding: 15px 0;
+            color: #4a5568;
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .steps li:before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .support-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .support-section h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .support-section p {
+            color: #4a5568;
+            margin-bottom: 20px;
+        }
+
+        .support-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .support-link {
+            display: inline-block;
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .support-link:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2em;
+            }
+
+            .templates-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>OHDSI Vocabulary Validation Templates</h1>
+            <p>Choose the template that matches your vocabulary contribution type</p>
+        </header>
+
+        <div class="templates-grid">
+            <!-- Template T1 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T1</div>
+                    <div class="template-title">Non-Standard Concepts</div>
+                </div>
+                <div class="template-description">
+                    Add new non-standard concepts to an existing vocabulary. Perfect for adding source codes that need mapping.
+                </div>
+                <ul class="template-features">
+                    <li>Concept name & code</li>
+                    <li>Vocabulary assignment</li>
+                    <li>Domain & class mapping</li>
+                    <li>Automated validation</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T1')">Use This Template</a>
+            </div>
+
+            <!-- Template T2 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T2</div>
+                    <div class="template-title">Standard Concepts</div>
+                </div>
+                <div class="template-description">
+                    Add new standard concepts to an existing vocabulary. For concepts that will be used in mappings.
+                </div>
+                <ul class="template-features">
+                    <li>Standard concept flag</li>
+                    <li>Complete metadata</li>
+                    <li>Hierarchy placement</li>
+                    <li>Quality validation</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T2')">Use This Template</a>
+            </div>
+
+            <!-- Template T3 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T3</div>
+                    <div class="template-title">Concept Relationships</div>
+                </div>
+                <div class="template-description">
+                    Create relationships between concepts. Map source codes to standard concepts or define hierarchies.
+                </div>
+                <ul class="template-features">
+                    <li>Source & target concepts</li>
+                    <li>Relationship types</li>
+                    <li>Bidirectional links</li>
+                    <li>Duplicate prevention</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T3')">Use This Template</a>
+            </div>
+
+            <!-- Template T4 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T4</div>
+                    <div class="template-title">Deprecate Concepts</div>
+                </div>
+                <div class="template-description">
+                    Mark concepts as deprecated or deleted. Maintains data lineage while removing outdated concepts.
+                </div>
+                <ul class="template-features">
+                    <li>Concept identification</li>
+                    <li>Deprecation reason</li>
+                    <li>Effective dating</li>
+                    <li>Replacement mapping</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T4')">Use This Template</a>
+            </div>
+
+            <!-- Template T5 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T5</div>
+                    <div class="template-title">Modify Attributes</div>
+                </div>
+                <div class="template-description">
+                    Update existing concept attributes. Change names, domains, classes, or other properties.
+                </div>
+                <ul class="template-features">
+                    <li>Concept selection</li>
+                    <li>Attribute updates</li>
+                    <li>Change tracking</li>
+                    <li>Validation checks</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T5')">Use This Template</a>
+            </div>
+
+            <!-- Template T6 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T6</div>
+                    <div class="template-title">New Vocabulary</div>
+                </div>
+                <div class="template-description">
+                    Create an entirely new vocabulary. Define vocabulary metadata and initial concept set.
+                </div>
+                <ul class="template-features">
+                    <li>Vocabulary definition</li>
+                    <li>Naming & reference</li>
+                    <li>Format validation</li>
+                    <li>Uniqueness check</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T6')">Use This Template</a>
+            </div>
+
+            <!-- Template T7 -->
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-badge">T7</div>
+                    <div class="template-title">Other Modifications</div>
+                </div>
+                <div class="template-description">
+                    Custom modifications that don't fit other categories. Flexible template for special cases.
+                </div>
+                <ul class="template-features">
+                    <li>Custom fields</li>
+                    <li>Flexible structure</li>
+                    <li>Basic validation</li>
+                    <li>Manual review</li>
+                </ul>
+                <a href="#" class="template-button" onclick="openTemplate('T7')">Use This Template</a>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>How to Use These Templates</h2>
+            <ol class="steps">
+                <li>Click "Use This Template" to create your own copy</li>
+                <li>Fill in the Metadata sheet with your information</li>
+                <li>Add your vocabulary data to the Input sheet</li>
+                <li>Click "OHDSI Validation > Validate Template" from the menu</li>
+                <li>Review results in the Output sheet and fix any errors</li>
+                <li>When validation passes, click "Submit Final Version"</li>
+            </ol>
+        </div>
+
+        <div class="support-section">
+            <h2>Need Help?</h2>
+            <p>Access documentation, examples, and community support</p>
+            <div class="support-links">
+                <a href="https://github.com/OHDSI/Vocabulary-v5.0/wiki" class="support-link" target="_blank">📚 Documentation</a>
+                <a href="https://forums.ohdsi.org/" class="support-link" target="_blank">💬 Forums</a>
+                <a href="https://github.com/OHDSI/Vocabulary-v5.0/issues" class="support-link" target="_blank">🐛 Report Issue</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Template URLs - UPDATE THESE with your actual Google Sheets template URLs
+        const TEMPLATE_URLS = {
+            'T1': 'https://docs.google.com/spreadsheets/d/YOUR_T1_TEMPLATE_ID/copy',
+            'T2': 'https://docs.google.com/spreadsheets/d/YOUR_T2_TEMPLATE_ID/copy',
+            'T3': 'https://docs.google.com/spreadsheets/d/YOUR_T3_TEMPLATE_ID/copy',
+            'T4': 'https://docs.google.com/spreadsheets/d/YOUR_T4_TEMPLATE_ID/copy',
+            'T5': 'https://docs.google.com/spreadsheets/d/YOUR_T5_TEMPLATE_ID/copy',
+            'T6': 'https://docs.google.com/spreadsheets/d/YOUR_T6_TEMPLATE_ID/copy',
+            'T7': 'https://docs.google.com/spreadsheets/d/YOUR_T7_TEMPLATE_ID/copy'
+        };
+
+        function openTemplate(templateId) {
+            const url = TEMPLATE_URLS[templateId];
+            if (url.includes('YOUR_')) {
+                alert('Template URL not configured yet. Please update the TEMPLATE_URLS in index.html');
+                return;
+            }
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>

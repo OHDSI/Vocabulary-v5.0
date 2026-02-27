@@ -18,7 +18,7 @@ CONSTRAINT chk_relationship_predicate_id
 CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch','eq', 'up', 'down')),
 CONSTRAINT xpk_concept_relationship_metadata
 UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
-);
+);*/
 
 
 --Community contribution
@@ -387,7 +387,7 @@ SELECT
     'AM-lib_C' AS mapping_tool,
     'Andrew S. Kanter' AS mapper,
     NULL AS reviewer
-FROM maps_for_load_stage a
+FROM dev_ciel.maps_for_load_stage a
 JOIN concept c
   ON a.source_code = c.concept_code
 WHERE c.vocabulary_id = 'CIEL'

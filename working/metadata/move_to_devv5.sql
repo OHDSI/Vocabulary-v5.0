@@ -5,7 +5,7 @@
 -- UPSERT for concept_metadata
 INSERT INTO devv5.concept_metadata (concept_id, concept_category, reuse_status)
 SELECT concept_id, concept_category, reuse_status
-FROM old_schema.concept_metadata
+FROM dev_voc_metadata.concept_metadata
 ON CONFLICT (concept_id) DO UPDATE
 SET 
     concept_category = EXCLUDED.concept_category,
@@ -35,7 +35,7 @@ SELECT
     mapping_tool, 
     mapper, 
     reviewer
-FROM old_schema.concept_relationship_metadata
+FROM dev_voc_metadata.concept_relationship_metadata
 ON CONFLICT (concept_id_1, concept_id_2, relationship_id) DO UPDATE
 SET 
     relationship_predicate_id = EXCLUDED.relationship_predicate_id,
@@ -59,5 +59,5 @@ SELECT
     rm.mapping_tool,
     rm.mapper,
     rm.reviewer
-FROM dev_test4.concept_relationship_metadata rm
+FROM dev_voc_metadata.concept_relationship_metadata rm
 JOIN relationship r ON rm.relationship_id = r.relationship_id;

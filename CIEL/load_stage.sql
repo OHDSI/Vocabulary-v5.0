@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz
-* Date: 2020, 2021
+* Date: 2020, 2021, 2023
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIEL',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ciel_concept_class LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ciel_concept_class LIMIT 1),
+	pVocabularyDate			=> (SELECT MAX(date_created) FROM sources.ciel_concept_name),
+	pVocabularyVersion		=> (SELECT 'CIEL '||TO_CHAR(MAX(date_created),'yyyymmdd') FROM sources.ciel_concept_name),
 	pVocabularyDevSchema	=> 'DEV_CIEL'
 );
 END $_$;
@@ -47,14 +47,8 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
-			PARTITION BY c.concept_id ORDER BY CASE 
-					WHEN LENGTH(cn.ciel_name) <= 255
-						THEN LENGTH(cn.ciel_name)
-					ELSE 0
-					END DESC,
-				LENGTH(cn.ciel_name)
-			), 'Concept ' || c.concept_id /*for strange reason we have 4 concepts without concept_name*/) AS concept_name,
+SELECT DISTINCT ON (c.concept_id)
+	vocabulary_pack.CutConceptName(COALESCE(cn.ciel_name, 'Concept ' || c.concept_id /*for strange reason we have 4 concepts without concept_name*/)) AS concept_name,
 	CASE ccl.ciel_name
 		WHEN 'Test'
 			THEN 'Measurement'
@@ -112,10 +106,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Drug'
 		WHEN 'Medical supply'
 			THEN 'Device'
--- begin change M. Kallfelz 2021-05-06 
+				-- begin change M. Kallfelz 2021-05-06 
 		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
-			THEN 'Drug' 
--- end change M. Kallfelz 2021-05-06
+			THEN 'Drug'
+				-- end change M. Kallfelz 2021-05-06
 		END AS domain_id,
 	'CIEL' AS vocabulary_id,
 	CASE ccl.ciel_name -- shorten the ones that won't fit the 20 char limit
@@ -127,10 +121,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Radiology' -- there are LOINC codes which are Measurement, but results are not connected
 		WHEN 'Pharmacologic Drug Class'
 			THEN 'Drug Class'
--- begin change M. Kallfelz 2021-05-06 
+				-- begin change M. Kallfelz 2021-05-06 
 		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
 			THEN 'Drug Class' -- Class 'Drug Interaction' is not suitable and not in use
--- end change M. Kallfelz 2021-05-06
+				-- end change M. Kallfelz 2021-05-06
 		ELSE ccl.ciel_name
 		END AS concept_class_id,
 	NULL AS standard_concept,
@@ -153,10 +147,15 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 FROM sources.ciel_concept c
 LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
 LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
-	AND cn.locale = 'en';
+	AND cn.locale = 'en'
+ORDER BY c.concept_id,
+	cn.locale_preferred DESC,
+	LENGTH(cn.ciel_name) DESC /*some concepts don't have locale_preferred*/;
 
--- begin addition M. Kallfelz 2021-05-06 
+--begin addition M. Kallfelz 2021-05-06
+
 --4. Add synonyms to concept_synonym_stage by language
+
 --SELECT DISTINCT ON (locale) * FROM ciel_concept_name
 -- WHERE voided = 0;
 -- am = Amharic => no OMOP language
@@ -204,8 +203,12 @@ WHERE cn.locale IN (
 		'it',
 		'nl',
 		'pt'
-		);-- no other OMOP languages match the locale
--- end addition M. Kallfelz 2021-05-06
+		) -- no other OMOP languages match the locale
+	-- end addition M. Kallfelz 2021-05-06
+	AND  cn.ciel_name IS NOT NULL
+	 AND cn.voided = '0' 
+	 AND cn.concept_name_type = 'FULLY_SPECIFIED'
+  ;
 
 --5. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;
@@ -267,9 +270,13 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 						THEN 'SNOMED-c2'
 					WHEN 'SNOMED US'
 						THEN 'SNOMED-c3'
-					WHEN 'RxNORM'
+					WHEN 'SNOMED UK'
+						THEN 'SNOMED-c4'
+          WHEN 'RxNORM'
 						THEN 'RxNorm-c'
-					WHEN 'ICD-10-WHO'
+					WHEN 'OMOP RxNorm Extension'
+						THEN 'RxNorm Extension-c'
+          WHEN 'ICD-10-WHO'
 						THEN 'XICD10-c1' -- X so it will be ordered by after SNOMED
 					WHEN 'ICD-10-WHO 2nd'
 						THEN 'XICD10-c2'
@@ -279,33 +286,144 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 						THEN 'XICD10-c4'
 					WHEN 'NDF-RT NUI'
 						THEN 'NDFRT-c'
+-- can we add more? CPT - SNOMED UK - WHOATC - UCUM - OMOP RxNorm Extension
 					ELSE NULL
 					END AS vocabulary_id_2
 			FROM sources.ciel_concept c
-			JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
 			JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 				AND cn.locale = 'en'
 			JOIN sources.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
 			JOIN sources.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
 			JOIN sources.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
 			WHERE crt.retired = 0
+				AND c.class_id <> 3 --exclude drugs [AVOF-3147]
 				AND crs.ciel_name IN (
 					'RxNORM',
+					'OMOP RxNorm Extension',
 					'SNOMED CT',
 					'SNOMED NP',
+					'SNOMED UK',
 					'ICD-10-WHO',
 					'ICD-10-WHO NP',
 					'ICD-10-WHO 2nd',
 					'ICD-10-WHO NP2',
 					'SNOMED US',
 					'NDF-RT NUI'
+-- can we add more? CPT - SNOMED UK - WHOATC - UCUM - OMOP RxNorm Extension
 					)
 			
 			UNION
 			
+			-- new logic for drugs [AVOF-3147]
+			SELECT s1.ciel_name AS concept_name_1,
+				s1.ciel_code AS concept_code_1,
+				'CIEL' AS vocabulary_id_1,
+				s1.target_name AS concept_name_2,
+				s1.code AS concept_code_2,
+				c.vocabulary_id || '-c' AS vocabulary_id_2
+			FROM (
+				SELECT s0.ciel_code,
+					s0.ciel_name,
+					s0.concept_map_id,
+					s0.target_pr_rxcui,
+					CASE 
+						WHEN s0.target_pr_sab = 'SNOMEDCT_US'
+							AND s0.target_sec_code IS NOT NULL
+							THEN s0.target_sec_sab
+						ELSE s0.target_pr_sab
+						END sab,
+					CASE 
+						WHEN s0.target_pr_sab = 'SNOMEDCT_US'
+							AND s0.target_sec_code IS NOT NULL
+							THEN s0.target_sec_code
+						ELSE s0.target_pr_code
+						END code,
+					CASE 
+						WHEN s0.target_pr_sab = 'SNOMEDCT_US'
+							AND s0.target_sec_code IS NOT NULL
+							THEN s0.target_sec_str
+						ELSE s0.target_pr_str
+						END target_name
+				FROM (
+					SELECT c.concept_id::TEXT ciel_code,
+						cn.ciel_name,
+						cm.concept_map_id,
+						target_primary.rxcui target_pr_rxcui,
+						target_primary.code target_pr_code,
+						target_primary.sab target_pr_sab,
+						target_secondary.rxcui target_sec_code,
+						'RXNORM' target_sec_sab,
+						target_primary.str target_pr_str,
+						target_secondary.str target_sec_str,
+						RANK() OVER (
+							PARTITION BY c.concept_id ORDER BY CASE 
+									WHEN target_primary.sab = 'RXNORM'
+										THEN 1
+									WHEN target_secondary.rxcui IS NOT NULL
+										THEN 2
+									END /*priority: RXNORM (primary target), RXNORM (secondary target via SNOMED), SNOMED*/,
+								TRANSLATE(LEFT(target_primary.tty, 1), 'SMIP', '1234') /*priority for primary: SCD, MIN, IN, PIN*/,
+								TRANSLATE(LEFT(target_secondary.tty, 1), 'SMIP', '1234') /*priority for secondary: SCD, MIN, IN, PIN*/
+							) target_rnk
+					FROM sources.ciel_concept c
+					JOIN sources.ciel_concept_reference_map cm ON cm.concept_id = c.concept_id
+					JOIN sources.ciel_concept_reference_term ct ON ct.concept_reference_term_id = cm.concept_reference_term_id
+					JOIN sources.ciel_concept_name cn ON c.concept_id = cn.concept_id
+					JOIN sources.rxnconso target_primary ON target_primary.rxcui = ct.ciel_code
+						AND target_primary.sab IN (
+							'RXNORM',
+							'SNOMEDCT_US'
+							)
+					/*trying to find secondary mapping via SNOMED*/
+					LEFT JOIN (
+						SELECT sn_to_rxcui.code snomed_code,
+							rxn.rxcui,
+							rxn.tty,
+							rxn.str,
+							rxn.suppress
+						FROM sources.rxnconso sn_to_rxcui
+						JOIN sources.rxnconso rxn USING (rxcui)
+						WHERE sn_to_rxcui.sab = 'SNOMEDCT_US'
+							AND rxn.sab = 'RXNORM'
+							AND rxn.tty IN (
+								'SCD',
+								'IN',
+								'MIN',
+								'PIN'
+								)
+						) target_secondary ON target_secondary.snomed_code = target_primary.code
+					WHERE c.class_id = 3 --only drugs
+						AND target_primary.tty IN (
+							'SCD',
+							'IN',
+							'MIN',
+							'PIN',
+							'PT'
+							)
+						AND cn.locale = 'en'
+						AND cn.locale_preferred = 1
+						AND ct.concept_source_id IN (
+							1,
+							2,
+							4,
+							5
+							) --RxNorm+SCT
+					) s0
+				WHERE s0.target_rnk = 1
+				) s1
+			JOIN concept c ON c.concept_code = s1.code
+				AND c.vocabulary_id = CASE 
+					WHEN s1.sab = 'RXNORM'
+						THEN 'RxNorm'
+					ELSE 'SNOMED'
+					END
+			WHERE c.concept_id <> 4269754 --concept_id=4269754 (Immunoglobulin structure) is a child of concept 4008249 (Immunoglobulin) and is therefore ignored
+
+			UNION
+
 			-- resolve RxNorm MIN to RxNorm IN (not currently in Vocabularies)
 			SELECT DISTINCT FIRST_VALUE(rx_min.str) OVER (
-					PARTITION BY rx_min.rxcui ORDER BY CASE 
+					PARTITION BY rx_min.rxcui ORDER BY CASE
 							WHEN LENGTH(rx_min.str) <= 255
 								THEN LENGTH(rx_min.str)
 							ELSE 0
@@ -315,7 +433,7 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 				rx_min.rxcui AS concept_code_1,
 				'RxNorm-c' AS vocabulary_id_1,
 				FIRST_VALUE(ing.str) OVER (
-					PARTITION BY ing.rxcui ORDER BY CASE 
+					PARTITION BY ing.rxcui ORDER BY CASE
 							WHEN LENGTH(ing.str) <= 255
 								THEN LENGTH(ing.str)
 							ELSE 0
@@ -660,10 +778,12 @@ WHERE crs.ciel_name IN (
 		'SNOMED NP',
 		'ICD-10-WHO',
 		'RxNORM',
+		'OMOP RxNorm Extension',
 		'ICD-10-WHO NP',
 		'ICD-10-WHO 2nd',
 		'ICD-10-WHO NP2',
 		'SNOMED US',
+		'SNOMED UK',
 		'NDF-RT NUI'
 		);
 
@@ -734,6 +854,60 @@ END $_$;
 --13. Clean up
 DROP TABLE ciel_concept_with_map;
 DROP TABLE ciel_to_concept_map;
+
+--14. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT a.concept_code,
+	b.concept_code,
+	a.vocabulary_id,
+	b.vocabulary_id,
+	relationship_id,
+	r.valid_start_date,
+	( CASE
+		WHEN (
+     SELECT latest_update
+	 	FROM vocabulary
+	 	WHERE  vocabulary_id = 'CIEL' )
+ 	   - 1  < r.valid_start_date 
+ 	  THEN r.valid_start_date + 1
+ 	 ELSE (
+     SELECT latest_update
+	 	FROM vocabulary
+	 	WHERE vocabulary_id = 'CIEL' )
+ 	   - 1  
+    END
+    ),
+   'D'
+FROM concept a
+JOIN concept_relationship r ON a.concept_id = concept_id_1
+	AND r.invalid_reason IS NULL
+	AND r.relationship_id NOT IN (
+		'Concept replaced by',
+		'Concept replaces'
+		)
+JOIN concept b ON b.concept_id = concept_id_2
+WHERE 'CIEL' IN (
+		a.vocabulary_id,
+		b.vocabulary_id
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = a.concept_code
+			AND crs_int.concept_code_2 = b.concept_code
+			AND crs_int.vocabulary_id_1 = a.vocabulary_id
+			AND crs_int.vocabulary_id_2 = b.vocabulary_id
+			AND crs_int.relationship_id = r.relationship_id
+		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 -- Before generic update, go through stage table QA checks with functions qa_ddl and check_stage_tables

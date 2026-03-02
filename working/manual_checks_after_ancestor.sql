@@ -73,3 +73,14 @@ SELECT CASE
                              FROM precalc b)) * 100, 2) || '%)' END AS complience_check,
     '5%' as cutoff
 ;
+
+select * from concept where concept_id in (36878723,36878793,45775636);
+select * from concept_relationship where  concept_id_1 = 35408055;
+select * from concept where concept_id = 45892092;
+
+select c.concept_id, c.concept_name, c.concept_class_id, c.vocabulary_id, c.standard_concept, c.invalid_reason
+from prodv5.concept_ancestor ca
+join concept c on ancestor_concept_id = c.concept_id
+join concept cc on cc.concept_id = ca.descendant_concept_id
+where ca.descendant_concept_id = 19008496
+order by ca.min_levels_of_separation;

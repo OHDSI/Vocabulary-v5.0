@@ -17,8 +17,8 @@ REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
 CONSTRAINT chk_relationship_predicate_id
 CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch','eq', 'up', 'down')),
 CONSTRAINT xpk_concept_relationship_metadata
-UNIQUE (concept_id_1,concept_id_2,relationship_id, relationship_predicate_id, mapping_source, confidence, mapping_tool, mapper, reviewer)
-);*/
+UNIQUE (concept_id_1,concept_id_2,relationship_id)
+);
 
 
 --Community contribution
@@ -41,7 +41,16 @@ FROM dev_voc_metadata.cc_mapping cc
 JOIN devv5.concept c ON (cc.concept_code_1, cc.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
 JOIN devv5.concept c1 ON (cc.concept_code_2, cc.vocabulary_id_2) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr ON (c.concept_id, c1.concept_id, cc.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
-WHERE cr.invalid_reason is null;
+WHERE cr.invalid_reason is null
+ON CONFLICT ON CONSTRAINT xpk_concept_relationship_metadata
+DO UPDATE SET relationship_predicate_id = EXCLUDED.relationship_predicate_id,
+               relationship_group = EXCLUDED.relationship_group,
+               mapping_source = EXCLUDED.mapping_source,
+               confidence = EXCLUDED.confidence,
+               mapping_tool = EXCLUDED.mapping_tool,
+               mapper = EXCLUDED.mapper,
+               reviewer = EXCLUDED.reviewer
+;
 
 UPDATE  concept_relationship_metadata
     SEt mapping_tool='MM_U'
@@ -579,12 +588,12 @@ ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
 
 --loss of concepts compared to prev release
---predictable behaviour as it's resulted from mapping propagation and entire mapping inactivation/invalidation
+--predictable behavior as resulted from mapping propagation and entire mapping inactivation/invalidation
 SELECT c.vocabulary_id,count(*) as row_cnt, count(DISTINCT c.concept_id) as id_cnt
 from devv5.concept_relationship_metadata crm
 JOIN devv5.concept c
 on crm.concept_id_1=c.concept_id
-where  not exists (
+where not exists (
     SELECT 1
     from dev_voc_metadata.concept_relationship_metadata crmt
     where crmt.concept_id_1=crm.concept_id_1

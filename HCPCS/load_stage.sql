@@ -201,7 +201,7 @@ AS (
 					)
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'C7500' AND 'C7571'
-			    OR concept_code BETWEEN 'C8004' AND 'C8006'
+			    OR concept_code BETWEEN 'C8001' AND 'C8006'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'C7900' AND 'C7903'
 				THEN 'Observation'

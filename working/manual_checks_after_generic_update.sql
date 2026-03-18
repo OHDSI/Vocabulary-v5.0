@@ -24,7 +24,7 @@ WHERE old.domain_id != new.domain_id
 ;
 
 --01.2. Domain of newly added concepts
---In this check we manually review the assignment of new concept's Domain to make sure they are expected, correct and in line with the current conventions and approaches.
+--In this check we manually review the assignment of new concepts' Domain to make sure they are expected, correct and in line with the current conventions and approaches.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by standard_concept, concept_class_id, vocabulary_id fields as well as domain_id. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case), Domain assignment logic may be different, e.g.:
 -- - based on Domain of the target concept and script logic on top of that;
@@ -52,7 +52,7 @@ WHERE c2.vocabulary_id IS NULL
 --Serious changes in concept semantics are not allowed and may indicate the code reuse by the source.
 --Structural changes may be a reason to reconsider the source name processing.
 --Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
---This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
+--This check also controls the source and vocabulary database integrity, making sure that concepts don't change the concept_code or concept_id.
 
 SELECT c.vocabulary_id,
        c.concept_class_id,
@@ -75,7 +75,7 @@ ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 --Serious changes in synonym semantics are not allowed and may indicate the code reuse by the source.
 --Structural changes or significant changes in the content volume (synonyms of additional language, sort or property) may be a reason to reconsider the synonyms processing.
 --Minor changes and more/less precise definitions are allowed, unless it changes the concept semantics.
---This check also controls the source and vocabulary database integrity making sure that concepts doesn't change the concept_code or concept_id.
+--This check also controls the source and vocabulary database integrity, making sure that concepts don't change the concept_code or concept_id.
 
 WITH old_syn AS (
 SELECT c.concept_code,
@@ -138,10 +138,10 @@ ORDER BY similarity_or_condition, language_changed;
 --In this check we manually review new concepts that don't have "Maps to" links to the Standard equivalent concepts.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case), vocabulary importance and its maturity level, effort and resources available, result should be critically analyzed and may represent multiple scenarios, e.g.:
--- - concepts of some concept classes doesn't require "Maps to" links because the targets are not set as Standard concepts by design (brand names, drug forms, etc.);
+-- - concepts of some concept classes don't require "Maps to" links because the targets are not set as Standard concepts by design (brand names, drug forms, etc.);
 -- - new NDC or vaccine concepts are not yet represented in the RxNorm/CVX vocabulary, and, therefore, can't be mapped;
 -- - OMOP-generated invalidated concepts are not used as the source concepts, and, therefore, replacement links are not supported;
--- - concepts that were wrongly designed by the author (e.g. SNOMED) can't be explicitly mapped to the Standard target.
+-- - concepts wrongly designed by the author (e.g., SNOMED) can't be explicitly mapped to the Standard target.
 
 SELECT a.concept_code AS concept_code_source,
        a.concept_name AS concept_name_source,
@@ -161,12 +161,12 @@ AND c.concept_id IS NULL AND b.concept_id IS NULL
 --02.2. looking at new concepts and their mapping -- 'Maps to', 'Maps to value' present
 --In this check we manually review new concepts that have "Maps to", "Maps to value" links to the Standard equivalent concepts or themselves.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
---Depending on the logical group (use case), result should be critically analyzed and may represent multiple scenarios, e.g.:
+--Depending on the logical group (use case), the result should be critically analyzed and may represent multiple scenarios, e.g.:
 -- - new SNOMED "Clinical finding" concepts are mapped to themselves;
 -- - new unit concepts of any vocabulary are mapped to 'UCUM' vocabulary;
 -- - new Devices of any source drug vocabulary are mapped to themselves, some of them are also mapped to the oxygen Ingredient;
 -- - new HCPCS/CPT4 COVID-19 vaccines are mapped to CVX or RxNorm.
---In this check we are not aiming on reviewing the semantics or quality of mapping. The completeness of content (versus 02.1 check) and alignment of the source use cases and mapping scenarios is the subject matter in this check.
+-- In this check we are not aiming to review the semantics or quality of mapping. The completeness of content (versus 02.1 check) and alignment of the source use cases and mapping scenarios is the subject matter in this check.
 
 SELECT a.concept_code AS concept_code_source,
        a.concept_name AS concept_name_source,

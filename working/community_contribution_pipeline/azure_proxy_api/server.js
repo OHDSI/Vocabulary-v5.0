@@ -192,6 +192,11 @@ async function performValidation(data, templateType) {
           });
         });
       } catch (queryError) {
+        // Skip optional rules when column doesn't exist (error code 42703)
+        if (query.optional && queryError.code === '42703') {
+          console.log(`Skipping optional rule ${query.name}: ${queryError.message}`);
+          continue;
+        }
         console.error(`Query error for rule ${query.name}:`, queryError);
         results.push({
           row: 0,
@@ -315,7 +320,11 @@ function isValidDate(value) {
  * Parses ValidationRules.sql file and extracts validation rules
  */
 function parseValidationRules() {
-  const sqlFilePath = path.join(__dirname, '..', 'ValidationRules.sql');
+  // Check current dir first (Docker), then parent dir (local dev)
+  let sqlFilePath = path.join(__dirname, 'ValidationRules.sql');
+  if (!fs.existsSync(sqlFilePath)) {
+    sqlFilePath = path.join(__dirname, '..', 'ValidationRules.sql');
+  }
 
   if (!fs.existsSync(sqlFilePath)) {
     console.error('ValidationRules.sql not found at:', sqlFilePath);
@@ -360,6 +369,8 @@ function parseValidationRules() {
       if (currentRule) currentRule.field = line.substring(9).trim();
     } else if (line.startsWith('-- MESSAGE:')) {
       if (currentRule) currentRule.message = line.substring(11).trim();
+    } else if (line.startsWith('-- OPTIONAL:')) {
+      if (currentRule) currentRule.optional = line.substring(12).trim().toLowerCase() === 'true';
     } else if (line.startsWith('--') || line === '' || line.startsWith('/**') || line.startsWith('*/') || line.startsWith('*')) {
       // Skip comments and blank lines
       continue;
@@ -398,6 +409,7 @@ function saveRule(rules, templates, rule, sql) {
     level: rule.level || 'ERROR',
     field: rule.field || 'ALL',
     message: rule.message || '',
+    optional: rule.optional || false,
     sql: sql
   };
 

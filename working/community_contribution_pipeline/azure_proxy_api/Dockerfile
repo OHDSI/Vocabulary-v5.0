@@ -1,10 +1,12 @@
 # Multi-stage build for smaller image size
+#
+
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY azure_proxy_api/package*.json ./
 
 # Install dependencies (npm 7+ uses --omit=dev instead of --only=production)
 RUN npm ci --omit=dev
@@ -24,8 +26,9 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy dependencies from builder
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 
-# Copy application code
-COPY --chown=nodejs:nodejs server.js ./
+# Copy application code and validation rules
+COPY --chown=nodejs:nodejs azure_proxy_api/server.js ./
+COPY --chown=nodejs:nodejs ValidationRules.sql ./
 
 # Switch to non-root user
 USER nodejs

@@ -10,6 +10,9 @@
  * @param {Object} validationResults - Results from database validation
  */
 function writeValidationResults(validationResults) {
+  if (!validationResults) {
+    throw new Error('No validation results received. Check that the Azure proxy is configured and running.');
+  }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let outputSheet = ss.getSheetByName(CONFIG.OUTPUT_SHEET_NAME);
 
@@ -38,7 +41,7 @@ function writeValidationResults(validationResults) {
     ['Total Rows Validated', validationResults.totalRows, '', '', ''],
     ['Errors Found', validationResults.errorCount, '', '', ''],
     ['Warnings Found', validationResults.warningCount, '', '', ''],
-    ['Status', validationResults.success ? 'PASSED' : 'FAILED', '', '', ''],
+    ['Status', validationResults.errorCount === 0 ? 'PASSED' : 'FAILED', '', '', ''],
     ['', '', '', '', '']
   ];
 
@@ -50,7 +53,7 @@ function writeValidationResults(validationResults) {
   outputSheet.getRange(1, 1).setFontWeight('bold').setFontSize(14);
 
   const statusCell = outputSheet.getRange(5, 2);
-  if (validationResults.success) {
+  if (validationResults.errorCount === 0) {
     statusCell.setBackground('#d9ead3').setFontColor('#38761d').setFontWeight('bold');
   } else {
     statusCell.setBackground('#f4cccc').setFontColor('#cc0000').setFontWeight('bold');

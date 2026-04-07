@@ -17,12 +17,12 @@ const CONFIG = {
   // Template Types (maps to validation rule sets)
   TEMPLATE_TYPES: {
     'T1': 'Adding new non-standard concept(s) to an existing vocabulary',
-    'T2': 'Adding new standard concept(s) to an existing vocabulary',
-    'T3': 'Adding concept relationship(s)',
-    'T4': 'Deprecating concept(s)',
+    'T2': 'Adding synonym(s)',
+    'T3': 'Adding mapping(s)',
+    'T4': 'Creating new vocabulary',
     'T5': 'Modifying concept(s) attributes',
-    'T6': 'Creating new vocabulary',
-    'T7': 'Other modifications'
+    'T6': 'Modifying mapping(s)',
+    'T7': 'Promoting concept(s) to standard'
   }
 };
 

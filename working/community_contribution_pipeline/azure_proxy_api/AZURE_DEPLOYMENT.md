@@ -21,12 +21,22 @@ az acr create \
   --admin-enabled true
 
 # Build and push image (here's an example for acr.io)
+# IMPORTANT: Run this from the community_contribution_pipeline directory
+# (the parent of azure_proxy_api), so ValidationRules.sql is in the build context.
+cd /path/to/community_contribution_pipeline
+
 az acr build \
   --registry ohdsivalidationacr \
   --image validation-proxy:latest \
   --platform linux/amd64 \
-  --file Dockerfile .
+  --file azure_proxy_api/Dockerfile .
 ```
+
+> **Updating validation rules**
+> After editing `ValidationRules.sql`, rebuild and redeploy the image
+> (re-run the `az acr build` command above and restart the container app),
+> or call `POST /reload-rules` on the running container to hot-reload from
+> the copy baked into the image at build time.
 
 
 ### Step 2: Deploy Container App (to existing )

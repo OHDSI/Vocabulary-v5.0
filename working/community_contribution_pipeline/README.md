@@ -79,8 +79,7 @@ The system consists of:
    const PROXY_URL = 'https://your-actual-url.com';
    const API_KEY = 'your-actual-api-key';
    ```
-5. Click **Run** to execute the function
-6. **IMPORTANT:** Replace the values back with placeholders before committing to GitHub
+5. Click **OHDSI Validation > Admin > Configure Database** to set the parameters and then Run to execute the function
 
 **Security Note**:
 - Credentials are stored in Script Properties (encrypted by Google)
@@ -339,5 +338,4 @@ After editing ValidationRules.sql:
 }
 ```
 
-**Note:** No server redeployment or restart needed! The rules are reloaded in-memory.
 

@@ -178,9 +178,14 @@ async function performValidation(data, templateType) {
     // Execute validation queries
     const results = [];
     for (const query of queries) {
+      // Wrap each rule in a savepoint so a failing query does not abort the
+      // whole transaction (PostgreSQL aborts a transaction on any error until
+      // ROLLBACK TO SAVEPOINT or ROLLBACK is issued).
+      await client.query('SAVEPOINT rule_sp');
       try {
         const sql = query.sql.replace(/{TEMP_TABLE}/g, tempTableName);
         const queryResult = await client.query(sql);
+        await client.query('RELEASE SAVEPOINT rule_sp');
 
         queryResult.rows.forEach(row => {
           results.push({
@@ -192,6 +197,10 @@ async function performValidation(data, templateType) {
           });
         });
       } catch (queryError) {
+        // Roll the failing rule's effects back so the transaction remains usable
+        await client.query('ROLLBACK TO SAVEPOINT rule_sp');
+        await client.query('RELEASE SAVEPOINT rule_sp');
+
         // Skip optional rules when column doesn't exist (error code 42703)
         if (query.optional && queryError.code === '42703') {
           console.log(`Skipping optional rule ${query.name}: ${queryError.message}`);

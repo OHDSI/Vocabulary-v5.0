@@ -3,6 +3,7 @@ RETURNS VOID AS
 $BODY$
 BEGIN
 -- 1. Map assessment procedures to the respective observables:
+DROP TABLE IF EXISTS mapped;
 CREATE UNLOGGED TABLE mapped AS
     SELECT DISTINCT cs.concept_code AS concept_code_1,
             cc.concept_code AS concept_code_2,

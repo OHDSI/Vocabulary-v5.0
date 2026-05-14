@@ -1831,8 +1831,7 @@ WHERE sa.ancestor_concept_code IN (
 		'312871001', --Administration of bacterial vaccine
 		'1156257007', -- Administration of SARS-CoV-2 vaccine
 		'49083007', -- Administration of viral vaccine
-		'283511000000105', -- Administration of vaccine
-		'445536008' -- Assessment using assessment scale
+		'283511000000105' -- Administration of vaccine
 		)
 	AND NOT EXISTS (
 		SELECT 1

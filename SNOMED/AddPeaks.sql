@@ -1218,6 +1218,8 @@ BEGIN
 		('301957003',  	    'Condition',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Finding of artificial lens
 		('1119537007',  	    'Condition',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Visual acuity perception of light without projection
 		('366658001',  		'Observation',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Color of hair - finding
+		('225502007',  		'Observation',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Expresses self through style of dress
+		('365275006',  		'Observation',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- General well-being finding
 		('123821009',  		'Measurement',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Partial pressure of oxygen in blood outside reference range
 		('791000172108',  	'Measurement',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- Aminotransferase level above reference range
 		('168318001',  		'Condition',  TO_DATE('20260424', 'YYYYMMDD'),	TO_DATE('20991231', 'YYYYMMDD'),	NULL), -- No Cryptosporidium isolated in stool by culture

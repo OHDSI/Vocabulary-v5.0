@@ -45,8 +45,8 @@ FROM (
   SELECT
     source_row_number,
     CASE
-      WHEN concept_name IS NULL OR TRIM(concept_name) = '' THEN 'concept_name'
-      WHEN concept_code IS NULL OR TRIM(concept_code) = '' THEN 'concept_code'
+      WHEN concept_name IS NULL OR TRIM(concept_name::text) = '' THEN 'concept_name'
+      WHEN concept_code IS NULL OR TRIM(concept_code::text) = '' THEN 'concept_code'
       WHEN vocabulary_id IS NULL OR TRIM(vocabulary_id) = '' THEN 'vocabulary_id'
       WHEN domain_id IS NULL OR TRIM(domain_id) = '' THEN 'domain_id'
       WHEN concept_class_id IS NULL OR TRIM(concept_class_id) = '' THEN 'concept_class_id'
@@ -126,12 +126,12 @@ WHERE c.concept_id IS NULL
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'Concept not found: concept_code=' || COALESCE(t.concept_code, 'NULL') ||
+  'Concept not found: concept_code=' || COALESCE(t.concept_code::text, 'NULL') ||
     ', vocabulary_id=' || COALESCE(t.vocabulary_id, 'NULL') ||
     ', concept_id=' || COALESCE(t.concept_id::text, 'NULL') AS validation_message,
   'concept_code' AS field_name
 FROM {TEMP_TABLE} t
-LEFT JOIN concept c_code ON c_code.concept_code = t.concept_code
+LEFT JOIN concept c_code ON c_code.concept_code = t.concept_code::text
   AND c_code.vocabulary_id = t.vocabulary_id
 LEFT JOIN concept c_id ON c_id.concept_id = t.concept_id::integer
 WHERE c_code.concept_id IS NULL
@@ -177,12 +177,12 @@ WHERE v.vocabulary_id IS NULL
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'Source concept not found: concept_code_1=' || COALESCE(t.concept_code_1, 'NULL') ||
+  'Source concept not found: concept_code_1=' || COALESCE(t.concept_code_1::text, 'NULL') ||
     ', vocabulary_id_1=' || COALESCE(t.vocabulary_id_1, 'NULL') ||
     ', concept_id_1=' || COALESCE(t.concept_id_1::text, 'NULL') AS validation_message,
   'concept_code_1' AS field_name
 FROM {TEMP_TABLE} t
-LEFT JOIN concept c_code ON c_code.concept_code = t.concept_code_1
+LEFT JOIN concept c_code ON c_code.concept_code = t.concept_code_1::text
   AND c_code.vocabulary_id = t.vocabulary_id_1
 LEFT JOIN concept c_id ON c_id.concept_id = t.concept_id_1::integer
 WHERE c_code.concept_id IS NULL
@@ -196,12 +196,12 @@ WHERE c_code.concept_id IS NULL
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'Target concept not found: concept_code_2=' || COALESCE(t.concept_code_2, 'NULL') ||
+  'Target concept not found: concept_code_2=' || COALESCE(t.concept_code_2::text, 'NULL') ||
     ', vocabulary_id_2=' || COALESCE(t.vocabulary_id_2, 'NULL') ||
     ', concept_id_2=' || COALESCE(t.concept_id_2::text, 'NULL') AS validation_message,
   'concept_code_2' AS field_name
 FROM {TEMP_TABLE} t
-LEFT JOIN concept c_code ON c_code.concept_code = t.concept_code_2
+LEFT JOIN concept c_code ON c_code.concept_code = t.concept_code_2::text
   AND c_code.vocabulary_id = t.vocabulary_id_2
 LEFT JOIN concept c_id ON c_id.concept_id = t.concept_id_2::integer
 WHERE c_code.concept_id IS NULL
@@ -219,11 +219,11 @@ WHERE c_code.concept_id IS NULL
 -- OPTIONAL: true
 SELECT
   source_row_number,
-  'concept_name exceeds 255 characters (length: ' || LENGTH(concept_name) || ')' AS validation_message,
+  'concept_name exceeds 255 characters (length: ' || LENGTH(concept_name::text) || ')' AS validation_message,
   'concept_name' AS field_name
 FROM {TEMP_TABLE}
 WHERE concept_name IS NOT NULL
-  AND LENGTH(concept_name) > 255;
+  AND LENGTH(concept_name::text) > 255;
 
 -- TEMPLATE: T4
 -- RULE: STRING_LENGTH_CONCEPT_NAME_1
@@ -233,11 +233,11 @@ WHERE concept_name IS NOT NULL
 -- OPTIONAL: true
 SELECT
   source_row_number,
-  'concept_name_1 exceeds 255 characters (length: ' || LENGTH(concept_name_1) || ')' AS validation_message,
+  'concept_name_1 exceeds 255 characters (length: ' || LENGTH(concept_name_1::text) || ')' AS validation_message,
   'concept_name_1' AS field_name
 FROM {TEMP_TABLE}
 WHERE concept_name_1 IS NOT NULL
-  AND LENGTH(concept_name_1) > 255;
+  AND LENGTH(concept_name_1::text) > 255;
 
 -- TEMPLATE: T1
 -- RULE: STRING_LENGTH_CONCEPT_CODE
@@ -247,11 +247,11 @@ WHERE concept_name_1 IS NOT NULL
 -- OPTIONAL: true
 SELECT
   source_row_number,
-  'concept_code exceeds 50 characters (length: ' || LENGTH(concept_code) || ')' AS validation_message,
+  'concept_code exceeds 50 characters (length: ' || LENGTH(concept_code::text) || ')' AS validation_message,
   'concept_code' AS field_name
 FROM {TEMP_TABLE}
 WHERE concept_code IS NOT NULL
-  AND LENGTH(concept_code) > 50;
+  AND LENGTH(concept_code::text) > 50;
 
 -- TEMPLATE: T1,T5
 -- RULE: STRING_LENGTH_VOCABULARY_ID
@@ -303,11 +303,11 @@ WHERE concept_class_id IS NOT NULL
 -- MESSAGE: synonym_name exceeds 1000 characters
 SELECT
   source_row_number,
-  'synonym_name exceeds 1000 characters (length: ' || LENGTH(synonym_name) || ')' AS validation_message,
+  'synonym_name exceeds 1000 characters (length: ' || LENGTH(synonym_name::text) || ')' AS validation_message,
   'synonym_name' AS field_name
 FROM {TEMP_TABLE}
 WHERE synonym_name IS NOT NULL
-  AND LENGTH(synonym_name) > 1000;
+  AND LENGTH(synonym_name::text) > 1000;
 
 -- ============================================================================
 -- T1 SPECIFIC: Adding new non-standard concept(s)
@@ -320,13 +320,13 @@ WHERE synonym_name IS NOT NULL
 -- MESSAGE: Concept code already exists in vocabulary
 SELECT
   t.source_row_number,
-  'Concept code already exists: ' || t.concept_code || ' in vocabulary ' || t.vocabulary_id AS validation_message,
+  'Concept code already exists: ' || t.concept_code::text || ' in vocabulary ' || t.vocabulary_id AS validation_message,
   'concept_code' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c ON c.concept_code = t.concept_code
+INNER JOIN concept c ON c.concept_code = t.concept_code::text
   AND c.vocabulary_id = t.vocabulary_id
 WHERE t.concept_code IS NOT NULL
-  AND TRIM(t.concept_code) != '';
+  AND TRIM(t.concept_code::text) != '';
 
 -- TEMPLATE: T1
 -- RULE: CONCEPT_CODE_DUPLICATE_IN_SUBMISSION
@@ -335,15 +335,15 @@ WHERE t.concept_code IS NOT NULL
 -- MESSAGE: Duplicate concept_code within submission
 SELECT
   t1.source_row_number,
-  'Duplicate concept_code in submission: ' || t1.concept_code AS validation_message,
+  'Duplicate concept_code in submission: ' || t1.concept_code::text AS validation_message,
   'concept_code' AS field_name
 FROM {TEMP_TABLE} t1
 INNER JOIN {TEMP_TABLE} t2
-  ON t1.concept_code = t2.concept_code
+  ON t1.concept_code::text = t2.concept_code::text
   AND t1.vocabulary_id = t2.vocabulary_id
   AND t1.source_row_number > t2.source_row_number
 WHERE t1.concept_code IS NOT NULL
-  AND TRIM(t1.concept_code) != '';
+  AND TRIM(t1.concept_code::text) != '';
 
 -- ============================================================================
 -- T2 SPECIFIC: Adding synonym(s)
@@ -362,8 +362,8 @@ FROM (
   SELECT
     source_row_number,
     CASE
-      WHEN synonym_name IS NULL OR TRIM(synonym_name) = '' THEN 'synonym_name'
-      WHEN synonym_concept_code IS NULL OR TRIM(synonym_concept_code) = '' THEN 'synonym_concept_code'
+      WHEN synonym_name IS NULL OR TRIM(synonym_name::text) = '' THEN 'synonym_name'
+      WHEN synonym_concept_code IS NULL OR TRIM(synonym_concept_code::text) = '' THEN 'synonym_concept_code'
       WHEN synonym_vocabulary_id IS NULL OR TRIM(synonym_vocabulary_id) = '' THEN 'synonym_vocabulary_id'
       WHEN language_concept_id IS NULL THEN 'language_concept_id'
     END AS missing_field
@@ -393,14 +393,14 @@ WHERE v.vocabulary_id IS NULL
 -- MESSAGE: Concept does not exist for the given code and vocabulary
 SELECT
   t.source_row_number,
-  'Concept not found for code ' || t.synonym_concept_code || ' in vocabulary ' || t.synonym_vocabulary_id AS validation_message,
+  'Concept not found for code ' || t.synonym_concept_code::text || ' in vocabulary ' || t.synonym_vocabulary_id AS validation_message,
   'synonym_concept_code' AS field_name
 FROM {TEMP_TABLE} t
-LEFT JOIN concept c ON c.concept_code = t.synonym_concept_code
+LEFT JOIN concept c ON c.concept_code = t.synonym_concept_code::text
   AND c.vocabulary_id = t.synonym_vocabulary_id
 WHERE c.concept_id IS NULL
   AND t.synonym_concept_code IS NOT NULL
-  AND TRIM(t.synonym_concept_code) != '';
+  AND TRIM(t.synonym_concept_code::text) != '';
 
 -- TEMPLATE: T2
 -- RULE: LANGUAGE_CONCEPT_EXISTS
@@ -449,13 +449,13 @@ WHERE c.domain_id != 'Language';
 -- MESSAGE: Synonym already exists for this concept
 SELECT
   t.source_row_number,
-  'Synonym already exists: ' || t.synonym_name || ' for concept ' || t.synonym_concept_code AS validation_message,
+  'Synonym already exists: ' || t.synonym_name::text || ' for concept ' || t.synonym_concept_code::text AS validation_message,
   'synonym_name' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c ON c.concept_code = t.synonym_concept_code
+INNER JOIN concept c ON c.concept_code = t.synonym_concept_code::text
   AND c.vocabulary_id = t.synonym_vocabulary_id
 INNER JOIN concept_synonym cs ON cs.concept_id = c.concept_id
-  AND cs.concept_synonym_name = t.synonym_name
+  AND cs.concept_synonym_name = t.synonym_name::text
   AND cs.language_concept_id = t.language_concept_id::integer;
 
 -- ============================================================================
@@ -498,9 +498,9 @@ FROM (
   SELECT
     source_row_number,
     CASE
-      WHEN concept_code_1 IS NULL OR TRIM(concept_code_1) = '' THEN 'concept_code_1'
+      WHEN concept_code_1 IS NULL OR TRIM(concept_code_1::text) = '' THEN 'concept_code_1'
       WHEN vocabulary_id_1 IS NULL OR TRIM(vocabulary_id_1) = '' THEN 'vocabulary_id_1'
-      WHEN concept_code_2 IS NULL OR TRIM(concept_code_2) = '' THEN 'concept_code_2'
+      WHEN concept_code_2 IS NULL OR TRIM(concept_code_2::text) = '' THEN 'concept_code_2'
       WHEN vocabulary_id_2 IS NULL OR TRIM(vocabulary_id_2) = '' THEN 'vocabulary_id_2'
       WHEN relationship_id IS NULL OR TRIM(relationship_id) = '' THEN 'relationship_id'
     END AS missing_field
@@ -545,12 +545,12 @@ WHERE c.standard_concept IS DISTINCT FROM 'S'
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'Target concept is not standard/valid: ' || t.concept_code_2 || ' in ' || t.vocabulary_id_2 ||
+  'Target concept is not standard/valid: ' || t.concept_code_2::text || ' in ' || t.vocabulary_id_2 ||
     ' (standard_concept=' || COALESCE(c.standard_concept, 'NULL') ||
     ', invalid_reason=' || COALESCE(c.invalid_reason, 'NULL') || ')' AS validation_message,
   'concept_code_2' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c ON c.concept_code = t.concept_code_2
+INNER JOIN concept c ON c.concept_code = t.concept_code_2::text
   AND c.vocabulary_id = t.vocabulary_id_2
 WHERE c.standard_concept IS DISTINCT FROM 'S'
   OR c.invalid_reason IS NOT NULL;
@@ -582,12 +582,12 @@ WHERE t.concept_id_1 IS NOT NULL
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'Mapping already exists between ' || t.concept_code_1 || ' (' || t.vocabulary_id_1 || ') and ' || t.concept_code_2 || ' (' || t.vocabulary_id_2 || ')' AS validation_message,
+  'Mapping already exists between ' || t.concept_code_1::text || ' (' || t.vocabulary_id_1 || ') and ' || t.concept_code_2::text || ' (' || t.vocabulary_id_2 || ')' AS validation_message,
   'relationship_id' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c1 ON c1.concept_code = t.concept_code_1
+INNER JOIN concept c1 ON c1.concept_code = t.concept_code_1::text
   AND c1.vocabulary_id = t.vocabulary_id_1
-INNER JOIN concept c2 ON c2.concept_code = t.concept_code_2
+INNER JOIN concept c2 ON c2.concept_code = t.concept_code_2::text
   AND c2.vocabulary_id = t.vocabulary_id_2
 INNER JOIN concept_relationship cr
   ON cr.concept_id_1 = c1.concept_id
@@ -606,7 +606,7 @@ SELECT
   'Concept references itself (concept_id_1 = concept_id_2)' AS validation_message,
   'concept_id_1' AS field_name
 FROM {TEMP_TABLE}
-WHERE concept_id_1 = concept_id_2;
+WHERE concept_id_1::integer = concept_id_2::integer;
 
 -- ============================================================================
 -- T4 SPECIFIC: Creating new vocabulary
@@ -623,18 +623,6 @@ SELECT
   'vocabulary_id_1' AS field_name
 FROM {TEMP_TABLE}
 WHERE vocabulary_id_1 IS NULL OR TRIM(vocabulary_id_1) = '';
-
--- TEMPLATE: T4
--- RULE: VOCABULARY_ID_FORMAT
--- LEVEL: ERROR
--- FIELD: vocabulary_id_1
--- MESSAGE: Invalid vocabulary ID format
-SELECT
-  source_row_number,
-  'Vocabulary ID must be uppercase alphanumeric: ' || vocabulary_id_1 AS validation_message,
-  'vocabulary_id_1' AS field_name
-FROM {TEMP_TABLE}
-WHERE vocabulary_id_1 !~ '^[A-Z0-9_]+$';
 
 -- TEMPLATE: T4
 -- RULE: VOCABULARY_ALREADY_EXISTS
@@ -656,13 +644,13 @@ INNER JOIN vocabulary v ON v.vocabulary_id = t.vocabulary_id_1;
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'Concept code already exists: ' || t.concept_code_1 || ' in vocabulary ' || t.vocabulary_id_1 AS validation_message,
+  'Concept code already exists: ' || t.concept_code_1::text || ' in vocabulary ' || t.vocabulary_id_1 AS validation_message,
   'concept_code_1' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c ON c.concept_code = t.concept_code_1
+INNER JOIN concept c ON c.concept_code = t.concept_code_1::text
   AND c.vocabulary_id = t.vocabulary_id_1
 WHERE t.concept_code_1 IS NOT NULL
-  AND TRIM(t.concept_code_1) != '';
+  AND TRIM(t.concept_code_1::text) != '';
 
 -- TEMPLATE: T4
 -- RULE: CONCEPT_CODE_DUPLICATE_IN_SUBMISSION
@@ -672,15 +660,15 @@ WHERE t.concept_code_1 IS NOT NULL
 -- OPTIONAL: true
 SELECT
   t1.source_row_number,
-  'Duplicate concept_code_1 in submission: ' || t1.concept_code_1 AS validation_message,
+  'Duplicate concept_code_1 in submission: ' || t1.concept_code_1::text AS validation_message,
   'concept_code_1' AS field_name
 FROM {TEMP_TABLE} t1
 INNER JOIN {TEMP_TABLE} t2
-  ON t1.concept_code_1 = t2.concept_code_1
+  ON t1.concept_code_1::text = t2.concept_code_1::text
   AND t1.vocabulary_id_1 = t2.vocabulary_id_1
   AND t1.source_row_number > t2.source_row_number
 WHERE t1.concept_code_1 IS NOT NULL
-  AND TRIM(t1.concept_code_1) != '';
+  AND TRIM(t1.concept_code_1::text) != '';
 
 -- ============================================================================
 -- T5 SPECIFIC: Modifying concept(s) attributes
@@ -713,7 +701,7 @@ FROM (
   SELECT
     source_row_number,
     CASE
-      WHEN concept_code IS NULL OR TRIM(concept_code) = '' THEN 'concept_code'
+      WHEN concept_code IS NULL OR TRIM(concept_code::text) = '' THEN 'concept_code'
       WHEN vocabulary_id IS NULL OR TRIM(vocabulary_id) = '' THEN 'vocabulary_id'
     END AS missing_field
   FROM {TEMP_TABLE}
@@ -732,7 +720,7 @@ SELECT
   'concept_id' AS field_name
 FROM {TEMP_TABLE} t
 INNER JOIN concept c ON c.concept_id = t.concept_id::integer
-WHERE (t.concept_name IS NULL OR c.concept_name = t.concept_name)
+WHERE (t.concept_name IS NULL OR c.concept_name = t.concept_name::text)
   AND (t.domain_id IS NULL OR c.domain_id = t.domain_id)
   AND (t.concept_class_id IS NULL OR c.concept_class_id = t.concept_class_id);
 
@@ -744,12 +732,12 @@ WHERE (t.concept_name IS NULL OR c.concept_name = t.concept_name)
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'No changes detected for concept: ' || t.concept_code AS validation_message,
+  'No changes detected for concept: ' || t.concept_code::text AS validation_message,
   'concept_code' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c ON c.concept_code = t.concept_code
+INNER JOIN concept c ON c.concept_code = t.concept_code::text
   AND c.vocabulary_id = t.vocabulary_id
-WHERE (t.concept_name IS NULL OR c.concept_name = t.concept_name)
+WHERE (t.concept_name IS NULL OR c.concept_name = t.concept_name::text)
   AND (t.domain_id IS NULL OR c.domain_id = t.domain_id)
   AND (t.concept_class_id IS NULL OR c.concept_class_id = t.concept_class_id);
 
@@ -793,9 +781,9 @@ FROM (
   SELECT
     source_row_number,
     CASE
-      WHEN concept_code_1 IS NULL OR TRIM(concept_code_1) = '' THEN 'concept_code_1'
+      WHEN concept_code_1 IS NULL OR TRIM(concept_code_1::text) = '' THEN 'concept_code_1'
       WHEN vocabulary_id_1 IS NULL OR TRIM(vocabulary_id_1) = '' THEN 'vocabulary_id_1'
-      WHEN concept_code_2 IS NULL OR TRIM(concept_code_2) = '' THEN 'concept_code_2'
+      WHEN concept_code_2 IS NULL OR TRIM(concept_code_2::text) = '' THEN 'concept_code_2'
       WHEN vocabulary_id_2 IS NULL OR TRIM(vocabulary_id_2) = '' THEN 'vocabulary_id_2'
       WHEN relationship_id IS NULL OR TRIM(relationship_id) = '' THEN 'relationship_id'
     END AS missing_field
@@ -845,9 +833,9 @@ SELECT
   'Mapping to deprecate not found: ' || t.concept_code_1 || ' (' || t.vocabulary_id_1 || ') -> ' || t.concept_code_2 || ' (' || t.vocabulary_id_2 || ')' AS validation_message,
   'concept_code_2' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c1 ON c1.concept_code = t.concept_code_1
+INNER JOIN concept c1 ON c1.concept_code = t.concept_code_1::text
   AND c1.vocabulary_id = t.vocabulary_id_1
-LEFT JOIN concept c2 ON c2.concept_code = t.concept_code_2
+LEFT JOIN concept c2 ON c2.concept_code = t.concept_code_2::text
   AND c2.vocabulary_id = t.vocabulary_id_2
 LEFT JOIN concept_relationship cr
   ON cr.concept_id_1 = c1.concept_id
@@ -880,10 +868,10 @@ WHERE (t.invalid_reason IS NULL OR TRIM(t.invalid_reason) = '')
 -- OPTIONAL: true
 SELECT
   t.source_row_number,
-  'New mapping target is not standard/valid: ' || t.concept_code_2 || ' in ' || t.vocabulary_id_2 AS validation_message,
+  'New mapping target is not standard/valid: ' || t.concept_code_2::text || ' in ' || t.vocabulary_id_2 AS validation_message,
   'concept_code_2' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN concept c ON c.concept_code = t.concept_code_2
+INNER JOIN concept c ON c.concept_code = t.concept_code_2::text
   AND c.vocabulary_id = t.vocabulary_id_2
 WHERE (t.invalid_reason IS NULL OR TRIM(t.invalid_reason) = '')
   AND (c.standard_concept IS DISTINCT FROM 'S' OR c.invalid_reason IS NOT NULL);

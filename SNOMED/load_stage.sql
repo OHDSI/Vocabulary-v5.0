@@ -1200,15 +1200,15 @@ ANALYZE concept_relationship_stage;
 DROP TABLE IF EXISTS replacements;
 CREATE TEMP TABLE replacements AS
 WITH new_replacements AS (
-SELECT *
-FROM concept_relationship_stage crs
-WHERE relationship_id in (
-				'Concept replaced by',
-				'Concept same_as to',
-				'Concept alt_to to',
-				'Concept was_a to'
-				)
-AND crs.invalid_reason IS NULL
+    SELECT *
+    FROM concept_relationship_stage crs
+        WHERE relationship_id in (
+                        'Concept replaced by',
+                        'Concept same_as to',
+                        'Concept alt_to to',
+                        'Concept was_a to'
+                        )
+        AND crs.invalid_reason IS NULL
 )
 SELECT DISTINCT c.concept_code as concept_code_1,
        c1.concept_code as concept_code_2,
@@ -1231,16 +1231,16 @@ WHERE cr.relationship_id in (
 AND cr.invalid_reason IS NULL
 AND exists (SELECT 1
            FROM new_replacements n
-           WHERE (c.concept_code, c.vocabulary_id) = (n.concept_code_1, n.vocabulary_id_1)
-           AND ((c1.concept_code, c1.vocabulary_id) != (n.concept_code_2, n.vocabulary_id_2)
-               OR cr.relationship_id != n.relationship_id)
+               WHERE (c.concept_code, c.vocabulary_id) = (n.concept_code_1, n.vocabulary_id_1)
+               AND ((c1.concept_code, c1.vocabulary_id) != (n.concept_code_2, n.vocabulary_id_2)
+                   OR cr.relationship_id != n.relationship_id)
                )
 AND NOT exists (
     SELECT 1
-    FROM concept_relationship_manual crm
-    WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
-    AND crm.relationship_id LIKE 'Maps to%'
-    AND crm.invalid_reason IS NULL)
+    FROM dev_snomed.concept_relationship_manual crm
+        WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
+            AND crm.relationship_id LIKE 'Maps to%'
+            AND crm.invalid_reason IS NULL)
 ;
 
 ANALYZE replacements;
@@ -1286,10 +1286,10 @@ SET valid_end_date = (
 UPDATE concept_relationship_stage crs
     SET invalid_reason = 'D',
         valid_end_date = CASE WHEN (
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'SNOMED'
-		) < crs.valid_start_date THEN current_date
+                SELECT latest_update
+                FROM vocabulary
+                WHERE vocabulary_id = 'SNOMED'
+		    ) < crs.valid_start_date THEN current_date
             ELSE (
 		SELECT latest_update
 		FROM vocabulary
@@ -1297,10 +1297,10 @@ UPDATE concept_relationship_stage crs
 		) END
 WHERE exists(
     SELECT 1
-    FROM concept_relationship_manual crm
-    WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (crs.concept_code_1, crs.vocabulary_id_1)
-    AND crm.relationship_id = 'Maps to'
-    AND crm.invalid_reason IS NULL
+    FROM dev_snomed.concept_relationship_manual crm
+        WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (crs.concept_code_1, crs.vocabulary_id_1)
+            AND crm.relationship_id = 'Maps to'
+            AND crm.invalid_reason IS NULL
 )
 AND crs.relationship_id IN (
 		'Concept replaced by',
@@ -1346,11 +1346,7 @@ ANALYZE concept_relationship_stage;
 --9.6. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
 UPDATE concept_stage cs
 SET invalid_reason = 'U',
-	valid_end_date = LEAST(cs.valid_end_date, crs.valid_start_date/*, (
-			SELECT latest_update
-			FROM vocabulary v
-			WHERE v.vocabulary_id = 'SNOMED'
-			)*/)
+	valid_end_date = LEAST(cs.valid_end_date, crs.valid_start_date)
 FROM concept_relationship_stage crs
 WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.relationship_id IN (

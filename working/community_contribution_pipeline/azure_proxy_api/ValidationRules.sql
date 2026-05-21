@@ -339,7 +339,7 @@ SELECT
   'concept_code' AS field_name
 FROM {TEMP_TABLE} t1
 INNER JOIN {TEMP_TABLE} t2
-  ON t1.concept_code::text = t2.concept_code::text
+  ON LOWER(t1.concept_code::text) = LOWER(t2.concept_code::text)
   AND t1.vocabulary_id = t2.vocabulary_id
   AND t1.source_row_number > t2.source_row_number
 WHERE t1.concept_code IS NOT NULL
@@ -634,7 +634,7 @@ SELECT
   'Vocabulary ID already exists: ' || t.vocabulary_id_1 AS validation_message,
   'vocabulary_id_1' AS field_name
 FROM {TEMP_TABLE} t
-INNER JOIN vocabulary v ON v.vocabulary_id = t.vocabulary_id_1;
+INNER JOIN vocabulary v ON LOWER(v.vocabulary_id) = LOWER(t.vocabulary_id_1);
 
 -- TEMPLATE: T4
 -- RULE: CONCEPT_CODE_UNIQUE_IN_DB

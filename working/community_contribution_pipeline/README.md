@@ -126,40 +126,13 @@ Edit `ValidationRules.sql` to customize validation queries for your specific nee
 
 ## Template Types
 
-### T1: Adding new non-standard concept(s) to an existing vocabulary
-- Validates concept codes are unique
-- Checks vocabulary, domain, and concept class exist
-- Validates date ranges
-- Ensures concept names meet length requirements
-
-### T2: Adding new standard concept(s) to an existing vocabulary
-- All T1 validations plus:
-- Ensures standard_concept flag is set correctly
-- Additional validation for standard concepts
-
-### T3: Adding concept relationship(s)
-- Validates both concepts exist
-- Checks relationship type is valid
-- Prevents duplicate relationships
-- Warns about self-referencing concepts
-
-### T4: Deprecating concept(s)
-- Validates concept exists
-- Checks invalid_reason code is valid (D or U)
-- Warns if already deprecated
-
-### T5: Modifying concept(s) attributes
-- Validates concept exists
-- Checks for actual changes
-- Validates new attribute values
-
-### T6: Creating new vocabulary
-- Validates vocabulary ID format
-- Ensures vocabulary doesn't already exist
-- Validates required metadata
-
-### T7: Other modifications
-- Basic validation for custom scenarios
+T1: Adding new concept to existing vocabulary
+T2: Adding new synonyms
+T3: Adding new mappings
+T4: Adding new vocabulary
+T5: Modifying concept attributes
+T6: Modifying mappings
+T7: Promoting concept to standard
 
 ## User Workflow
 
@@ -207,8 +180,6 @@ The Output sheet will show:
    - Metadata JSON
    - README file
 
-4. You'll receive a confirmation email with your submission ID
-
 ## Menu Options
 
 ### Main Menu
@@ -246,96 +217,5 @@ The Output sheet will show:
   - Status (success/failure)
 - Audit log kept for 1000 most recent entries
 
-## Customization
-
-### Adding New Validation Rules
-
-Validation rules are stored in **ValidationRules.sql** and loaded by the Azure Proxy API server.
-
-#### Step 1: Edit ValidationRules.sql
-
-Add your new validation query to the SQL file:
-
-```sql
--- TEMPLATE: T1,T2
--- RULE: MY_CUSTOM_RULE
--- LEVEL: ERROR
--- FIELD: field_name
--- MESSAGE: Error message
-SELECT
-  source_row_number,
-  'Detailed error message: ' || problematic_value AS validation_message,
-  'field_name' AS field_name
-FROM {TEMP_TABLE}
-WHERE some_condition;
-```
-
-#### Step 2: Metadata Comments Explained
-
-- **TEMPLATE:** Comma-separated list of templates (T1-T7) that use this rule
-- **RULE:** Unique identifier for the rule (uppercase with underscores)
-- **LEVEL:** Severity level - `ERROR`, `WARNING`, or `INFO`
-- **FIELD:** The field being validated (or `ALL` for multiple fields)
-- **MESSAGE:** Default error message shown to users
-
-#### Step 3: SQL Query Requirements
-
-- Must return three columns:
-  - `source_row_number` - Row number from the input data
-  - `validation_message` - Specific error message for this violation
-  - `field_name` - Name of the field that failed validation
-- Use `{TEMP_TABLE}` as a placeholder for the temporary table name
-- End each query with a semicolon `;`
-
-#### Step 4: Shared Queries
-
-To use the same query for multiple templates, list them comma-separated:
-
-```sql
--- TEMPLATE: T1,T2,T5
--- RULE: CONCEPT_NAME_LENGTH
--- LEVEL: WARNING
--- FIELD: concept_name
--- MESSAGE: Concept name is very long
-SELECT
-  source_row_number,
-  'Concept name exceeds 255 characters (length: ' || LENGTH(concept_name) || ')' AS validation_message,
-  'concept_name' AS field_name
-FROM {TEMP_TABLE}
-WHERE concept_name IS NOT NULL
-  AND LENGTH(concept_name) > 255;
-```
-
-This rule will be applied to templates T1, T2, and T5.
-
-#### Step 5: Reload Rules (No Redeployment Needed!)
-
-After editing ValidationRules.sql:
-1. Commit changes to the repository
-2. Update the file on the server (via git pull, deployment, or file sync)
-3. Call the reload endpoint:
-   ```bash
-   curl -X POST https://your-server-url.com/reload-rules \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_API_KEY"
-   ```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Validation rules reloaded successfully",
-  "rules": {
-    "T1": 6,
-    "T2": 4,
-    "T3": 6,
-    "T4": 4,
-    "T5": 3,
-    "T6": 3,
-    "T7": 1
-  },
-  "timestamp": "2026-02-26T10:30:00.000Z"
-}
-```
 
 

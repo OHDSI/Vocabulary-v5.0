@@ -59,21 +59,28 @@ function submitFinalVersion() {
       return;
     }
 
-    // Step 5: Create submission package
-    const submissionUrl = createSubmissionPackage(metadata, hasErrors);
+    // Generate ONE submission ID and reuse it everywhere (package, email, alert).
+    const submissionId = getSubmissionId();
+
+    // Step 5: Create submission package (personal drive + configured shared folder)
+    const submissionUrl = createSubmissionPackage(metadata, hasErrors, submissionId);
 
     // Step 6: Log the submission
     logAudit('SUBMISSION', {
+      submissionId: submissionId,
       author: metadata['Author Name'],
       email: metadata['Author Email'],
       hasErrors: hasErrors,
       submissionUrl: submissionUrl
     });
 
+    // Step 6b: Send confirmation email to the author
+    sendSubmissionNotification(metadata, submissionUrl, submissionId);
+
     // Step 7: Show success message
     ui.alert(
       'Submission Successful!',
-      `Your template has been submitted successfully.\n\nSubmission ID: ${getSubmissionId()}\nLocation: ${submissionUrl}\n\nYou will receive a confirmation email shortly.`,
+      `Your template has been submitted successfully.\n\nSubmission ID: ${submissionId}\nLocation:\n${submissionUrl}\n\nYou will receive a confirmation email shortly.`,
       ui.ButtonSet.OK
     );
 
@@ -106,46 +113,134 @@ function checkForErrors(outputSheet) {
 }
 
 /**
- * Creates a submission package in Google Drive
+ * Creates the submission package in EVERY destination:
+ * personal My Drive + the configured shared folder (if set/accessible).
+ *
+ * The package is built once in the personal-drive folder, then mirrored
+ * file-by-file into each additional destination.
  *
  * @param {Object} metadata - Submission metadata
  * @param {boolean} hasErrors - Whether the submission has errors
- * @return {string} URL to the submission folder
+ * @param {string} submissionId - Pre-generated submission ID (shared across artifacts)
+ * @return {string} Newline-separated list of submission folder URLs
  */
-function createSubmissionPackage(metadata, hasErrors) {
+function createSubmissionPackage(metadata, hasErrors, submissionId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Get or create submission folder
-  const submissionFolder = getOrCreateSubmissionFolder(metadata);
-
-  // Create timestamped subfolder
+  // Timestamped package folder name
   const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss');
   const authorName = (metadata['Author Name'] || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
   const folderName = `${authorName}_${timestamp}${hasErrors ? '_WITH_ERRORS' : ''}`;
 
-  const packageFolder = submissionFolder.createFolder(folderName);
+  // All grouping folders we should write into (personal first, then shared).
+  const parents = getSubmissionParents(metadata);
 
-  // Copy the entire spreadsheet
+  // Build the package once in the personal-drive parent.
+  const primaryFolder = parents[0].createFolder(folderName);
+  populatePackageFolder(primaryFolder, ss, metadata, hasErrors, timestamp, submissionId);
+
+  const urls = [primaryFolder.getUrl()];
+
+  // Mirror the finished package into every other parent (e.g. the shared folder).
+  for (let i = 1; i < parents.length; i++) {
+    try {
+      const copyFolder = parents[i].createFolder(folderName);
+      copyFolderContents(primaryFolder, copyFolder);
+      urls.push(copyFolder.getUrl());
+    } catch (e) {
+      Logger.log(`Could not write copy into parent #${i}: ${e.message}`);
+    }
+  }
+
+  return urls.join('\n');
+}
+
+/**
+ * Resolves the grouping folders (authorName_B7) in each destination drive.
+ * [0] is always personal My Drive; [1+] are configured shared folders.
+ *
+ * @param {Object} metadata - Submission metadata
+ * @return {GoogleAppsScript.Drive.Folder[]} Parent folders to write into
+ */
+function getSubmissionParents(metadata) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const metadataSheet = ss.getSheetByName('Metadata');
+  const b7Content = metadataSheet.getRange('B7').getValue();
+  const authorName = (metadata['Author Name'] || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
+  const groupName = `${authorName}_${b7Content}`;
+
+  const parents = [];
+
+  // 1. Personal drive grouping folder, at My Drive root.
+  parents.push(getOrCreateChildFolder(DriveApp.getRootFolder(), groupName));
+
+  // 2. Shared folder grouping folder, only if configured AND accessible.
+  const sharedFolderId = PropertiesService.getScriptProperties().getProperty('SUBMISSION_FOLDER_ID');
+  if (sharedFolderId) {
+    try {
+      const sharedRoot = DriveApp.getFolderById(sharedFolderId);
+      parents.push(getOrCreateChildFolder(sharedRoot, groupName));
+    } catch (e) {
+      Logger.log(`Configured submission folder not accessible: ${e.message}`);
+    }
+  }
+
+  return parents;
+}
+
+/**
+ * Returns the named child folder of `parent`, creating it if absent.
+ * Scoped to `parent` only, and skips trashed folders (getFoldersByName
+ * includes items in the Trash, which would otherwise be reused and cause
+ * submission links to resolve into the Trash).
+ *
+ * @param {GoogleAppsScript.Drive.Folder} parent - Parent folder
+ * @param {string} name - Child folder name
+ * @return {GoogleAppsScript.Drive.Folder} The child folder
+ */
+function getOrCreateChildFolder(parent, name) {
+  const it = parent.getFoldersByName(name);
+  while (it.hasNext()) {
+    const f = it.next();
+    if (!f.isTrashed()) {
+      return f;   // reuse only a live (non-trashed) folder
+    }
+  }
+  return parent.createFolder(name);   // none live -> make a fresh one
+}
+
+/**
+ * Writes all submission artifacts into a single package folder.
+ *
+ * @param {GoogleAppsScript.Drive.Folder} folder - Target package folder
+ * @param {Spreadsheet} ss - The active spreadsheet
+ * @param {Object} metadata - Submission metadata
+ * @param {boolean} hasErrors - Whether the submission has errors
+ * @param {string} timestamp - Submission timestamp
+ * @param {string} submissionId - Pre-generated submission ID (shared across artifacts)
+ */
+function populatePackageFolder(folder, ss, metadata, hasErrors, timestamp, submissionId) {
+  // Full spreadsheet copy
   const ssFile = DriveApp.getFileById(ss.getId());
-  const ssCopy = ssFile.makeCopy(`${ss.getName()}_SUBMITTED_${timestamp}`, packageFolder);
+  ssFile.makeCopy(`${ss.getName()}_SUBMITTED_${timestamp}`, folder);
 
   // Export Input sheet as CSV
   const inputSheet = ss.getSheetByName(CONFIG.INPUT_SHEET_NAME);
   if (inputSheet) {
     const inputCsv = convertSheetToCSV(inputSheet);
-    packageFolder.createFile(Utilities.newBlob(inputCsv, 'text/csv', 'input_data.csv'));
+    folder.createFile(Utilities.newBlob(inputCsv, 'text/csv', 'input_data.csv'));
   }
 
   // Export Output sheet as CSV
   const outputSheet = ss.getSheetByName(CONFIG.OUTPUT_SHEET_NAME);
   if (outputSheet) {
     const outputCsv = convertSheetToCSV(outputSheet);
-    packageFolder.createFile(Utilities.newBlob(outputCsv, 'text/csv', 'validation_results.csv'));
+    folder.createFile(Utilities.newBlob(outputCsv, 'text/csv', 'validation_results.csv'));
   }
 
-  // Create metadata file
+  // Create metadata file (submissionUrl points to this folder's own URL)
   const metadataJson = JSON.stringify({
-    submissionId: getSubmissionId(),
+    submissionId: submissionId,
     submissionDate: new Date().toISOString(),
     author: metadata['Author Name'],
     email: metadata['Author Email'],
@@ -154,61 +249,27 @@ function createSubmissionPackage(metadata, hasErrors) {
     description: metadata['Description'],
     hasErrors: hasErrors,
     spreadsheetUrl: ss.getUrl(),
-    submissionUrl: packageFolder.getUrl()
+    submissionUrl: folder.getUrl()
   }, null, 2);
-
-  packageFolder.createFile(Utilities.newBlob(metadataJson, 'application/json', 'metadata.json'));
+  folder.createFile(Utilities.newBlob(metadataJson, 'application/json', 'metadata.json'));
 
   // Create README
-  const readmeContent = createSubmissionReadme(metadata, hasErrors, timestamp);
-  packageFolder.createFile(Utilities.newBlob(readmeContent, 'text/plain', 'README.txt'));
-
-  return packageFolder.getUrl();
+  const readmeContent = createSubmissionReadme(metadata, hasErrors, timestamp, submissionId);
+  folder.createFile(Utilities.newBlob(readmeContent, 'text/plain', 'README.txt'));
 }
 
 /**
- * Gets or creates the submission folder in Google Drive
+ * Copies every file from srcFolder into destFolder (flat; the package is flat).
  *
- * @param {Object} metadata - Submission metadata
- * @return {GoogleAppsScript.Drive.Folder} Submission folder
+ * @param {GoogleAppsScript.Drive.Folder} srcFolder - Source folder
+ * @param {GoogleAppsScript.Drive.Folder} destFolder - Destination folder
  */
-function getOrCreateSubmissionFolder(metadata) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const metadataSheet = ss.getSheetByName('Metadata');
-
-  // Get B7 cell content from Metadata sheet
-  const b7Content = metadataSheet.getRange('B7').getValue();
-
-  // Get author name and sanitize it
-  const authorName = (metadata['Author Name'] || 'Unknown').replace(/[^a-zA-Z0-9]/g, '_');
-
-  // Construct folder name: authorName_B7Content
-  const folderName = `${authorName}_${b7Content}`;
-
-  // Check if folder exists
-  const folders = DriveApp.getFoldersByName(folderName);
-  if (folders.hasNext()) {
-    return folders.next();
+function copyFolderContents(srcFolder, destFolder) {
+  const files = srcFolder.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    f.makeCopy(f.getName(), destFolder);
   }
-
-  // Create folder if it doesn't exist
-  const folder = DriveApp.createFolder(folderName);
-
-  // Get submission folder ID from script properties (if configured)
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const sharedFolderId = scriptProperties.getProperty('SUBMISSION_FOLDER_ID');
-
-  if (sharedFolderId) {
-    try {
-      // Move to shared folder
-      const sharedFolder = DriveApp.getFolderById(sharedFolderId);
-      folder.moveTo(sharedFolder);
-    } catch (e) {
-      Logger.log(`Could not move to shared folder: ${e.message}`);
-    }
-  }
-
-  return folder;
 }
 
 /**
@@ -248,14 +309,15 @@ function getSubmissionId() {
  * @param {Object} metadata - Submission metadata
  * @param {boolean} hasErrors - Whether submission has errors
  * @param {string} timestamp - Submission timestamp
+ * @param {string} submissionId - Pre-generated submission ID (shared across artifacts)
  * @return {string} README content
  */
-function createSubmissionReadme(metadata, hasErrors, timestamp) {
+function createSubmissionReadme(metadata, hasErrors, timestamp, submissionId) {
   return `
 OHDSI Vocabulary Validation Submission
 ========================================
 
-Submission ID: ${getSubmissionId()}
+Submission ID: ${submissionId}
 Submission Date: ${timestamp}
 
 AUTHOR INFORMATION
@@ -352,14 +414,15 @@ function configureSubmissionFolder() {
  *
  * @param {Object} metadata - Submission metadata
  * @param {string} submissionUrl - URL to submission package
+ * @param {string} submissionId - Pre-generated submission ID (shared across artifacts)
  */
-function sendSubmissionNotification(metadata, submissionUrl) {
+function sendSubmissionNotification(metadata, submissionUrl, submissionId) {
   const authorEmail = metadata['Author Email'];
   if (!authorEmail) {
     return;
   }
 
-  const subject = `OHDSI Vocabulary Submission Confirmation - ${getSubmissionId()}`;
+  const subject = `OHDSI Vocabulary Submission Confirmation - ${submissionId}`;
 
   const body = `
 Dear ${metadata['Author Name']},
@@ -370,7 +433,7 @@ Your submission has been received successfully.
 
 Submission Details:
 -------------------
-Submission ID: ${getSubmissionId()}
+Submission ID: ${submissionId}
 Template Type: ${metadata['Template Type']}
 Submission Date: ${new Date().toLocaleString()}
 
@@ -390,7 +453,7 @@ This is an automated message from the OHDSI Validation Pipeline.
 `;
 
   try {
-    GmailApp.sendEmail(authorEmail, subject, body);
+    MailApp.sendEmail(authorEmail, subject, body);
   } catch (e) {
     Logger.log(`Could not send notification email: ${e.message}`);
   }

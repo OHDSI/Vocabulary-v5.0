@@ -1228,6 +1228,12 @@ begin
             COALESCE(pVocabularyDate, current_date), 
             'archive.atc_version', 
             10);
+    WHEN 'EMA'
+    THEN 
+        PERFORM sources.insert_ema_medicines_output_medicines_en(pVocabularyPath || 'work/medicines-output-medicines-report_en.xlsx');
+        PERFORM sources.insert_ema_medicines_output_post_authorisation_en(pVocabularyPath || 'work/medicines-output-post_authorisation-report_en.xlsx');
+        PERFORM sources.insert_ema_medicines_output_orphan_designations_en(pVocabularyPath || 'work/medicines-output-orphan_designations-report_en.xlsx');
+        PERFORM sources.insert_ema_medicines_output_herbal_medicines(pVocabularyPath || 'work/medicines-output-herbal_medicines-report_en.xlsx');            
   ELSE
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   END CASE;

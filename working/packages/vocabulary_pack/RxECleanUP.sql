@@ -2,18 +2,18 @@ CREATE FUNCTION rxecleanup() RETURNS void
     LANGUAGE plpgsql
 AS
 $$
-/*
- Clean up for RxE (create 'Concept replaced by' between RxE and Rx)
+
+/* Clean up for RxE (create 'Concept replaced by' between RxE and Rx)
  AVOF-1456
  Usage:
  1. update the vocabulary (e.g. RxNorm) with generic_update
  2. run this script like
-    DO $_$
-    BEGIN
-        PERFORM vocabulary_pack.RxECleanUP();
-    END $_$;
+ DO $_$
+ BEGIN
+     PERFORM VOCABULARY_PACK.RxECleanUP();
+ END $_$;
  3. run generic_update
-*/
+ */
 BEGIN
     -- 1. Update latest_update field to new date
     PERFORM vocabulary_pack.SetLatestUpdate(
@@ -23,101 +23,30 @@ BEGIN
         pVocabularyDevSchema    => 'DEV_RXNORM'
     );
 
-    -- 2. Truncate all working tables
-    TRUNCATE TABLE concept_stage;
-    TRUNCATE TABLE concept_relationship_stage;
-    TRUNCATE TABLE concept_synonym_stage;
-    TRUNCATE TABLE pack_content_stage;
-    TRUNCATE TABLE drug_strength_stage;
+	--2. Truncate all working tables
+	TRUNCATE TABLE concept_stage;
+	TRUNCATE TABLE concept_relationship_stage;
+	TRUNCATE TABLE concept_synonym_stage;
+	TRUNCATE TABLE pack_content_stage;
+	TRUNCATE TABLE drug_strength_stage;
 
-    -- 3. Load full list of RxNorm Extension concepts and set 'X' for duplicates with RxNorm
-    INSERT INTO concept_stage
-    SELECT *
-    FROM concept
-    WHERE vocabulary_id = 'RxNorm Extension';
+	--3. Load full list of RxNorm Extension concepts and set 'X' for duplicates
+	INSERT INTO concept_stage
+	SELECT *
+	FROM concept
+	WHERE vocabulary_id = 'RxNorm Extension';
 
-    WITH cs_processed AS (
-        SELECT
-            cs.concept_id AS cs_id,
-            cs.concept_name,
-            cs.concept_class_id,
-            dev_atatur.compare_custom_english(cs.concept_name) AS cs_vector
-        FROM concept_stage cs
-        WHERE cs.invalid_reason IS NULL
-          AND cs.concept_class_id NOT IN ('Brand Name', 'Supplier')
-    ),
-    c_processed AS (
-        SELECT
-            c.concept_id AS c_id,
-            c.concept_name,
-            c.concept_class_id,
-            dev_atatur.compare_custom_english(c.concept_name) AS c_vector
-        FROM concept c
-        WHERE c.invalid_reason IS NULL
-          AND c.vocabulary_id = 'RxNorm'
-          AND c.concept_class_id NOT IN ('Brand Name', 'Supplier')
-    )
-    UPDATE concept_stage cs
-       SET invalid_reason   = 'X',
-           standard_concept = NULL,
-           valid_end_date   = CURRENT_DATE,
-           concept_id       = cp.c_id
-      FROM cs_processed cs_p
-      JOIN c_processed cp
-        ON cs_p.cs_vector = cp.c_vector
-       AND cs_p.concept_class_id = cp.concept_class_id
-     WHERE cs.concept_id = cs_p.cs_id;
-
-    -- 3b. Find internal RxE duplicates: prefer oldest standard concept, otherwise oldest overall
-    DROP TABLE IF EXISTS concept_replacements;
-
-    CREATE TABLE concept_replacements AS
-    WITH cstage_normalized AS (
-        SELECT
-            concept_id                               AS cs_id,
-            concept_name                             AS cs_name,
-            concept_class_id                         AS cs_cc_id,
-            COALESCE(standard_concept, '')           AS standard_concept,
-            valid_start_date,
-            dev_atatur.compare_custom_english(concept_name) AS normalized_name
-        FROM concept_stage
-        WHERE invalid_reason IS NULL
-          AND concept_class_id NOT IN ('Brand Name', 'Supplier')
-    ),
-    ranked_concepts AS (
-        SELECT
-            cs.*,
-            ROW_NUMBER() OVER (
-                PARTITION BY normalized_name, cs_cc_id
-                ORDER BY
-                    CASE WHEN standard_concept = 'S' THEN 0 ELSE 1 END,
-                    valid_start_date,
-                    cs_id
-            ) AS rn,
-            COUNT(*) OVER (PARTITION BY normalized_name, cs_cc_id) AS grp_cnt
-        FROM cstage_normalized cs
-    ),
-    grouped_replacements AS (
-        SELECT
-            MIN(cs_id) FILTER (WHERE rn = 1)                        AS main,
-            string_agg(cs_id::text, ',') FILTER (WHERE rn > 1)      AS for_replacement
-        FROM ranked_concepts
-        WHERE grp_cnt > 1
-        GROUP BY normalized_name, cs_cc_id
-    )
-    SELECT *
-    FROM grouped_replacements
-    WHERE for_replacement IS NOT NULL;
-
-    UPDATE concept_stage cs
-       SET invalid_reason   = 'X',
-           standard_concept = NULL,
-           valid_end_date   = CURRENT_DATE,
-           concept_id       = cr.main
-      FROM concept_replacements cr,
-           unnest(string_to_array(cr.for_replacement, ',')) AS dup_id
-     WHERE cs.concept_id = dup_id::bigint
-       AND cs.invalid_reason IS NULL;
+	UPDATE concept_stage cs
+	SET invalid_reason = 'X',
+		standard_concept = NULL,
+		valid_end_date = CURRENT_DATE,
+		concept_id=c.concept_id
+	FROM concept c
+	WHERE upper(cs.concept_name) = upper(c.concept_name)
+		AND cs.concept_class_id = c.concept_class_id
+		AND c.invalid_reason IS NULL
+		AND c.vocabulary_id = 'RxNorm'
+		AND cs.invalid_reason IS NULL;
 
     DROP TABLE concept_replacements;
 
@@ -310,4 +239,3 @@ BEGIN
 		AND c.vocabulary_id = 'RxNorm Extension';
 	END;
 $$;
-

@@ -1,111 +1,135 @@
-/*;
-update concept_relationship
-set
-	invalid_reason = 'D',
-	valid_end_date = current_date - 1
-where
-	concept_id_1 in 
-		(
-			select c.concept_id
-			from concept c
-			join concept_relationship_stage r on
-				r.concept_code_1 = c.concept_code and
-				r.vocabulary_id_1 = c.vocabulary_id	and
-				r.vocabulary_id_2 = 'CVX'
-		) and
-	relationship_id = 'Maps to'
-;
-update concept_relationship
-set
-	invalid_reason = 'D',
-	valid_end_date = current_date - 1
-where
-	concept_id_2 in 
-		(
-			select c.concept_id
-			from concept c
-			join concept_relationship_stage r on
-				r.concept_code_1 = c.concept_code and
-				r.vocabulary_id_1 = c.vocabulary_id	and
-				r.vocabulary_id_2 = 'CVX'
-		) and
-	relationship_id = 'Mapped from'*/
-; -- old mappings to RxN* are not deprecated automatically
-
---DROP TABLE concept_relationship_stage_backup, concept_stage_backup, drug_concept_stage_backup;
+--DROP TABLE concept_relationship_stage_backup, concept_stage_backup;
 --CREATE TABLE concept_relationship_stage_backup AS (SELECT * FROM concept_relationship_stage);
 --CREATE TABLE concept_stage_backup AS (SELECT * FROM concept_stage);
---CREATE TABLE drug_concept_stage_backup AS (SELECT * FROM drug_concept_stage);
-
---TRUNCATE concept_relationship_stage, concept_stage, drug_concept_stage;
+--TRUNCATE concept_relationship_stage, concept_stage;
 
 --INSERT INTO concept_relationship_stage (SELECT * FROM concept_relationship_stage_backup);
 --INSERT INTO concept_stage (SELECT * FROM concept_stage_backup);
---INSERT INTO drug_concept_stage (SELECT * FROM drug_concept_stage_backup);
 
+--18. Replace mapping for concepts which already exist, but change attributes
+--18.1. Exclude suppliers; they will be created as new Marketed Products
+--18.1.1. first define concepts with new suppliers
+DROP TABLE IF EXISTS new_supp;
 
+CREATE TABLE new_supp AS (
+SELECT DISTINCT coalesce(cs.concept_code, cc1.concept_code) AS new_supp_code,
+	coalesce (cs.concept_name, cc1.concept_name) AS new_supp_name,
+	cs1.concept_code AS new_prod_code,
+	cs1.concept_name AS new_prod_name,
+	cs1.vocabulary_id AS new_prod_vocab
+FROM concept_relationship_stage crs
+LEFT JOIN concept_stage cs ON crs.concept_code_1 = cs.concept_code AND crs.vocabulary_id_1 = cs.vocabulary_id
+LEFT JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_2 AND crs.vocabulary_id_2 = cs1.vocabulary_id
+LEFT JOIN concept cc1 ON cc1.concept_code = crs.concept_code_1 AND cc1.vocabulary_id = crs.vocabulary_id_1
+WHERE crs.relationship_id = 'Supplier of'
+);
 
---Save CVX mappings from relationship_to_concept
-INSERT INTO concept_relationship_stage
-SELECT DISTINCT
-	NULL :: int4,
-	NULL :: int4,
-	c.concept_code,
-	c2.concept_code,
-	'dm+d',
-	c2.vocabulary_id,
-	'Maps to',
-	r.valid_start_date,
-	current_date - 1,
-	'D'
-FROM concept_relationship r
-JOIN concept c ON
-	c.concept_id = r.concept_id_1 AND
-	c.vocabulary_id = 'dm+d' AND
-	r.relationship_id = 'Maps to'
-JOIN relationship_to_concept t ON
-	c.concept_code = t.concept_code_1
-JOIN concept cx ON
-	cx.concept_id = t.concept_id_2 AND
-	cx.vocabulary_id = 'CVX'
-JOIN concept c2 ON
-	c2.concept_id = r.concept_id_2
-WHERE c2.vocabulary_id LIKE 'RxN%'
+--18.1.2. extract existing concepts with suppliers
+DROP TABLE IF EXISTS old_supp;
+
+CREATE TABLE old_supp AS (
+SELECT DISTINCT c.concept_code AS old_supp_code,
+	c.concept_name AS old_supp_name,
+	cc.concept_id AS old_prod_id,
+	cc.concept_code AS old_prod_code,
+	cc.concept_name AS old_prod_name
+FROM concept c
+JOIN concept_relationship cr
+	ON cr.concept_id_1 = c.concept_id
+	AND cr.invalid_reason IS NULL
+JOIN concept cc
+	ON cc.concept_id = cr.concept_id_2
+WHERE cc.vocabulary_id = 'RxNorm Extension'
+	AND cr.relationship_id = 'Supplier of'
+);
+
+---18.1.3. check what will change
+DROP TABLE IF EXISTS supplier_changes;
+
+CREATE TABLE supplier_changes AS
+SELECT DISTINCT cs2.concept_code AS dmd_code,
+	cs2.concept_name AS new_dmd_name,
+	c2.concept_name AS old_dmd_name,
+	new_supp.*,
+	old_supp.*
+FROM concept_relationship_stage crs1
+JOIN concept_stage cs2 ON cs2.concept_code = crs1.concept_code_1 AND cs2.vocabulary_id = crs1.vocabulary_id_1
+JOIN concept c2 ON c2.concept_code = crs1.concept_code_1 AND c2.vocabulary_id = crs1.vocabulary_id_1 
+JOIN concept_relationship cr1 ON cr1.concept_id_1 = c2.concept_id 
+JOIN new_supp ON crs1.concept_code_2 = new_supp.new_prod_code AND crs1.vocabulary_id_2 = new_supp.new_prod_vocab
+JOIN old_supp ON cr1.concept_id_2 = old_supp.old_prod_id
+WHERE crs1.vocabulary_id_1 = 'dm+d'
+	AND old_supp.old_supp_code != new_supp.new_supp_code;
+
+--18.2. Table to change mappings
+DROP TABLE IF EXISTS to_change_mapping;
+
+CREATE TABLE to_change_mapping AS 
+SELECT DISTINCT cs.concept_code AS dmd_code,
+	cs.concept_name AS dmd_name,
+	cs.concept_class_id AS dmd_class,
+	cs.vocabulary_id AS dmd_voc,
+	c.concept_code AS new_code,
+	c.concept_name AS new_name,
+	c.concept_class_id AS new_class,
+	c1.concept_code AS old_code,
+	c1.concept_name AS old_name, 
+	c1.concept_class_id AS old_class,
+	c1.vocabulary_id AS old_voc
+FROM concept_stage cs
+JOIN concept_relationship_stage crs ON cs.concept_code = crs.concept_code_1 AND cs.vocabulary_id = crs.vocabulary_id_1
+	AND cs.concept_class_id IN ('AMP', 'AMPP', 'VMP', 'VMPP') AND crs.relationship_id = 'Maps to'
+JOIN concept_stage c ON c.concept_code = crs.concept_code_2 AND c.vocabulary_id = crs.vocabulary_id_2
+JOIN concept cc ON cs.concept_code = cc.concept_code AND cs.vocabulary_id = c.vocabulary_id AND cc.invalid_reason IS NULL
+JOIN concept_relationship cr ON cr.concept_id_1 = cc.concept_id AND cr.invalid_reason IS NULL AND cr.relationship_id = 'Maps to'
+JOIN concept c1 ON c1.concept_id = cr.concept_id_2 AND c1.vocabulary_id LIKE 'Rx%' AND c1.invalid_reason IS NULL
+WHERE NOT EXISTS (SELECT 1
+	FROM supplier_changes sc
+	WHERE sc.dmd_code = cs.concept_code);
+
+--18.3. Update the mapping
+UPDATE concept_relationship_stage crs
+SET
+	concept_code_2 = old_code,
+	vocabulary_id_2 = old_voc
+FROM to_change_mapping tcm
+WHERE crs.concept_code_1 = tcm.dmd_code
+	AND crs.vocabulary_id_1 = tcm.dmd_voc;
+
+-- 19. Delete unnecessary concepts
+DELETE
+FROM concept_stage cs
+WHERE
+	EXISTS (SELECT	1
+	FROM to_change_mapping crs
+	WHERE cs.concept_code = crs.new_code)
+	AND vocabulary_id LIKE 'Rx%';
+
+--19.1. Delete duplicates by name that already exist in concept
+DROP TABLE IF EXISTS crs_remove_rxe_dublicates;
+
+CREATE TABLE crs_remove_rxe_dublicates AS
+SELECT DISTINCT crs.*, c.concept_code AS new_code
+FROM concept_stage cs
+JOIN concept_relationship_stage crs ON crs.concept_code_2 = cs.concept_code AND crs.relationship_id IN ('Source - RxNorm eq','Maps to')
+JOIN concept c ON cs.concept_name = c.concept_name AND c.vocabulary_id = cs.vocabulary_id AND c.invalid_reason is null
+WHERE cs.vocabulary_id = 'RxNorm Extension' 
+AND crs.vocabulary_id_1 = 'dm+d'
 ;
 
+UPDATE concept_relationship_stage a 
+SET concept_code_2 = b.new_code
+FROM crs_remove_rxe_dublicates b
+WHERE a.concept_code_1 = b.concept_code_1 
+AND a.concept_code_2 = b.concept_code_2;
 
-INSERT INTO concept_relationship_stage
-SELECT
-	NULL,
-	NULL,
-	r.concept_code_1,
-	c.concept_code,
-	'dm+d',
-	c.vocabulary_id,
-	'Maps to',
-	current_date,
-	TO_DATE('20991231','yyyymmdd'),
-	null
-FROM relationship_to_concept r
-JOIN concept c ON
-	r.concept_id_2 = c.concept_id AND
-	(
-		c.vocabulary_id = 'CVX' OR
-		c.concept_class_id ~ '(Drug|Pack)'
-	)
-    --Avoiding duplication
-WHERE NOT EXISTS
-(
-    SELECT * FROM concept_relationship_stage crs1
-    WHERE r.concept_code_1 = crs1.concept_code_1
-        AND c.concept_code = crs1.concept_code_2
-        AND c.vocabulary_id = crs1.vocabulary_id_2
-        AND crs1.invalid_reason IS NULL
-    )
-;
+DELETE FROM concept_stage 
+WHERE concept_code IN (
+    SELECT DISTINCT concept_code_2
+    FROM crs_remove_rxe_dublicates
+    );
 
-
---Devices can and should be mapped to SNOMED as they are the same concepts
+--20. Devices can and should be mapped to SNOMED as they are the same concepts
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
 	NULL :: int4 as concept_id_1,
@@ -119,14 +143,12 @@ SELECT DISTINCT
 	to_date ('20991231','yyyymmdd') as valid_end_date,
 	NULL as invalid_reason
 FROM concept_stage c
-JOIN concept x
-    ON x.concept_code = c.concept_code
+JOIN concept x ON x.concept_code = c.concept_code
     AND x.invalid_reason IS NULL
     AND x.vocabulary_id = 'SNOMED'
     AND x.standard_concept = 'S'
-    AND x.domain_id = 'Device'
-    AND -- some are Observations, we don't want them
-        c.vocabulary_id = 'dm+d'
+    AND x.domain_id = 'Device' -- some are Observations, we don't want them
+    AND c.vocabulary_id = 'dm+d'
     AND c.domain_id = 'Device'
     --Avoiding duplication
 WHERE NOT EXISTS
@@ -139,11 +161,9 @@ WHERE NOT EXISTS
     )
 ;
 
-
---SNOMED mappings now take precedence
+--20.1. SNOMED mappings now take precedence
 UPDATE concept_relationship_stage r
-SET
-	invalid_reason = 'D',
+SET invalid_reason = 'D',
 	valid_end_date = 
 	(
         SELECT MAX(latest_update) - 1
@@ -151,73 +171,57 @@ SET
         WHERE vocabulary_id IN (r.vocabulary_id_1, r.vocabulary_id_2)
               AND latest_update IS NOT NULL
       )
-WHERE
-	vocabulary_id_2 != 'SNOMED' AND
-	relationship_id = 'Maps to' AND
-	invalid_reason IS NULL AND
-	exists
+WHERE vocabulary_id_2 != 'SNOMED'
+  AND relationship_id = 'Maps to'
+  AND invalid_reason IS NULL
+  AND EXISTS
 		(
 			SELECT
 			FROM concept_relationship_stage
-			WHERE
-				concept_code_1 = r.concept_code_1 AND
-				vocabulary_id_2 = 'SNOMED' AND
-				relationship_id = 'Maps to'
+			WHERE concept_code_1 = r.concept_code_1
+			  AND vocabulary_id_2 = 'SNOMED'
+			  AND relationship_id = 'Maps to'
 		)
 ;
 
-
---Destandardise devices, that are mapped to SNOMED
+--20.2. Destandardize devices that are mapped to SNOMED
 UPDATE concept_stage
 SET standard_concept = NULL
-WHERE
-	domain_id = 'Device' AND
-	vocabulary_id = 'dm+d' AND
-	exists
+WHERE domain_id = 'Device'
+  AND vocabulary_id = 'dm+d'
+  AND EXISTS
 		(
 			SELECT
 			FROM concept_relationship_stage
-			WHERE
-				concept_code_1 = concept_code AND
-				relationship_id = 'Maps to' AND
-				vocabulary_id_2 = 'SNOMED'
-		)
-;
-
+			WHERE concept_code_1 = concept_code
+			  AND relationship_id = 'Maps to'
+			  AND vocabulary_id_2 = 'SNOMED'
+		);
 
 ANALYZE concept_relationship_stage;
 
+--21. Delete useless deprecations (non-existent relations)
+DELETE FROM concept_relationship_stage crs
+WHERE crs.invalid_reason IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM concept c1
+    JOIN concept_relationship r ON r.concept_id_1 = c1.concept_id
+    JOIN concept c2 ON r.concept_id_2 = c2.concept_id
+    WHERE c1.concept_code = crs.concept_code_1
+      AND c1.vocabulary_id = crs.vocabulary_id_1
+      AND c2.concept_code = crs.concept_code_2
+      AND c2.vocabulary_id = crs.vocabulary_id_2
+      -- AND r.relationship_id = crs.relationship_id -- uncomment if you need to match relationship_id
+  );
 
---Delete useless deprecations (non-existent relations)
-DELETE FROM concept_relationship_stage i
-WHERE
-	(concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2/*, relationship_id*/) NOT IN
-	(
-		SELECT
-			c1.concept_code,
-			c1.vocabulary_id,
-			c2.concept_code,
-			c2.vocabulary_id/*,
-			r.relationship_id*/
-		FROM concept_relationship r
-		JOIN concept c1 ON
-			c1.concept_id = r.concept_id_1 AND
-			(c1.concept_code, c1.vocabulary_id) = (i.concept_code_1, i.vocabulary_id_1)
-		JOIN concept c2 ON
-			c2.concept_id = r.concept_id_2 AND
-			(c2.concept_code, c2.vocabulary_id) = (i.concept_code_2, i.vocabulary_id_2)
-	) AND
-	invalid_reason IS NOT NULL
-;
-
-
---add replacements for VMPs, replaced by source
---these concepts are absent in sources, but already available in Athena from previous releases
+--22. Add replacements for VMPs, replaced by source
+--- These concepts are absent in sources, but already available in Athena from previous releases
 INSERT INTO concept_stage
 SELECT
 	NULL :: int4 AS concept_id,
 	coalesce (v.nmprev, v.nm) AS concept_name,
-	CASE --take domain ID from replacement drug
+	CASE --take domain ID from the replacement drug
 		WHEN d.vpid IS NULL THEN 'Drug'
 		ELSE 'Device'
 	END AS domain_id,
@@ -229,16 +233,14 @@ SELECT
 	coalesce (v.NMDT, current_date - 1) AS valid_end_date,
 	'U' AS invalid_reason
 FROM vmps v
-LEFT JOIN vmps u ON --make sure old code was not processed on it's own
+LEFT JOIN vmps u ON --make sure old code was not processed on its own
 	v.vpidprev = u.vpid
 LEFT JOIN devices d ON u.vpid = d.vpid
-WHERE
-	v.vpidprev IS NOT NULL AND
-	u.vpid IS NULL
+WHERE v.vpidprev IS NOT NULL
+  AND u.vpid IS NULL
 ;
 
-
---Get replacement mappings for deprecated VMPs
+--23. Get replacement mappings for deprecated VMPs
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
 	NULL :: int4,
@@ -252,11 +254,11 @@ SELECT DISTINCT
 	TO_DATE('20991231','yyyymmdd'),
 	NULL
 FROM vmps v
-WHERE vpidprev IS NOT NULL AND
-	vpidprev NOT IN (SELECT concept_code_1 FROM concept_relationship_stage WHERE invalid_reason IS NULL)
+WHERE vpidprev IS NOT NULL
+  AND vpidprev NOT IN (SELECT concept_code_1 FROM concept_relationship_stage WHERE invalid_reason IS NULL)
 ;
 
---deprecate all old maps
+--24. Deprecate all old mappings
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT
 	NULL :: int4,
@@ -270,119 +272,138 @@ SELECT DISTINCT
 	current_date - 1,
 	'D'
 FROM concept_relationship r
-JOIN concept c ON
-	c.concept_id = r.concept_id_1 AND
-	c.vocabulary_id = 'dm+d' AND
-	r.relationship_id = 'Maps to'
-JOIN concept_stage cs ON
-	cs.concept_code = c.concept_code
-JOIN concept c2 ON
-	c2.concept_id = r.concept_id_2
-WHERE
-	NOT exists
+JOIN concept c ON c.concept_id = r.concept_id_1 AND	c.vocabulary_id = 'dm+d' AND r.relationship_id = 'Maps to'
+JOIN concept_stage cs ON cs.concept_code = c.concept_code
+JOIN concept c2 ON c2.concept_id = r.concept_id_2
+WHERE NOT EXISTS
 		(
 			SELECT 1
 			FROM concept_relationship_stage
-			WHERE
-				concept_code_1 = c.concept_code AND
-				concept_code_2 = c2.concept_code AND
-				vocabulary_id_2 = c2.vocabulary_id
+			WHERE concept_code_1 = c.concept_code
+			  AND concept_code_2 = c2.concept_code
+			  AND vocabulary_id_2 = c2.vocabulary_id
 		)
   --Except for relationships between deprecated and fresh concepts inside dm+d
 AND c2.vocabulary_id != 'dm+d'
 ;
 
---delete mapping from concept_relationship_stage if it exists in concept_relationship_manual
+--25. Delete mapping from concept_relationship_stage if it exists in concept_relationship_manual
 DELETE
-FROM concept_relationship_stage
-WHERE exists (
-    SELECT * FROM concept_relationship_manual crm
-    WHERE crm.concept_code_1 = concept_relationship_stage.concept_code_1
+FROM concept_relationship_stage crs
+WHERE EXISTS (
+    SELECT 1 FROM concept_relationship_manual crm
+    WHERE crm.concept_code_1 = crs.concept_code_1
+    AND crm.vocabulary_id_1 = crs.vocabulary_id_1
           );
 
---Integration of manual mappings
+--26. Deprecate old ingredient mappings
+UPDATE concept_relationship_stage crs
+SET invalid_reason = 'D',
+    valid_end_date = current_date
+FROM concept c
+JOIN concept_relationship r ON r.concept_id_1 = c.concept_id AND r.relationship_id = 'Maps to' AND r.invalid_reason IS NULL AND c.vocabulary_id = 'dm+d'
+JOIN concept c2 ON c2.concept_id = r.concept_id_2 AND c2.concept_class_id = 'Ingredient'
+LEFT JOIN internal_relationship_stage i ON i.concept_code_2 = c.concept_code
+WHERE i.concept_code_2 IS NULL
+  AND c.concept_class_id NOT IN ('VMP','AMP','VMPP','AMPP')
+  AND crs.concept_code_1 = c.concept_code
+  AND crs.concept_code_2 = c2.concept_code
+  AND crs.vocabulary_id_1 = c.vocabulary_id
+  AND crs.vocabulary_id_2 = c2.vocabulary_id
+  AND crs.relationship_id = 'Maps to'
+  AND NOT EXISTS (
+            SELECT 1 FROM concept_relationship_manual crm
+            WHERE crm.concept_code_1 = crs.concept_code_1
+             AND crm.vocabulary_id_1 = crs.vocabulary_id_1
+            );
+
+
+--27. Integration of manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- Working with replacement mappings
+--28. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
--- Add mapping from deprecated to fresh concepts
+--29. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
--- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--30. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---deprecate old ingredient mappings
-UPDATE concept_relationship_stage crs
-SET invalid_reason = 'D',
-    valid_end_date = current_date
-FROM concept c
-JOIN concept_relationship r ON
-	r.concept_id_1 = c.concept_id AND
-	r.relationship_id = 'Maps to' AND
-	r.invalid_reason IS NULL AND
-	c.vocabulary_id = 'dm+d'
-JOIN concept c2 ON
-	c2.concept_id = r.concept_id_2 AND
-	c2.concept_class_id = 'Ingredient'
-LEFT JOIN internal_relationship_stage i ON
-	i.concept_code_2 = c.concept_code
-WHERE
-	i.concept_code_2 IS NULL AND
-	c.concept_class_id NOT IN
-		('VMP','AMP','VMPP','AMPP')
-
-AND crs.concept_code_1 = c.concept_code
-AND crs.concept_code_2 = c2.concept_code
-AND crs.vocabulary_id_1 = c.vocabulary_id
-AND crs.vocabulary_id_2 = c2.vocabulary_id
-AND crs.relationship_id = 'Maps to'
-;
-
-
-
---Final manual changes
+--31. Final manual changes
 UPDATE concept_stage SET concept_name = trim(concept_name);
-DELETE FROM concept_relationship_stage WHERE concept_code_1 = '8203003' AND invalid_reason IS NULL;
 
---Deduplication of concept_stage, concept_relationship_stage table
-DELETE FROM concept_relationship_stage s 
-WHERE EXISTS (SELECT 1 FROM concept_relationship_stage s_int 
-                WHERE coalesce(s_int.concept_id_1, 'x') = coalesce(s.concept_id_1, 'x')
-                  AND coalesce(s_int.concept_id_2, 'x') = coalesce(s.concept_id_2, 'x') 
-                  AND coalesce(s_int.concept_code_1, 'x') = coalesce(s.concept_code_1, 'x') 
-                  AND coalesce(s_int.concept_code_2, 'x') = coalesce(s.concept_code_2, 'x')
-                  AND coalesce(s_int.relationship_id, 'x') = coalesce(s.relationship_id, 'x')
-                  AND coalesce(s_int.vocabulary_id_1, 'x') = coalesce(s.vocabulary_id_1, 'x')
-                  AND coalesce(s_int.vocabulary_id_2, 'x') = coalesce(s.vocabulary_id_2, 'x')
-                  AND coalesce(s_int.valid_start_date, 'x') = coalesce(s.valid_start_date, 'x')
-                  AND coalesce(s_int.valid_end_date, 'x') = coalesce(s.valid_end_date, 'x')
-                  AND coalesce(s_int.invalid_reason, 'x') = coalesce(s.invalid_reason, 'x')
-                  AND s_int.ctid > s.ctid);
+--32. Deduplication of concept_stage, concept_relationship_stage table
+WITH duplicates AS (
+  SELECT ctid,
+    ROW_NUMBER() OVER (PARTITION BY concept_id_1, concept_id_2, concept_code_1, concept_code_2, relationship_id,
+        vocabulary_id_1, vocabulary_id_2, valid_start_date, valid_end_date, invalid_reason ORDER BY ctid
+    ) AS rn
+  FROM concept_relationship_stage
+)
+DELETE FROM concept_relationship_stage crs
+USING duplicates d
+WHERE crs.ctid = d.ctid
+  AND d.rn > 1;
 
+WITH duplicates AS (
+  SELECT ctid,
+    ROW_NUMBER() OVER (PARTITION BY concept_id, concept_name, domain_id, vocabulary_id, concept_class_id,
+        standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason ORDER BY ctid
+    ) AS rn
+  FROM concept_stage
+)
+DELETE FROM concept_stage cs
+USING duplicates d
+WHERE cs.ctid = d.ctid
+  AND d.rn > 1;
+ 
+--33. boiler takes vocabs not need in the refresh
+DELETE
+FROM concept_relationship_stage crs
+WHERE NOT EXISTS (SELECT 1
+	FROM concept_stage cs
+	WHERE (cs.concept_code = crs.concept_code_1
+		AND cs.vocabulary_id = crs.vocabulary_id_1))
+	AND NOT EXISTS (SELECT 1
+	FROM concept_stage cs
+	WHERE (cs.concept_code = crs.concept_code_2
+		AND cs.vocabulary_id = crs.vocabulary_id_2));
 
-DELETE FROM concept_stage s 
-WHERE EXISTS (SELECT 1 FROM concept_stage s_int 
-                WHERE coalesce(s_int.concept_id, 'x') = coalesce(s.concept_id, 'x')
-                  AND coalesce(s_int.concept_name, 'x') = coalesce(s.concept_name, 'x') 
-                  AND coalesce(s_int.domain_id, 'x') = coalesce(s.domain_id, 'x')
-                  AND coalesce(s_int.vocabulary_id, 'x') = coalesce(s.vocabulary_id, 'x')
-                  AND coalesce(s_int.concept_class_id, 'x') = coalesce(s.concept_class_id, 'x')
-                  AND coalesce(s_int.standard_concept, 'x') = coalesce(s.standard_concept, 'x')
-                  AND coalesce(s_int.concept_code, 'x') = coalesce(s.concept_code, 'x')
-                  AND coalesce(s_int.valid_start_date, 'x') = coalesce(s.valid_start_date, 'x')
-                  AND coalesce(s_int.valid_end_date, 'x') = coalesce(s.valid_end_date, 'x')
-                  AND coalesce(s_int.invalid_reason, 'x') = coalesce(s.invalid_reason, 'x')
-                  AND s_int.ctid > s.ctid);
+DELETE
+FROM concept_relationship_stage crs
+WHERE NOT EXISTS (SELECT	1
+	FROM concept_stage cs
+	WHERE crs.concept_code_1 = cs.concept_code
+		AND crs.vocabulary_id_1 = cs.vocabulary_id);
+
+DELETE
+FROM concept_relationship_stage crs
+WHERE NOT EXISTS (SELECT	1
+	FROM concept_stage cs
+	WHERE crs.concept_code_2 = cs.concept_code
+		AND crs.vocabulary_id_2 = cs.vocabulary_id)
+	AND NOT EXISTS (SELECT	1
+	FROM concept cs
+	WHERE crs.concept_code_2 = cs.concept_code
+		AND crs.vocabulary_id_2 = cs.vocabulary_id);
+	
+DELETE FROM concept_stage cs
+WHERE vocabulary_id = 'dm+d'
+  AND NOT EXISTS (SELECT 1 FROM concept_relationship_stage crs WHERE cs.concept_code = crs.concept_code_1 AND invalid_reason IS NULL) 
+  AND NOT EXISTS (SELECT 1 FROM concept c WHERE cs.concept_code = c.concept_code AND cs.vocabulary_id = c.vocabulary_id)
+  AND concept_class_id IN ('Brand Name','Ingredient')
+  AND concept_code LIKE 'OMOP%'
+  ; 

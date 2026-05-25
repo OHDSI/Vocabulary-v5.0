@@ -15,7 +15,7 @@
 *
 * Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov,
 * Christian Reich, Oleg Zhuk, Masha Khitrun
-* Date: 2024
+* Date: 2025
 **************************************************************************/
 
 --1. Extract each component (International, UK & US) versions to properly date the combined source in next step
@@ -51,6 +51,8 @@ WHERE m.moduleid IN (
 			'999000011000000103', --UK edition
 			'731000124108' --US edition
 			)
+AND m.referencedcomponentid IN ('900000000000207008',
+                               '900000000000012004')
 	ORDER BY m.moduleid,
 		m.effectivetime DESC
 ;
@@ -668,7 +670,8 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Has etiology'
 		WHEN typeid = '255234002'
 			THEN 'Followed by'
-		WHEN typeid = '260669005'
+		WHEN typeid IN ('260669005',
+		                '424876005')
 			THEN 'Has surgical appr'
 		WHEN typeid = '246090004'
 			THEN 'Has asso finding'
@@ -793,8 +796,6 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Has specimen subst'
 		WHEN typeid = '408732007'
 			THEN 'Has relat context'
-		WHEN typeid = '424876005'
-			THEN 'Has surgical appr'
 		WHEN typeid = '408731000'
 			THEN 'Has temporal context'
 		WHEN typeid = '363708005'
@@ -982,6 +983,8 @@ SELECT DISTINCT sourceid AS concept_code_1,
 			THEN 'Before'
 		WHEN typeid = '704320005'
 			THEN 'Towards'
+	    WHEN typeid = '116688005'
+	        THEN 'Has approach'
 		ELSE term --'non-existing'
 		END AS relationship_id,
 	(
@@ -1010,16 +1013,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT sn.concept_code_1,
-	sn.concept_code_2,
-	'SNOMED',
-	'SNOMED',
-	sn.relationship_id,
-	TO_DATE(sn.effectivestart, 'YYYYMMDD'),
-	TO_DATE('20991231', 'YYYYMMDD'),
-	NULL
-FROM (
-	SELECT sc.referencedcomponentid AS concept_code_1,
+WITH cte AS (
+    SELECT sc.referencedcomponentid AS concept_code_1,
 		sc.targetcomponent AS concept_code_2,
 		sc.effectivetime AS effectivestart,
 		CASE refsetid
@@ -1035,6 +1030,13 @@ FROM (
 				THEN 'Concept alt_to to'
 			END AS relationship_id,
 		refsetid,
+		CASE WHEN moduleid = '900000000000207008'
+		        THEN 1
+		    WHEN moduleid = '731000124108'
+		        THEN 2
+		    WHEN moduleid = '999000011000000103'
+		        THEN 3
+		    END AS module,
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC,
 				sc.id DESC --same as of AVOF-650
@@ -1054,6 +1056,18 @@ FROM (
 			'900000000000527005',
 			'900000000000530003'
 			)
+)
+SELECT DISTINCT sn.concept_code_1,
+	sn.concept_code_2,
+	'SNOMED',
+	'SNOMED',
+	sn.relationship_id,
+	TO_DATE(sn.effectivestart, 'YYYYMMDD'),
+	TO_DATE('20991231', 'YYYYMMDD'),
+	NULL
+FROM (SELECT *,
+             ROW_NUMBER() OVER (PARTITION BY concept_code_1 ORDER BY module, rn desc) mn
+      FROM cte
 	) sn
 WHERE EXISTS (
 		SELECT 1
@@ -1064,21 +1078,21 @@ WHERE EXISTS (
 		(
 			--Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
 			sn.refsetid = '900000000000523009'
-			AND sn.rn >= 1
+			AND sn.mn >= 1
 			)
-		OR sn.rn = 1
+		OR sn.mn = 1
 		)
 	AND sn.active = 1
 	AND sn.recent_status = 1 --no row with the same target concept, but more recent relationship with active = 0
 ON CONFLICT DO NOTHING;
 
---9.1 Working with replacement mappings
+--9.1. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9.2 Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
+--9.2. Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1179,7 +1193,117 @@ WHERE cr.relationship_id = 'Maps to'
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
---delete records that do not exist in the concept and concept_stage
+-- 9.3. If concept has new replacement link deprecate old replacement relationships and mappings unless manually created
+DROP TABLE IF EXISTS replacements;
+CREATE TEMP TABLE replacements AS
+WITH new_replacements AS (
+SELECT *
+FROM concept_relationship_stage crs
+WHERE relationship_id in (
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to'
+				)
+AND crs.invalid_reason is null
+)
+SELECT DISTINCT c.concept_code as concept_code_1,
+       c1.concept_code as concept_code_2,
+       c.vocabulary_id as vocabulary_id_1,
+       c1.vocabulary_id as vocabulary_id_2,
+       cr.relationship_id as relationship_id,
+       cr.valid_start_date,
+       cr.valid_end_date,
+	   cr.invalid_reason
+FROM concept_relationship cr
+JOIN concept c on cr.concept_id_1 = c.concept_id
+JOIN concept c1 on c1.concept_id = cr.concept_id_2
+WHERE cr.relationship_id in (
+                'Maps to',
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept was_a to'
+				)
+AND cr.invalid_reason IS NULL
+AND exists (SELECT 1
+           FROM new_replacements n
+           WHERE (c.concept_code, c.vocabulary_id) = (n.concept_code_1, n.vocabulary_id_1)
+           AND ((c1.concept_code, c1.vocabulary_id) != (n.concept_code_2, n.vocabulary_id_2)
+               OR cr.relationship_id != n.relationship_id)
+               )
+AND NOT exists (
+    SELECT 1
+    FROM concept_relationship_manual crm
+    WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
+    AND crm.relationship_id LIKE 'Maps to%'
+    AND crm.invalid_reason IS NULL)
+;
+
+ANALYZE replacements;
+
+INSERT INTO concept_relationship_stage
+(
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       valid_start_date,
+       (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		) AS valid_end_date,
+	'D' AS invalid_reason
+FROM replacements r
+ON CONFLICT ON CONSTRAINT idx_pk_crs
+DO UPDATE
+SET valid_end_date = (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		),
+		invalid_reason = 'D'
+	WHERE ROW (concept_relationship_stage.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.invalid_reason)
+;
+
+-- 9.4. Deprecate replacement relationships for the manually curated concepts as we assume manual mapping is more accurate:
+UPDATE concept_relationship_stage crs
+    SET invalid_reason = 'D',
+        valid_end_date = (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		)
+WHERE exists(
+    SELECT 1
+    FROM concept_relationship_manual crm
+    WHERE (crm.concept_code_1, crm.vocabulary_id_1) = (crs.concept_code_1, crs.vocabulary_id_1)
+    AND crm.relationship_id = 'Maps to'
+    AND crm.invalid_reason IS NULL
+)
+AND crs.relationship_id IN (
+		'Concept replaced by',
+		'Concept same_as to',
+		'Concept alt_to to',
+		'Concept was_a to'
+		)
+	AND crs.invalid_reason IS NULL
+    ;
+
+-- 9.5. Delete records that do not exist in the concept and concept_stage
 DELETE
 FROM concept_relationship_stage crs
 WHERE EXISTS (
@@ -1211,7 +1335,7 @@ WHERE EXISTS (
 
 ANALYZE concept_relationship_stage;
 
---9.3. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
+--9.6. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
 UPDATE concept_stage cs
 SET invalid_reason = 'U',
 	valid_end_date = LEAST(cs.valid_end_date, crs.valid_start_date, (
@@ -1229,7 +1353,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 		)
 	AND crs.invalid_reason IS NULL;
 
---9.4. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
+--9.7. Update invalid reason for concepts with 'Concept poss_eq to' relationships. They are no longer considered replacement relationships.
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
 	valid_end_date = LEAST(crs.valid_start_date, (
@@ -1243,7 +1367,7 @@ WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.invalid_reason IS NULL
 	AND cs.invalid_reason IS NULL;
 
---9.5. Update valid_end_date to latest_update if there is a discrepancy after last point
+--9.8. Update valid_end_date to latest_update if there is a discrepancy after last point
 UPDATE concept_stage cs
 SET valid_end_date = (
 		SELECT latest_update - 1
@@ -1263,6 +1387,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
+
 
 --11. Build domains; assign domains to the concepts according to their concept_classes
 DROP TABLE IF EXISTS domain_snomed;
@@ -1646,7 +1771,7 @@ SET standard_concept = CASE domain_id
 		ELSE 'S'
 		END;
 
--- 17.1. Make invalid concepts non-standard:
+-- 17.1. Make invalid concepts non-standard (necessary for proper mapping propagation):
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE invalid_reason IS NOT NULL;
@@ -1664,7 +1789,7 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---17.4 Make domain 'Geography' non-standard, except countries:
+--17.4. Make domain 'Geography' non-standard, except countries:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id = 'Location'
@@ -1674,7 +1799,7 @@ AND concept_code NOT IN (
 		WHERE ancestor_concept_code = '223369002' -- Country
 		);
 
---17.5 Make procedures with the context = 'Done' non-standard:
+--17.5. Make procedures with the context = 'Done' non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -1687,13 +1812,14 @@ WHERE EXISTS (
 			AND crs.invalid_reason IS NULL
 		);
 
---17.6 Make certain hierarchical branches non-standard:
+--17.6. Make certain hierarchical branches non-standard:
 UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE sa.ancestor_concept_code IN (
 		'373060007', -- Device status
 		'417662000', -- History of clinical finding in subject
+		'1260502004', -- History of event in life of subject
 		'312871001', --Administration of bacterial vaccine
 		'1156257007', -- Administration of SARS-CoV-2 vaccine
 		'49083007', --Administration of viral vaccine
@@ -1711,7 +1837,7 @@ WHERE sa.ancestor_concept_code IN (
 		)
 	AND cs.concept_code = sa.descendant_concept_code;
 
---17.7 Make certain concept classes non-standard:
+--17.7. Make certain concept classes non-standard:
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id IN (
@@ -1736,7 +1862,87 @@ WHERE concept_class_id = 'Social Context'
 				)
 		);
 
---18. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+-- 18. Add mappings from substances to RxNorm/RxE in case of full name match:
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+SELECT cs.concept_code,
+       cc.concept_code,
+       cs.vocabulary_id,
+       cc.vocabulary_id,
+       'Maps to',
+        (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM concept_stage cs
+JOIN devv5.concept cc on lower(cs.concept_name) = lower(cc.concept_name)
+WHERE cs.domain_id = 'Drug'
+    AND cs.concept_class_id = 'Substance'
+    AND cs.vocabulary_id = 'SNOMED'
+    AND cc.vocabulary_id like 'RxNorm%'
+    AND cc.standard_concept = 'S'
+    AND NOT exists(
+        SELECT 1
+        FROM devv5.concept_relationship cr
+        JOIN devv5.concept c on c.concept_id = cr.concept_id_1
+        WHERE (c.concept_code, c.vocabulary_id) = (cs.concept_code, cs.vocabulary_id)
+            AND cr.relationship_id = 'Maps to'
+            AND cr.invalid_reason IS NULL)
+;
+
+--19. Add mappings of Clinical Drug Forms to their ingredients:
+INSERT INTO concept_relationship_stage
+(concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+SELECT DISTINCT c.concept_code,
+                c2.concept_code,
+                c.vocabulary_id,
+                c2.vocabulary_id,
+                'Maps to',
+                current_date,
+                '2099-12-31'::date,
+                NULL
+FROM concept_stage c
+JOIN concept_relationship_stage cr ON cr.concept_code_1 = c.concept_code
+                                    AND cr.vocabulary_id_1 = c.vocabulary_id
+                                    AND cr.relationship_id = 'Has active ing'
+                                    AND cr.invalid_reason IS NULL
+JOIN devv5.concept cc on (cc.concept_code, cc.vocabulary_id) = (cr.concept_code_2, cr.vocabulary_id_2)
+JOIN devv5.concept_relationship cr1 ON cc.concept_id = cr1.concept_id_1
+                                     AND cr1.relationship_id = 'Maps to'
+                                     AND cr1.invalid_reason IS NULL
+JOIN devv5.concept c2 on c2.concept_id = cr1.concept_id_2
+WHERE c.vocabulary_id = 'SNOMED'
+  AND c.domain_id = 'Drug'
+  AND c2.vocabulary_id LIKE 'RxNorm%'
+  AND NOT exists(SELECT 1
+               FROM concept_relationship_stage crs1
+               WHERE (c.concept_code, c.vocabulary_id) = (crs1.concept_code_1, crs1.vocabulary_id_1)
+               AND crs1.relationship_id = 'Maps to'
+               AND crs1.invalid_reason IS NULL)
+  AND NOT exists(SELECT 1
+               FROM devv5.concept_relationship b
+               JOIN devv5.concept a on a.concept_id = b.concept_id_1
+               WHERE (c.concept_code, c.vocabulary_id) = (a.concept_code, a.vocabulary_id)
+               AND b.relationship_id = 'Maps to'
+               AND b.invalid_reason IS NULL);
+
+--20. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
 --https://github.com/OHDSI/Vocabulary-v5.0/issues/431
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1827,13 +2033,13 @@ AND NOT EXISTS(
        AND crs.invalid_reason IS NULL
 );
 
---19. Append manual concepts again for final assignment of concept characteristics
+--21. Append manual concepts again for final assignment of concept characteristics
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---20. Working with relationships
+--22. Working with relationships
 
 -- Add mapping from deprecated to fresh concepts
 DO $_$
@@ -1858,7 +2064,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---21. Clean up
+--23. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;

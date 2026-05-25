@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$USER_HOME$/AppData/Roaming/JetBrains/DataGrip2023.2/consoles/db/b980a6cf-7284-4530-8fe7-3c4b1d87646e/console.sql" dialect="PostgreSQL" />
+    <file url="file://$USER_HOME$/AppData/Roaming/JetBrains/DataGrip2024.3/consoles/db/b78d78d7-245b-43cb-973f-996c044e4f19/console.sql" dialect="PostgreSQL" />
+    <file url="file://$USER_HOME$/AppData/Roaming/JetBrains/DataGrip2024.3/consoles/db/b980a6cf-7284-4530-8fe7-3c4b1d87646e/console.sql" dialect="PostgreSQL" />
+    <file url="file://$USER_HOME$/AppData/Roaming/JetBrains/DataGrip2024.3/consoles/db/c12f209d-075c-46bf-80b8-30e9d28fd1e5/console.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/CPT4/load_stage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/CPT4/manual work/cpt4_refresh.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/HCPCS/load_stage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/HCPCS/manual work/hcpcs_refresh.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/NDC_SPL/load_stage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/RxNorm/load_stage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/SNOMED/AddPeaks.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/SNOMED/load_stage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/SNOMED/manual_work/analytical queries/mapping_scripts.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/SNOMED/manual_work/snomed_refresh.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/SNOMED/manual_work/specific_qa/load_stage checks.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/universal_load_stage/load_stage.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/working/manual_checks_after_generic_update.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/working/packages/vocabulary_pack/ATCPostprocessing.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/working/packages/vocabulary_pack/ConceptAncestorCore.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/working/packages/vocabulary_pack/pConceptAncestor.sql" dialect="PostgreSQL" />
+  </component>
+</project>

@@ -9,38 +9,25 @@ assignees: ''
 
 # Instructions
 
-
-**0. Create the initial GitHub issue.**
-
-Please create the initial issue that briefly describes the content of the intended contribution and the rationale behind it. This will allow us to keep track of requests and connect you with other contributors who may be working on the same content.
-
-**1. Read the documentation.**
+**Pre-requisites**
 
 Please familiarize yourself with the documentation [here](https://github.com/OHDSI/Vocabulary-v5.0/wiki/Community-contribution) before initiating the submission.
 
-**2. Choose the category of the submission.**
+**Filling the contribution**
 
-Choose the category of your submission and download the corresponding template:
+Choose the category of your submission, download the corresponding template from [this folder](https://drive.google.com/drive/u/1/folders/1D7hSGKQkWgJCAKXDNOjfoFcnRca0-57w) and fill it out.
 
 - Template 1: Add non-standard concept(s) to an existing vocabulary (with or without synonyms or mappings);
-- Template 2: Add synonym(s) to existing concept(s);
-- Template 3: Add mapping(s) to existing concept(s);
+- Template 2: Add synonym(s);
+- Template 3: Add mapping(s);
 - Template 4: Add new non-standard vocabulary (with or without mappings).
 
-**3. Fill out the template.**
+**Validation**
 
-Please download the corresponding template from [this folder](https://drive.google.com/drive/u/1/folders/1D7hSGKQkWgJCAKXDNOjfoFcnRca0-57w) and fill it out. Instructions and examples are provided within the template. If questions occur, use comments in the current issue to contact the Vocabulary Team. 
+- Once filed, paste the content and metadata into the Validation template in [the same](https://drive.google.com/drive/folders/1D7hSGKQkWgJCAKXDNOjfoFcnRca0-57w) Drive folder
+- Click OHDSI Validation in the upper ribbon and select "Validate Template". It will initiate the process of validation. If prompted, give permissions to the script.
+- Examine the output and if fix any errors
+- Once there are no errors, select OHDSI Validation and click "Submit Final Version". It will create a submission file on the OHDSI Drive (and a copy on your drive) for us to review.
 
-Make sure that you complete the checklist!
-
-**4. Upload the template.**
-
-Please go to [this folder](https://drive.google.com/drive/u/1/folders/1wXB3CK08-sPa0EdyLlIL8jHaBkuH7k3g), create a subfolder (name it *GitHubIssueNumber_ContributionName_YourName*) and upload your files there.
-
-**5. Reference the template in the new GitHub issue.**
-
-Please add the link to your submission to the newly created GitHub issue.
-
-**6. See your contribution in the next release!**
-
-'Add content' contributions are not reviewed by the Vocabulary Team and you generally can expect to see them in the next release if the submission is made at least 2 months prior to the release date.
+**Create the GitHub issue.**
+Paste the link to the submission file in the issue and describe what you have done.

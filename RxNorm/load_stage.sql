@@ -774,6 +774,7 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'SNOMED'
 	AND d.invalid_reason IS NULL
+    AND d.domain_id = 'Drug'
 -- Mapping table between SNOMED to RxNorm. SNOMED is both an intermediary between RxNorm and DM+D, and a source code
 
 UNION ALL
@@ -795,6 +796,7 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'SNOMED'
 	AND d.invalid_reason IS NULL
+    AND d.domain_id = 'Drug'
 	AND d.concept_class_id NOT IN (
 		'Dose Form',
 		'Brand Name'
@@ -1517,7 +1519,7 @@ END $_$;
 --21. Run RxE clean up
 DO $_$
 BEGIN
-	PERFORM vocabulary_pack.RxECleanUP();
+	PERFORM dev_rxnorm.RxECleanUP();
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

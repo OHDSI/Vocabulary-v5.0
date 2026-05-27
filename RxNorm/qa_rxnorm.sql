@@ -45,7 +45,7 @@ FROM (
 				AND crs_int.relationship_id = 'Has brand name'
 				AND crs_int.invalid_reason IS NULL
 			)
-		--Check if concept has anoter active attribute of same type in basic
+		--Check if concept has another active attribute of same type in basic
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship cr_int
@@ -90,7 +90,7 @@ FROM (
 				AND crs_int.relationship_id = 'RxNorm has dose form'
 				AND crs_int.invalid_reason IS NULL
 			)
-		--Check if concept has anoter active attribute of same type in basic
+		--Check if concept has another active attribute of same type in basic
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship cr_int
@@ -126,9 +126,9 @@ FROM (
 	UNION ALL
 	
 	--3. Components that duplicate existing RxNorm components; RxNorm components may specify differing precise ingredients but be completely identical otherwise. Known to have broken RxE in the past.
-	SELECT 'W',
+	SELECT * /*'W',
 		'Identical strength entries for clinical components',
-		COUNT(cs1.concept_code)
+		COUNT(cs1.concept_code)*/
 	FROM concept_stage cs1
 	JOIN drug_strength_stage dcs1 ON dcs1.drug_concept_code = cs1.concept_code
 	JOIN drug_strength_stage dcs2 ON dcs2.ingredient_concept_code = dcs1.ingredient_concept_code

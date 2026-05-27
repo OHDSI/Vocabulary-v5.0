@@ -1,4 +1,4 @@
-CREATE FUNCTION rxecleanup() RETURNS void
+CREATE or replace FUNCTION rxecleanup() RETURNS void
     LANGUAGE plpgsql
 AS
 $$
@@ -30,27 +30,104 @@ BEGIN
 	TRUNCATE TABLE pack_content_stage;
 	TRUNCATE TABLE drug_strength_stage;
 
-	--3. Load full list of RxNorm Extension concepts and set 'X' for duplicates
+	--3. Load full list of RxNorm Extension concepts and mark RxE-vs-RxNorm duplicates as 'X'
+	--   Uses semantic name normalization (devv5.compare_custom_english) instead of
+	--   plain UPPER() match to catch decimal-zero variants and punctuation differences.
+	--   Brand Name and Supplier classes are excluded: they legitimately differ between
+	--   RxNorm and RxE and should not be auto-deprecated here.
 	INSERT INTO concept_stage
 	SELECT *
 	FROM concept
 	WHERE vocabulary_id = 'RxNorm Extension';
 
+	WITH cs_processed AS (
+		SELECT
+			cs.concept_id  AS cs_id,
+			cs.concept_class_id,
+			dev_rxnorm.compare_custom_english(cs.concept_name) AS cs_vector
+		FROM concept_stage cs
+		WHERE cs.invalid_reason IS NULL
+		  AND cs.concept_class_id NOT IN ('Brand Name', 'Supplier')
+	),
+	c_processed AS (
+		SELECT
+			c.concept_id   AS c_id,
+			c.concept_class_id,
+			dev_rxnorm.compare_custom_english(c.concept_name) AS c_vector
+		FROM concept c
+		WHERE c.invalid_reason IS NULL
+		  AND c.vocabulary_id = 'RxNorm'
+		  AND c.concept_class_id NOT IN ('Brand Name', 'Supplier')
+	)
 	UPDATE concept_stage cs
-	SET invalid_reason = 'X',
-		standard_concept = NULL,
-		valid_end_date = CURRENT_DATE,
-		concept_id=c.concept_id
-	FROM concept c
-	WHERE upper(cs.concept_name) = upper(c.concept_name)
-		AND cs.concept_class_id = c.concept_class_id
-		AND c.invalid_reason IS NULL
-		AND c.vocabulary_id = 'RxNorm'
-		AND cs.invalid_reason IS NULL;
+	   SET invalid_reason   = 'X',
+	       standard_concept = NULL,
+	       valid_end_date   = CURRENT_DATE,
+	       concept_id       = cp.c_id   -- points to the RxNorm replacement target
+	  FROM cs_processed cs_p
+	  JOIN c_processed  cp
+	    ON cs_p.cs_vector       = cp.c_vector
+	   AND cs_p.concept_class_id = cp.concept_class_id
+	 WHERE cs.concept_id = cs_p.cs_id;
 
-    DROP TABLE concept_replacements;
+	--3b. Find and mark intra-RxE duplicates (RxE concepts that are duplicates of each
+	--    other, not of RxNorm concepts).  Survivor preference order:
+	--      1. Standard concept ('S') over non-standard
+	--      2. Oldest valid_start_date (the original entry)
+	--      3. Lowest concept_id (tie-break)
+	--    Brand Name and Supplier classes are excluded here as well.
+	DROP TABLE IF EXISTS concept_replacements;
 
-	--4. Load full list of RxNorm Extension relationships
+	CREATE TABLE concept_replacements AS
+	WITH cstage_normalized AS (
+		SELECT
+			concept_id                                        AS cs_id,
+			concept_class_id                                  AS cs_cc_id,
+			COALESCE(standard_concept, '')                    AS standard_concept,
+			valid_start_date,
+			dev_rxnorm.compare_custom_english(concept_name)        AS normalized_name
+		FROM concept_stage
+		WHERE invalid_reason IS NULL
+		  AND concept_class_id NOT IN ('Brand Name', 'Supplier')
+	),
+	ranked_concepts AS (
+		SELECT
+			cs.*,
+			ROW_NUMBER() OVER (
+				PARTITION BY normalized_name, cs_cc_id
+				ORDER BY
+					CASE WHEN standard_concept = 'S' THEN 0 ELSE 1 END,
+					valid_start_date,
+					cs_id
+			) AS rn,
+			COUNT(*) OVER (PARTITION BY normalized_name, cs_cc_id) AS grp_cnt
+		FROM cstage_normalized cs
+	),
+	grouped_replacements AS (
+		SELECT
+			MIN(cs_id) FILTER (WHERE rn = 1)                   AS main,
+			string_agg(cs_id::text, ',') FILTER (WHERE rn > 1) AS for_replacement
+		FROM ranked_concepts
+		WHERE grp_cnt > 1
+		GROUP BY normalized_name, cs_cc_id
+	)
+	SELECT *
+	FROM grouped_replacements
+	WHERE for_replacement IS NOT NULL;
+
+	UPDATE concept_stage cs
+	   SET invalid_reason   = 'X',
+	       standard_concept = NULL,
+	       valid_end_date   = CURRENT_DATE,
+	       concept_id       = cr.main   -- points to the surviving RxE concept
+	  FROM concept_replacements cr,
+	       unnest(string_to_array(cr.for_replacement, ',')) AS dup_id
+	 WHERE cs.concept_id = dup_id::bigint
+	   AND cs.invalid_reason IS NULL;
+
+	DROP TABLE concept_replacements;
+
+	--4. Load full list of active RxNorm Extension <-> RxNorm relationships
 	INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		concept_code_2,
@@ -86,7 +163,7 @@ BEGIN
 			)
 		AND r.invalid_reason IS NULL;
 
-	--5. Deprecate old relationships
+	--5. Deprecate all relationships touching 'X'-marked concepts
 	UPDATE concept_relationship_stage crs
 	SET invalid_reason = 'D',
 		valid_end_date = CURRENT_DATE
@@ -97,7 +174,9 @@ BEGIN
 			) --with reverse
 		AND cs.invalid_reason = 'X';
 
-	--6a. Add new replacements EXCEPT cases when RxE - Maps to - RxN exists
+	--6a. Add 'Concept replaced by' for 'X' concepts EXCEPT where a manual
+	--    'Maps to' (RxNorm Extension -> RxNorm) already exists in
+	--    concept_relationship_manual.  Manual overrides take precedence.
 	INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		concept_code_2,
@@ -117,19 +196,24 @@ BEGIN
 	FROM concept_stage cs
 	JOIN concept c ON c.concept_id = cs.concept_id
 	WHERE cs.invalid_reason = 'X'
-        and (cs.concept_code, c.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual)
-        and NOT EXISTS (SELECT 1
-                        FROM concept_relationship_manual crm
-                        WHERE cs.concept_code = crm.concept_code_1
-                        AND cs.vocabulary_id = 'RxNorm Extension'
-                        and crm.vocabulary_id_1 = 'RxNorm Extension'
-                        and crm.vocabulary_id_2 = 'RxNorm'
-                        and crm.relationship_id = 'Maps to'
-                        and crm.invalid_reason is NULL);
+        AND (cs.concept_code, c.concept_code) NOT IN (
+            SELECT concept_code_1, concept_code_2 FROM concept_relationship_manual
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM concept_relationship_manual crm
+            WHERE cs.concept_code     = crm.concept_code_1
+              AND cs.vocabulary_id    = 'RxNorm Extension'
+              AND crm.vocabulary_id_1 = 'RxNorm Extension'
+              AND crm.vocabulary_id_2 = 'RxNorm'
+              AND crm.relationship_id = 'Maps to'
+              AND crm.invalid_reason IS NULL
+        );
 
-
-        -- 6b. For those RxE concepts, that have duplicates, but duplicate has already RxN mapping.
-    	INSERT INTO concept_relationship_stage (
+	-- 6b. For 'X' concepts that DO have a manual 'Maps to' in
+	--     concept_relationship_manual, propagate that manual mapping instead
+	--     of the auto-generated 'Concept replaced by'.
+    INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		concept_code_2,
 		vocabulary_id_1,
@@ -138,64 +222,66 @@ BEGIN
 		valid_start_date,
 		valid_end_date
 		)
-    	WITH CTE as (
-    	    SELECT *
-    	    FROM concept_relationship_manual
-    	    WHERE vocabulary_id_1 = 'RxNorm Extension'
-    	    and vocabulary_id_2 = 'RxNorm'
-    	    and relationship_id = 'Maps to'
-    	    and invalid_reason is NULL
-        )
-        SELECT cs.concept_code,
-            t1.concept_code_2,
-            cs.vocabulary_id,
-            t1.vocabulary_id_2,
-            'Maps to',
-            CURRENT_DATE,
-            TO_DATE('20991231', 'yyyymmdd')
-        FROM concept_stage cs
-        JOIN concept c ON c.concept_id = cs.concept_id
-        join CTE t1 on cs.concept_code = t1.concept_code_1
-        WHERE cs.invalid_reason = 'X'
-        and (cs.concept_code, c.concept_code) not in (select concept_code_1, concept_code_2 from concept_relationship_manual)
-        and EXISTS (SELECT 1
-                        FROM concept_relationship_manual crm
-                        WHERE cs.concept_code = crm.concept_code_1
-                        AND cs.vocabulary_id = 'RxNorm Extension'
-                        and crm.vocabulary_id_1 = 'RxNorm Extension'
-                        and crm.vocabulary_id_2 = 'RxNorm'
-                        and crm.relationship_id = 'Maps to');
+    WITH manual_maps AS (
+        SELECT *
+        FROM concept_relationship_manual
+        WHERE vocabulary_id_1 = 'RxNorm Extension'
+          AND vocabulary_id_2 = 'RxNorm'
+          AND relationship_id = 'Maps to'
+          AND invalid_reason IS NULL
+    )
+    SELECT cs.concept_code,
+        t1.concept_code_2,
+        cs.vocabulary_id,
+        t1.vocabulary_id_2,
+        'Maps to',
+        CURRENT_DATE,
+        TO_DATE('20991231', 'yyyymmdd')
+    FROM concept_stage cs
+    JOIN concept c ON c.concept_id = cs.concept_id
+    JOIN manual_maps t1 ON cs.concept_code = t1.concept_code_1
+    WHERE cs.invalid_reason = 'X'
+      AND (cs.concept_code, c.concept_code) NOT IN (
+          SELECT concept_code_1, concept_code_2 FROM concept_relationship_manual
+      )
+      AND EXISTS (
+          SELECT 1
+          FROM concept_relationship_manual crm
+          WHERE cs.concept_code     = crm.concept_code_1
+            AND cs.vocabulary_id    = 'RxNorm Extension'
+            AND crm.vocabulary_id_1 = 'RxNorm Extension'
+            AND crm.vocabulary_id_2 = 'RxNorm'
+            AND crm.relationship_id = 'Maps to'
+      );
 
-
-	--7. Update concept_stage (set 'U' for all 'X')
+	--7. Promote 'X' to 'U' (deprecated/upgraded) now that replacement rels are in place
 	UPDATE concept_stage
 	SET invalid_reason = 'U'
 	WHERE invalid_reason = 'X';
 
-
+	-- Apply manual concept overrides for RxNorm Extension
     DO $_$
     BEGIN
         PERFORM VOCABULARY_PACK.processmanualconcepts();
     END $_$;
 
+    -- Apply manual relationship overrides
     DO $_$
     BEGIN
         PERFORM VOCABULARY_PACK.ProcessManualRelationships();
     END $_$;
 
-	--8. Working with replacement mappings
+	--8. Standard mapping pipeline
 	DO $_$
 	BEGIN
 		PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 	END $_$;
 
-	--Add mapping from deprecated to fresh concepts, and also from non-standard to standard concepts
 	DO $_$
 	BEGIN
 		PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 	END $_$;
 
-	--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 	DO $_$
 	BEGIN
 		PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
@@ -206,7 +292,8 @@ BEGIN
         PERFORM vocabulary_pack.AddPropagatedHierarchyMapsTo_fixed();
     END $_$;
 
-	--9. AddFreshMAPSTO creates RxNorm(ATC)-RxNorm links that need to be removed
+	--9. AddFreshMAPSTO may create RxNorm(ATC)-RxNorm links that cross vocabulary
+	--   boundaries without a latest_update anchor -- remove them.
 	DELETE
 	FROM concept_relationship_stage crs_o
 	WHERE (
@@ -227,7 +314,7 @@ BEGIN
 			WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
 			);
 
-	--10. Fill concept_synonym_stage
+	--10. Fill concept_synonym_stage for RxNorm Extension
 	INSERT INTO concept_synonym_stage
 	SELECT cs.concept_id,
 		cs.concept_synonym_name,

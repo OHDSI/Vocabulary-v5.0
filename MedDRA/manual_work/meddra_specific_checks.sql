@@ -1,3 +1,4 @@
+
 -- All target_concepts in dev_meddra.meddra_environment that became non-standard.
 SELECT *
 FROM dev_meddra.meddra_environment AS me

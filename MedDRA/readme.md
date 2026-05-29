@@ -28,23 +28,18 @@ SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA
 ##### Filling stage and basic tables
 7. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/MedDRA/Manual_work/readme.md) file in the 'manual_work' folder.
 8. Run load_stage.sql
-9. Run check_stage_tables function (should retrieve NULL):
-```sql
-SELECT * FROM qa_tests.check_stage_tables ();
-```
-10. Run generic_update:
+9. Run generic_update:
 ```sql
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 ```
-11. Run basic tables check (should retrieve NULL):
+10. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
-
 ```
-12. Run scripts to get summary, and interpret the results:
+11. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT * FROM qa_tests.get_summary('concept')
 WHERE vocabulary_id_1 = 'MedDRA';

@@ -139,7 +139,9 @@ AS (
 	SELECT llt_code AS concept_code,
 		CASE 
 			--pt level
-			WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
+			WHEN llt_name ~* 'Suspected off label' OR llt_name ~* '^Product '
+                THEN 'Observation'
+		    WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
 				THEN 'Procedure'
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
@@ -176,7 +178,9 @@ AS (
 	SELECT pt_code AS concept_code,
 		CASE 
 			--pt level
-			WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
+			WHEN pt_name ~* 'Suspected off label' OR pt_name ~* '^Product '
+                THEN 'Observation'
+		    WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
 				THEN 'Procedure'
 					--hlt level
 			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
@@ -211,7 +215,9 @@ AS (
 	SELECT hlt_code AS concept_code,
 		CASE 
 			--hlt level
-			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+			WHEN hlt_name ~* 'Suspected off label' OR hlt_name ~* '^Product '
+                THEN 'Observation'
+		    WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|(?<!diagnostic |fertility.+)procedure'
 				THEN 'Procedure'

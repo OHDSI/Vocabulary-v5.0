@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Aliaksei Katyshou
-* Date: 2024
+* Authors: Aliaksei Katyshou, Masha Khitrun
+* Date: 2026
 **************************************************************************/
 
 -- concept_metadata

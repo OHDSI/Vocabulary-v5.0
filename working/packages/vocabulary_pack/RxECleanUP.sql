@@ -70,12 +70,6 @@ BEGIN
 	   AND cs_p.concept_class_id = cp.concept_class_id
 	 WHERE cs.concept_id = cs_p.cs_id;
 
-    -- One-time fix:
-        Update concept_stage
-        set concept_name = regexp_replace(concept_name, 'Sigaperido]', 'Sigaperidol]')
-        where concept_name like '%Sigaperido]%'
-        and vocabulary_id = 'RxNorm Extension';
-
 	--3b. Find and mark intra-RxE duplicates (RxE concepts that are duplicates of each
 	--    other, not of RxNorm concepts).  Survivor preference order:
 	--      1. Standard concept ('S') over non-standard
@@ -301,27 +295,12 @@ BEGIN
 		AND cs.invalid_reason = 'X'
 	    AND crs.relationship_id NOT IN ('Maps to', 'Concept replaced by');
 
-/*    -- 8. Deprecate stale active relationships for upgraded RxE concepts:
-    UPDATE concept_relationship_stage crs
-    SET invalid_reason = 'D',
-        valid_end_date = CURRENT_DATE
-    WHERE exists(
-        select 1
-        from concept_stage cs
-        where ((cs.concept_code, cs.vocabulary_id) = (crs.concept_code_1, crs.vocabulary_id_1)
-            or (cs.concept_code, cs.vocabulary_id) = (crs.concept_code_2, crs.vocabulary_id_2))
-          AND cs.vocabulary_id = 'RxNorm Extension'
-          and cs.invalid_reason = 'U'
-    )
-    AND relationship_id not in ('Maps to', 'Mapped from', 'Concept replaced by', 'Concept replaces')
-    AND invalid_reason is null;*/
-
-	--9. Promote 'X' to 'U' (deprecated/upgraded) now that replacement rels are in place
+	--8. Promote 'X' to 'U' (deprecated/upgraded) now that replacement rels are in place
 	UPDATE concept_stage
 	SET invalid_reason = 'U'
 	WHERE invalid_reason = 'X';
 
-	--10. AddFreshMAPSTO may create RxNorm(ATC)-RxNorm links that cross vocabulary
+	--9. AddFreshMAPSTO may create RxNorm(ATC)-RxNorm links that cross vocabulary
 	--   boundaries without the latest_update anchor -- remove them.
 	DELETE
 	FROM concept_relationship_stage crs_o

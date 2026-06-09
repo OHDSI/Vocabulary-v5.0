@@ -1,0 +1,173 @@
+"""
+compare.py
+
+Diffs the concepts produced by build_concepts.build() against what is
+currently in prodv5.concept (vocabulary_id = 'NAACCR') and classifies
+every concept into one of four buckets:
+
+  new        – in source, not in DB  → write to concept_stage_manual
+  updated    – in both, concept_name or status changed  → write to concept_stage_manual
+  same       – in both, nothing changed  → write to concept_stage_manual
+               (ProcessManualConcepts needs the row to keep the concept alive)
+  retiring   – in DB, not in source
+
+Retirement policy (OMOP never removes concepts — historical data may use them):
+  NAACCR Procedure   – never retire; 1290 deprecations handled by surgery.py
+                       via valid_end_date / invalid_reason fields
+  NAACCR Schema      – never retire (historical schema values reference them)
+  NAACCR Variable    – retire ONLY if DB concept_name starts with "Reserved"
+  NAACCR Value       – never retire; historical data may use any code
+                       EXCEPT range-notation codes (see below)
+  Permissible Range  – retire range-notation codes (see below); keep others
+  NAACCR Proc Schema – never retire
+
+Range-notation codes: concept_codes of the form `item@NNN-NNN` or
+`item@N.N-N.N` where the value part is two numbers separated by a hyphen.
+These are NAACCR's way of documenting "enter any value in this range" for
+continuous numeric fields.  They are abstraction instructions, not facts —
+no patient record ever contains a literal range as its code value.  They are
+retired regardless of concept class.
+"""
+
+import re
+
+import os
+import psycopg2
+from dotenv import load_dotenv
+
+# Matches 2-part codes where the value portion is a numeric range: NNN-NNN or N.N-N.N
+_RANGE_CODE_RE = re.compile(r'^[^@]+@\d+\.?\d*-\d+\.?\d*$')
+
+import config
+from build_concepts import build
+
+
+# ── DB fetch ──────────────────────────────────────────────────────────────────
+
+def _fetch_db_concepts():
+    """Return {concept_code: row_dict} for all NAACCR concepts in prodv5."""
+    load_dotenv()
+    conn = psycopg2.connect(
+        host=os.getenv('DB_HOST'), port=os.getenv('DB_PORT'),
+        dbname=os.getenv('DB_NAME'), user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'))
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT concept_code, concept_name, domain_id, vocabulary_id,
+               concept_class_id, standard_concept,
+               valid_start_date, valid_end_date, invalid_reason
+        FROM prodv5.concept
+        WHERE vocabulary_id = 'NAACCR'
+    """)
+    cols = [d[0] for d in cur.description]
+    rows = {r[0]: dict(zip(cols, r)) for r in cur.fetchall()}
+    conn.close()
+    return rows
+
+
+# ── Retirement check ──────────────────────────────────────────────────────────
+
+def _should_retire(db_row):
+    """
+    Return True for concepts that should be retired:
+    1. NAACCR Variable whose DB name starts with 'Reserved' (~15 placeholder items).
+    2. Any concept whose code is range-notation (e.g. '752@002-988', '230@0-9') —
+       abstraction instructions, not facts.
+    3. All Permissible Range class concepts (481 in v18 DB) — same reason as above:
+       they document valid input ranges, not actual coded values.
+    Everything else is kept (OMOP principle: never remove historical codes).
+    """
+    # All Permissible Range concepts
+    if db_row['concept_class_id'] == config.CLASS_PERM_RANGE:
+        return True
+    # Range-notation codes in any other class (e.g. NAACCR Value)
+    if _RANGE_CODE_RE.match(db_row['concept_code']):
+        return True
+    # Reserved Variable placeholders
+    if db_row['concept_class_id'] != config.CLASS_VARIABLE:
+        return False
+    return (db_row['concept_name'] or '').strip().lower().startswith('reserved')
+
+
+# ── Main diff ─────────────────────────────────────────────────────────────────
+
+def run(verbose=True):
+    """
+    Build source concepts and diff against DB.
+
+    Returns (new, updated, same, retiring) — each a list of dicts.
+    """
+    if verbose:
+        print("[compare] Building source concepts...")
+    src_concepts, src_relationships = build(verbose=verbose)
+
+    if verbose:
+        print("[compare] Fetching DB concepts...")
+    db_concepts = _fetch_db_concepts()
+
+    new_concepts      = []
+    updated_concepts  = []
+    same_concepts     = []
+    retiring_concepts = []
+
+    # ── Classify source concepts ──────────────────────────────────────────────
+    for code, src in src_concepts.items():
+        if code not in db_concepts:
+            new_concepts.append(src)
+            continue
+
+        db = db_concepts[code]
+
+        # Fields we care about for change detection
+        name_changed = src['concept_name'] != db['concept_name']
+        sc_changed   = src.get('standard_concept') != db.get('standard_concept')
+        ved_changed  = (str(src.get('valid_end_date', '')) !=
+                        str(db.get('valid_end_date', '')))
+        ir_changed   = src.get('invalid_reason') != db.get('invalid_reason')
+
+        if name_changed or sc_changed or ved_changed or ir_changed:
+            updated_concepts.append(src)
+        else:
+            same_concepts.append(src)
+
+    # ── Classify DB-only concepts ─────────────────────────────────────────────
+    src_codes = set(src_concepts.keys())
+    for code, db_row in db_concepts.items():
+        if code not in src_codes:
+            if _should_retire(db_row):
+                retiring_concepts.append(db_row)
+            else:
+                # Keep alive: pass through as-is so ProcessManualConcepts
+                # preserves it without expiring it.
+                same_concepts.append({
+                    'concept_code':     db_row['concept_code'],
+                    'concept_name':     db_row['concept_name'],
+                    'domain_id':        db_row['domain_id'],
+                    'vocabulary_id':    db_row['vocabulary_id'],
+                    'concept_class_id': db_row['concept_class_id'],
+                    'standard_concept': db_row['standard_concept'],
+                    'valid_start_date': str(db_row['valid_start_date']),
+                    'valid_end_date':   str(db_row['valid_end_date']),
+                    'invalid_reason':   db_row['invalid_reason'],
+                })
+
+    if verbose:
+        print(f"\n[compare] Results:")
+        print(f"  New concepts:      {len(new_concepts):>6}")
+        print(f"  Updated concepts:  {len(updated_concepts):>6}")
+        print(f"  Unchanged:         {len(same_concepts):>6}")
+        print(f"  Retiring:          {len(retiring_concepts):>6}  "
+              f"(Reserved Variables + range-notation codes)")
+        print(f"  Source total:      {len(src_concepts):>6}")
+        print(f"  DB total:          {len(db_concepts):>6}")
+
+    return new_concepts, updated_concepts, same_concepts, retiring_concepts
+
+
+if __name__ == "__main__":
+    new, updated, same, retiring = run(verbose=True)
+
+    if retiring:
+        print(f"\nRetiring concepts ({len(retiring)}):")
+        for r in retiring[:20]:
+            print(f"  {r['concept_code']:<40} {r['concept_name'][:60]}")

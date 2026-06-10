@@ -14,10 +14,10 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts, Alexander Davydov, Masha Khitrun
-* Date: 2024
+* Date: 2026
 **************************************************************************/
 
---1. Update latest_update field to new date 
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -28,7 +28,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -104,7 +104,7 @@ FROM concept c
 WHERE c.vocabulary_id = 'HCPCS'
 ON CONFLICT DO NOTHING;
 
---5 Update domain_id in concept_stage
+--5. Update domain_id in concept_stage
 --5.1. Part 1. Update domain_id defined by rules
 WITH t_domains
 AS (
@@ -550,7 +550,7 @@ AS (
 			        OR concept_code BETWEEN 'Q0182' AND 'Q0185'
 			        OR concept_code BETWEEN 'Q9945' AND 'Q9969'
 			        OR concept_code BETWEEN 'Q9982' AND 'Q9983'
-			        OR concept_code in (
+			        OR concept_code IN (
 			        'Q3001',
 			        'Q9988',
 			        'Q9994'
@@ -562,7 +562,7 @@ AS (
 		             OR concept_code BETWEEN 'Q3014' AND 'Q3020'
 		             OR concept_code BETWEEN 'Q5001' AND 'Q5010'
 		             OR concept_code BETWEEN 'Q9001' AND 'Q9004'
-		            OR concept_code in (
+		            OR concept_code IN (
 		                'Q0086',
 		                'Q0092',
 		                'Q0186',
@@ -591,7 +591,7 @@ AS (
 			         OR concept_code BETWEEN 'S9097' AND 'S9098'
 			         OR concept_code BETWEEN 'S9200' AND 'S9214'
 			         OR concept_code BETWEEN 'S9381' AND 'S9430'
-			         OR concept_code BETWEEN 'S9436'AND 'S9473'
+			         OR concept_code BETWEEN 'S9436' AND 'S9473'
 					 OR concept_code BETWEEN 'S9476' AND 'S9485'
 			         OR concept_code IN (
 			            'S0400',
@@ -704,7 +704,7 @@ FROM t_domains t
 WHERE cs.concept_code = t.concept_code
 	AND cs.concept_class_id <> 'HCPCS Class';
 
--- 5.2. If some codes do not have domain_id pick it up from existing concept table
+--5.2. If some codes do not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs
 SET domain_id = c.domain_id
 FROM concept c

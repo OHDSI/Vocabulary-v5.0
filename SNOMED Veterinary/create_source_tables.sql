@@ -16,68 +16,63 @@
 * Authors: Medical team
 * Date: 2019
 **************************************************************************/
-
-DROP TABLE IF EXISTS SOURCES.VET_SCT2_CONCEPT_FULL;
-CREATE TABLE SOURCES.VET_SCT2_CONCEPT_FULL
+DROP TABLE IF EXISTS sources_VET_SCT2_CONCEPT_FULL;
+CREATE TABLE sources_VET_SCT2_CONCEPT_FULL
 (
-   ID                 text,
+   ID                 VARCHAR (100),
    EFFECTIVETIME      TIMESTAMP,
-   ACTIVE             int2,
-   MODULEID           text,
-   STATUSID           text,
+   ACTIVE             INTEGER,
+   MODULEID           VARCHAR (100),
+   STATUSID           VARCHAR (100),
    VOCABULARY_DATE    DATE,
-   VOCABULARY_VERSION VARCHAR(200)
+   VOCABULARY_VERSION VARCHAR (200)
 );
 
-DROP TABLE IF EXISTS SOURCES.VET_SCT2_DESC_FULL;
-CREATE TABLE SOURCES.VET_SCT2_DESC_FULL
+DROP TABLE IF EXISTS sources_VET_SCT2_DESC_FULL;
+CREATE TABLE sources_VET_SCT2_DESC_FULL
 (
-   ID                   text,
+   ID                   VARCHAR (100),
    EFFECTIVETIME        TIMESTAMP,
-   ACTIVE               int2,
-   MODULEID             text,
-   CONCEPTID            text,
-   LANGUAGECODE         VARCHAR(2),
-   TYPEID               text,
-   TERM                 text,
-   CASESIGNIFICANCEID   text
+   ACTIVE               INTEGER,
+   MODULEID             VARCHAR (100),
+   CONCEPTID            VARCHAR (100),
+   LANGUAGECODE         VARCHAR (2),
+   TYPEID               VARCHAR (100),
+   TERM                 VARCHAR (1000),
+   CASESIGNIFICANCEID   VARCHAR (100)
 );
 
-DROP TABLE IF EXISTS SOURCES.VET_SCT2_RELA_FULL;
-CREATE TABLE SOURCES.VET_SCT2_RELA_FULL
+DROP TABLE IF EXISTS sources_VET_SCT2_RELA_FULL;
+CREATE TABLE sources_VET_SCT2_RELA_FULL
 (
-   ID                     text,
+   ID                     VARCHAR (100),
    EFFECTIVETIME          TIMESTAMP,
-   ACTIVE                 int2,
-   MODULEID               text,
-   SOURCEID               text,
-   DESTINATIONID          text,
+   ACTIVE                 INTEGER,
+   MODULEID               VARCHAR (100),
+   SOURCEID               VARCHAR (100),
+   DESTINATIONID          VARCHAR (100),
    RELATIONSHIPGROUP      INTEGER,
-   TYPEID                 text,
-   CHARACTERISTICTYPEID   text,
-   MODIFIERID             text
+   TYPEID                 VARCHAR (100),
+   CHARACTERISTICTYPEID   VARCHAR (100),
+   MODIFIERID             VARCHAR (100)
 );
 
-DROP TABLE IF EXISTS SOURCES.VET_DER2_CREFSET_ASSREFFULL;
-CREATE TABLE SOURCES.VET_DER2_CREFSET_ASSREFFULL
+DROP TABLE IF EXISTS sources_VET_DER2_CREFSET_ASSREFFULL;
+CREATE TABLE sources_VET_DER2_CREFSET_ASSREFFULL
 (
-    ID                         VARCHAR (256),
+    ID                         VARCHAR (100),
     EFFECTIVETIME              TIMESTAMP,
-    ACTIVE                     int2,
-    MODULEID                   text,
-    REFSETID                   text,
-    REFERENCEDCOMPONENTID      text,
-    TARGETCOMPONENT            text
+    ACTIVE                     INTEGER,
+    MODULEID                   VARCHAR (100),
+    REFSETID                   VARCHAR (100),
+    REFERENCEDCOMPONENTID      VARCHAR (100),
+    TARGETCOMPONENT            VARCHAR (100)
 );
 
-CREATE INDEX idx_vet_concept_id ON SOURCES.VET_SCT2_CONCEPT_FULL(ID);
-CREATE INDEX idx_vet_desc_id ON SOURCES.VET_SCT2_DESC_FULL(CONCEPTID);
-CREATE INDEX idx_vet_rela_id ON SOURCES.VET_SCT2_RELA_FULL(ID);
-
-DROP TABLE IF EXISTS sources.vet_der2_crefset_attributevalue_full;
-CREATE TABLE sources.vet_der2_crefset_attributevalue_full (
+DROP TABLE IF EXISTS sources_VET_DER2_CREFSET_ATTRIBUTEVALUE_FULL;
+CREATE TABLE sources_vet_der2_crefset_attributevalue_full (
     id varchar(256),
-    effectivetime TIMESTAMP,
+    effectivetime  TIMESTAMP,
     active int2,
     moduleid text,
     refsetid text,
@@ -85,10 +80,10 @@ CREATE TABLE sources.vet_der2_crefset_attributevalue_full (
     valueid text
 );
 
-DROP TABLE IF EXISTS sources.vet_der2_crefset_language;
-CREATE TABLE sources.vet_der2_crefset_language (
+DROP TABLE IF EXISTS sources_VET_DER2_CREFSET_LANGUAGE;
+CREATE TABLE sources_vet_der2_crefset_language (
     id varchar(256),
-    effectivetime TIMESTAMP,
+    effectivetime  TIMESTAMP,
     active int2,
     moduleid text,
     refsetid text,
@@ -96,16 +91,21 @@ CREATE TABLE sources.vet_der2_crefset_language (
     acceptabilityid text,
     source_file_id varchar(10)
 );
-CREATE INDEX idx_vet_lang_refid ON sources.VET_der2_crefset_language (referencedcomponentid);
 
-DROP TABLE IF EXISTS vet_der2_ssrefset_moduledependency;
-CREATE TABLE sources.vet_der2_ssrefset_moduledependency (
- id varchar(256),
-    effectivetime TIMESTAMP,
-    active int2,
-    moduleid text,
-    refsetid text,
-    referencedcomponentid text,
-  sourceEffectiveTime timestamp,
-  targetEffectiveTime timestamp
-  );
+DROP TABLE IF EXISTS sources_VET_DER2_SSREFSET_MODULEDEPENDENCY;
+CREATE TABLE sources_VET_DER2_SSREFSET_MODULEDEPENDENCY
+(
+    ID                         VARCHAR(256),
+    EFFECTIVETIME              TIMESTAMP,
+    ACTIVE                     INT2,
+    MODULEID                   TEXT,
+    REFSETID                   TEXT,
+    REFERENCEDCOMPONENTID      TEXT,
+    SOURCEEFFECTIVETIME        TIMESTAMP,
+    TARGETEFFECTIVETIME        TIMESTAMP
+);
+
+CREATE INDEX idx_vet_concept_id ON sources_VET_SCT2_CONCEPT_FULL (ID);
+CREATE INDEX idx_vet_desc_id ON sources_VET_SCT2_DESC_FULL (CONCEPTID);
+CREATE INDEX idx_vet_rela_id ON sources_VET_SCT2_RELA_FULL (ID);
+CREATE INDEX idx_lang_refid ON sources_VET_DER2_CREFSET_LANGUAGE USING btree (referencedcomponentid);

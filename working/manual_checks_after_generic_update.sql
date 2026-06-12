@@ -138,7 +138,7 @@ ORDER BY similarity_or_condition, language_changed;
 --In this check we manually review new concepts that don't have "Maps to" links to the Standard equivalent concepts.
 --To prioritize and make the review process more structured, the logical groups to be identified using the sorting by concept_class_id, vocabulary_id and domain_id fields. Then the content to be reviewed separately within the groups.
 --Depending on the logical group (use case), vocabulary importance and its maturity level, effort and resources available, result should be critically analyzed and may represent multiple scenarios, e.g.:
--- - concepts of some concept classes doesn't require "Maps to" links because the targets are not set as Standard concepts by design (brand names, drug forms, etc.);
+-- - concepts of some concept classes don't require "Maps to" links because the targets are not set as Standard concepts by design (brand names, drug forms, etc.);
 -- - new NDC or vaccine concepts are not yet represented in the RxNorm/CVX vocabulary, and, therefore, can't be mapped;
 -- - OMOP-generated invalidated concepts are not used as the source concepts, and, therefore, replacement links are not supported;
 -- - concepts that were wrongly designed by the author (e.g. SNOMED) can't be explicitly mapped to the Standard target.

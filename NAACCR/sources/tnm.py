@@ -72,11 +72,15 @@ def fetch_all(verbose=True):
             inputs = schema.get("inputs", [])
             item_by_table = {}
             naaccr_items  = []
+            input_names   = {}   # item_number -> schema-specific display name
             for inp in inputs:
                 table_id    = inp.get("table")
                 naaccr_item = inp.get("naaccr_item")
                 if naaccr_item:
                     naaccr_items.append(str(naaccr_item))
+                    inp_name = (inp.get("name") or "").strip()
+                    if inp_name:
+                        input_names[str(naaccr_item)] = inp_name
                 if table_id and naaccr_item:
                     item_by_table[table_id] = str(naaccr_item)
 
@@ -86,6 +90,7 @@ def fetch_all(verbose=True):
                 "algorithm":    schema.get("algorithm", "tnm"),
                 "version":      schema.get("version", config.TNM_VERSION),
                 "naaccr_items": naaccr_items,
+                "input_names":  input_names,
             })
 
             for inp in inputs:

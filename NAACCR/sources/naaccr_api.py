@@ -7,11 +7,17 @@ allowed codes (permissible values where they exist).
 Returns two lists:
   - variables : list of dicts, one per NAACCR item
   - values    : list of dicts, one per allowed code (item@code pairs)
+
+Caching
+-------
+Results are cached in downloads/naaccr_api_v{version}.json.
+Delete that file to force a fresh fetch from the API.
 """
 
 import requests
 import sys
 import os
+import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
@@ -43,6 +49,9 @@ def fetch_all_variables(version=None, verbose=True):
     """
     Fetch all NAACCR items and their allowed codes.
 
+    Results are cached in downloads/naaccr_api_v{version}.json.
+    Delete that file to force a fresh fetch from the API.
+
     Returns
     -------
     variables : list[dict]
@@ -55,6 +64,17 @@ def fetch_all_variables(version=None, verbose=True):
         Only items that have explicit allowed_codes are included.
     """
     version = version or config.NAACCR_VERSION
+    cache_path = os.path.join(config.DOWNLOAD_DIR,
+                              f"naaccr_api_v{version}.json")
+
+    if os.path.exists(cache_path):
+        with open(cache_path, encoding='utf-8') as f:
+            cached = json.load(f)
+        if verbose:
+            print(f"[naaccr_api] Loaded {len(cached['variables'])} variables, "
+                  f"{len(cached['values'])} values from cache.")
+        return cached['variables'], cached['values']
+
     summary = fetch_item_list(version)
     total = len(summary)
     if verbose:
@@ -88,8 +108,13 @@ def fetch_all_variables(version=None, verbose=True):
         if verbose and i % 50 == 0:
             print(f"  {i}/{total}")
 
+    os.makedirs(config.DOWNLOAD_DIR, exist_ok=True)
+    with open(cache_path, 'w', encoding='utf-8') as f:
+        json.dump({'variables': variables, 'values': values}, f)
+
     if verbose:
-        print(f"[naaccr_api] Done. {len(variables)} variables, {len(values)} values.")
+        print(f"[naaccr_api] Done. {len(variables)} variables, "
+              f"{len(values)} values. Cached to {cache_path}")
 
     return variables, values
 

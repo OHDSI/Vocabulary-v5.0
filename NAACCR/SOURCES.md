@@ -61,7 +61,7 @@ Three upstream providers supply all source data:
 | # | Provider | What we take |
 |---|----------|-------------|
 | 1 | `api.seer.cancer.gov` | NAACCR item list and generic permissible values |
-| 2 | `github.com/imsweb/layout` | HTML documentation files — supplementary generic values |
+| 2 | `github.com/imsweb/layout` | CSV lookup tables — geographic and demographic values |
 | 3 | `github.com/imsweb/algorithms` | EOD and TNM staging ZIPs + surgery XML files |
 
 ---
@@ -106,9 +106,12 @@ defence.
 
 **History:** Before v26, this module scraped 954 HTML documentation files from
 the same repository.  The HTML files include SSDI items without distinguishing
-them from generic items, requiring a post-hoc suppression filter.  The CSV
-source is the authoritative machine-readable form of the same data and is
-strictly better.
+them from generic items, requiring a post-hoc suppression filter, and include
+large ICD and ICD-O reference tables that belong to other OMOP vocabularies.
+The CSV lookup tables are the authoritative machine-readable form of the same
+data and are strictly better: no HTML parsing, no SSDI contamination, and scope
+is limited to the Demographic section where the geographic and demographic
+lookup tables live.
 
 ---
 
@@ -207,7 +210,7 @@ active Standard concepts; historical data may reference them.
 
 ```
 sources/naaccr_api.py   → Variables + generic Values (2-part)
-sources/naaccr_html.py  → Additional generic Values (2-part, SSDI-filtered)
+sources/naaccr_html.py  → Geographic/demographic Values (2-part, Demographic section only)
 sources/eod.py          → EOD Schemas + schema-specific Values (3-part)
 sources/tnm.py          → TNM Schemas + schema-specific Values (3-part)
 sources/surgery.py      → Procedure concepts + replacement relationships
@@ -220,7 +223,7 @@ compare.py              → Diffs against prodv5.concept, classifies as
                           new / updated / same / retiring
         ↓
 output.py               → Truncates and reloads the work schema tables:
-                          concept_manual and concept_relationship_stage_manual
+                          concept_manual and concept_relationship_manual
 ```
 
 ---
@@ -338,7 +341,7 @@ be updated.
 ## Known Limitations and Version-Sensitive Heuristics
 
 - **SSDI filter relies on EOD/TNM coverage.** If a future NAACCR version introduces
-  a new SSDI item that is not yet in the EOD/TNM ZIP, the HTML scraper may produce
+  a new SSDI item that is not yet in the EOD/TNM ZIP, the API may produce
   spurious 2-part generic values for it.  Check the SSDI item count after each update.
 
 - **Surgery `TITLE_TO_SCHEMA` mapping** is hard-coded for 4 known mismatches in v26.

@@ -2,10 +2,10 @@
 output.py
 
 Writes the results of compare.run() to:
-  christian.concept_stage_manual
-  christian.concept_relationship_stage_manual
+  christian.concept_manual
+  christian.concept_relationship_manual
 
-ProcessManualConcepts.sql (on the OHDSI vocab server) reads concept_stage_manual,
+ProcessManualConcepts.sql (on the OHDSI vocab server) reads concept_manual,
 matches on concept_code + vocabulary_id, and merges into concept_stage.
 generic_update.sql then assigns concept_ids and finalises the load.
 
@@ -13,9 +13,9 @@ Behaviour
 ---------
 - Truncates both target tables, then inserts fresh.
 - All four buckets (new, updated, same, retiring) are written to
-  concept_stage_manual.  Retiring concepts get valid_end_date = today
+  concept_manual.  Retiring concepts get valid_end_date = today
   and invalid_reason = 'D'.
-- Relationships are written to concept_relationship_stage_manual.
+- Relationships are written to concept_relationship_manual.
 - valid_start_date defaults to 1970-01-01 when not supplied by source.
 - valid_end_date  defaults to 2099-12-31 when not supplied.
 """
@@ -23,11 +23,11 @@ Behaviour
 import os
 import datetime
 import psycopg2
+import psycopg2.extras
 from dotenv import load_dotenv
 
 import config
 from compare import run as compare_run
-from build_concepts import build
 
 TODAY      = datetime.date.today().isoformat()
 DATE_START = '1970-01-01'
@@ -51,18 +51,18 @@ def _coerce_date(val, default):
     return default if s in ('None', '') else s
 
 
-# ── Write concept_stage_manual ────────────────────────────────────────────────
+# ── Write concept_manual ────────────────────────────────────────────────
 
 def _write_concepts(cur, all_concepts, retiring_codes, verbose=True):
     ws = config.DB_WORK_SCHEMA
-    cur.execute(f"TRUNCATE TABLE {ws}.concept_stage_manual")
+    cur.execute(f"TRUNCATE TABLE {ws}.concept_manual")
 
     sql = f"""
-        INSERT INTO {ws}.concept_stage_manual (
+        INSERT INTO {ws}.concept_manual (
             concept_name, domain_id, vocabulary_id, concept_class_id,
             standard_concept, concept_code,
             valid_start_date, valid_end_date, invalid_reason
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES %s
     """
 
     # Validate before bulk insert — find any concept_code > 50 chars
@@ -93,25 +93,25 @@ def _write_concepts(cur, all_concepts, retiring_codes, verbose=True):
             c['concept_class_id'], sc, code, vsd, ved, ir,
         ))
 
-    cur.executemany(sql, rows)
+    psycopg2.extras.execute_values(cur, sql, rows, page_size=1000)
     if verbose:
-        print(f"[output] Wrote {len(rows)} rows to {ws}.concept_stage_manual")
+        print(f"[output] Wrote {len(rows)} rows to {ws}.concept_manual")
     return len(rows)
 
 
-# ── Write concept_relationship_stage_manual ───────────────────────────────────
+# ── Write concept_relationship_manual ───────────────────────────────────
 
 def _write_relationships(cur, relationships, verbose=True):
     ws = config.DB_WORK_SCHEMA
-    cur.execute(f"TRUNCATE TABLE {ws}.concept_relationship_stage_manual")
+    cur.execute(f"TRUNCATE TABLE {ws}.concept_relationship_manual")
 
     sql = f"""
-        INSERT INTO {ws}.concept_relationship_stage_manual (
+        INSERT INTO {ws}.concept_relationship_manual (
             concept_code_1, concept_code_2,
             vocabulary_id_1, vocabulary_id_2,
             relationship_id,
             valid_start_date, valid_end_date, invalid_reason
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES %s
     """
 
     rows = [
@@ -121,10 +121,10 @@ def _write_relationships(cur, relationships, verbose=True):
          DATE_START, DATE_END, None)
         for r in relationships
     ]
-    cur.executemany(sql, rows)
+    psycopg2.extras.execute_values(cur, sql, rows, page_size=1000)
     if verbose:
         print(f"[output] Wrote {len(rows)} rows to "
-              f"{ws}.concept_relationship_stage_manual")
+              f"{ws}.concept_relationship_manual")
     return len(rows)
 
 
@@ -133,14 +133,20 @@ def _write_relationships(cur, relationships, verbose=True):
 def run(verbose=True):
     if verbose:
         print("[output] Running compare...")
-    new, updated, same, retiring = compare_run(verbose=verbose)
-
-    if verbose:
-        print("[output] Re-building relationships...")
-    _, relationships = build(verbose=False)
+    new, updated, same, retiring, relationships = compare_run(verbose=verbose)
 
     all_concepts  = new + updated + same + retiring
     retiring_codes = {r['concept_code'] for r in retiring}
+
+    # Drop any relationship where concept_code_1 doesn't exist in the full
+    # concept set.  This catches "Concept replaced by" pairs generated for
+    # zero-padded codes (e.g. 1502@08) whose single-digit predecessor (1502@8)
+    # was never in the DB and therefore isn't in retiring_codes.
+    known_codes = {c['concept_code'] for c in all_concepts}
+    before = len(relationships)
+    relationships = [r for r in relationships if r['concept_code_1'] in known_codes]
+    if verbose and len(relationships) != before:
+        print(f"[output] Dropped {before - len(relationships)} rels with unknown concept_code_1")
 
     conn = _connect()
     cur  = conn.cursor()

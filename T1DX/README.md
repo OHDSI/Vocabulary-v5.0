@@ -38,13 +38,7 @@ The source vocabulary content is maintained in the OHDSI Vocabulary Google Drive
    ```
 This moves staged T1DX content into the `concept` and `concept_relationship` tables in your local dev schema.
 
-5. **Run small concept ancestor build**:
-   ```sql
-   SELECT devv5.pConceptAncestor(is_small=>TRUE);
-   ```
-This populates the `concept_ancestor` table in your local dev schema.
-
-6. **Perform QA after generic run**
+5. **Perform QA after generic run**
    ```sql
    SELECT qa_tests.get_checks();
    SELECT * FROM qa_tests.get_summary('concept','devv5');
@@ -57,7 +51,17 @@ This populates the `concept_ancestor` table in your local dev schema.
    ```
 Address any blocking issues before promoting dev to production.
 
+6. **Run manual concept ancestor build**:
+   ```sql
+   DO $_$
+   	BEGIN
+   		PERFORM vocabulary_pack.pManualConceptAncestor(pVocabularies=>'T1DX');
+   	END $_$;
+   ```
+This populates the `concept_ancestor` table in your local dev schema.
+
 7. **Run [T1DX/metadata.sql](metadata.sql)**
+
 8. **Promote to production**
 
    Once all is done, the vocabulary is built.

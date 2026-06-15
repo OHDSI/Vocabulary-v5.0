@@ -16,7 +16,7 @@
 * Authors: Maksym Trofymenko, Polina Talapova, Denys Kaduk
 * Date: 2026
 **************************************************************************/
--- Total script execution time: 1 min 10 second
+-- Total script execution time: 45 seconds
 
 /****************************************************************************************
  Step 0. Insert a reference row for the new vocabulary (once added, this step should be removed).

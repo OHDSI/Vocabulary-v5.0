@@ -98,34 +98,17 @@ def _value_domain(parent_domain):
 
 
 def _clean(s, n=255):
-    """Normalize a concept name to plain ASCII-safe text, then truncate to n chars."""
+    """Normalize a concept name: collapse pipe separators and newlines to spaces,
+    strip leading/trailing whitespace, then truncate to n chars."""
     if not s:
         return ""
-    # ── Mojibake: UTF-8 multi-byte sequences decoded as Latin-1 / CP-1252 ──────
-    # ® (U+00AE, UTF-8: 0xC2 0xAE) read as Latin-1 → Â® (U+00C2 U+00AE)
-    s = s.replace('\xc2\xae', '®')
-    # em-dash (U+2014, UTF-8: 0xE2 0x80 0x94) read as CP-1252 → â€" (U+00E2 U+20AC U+201D)
-    s = s.replace('\xe2€”', '—')
-    # ── Typographic normalization ─────────────────────────────────────────────
-    s = s.replace('\xa0', ' ')          # non-breaking space → space
-    s = s.replace('–', ' - ')      # en-dash → spaced hyphen
-    s = s.replace('—', ' - ')      # em-dash → spaced hyphen
-    s = s.replace('’', "'")        # right single quote → straight apostrophe
-    s = s.replace('‘', "'")        # left single quote → straight apostrophe
-    s = s.replace('“', '"')        # left double quote → straight quote
-    s = s.replace('”', '"')        # right double quote → straight quote
-    s = s.replace('•', ' - ')      # bullet → spaced hyphen
-    s = s.replace('�', '')         # Unicode replacement char → remove
-    # ── Markdown formatting artifacts ────────────────────────────────────────
-    s = s.replace('**', '')             # bold markers → remove
-    s = re.sub(r'\\([*_])', r'\1', s)  # \* \_ → * _
-    # ── Whitespace and separators ─────────────────────────────────────────────
-    s = re.sub(r'[\r\n]+', ' ', s)
-    s = re.sub(r'\|+', ' ', s)
-    s = re.sub(r' {2,}', ' ', s)
+    import re
+    s = re.sub(r'[\r\n]+', ' ', s)   # newlines -> space
+    s = re.sub(r'\|+', ' ', s)        # pipe separators -> space
+    s = re.sub(r' {2,}', ' ', s)      # collapse multiple spaces
     s = s.strip()
     if len(s) > n:
-        s = s[:n - 3] + '...'
+        s = s[:n - 3] + "..."
     return s
 
 # Keep _truncate as an alias for callers that use it directly
@@ -257,37 +240,25 @@ def build(verbose=True):
         if not name:
             continue
         parent_domain = _variable_domain(var_by_item.get(item_num, {}))
-        is_range = bool(re.match(r'^\d+\.?\d*-\d+\.?\d*$', val["code"]))
         concepts[code] = {
             "concept_code":     code,
             "concept_name":     name,
-            "concept_class_id": config.CLASS_PERM_RANGE if is_range else config.CLASS_VALUE,
-            "domain_id":        "Meas Value" if is_range else _value_domain(parent_domain),
+            "concept_class_id": config.CLASS_VALUE,
+            "domain_id":        _value_domain(parent_domain),
             "vocabulary_id":    config.VOCABULARY_ID,
             "standard_concept": None,
         }
         if item_num in concepts:
-            relationships.append(
+            relationships += [
                 {"concept_code_1": item_num, "concept_code_2": code,
-                 "relationship_id": "Has Answer"})
-
-        # Zero-padding transition: if the source uses @0N (leading zero, e.g. @08)
-        # and the bare @N form (e.g. @8) is absent from the source, the old code
-        # was retired when the v26 coding scheme moved to 2-digit zero-padded codes.
-        raw_val = val["code"]
-        if len(raw_val) == 2 and raw_val[0] == "0" and raw_val[1].isdigit():
-            old_code = f"{item_num}@{raw_val[1]}"
-            if old_code not in generic_value_map:
-                relationships.append({
-                    "concept_code_1": old_code,
-                    "concept_code_2": code,
-                    "relationship_id": "Concept replaced by",
-                })
-
+                 "relationship_id": "Has Answer"},
+                {"concept_code_1": code, "concept_code_2": item_num,
+                 "relationship_id": "Answer of"},
+            ]
 
     # ── Schemas (EOD + TNM) ───────────────────────────────────────────────────
     # Collect all schema inputs for compound Variable generation later
-    all_schema_inputs  = []   # list of (schema_id, item_number, schema_specific_name)
+    all_schema_inputs  = []   # list of (schema_id, item_number, item_name)
     all_schema_values  = []   # combined eod + tnm value rows
 
     for s in eod_schemas:
@@ -300,9 +271,8 @@ def build(verbose=True):
             "vocabulary_id":    config.VOCABULARY_ID,
             "standard_concept": None,
         }
-        inp_names = s.get("input_names", {})
         for item_num in s["naaccr_items"]:
-            all_schema_inputs.append((sid, item_num, inp_names.get(item_num, "")))
+            all_schema_inputs.append((sid, item_num))
     all_schema_values.extend(eod_values)
 
     for s in tnm_schemas:
@@ -316,9 +286,8 @@ def build(verbose=True):
                 "vocabulary_id":    config.VOCABULARY_ID,
                 "standard_concept": None,
             }
-        inp_names = s.get("input_names", {})
         for item_num in s["naaccr_items"]:
-            all_schema_inputs.append((sid, item_num, inp_names.get(item_num, "")))
+            all_schema_inputs.append((sid, item_num))
     all_schema_values.extend(tnm_values)
 
     # ── Compound SSDI Variables (schema@item) ─────────────────────────────────
@@ -329,16 +298,16 @@ def build(verbose=True):
     #
     # Generic shared items to skip entirely:
     _GENERIC_ITEMS = {"400", "522", "523", "390", "500", "10", "40"}
-    # Previously, items that appeared in all 141 EOD schemas were excluded from
-    # compound Variable generation on the assumption that their code tables were
-    # universal.  Inspection shows that most of these items (752, 754, 820, 830,
-    # 764, 772, 774, 776, 1068, 1634, 3843, 3844, 3845) have 3–130 distinct
-    # code-table variants across schemas — they are genuine SSDIs.  Only 1632
-    # and 1633 are truly identical across all schemas.  All are treated as SSDIs.
-    _SKIP_COMPOUND = _GENERIC_ITEMS
+    # Items present in all 141 EOD schemas — generic, no compound Variable:
+    _ALL_SCHEMA_ITEMS = {
+        "752", "754", "756", "764", "772", "774", "776",
+        "820", "830", "1068", "1632", "1633", "1634",
+        "3843", "3844", "3845",
+    }
+    _SKIP_COMPOUND = _GENERIC_ITEMS | _ALL_SCHEMA_ITEMS
 
     seen_compound = set()
-    for sid, item_num, schema_specific_name in all_schema_inputs:
+    for sid, item_num in all_schema_inputs:
         if item_num in _SKIP_COMPOUND:
             continue
         compound_code = f"{sid}@{item_num}"
@@ -349,10 +318,7 @@ def build(verbose=True):
         # Inherit domain from the plain variable if known
         parent = var_by_item.get(item_num, {})
         domain = _variable_domain(parent) if parent else "Measurement"
-        # Prefer the schema-specific name from EOD/TNM inputs[].name over
-        # the generic SEER API item_name (e.g. avoids "CS Site-Specific Factor 8")
-        api_name  = parent.get("item_name", item_num) if parent else item_num
-        item_name = schema_specific_name or api_name
+        item_name = parent.get("item_name", item_num) if parent else item_num
 
         # Only add if not already in the DB (compare.py will filter further)
         concepts[compound_code] = {
@@ -364,15 +330,25 @@ def build(verbose=True):
             "standard_concept": None,
         }
 
-        # Schema to Variable relationship (reverse placed automatically by vocab system)
+        # Schema to Variable / Variable to Schema relationships
         if sid in concepts:
-            relationships.append(
-                {"concept_code_1": sid, "concept_code_2": compound_code,
-                 "relationship_id": "Schema to Variable"})
+            relationships += [
+                {"concept_code_1": sid,           "concept_code_2": compound_code,
+                 "relationship_id": "Schema to Variable"},
+                {"concept_code_1": compound_code, "concept_code_2": sid,
+                 "relationship_id": "Variable to Schema"},
+            ]
 
     # ── Schema-specific Values (schema@item@code) ─────────────────────────────
     _SKIP_ITEMS = _GENERIC_ITEMS  # for schema-specific values, only skip admin items
 
+    # Range-notation codes like "002-988" or "0.1-99.9" are documentation
+    # entries in EOD/TNM tables meaning "any value in this numeric range is
+    # valid".  They are not discrete codes a registry would enter; individual
+    # values within the range appear as their own rows (e.g. "002", "015").
+    # Keeping range codes would (a) create misleading concepts and (b) produce
+    # concept_codes longer than the varchar(50) DB column for schemas with
+    # long IDs (e.g. esophagus_including_ge_junction_squamous).
     _RANGE_RE = re.compile(r'^\d+\.?\d*-\d+\.?\d*$')
 
     for val in all_schema_values:
@@ -381,9 +357,15 @@ def build(verbose=True):
         if not item_num or item_num in _SKIP_ITEMS:
             continue
 
-        # Skip EOD/TNM internal template placeholders (staging logic, not values).
+        # Skip EOD/TNM internal template placeholders (e.g. year-range
+        # discriminators like "2018-{{ctx_year_current}},9999").
+        # These are staging logic, not real permissible values.
         raw_code = str(val['code'])
         if '{{' in raw_code:
+            continue
+
+        # Skip range-notation entries (e.g. "002-988", "0.1-99.9").
+        if _RANGE_RE.match(raw_code):
             continue
 
         code = f"{schema_id}@{item_num}@{raw_code}"
@@ -394,42 +376,28 @@ def build(verbose=True):
         if not name:
             continue
 
-        # Only emit relationships the first time we see this concept_code.
-        # The same schema@item@code can appear in both EOD and TNM value rows;
-        # the second pass would overwrite the concept (fine) but must not
-        # append duplicate relationships.
-        is_new = code not in concepts
-        is_range = bool(_RANGE_RE.match(raw_code))
-
         parent_domain = _variable_domain(var_by_item.get(item_num, {}))
         concepts[code] = {
             "concept_code":     code,
             "concept_name":     name,
-            "concept_class_id": config.CLASS_PERM_RANGE if is_range else config.CLASS_VALUE,
-            "domain_id":        "Meas Value" if is_range else _value_domain(parent_domain),
+            "concept_class_id": config.CLASS_VALUE,
+            "domain_id":        _value_domain(parent_domain),
             "vocabulary_id":    config.VOCABULARY_ID,
             "standard_concept": None,
         }
 
-        if is_new:
-            # Schema to Value (reverse placed automatically by vocab system)
-            if schema_id in concepts:
-                relationships.append(
-                    {"concept_code_1": schema_id, "concept_code_2": code,
-                     "relationship_id": "Schema to Value"})
-
-            # Has Answer: compound SSDI Variable -> schema-specific Value
-            compound_var = f"{schema_id}@{item_num}"
-            if compound_var in concepts:
-                relationships.append(
-                    {"concept_code_1": compound_var, "concept_code_2": code,
-                     "relationship_id": "Has Answer"})
+        if schema_id in concepts:
+            relationships += [
+                {"concept_code_1": schema_id, "concept_code_2": code,
+                 "relationship_id": "Schema to Value"},
+                {"concept_code_1": code, "concept_code_2": schema_id,
+                 "relationship_id": "Value to Schema"},
+            ]
 
     # ── Surgery Procedure concepts (1290 + 1291) ──────────────────────────────
     for sc in surgery_concepts:
         concepts[sc["concept_code"]] = sc
     relationships.extend(surgery_relationships)
-
 
     if verbose:
         from collections import Counter

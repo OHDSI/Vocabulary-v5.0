@@ -173,12 +173,7 @@ def fetch_all_values(verbose=True):
             print(f"[naaccr_csv] Loaded {len(values)} values from cache.")
         return values
 
-    # Build xml_naaccr_id → item_number map from the SEER API.
-    # Only include items in the "Demographic" section — these are the geographic
-    # and demographic lookup tables (country, state, county, race, ethnicity,
-    # marital status, etc.) that are not covered by the API's allowed_codes.
-    # Items in other sections (staging, treatment, ICD, ICD-O) are either
-    # already returned by the API or belong to other OMOP vocabularies.
+    # Build xml_naaccr_id → item_number map from the SEER API
     from sources.naaccr_api import fetch_all_variables
     if verbose:
         print("[naaccr_csv] Building xml_naaccr_id -> item_number map from API...")
@@ -186,7 +181,7 @@ def fetch_all_values(verbose=True):
     xml_to_item = {
         v['xml_naaccr_id']: v['item_number']
         for v in variables
-        if v.get('xml_naaccr_id') and v.get('section') == 'Demographic'
+        if v.get('xml_naaccr_id')
     }
 
     entries = _get_csv_list()

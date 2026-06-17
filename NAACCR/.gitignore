@@ -1,0 +1,20 @@
+# Credentials — never commit
+.env
+
+# Downloaded data files (can be re-fetched)
+*.zip
+downloads/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Output files (large, generated)
+output/
+
+# Review CSVs (generated, not source-controlled)
+review_*.csv

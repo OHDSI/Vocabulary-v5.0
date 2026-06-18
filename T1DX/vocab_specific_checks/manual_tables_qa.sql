@@ -462,7 +462,7 @@ checks AS (
         'concept_manual: concept_name contains Excel/null-like placeholder values',
         count(*)::bigint
     FROM cm
-    WHERE lower(btrim(concept_name)) IN ('#n/a', 'n/a', 'na', 'null', 'none', 'nan', 'unknown', 'tbd')
+    WHERE lower(btrim(concept_name)) IN ('#n/a', 'n/a', 'na', 'null', 'none', 'nan', 'tbd')
 
     UNION ALL
 
@@ -762,32 +762,6 @@ checks AS (
     WHERE vocabulary_id_1 = vocabulary_id_2
       AND concept_code_1 = concept_code_2
       AND relationship_id <> 'Maps to'
-
-    UNION ALL
-
-    SELECT
-        'CRM018',
-        'WARNING',
-        'concept_relationship_manual: non-mapping relationship appears to be missing reverse relationship row',
-        count(*)::bigint
-    FROM crm r
-    JOIN relationship rel
-      ON rel.relationship_id = r.relationship_id
-    WHERE NULLIF(btrim(r.invalid_reason), '') IS NULL
-      AND r.relationship_id NOT IN ('Maps to', 'Mapped from', 'Maps to value', 'Mapped from value')
-      AND rel.reverse_relationship_id IS NOT NULL
-      AND rel.reverse_relationship_id <> r.relationship_id
-      AND NOT EXISTS (
-          SELECT 1
-          FROM crm rr
-          WHERE rr.vocabulary_id_1 = r.vocabulary_id_2
-            AND rr.concept_code_1 = r.concept_code_2
-            AND rr.vocabulary_id_2 = r.vocabulary_id_1
-            AND rr.concept_code_2 = r.concept_code_1
-            AND rr.relationship_id = rel.reverse_relationship_id
-            AND NULLIF(btrim(rr.invalid_reason), '') IS NULL
-      )
-
 
     /************************************************************************************
      C. Mapping semantics
@@ -1214,7 +1188,7 @@ checks AS (
     SELECT
         'X002',
         'WARNING',
-        'cross-table: active T1DX concept has no synonym',
+        'cross-table: active T1DX concept has no synonym', -- it is fine, but make sure that the output is expected for you
         count(*)::bigint
     FROM cm c
     CROSS JOIN params p

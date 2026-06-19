@@ -39,15 +39,16 @@ The source vocabulary content is maintained in the OHDSI Vocabulary Google Drive
 This moves staged T1DX content into the `concept` and `concept_relationship` tables in your local dev schema.
 
 5. **Perform QA after generic run**
+   Compare the build results with the same source schema that was used for FastRecreateSchema() (e.g., devv5 in the example below). Always pass this schema explicitly to the differential QA functions, because their default comparison schema is `prodv5`.
    ```sql
    SELECT qa_tests.get_checks();
    SELECT * FROM qa_tests.get_summary('concept','devv5');
    SELECT * FROM qa_tests.get_summary('concept_relationship','devv5');
-   SELECT * FROM qa_tests.get_domain_changes();
-   SELECT * FROM qa_tests.get_newly_concepts();
-   SELECT * FROM qa_tests.get_standard_concept_changes();
-   SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status();
-   SELECT * FROM qa_tests.get_changes_concept_mapping();
+   SELECT * FROM qa_tests.get_domain_changes(pCompareWith => 'devv5');
+   SELECT * FROM qa_tests.get_newly_concepts(pCompareWith => 'devv5');
+   SELECT * FROM qa_tests.get_standard_concept_changes(pCompareWith => 'devv5');
+   SELECT * FROM qa_tests.get_newly_concepts_standard_concept_status(pCompareWith => 'devv5');
+   SELECT * FROM qa_tests.get_changes_concept_mapping(pCompareWith => 'devv5');
    ```
 Address any blocking issues before promoting dev to production.
 

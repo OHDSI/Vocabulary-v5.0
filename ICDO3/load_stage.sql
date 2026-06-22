@@ -22,7 +22,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ICDO3',
-	pVocabularyDate			=> TO_DATE ('20200630', 'yyyymmdd'), -- https://seer.cancer.gov/ICDO3/
+	pVocabularyDate			=> TO_DATE ('20231129', 'yyyymmdd'), -- https://seer.cancer.gov/ICDO3/
 	pVocabularyVersion		=> 'ICDO3 SEER Site/Histology Released 06/2020',
 	pVocabularyDevSchema	=> 'DEV_icdo3'
 );
@@ -110,7 +110,7 @@ FROM snomed_ancestor hc
 ;
 --3.3. Add missing relation to Primary Malignant Neoplasm where needed
 insert into snomed_ancestor (ancestor_concept_code, descendant_concept_code)
-select distinct '86049000', snomed_code
+select distinct '1240414004', snomed_code
 from r_to_c_all r
 where
 	r.concept_code ~ '\d{4}\/3' and
@@ -120,7 +120,7 @@ where
 			select 1
 			from snomed_ancestor a
 			where
-				a.ancestor_concept_code = '86049000' and --PMN
+				a.ancestor_concept_code = '1240414004' and --PMN
 				a.descendant_concept_code = r.snomed_code
 		) 
 /*	and	not exists -- no common descendants with Secondary malignant neoplasm
@@ -590,7 +590,7 @@ snomed_concept as
 					ancestor_concept_code in 
 						(
 							'400177003',	--Neoplasm
-							'4216275',	--Proliferation of hematopoietic cell type
+							'415181008',	--Proliferation of hematopoietic cell type
 							'25723000',	--Dysplasia
 							'76197007'	--Hyperplasia
 						) and
@@ -1586,7 +1586,8 @@ select distinct
 	TO_DATE ('20991231', 'yyyymmdd')
 from match_blob m
 left join concept_relationship_stage r on
-	m.i_code = r.concept_code_1
+		m.i_code = r.concept_code_1
+	AND r.relationship_id = 'Maps to'
 where r.concept_code_1 is null
 ;
 --17. Write relations for attributes
@@ -1897,11 +1898,15 @@ where
 ;
 --23. Populate concept_synonym_stage
 --23.1. with morphologies
-insert into concept_synonym_stage
+insert into concept_synonym_stage (
+    synonym_name,
+    synonym_concept_code,
+    synonym_vocabulary_id,
+    language_concept_id
+)
 --we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications
 --ICDO3 does not distinguish between 'old' and 'wrong'
-select
-	null,
+select distinct
 	trim (term),
 	icdo32,
 	'ICDO3',

@@ -153,6 +153,48 @@ def fetch_all(verbose=True):
     return schemas, values
 
 
+def load_to_db(conn, verbose=True):
+    """Fetch EOD schemas and values, write to naaccr_eod_schemas,
+    naaccr_eod_schema_inputs, and naaccr_eod_values.  Truncates before inserting."""
+    import psycopg2.extras
+    s = config.DB_SOURCES_SCHEMA
+    schemas, values = fetch_all(verbose=verbose)
+    cur = conn.cursor()
+
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_eod_schemas")
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_eod_schemas "
+        f"(schema_id, schema_name, algorithm, version) VALUES %s",
+        [(sc['schema_id'], sc['schema_name'], sc.get('algorithm'), sc.get('version'))
+         for sc in schemas],
+        page_size=500)
+
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_eod_schema_inputs")
+    inputs = [
+        (sc['schema_id'], item_num, sc.get('input_names', {}).get(item_num))
+        for sc in schemas
+        for item_num in sc.get('naaccr_items', [])
+    ]
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_eod_schema_inputs "
+        f"(schema_id, item_number, input_name) VALUES %s",
+        inputs, page_size=500)
+
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_eod_values")
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_eod_values "
+        f"(schema_id, item_number, code, description) VALUES %s",
+        [(v['schema_id'], v.get('item_number'), v['code'], v.get('description'))
+         for v in values],
+        page_size=500)
+
+    if verbose:
+        print(f"[eod] Loaded {len(schemas)} rows -> {s}.naaccr_eod_schemas, "
+              f"{len(inputs)} rows -> {s}.naaccr_eod_schema_inputs, "
+              f"{len(values)} rows -> {s}.naaccr_eod_values")
+    return len(schemas), len(inputs), len(values)
+
+
 if __name__ == "__main__":
     schemas, values = fetch_all()
     print("\nSample schemas:")

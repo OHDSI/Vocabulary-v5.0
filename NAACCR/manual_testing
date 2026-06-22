@@ -1,0 +1,171 @@
+-- create a list of unmapped NAACCR values, distinct for item, value and value name. If among a set of these one has a mapping it extends to the others
+
+create table naaccr_mapping as
+with p as (
+  select concept_code, split_part(concept_code, '@', 1) as sch, split_part(concept_code, '@', 2) as item, split_part(concept_code, '@', 3) as value from concept_stage where regexp_count(concept_code, '@')=2 and concept_class_id='NAACCR Value'
+union
+  select concept_code, '' as sch, split_part(concept_code, '@', 1) as item, split_part(concept_code, '@', 2) as value from concept_stage where regexp_count(concept_code, '@')=1 and concept_class_id='NAACCR Value'
+),
+q as (
+  select vl.concept_code, item, 
+    replace(replace(replace(vr.concept_name, 'OBSOLETE - ', ''), 'Post-Orchiectomy ', ''), 'Pre-Orchiectomy ', '') as i_name, 
+    value, 
+    regexp_replace(regexp_replace(replace(replace(vl.concept_name, 'CLINICAL ASSESSMENT ONLY ', ''), 'CLINICAL assessment only ', ''), 'OBSOLETE DATA (CONVERTED|RETAINED|REVIEWED)( AND RETAINED| AND CHANGED)? V0\d\d\d ?\|?\|? ?', ''), 'See code \d\d\d ?\|?\|? ?', '') as v_name, -- , 'See code 0\d\d ?|?|? ?', '') 
+    target_id, target_name --, target_code, target_vocab
+  from p join (select value from p group by value having count(*)>1) using(value)
+  join concept_stage vl using(concept_code)
+  left join (
+    select c1.concept_code, c2.concept_id as target_id, c2.concept_name as target_name --, c2.concept_code as target_code, c2.vocabulary_id as target_vocab
+    from concept c1 join concept_relationship on c1.concept_id=concept_id_1 and relationship_id='Maps to' and concept_relationship.invalid_reason is null and concept_id_1!=concept_id_2
+    join concept c2 on c2.concept_id=concept_id_2
+    where c1.vocabulary_id='NAACCR'
+  ) using(concept_code)
+  left join concept_stage vr on vr.concept_code=case sch when '' then item else sch||'@'||item end
+-- remove non-patient fact data from the variables
+  where vr.concept_name not like 'County%' and vr.concept_name not like 'Census%' and vr.concept_name not like 'Addr %'
+  and vr.concept_name not like 'Birthplace%' and vr.concept_name not like 'Computed %' and vr.concept_name not like 'Follow%'
+  and vr.concept_name not like 'GIS %' and vr.concept_name not like 'Industry %' and vr.concept_name not like 'NAACCR %'
+  and vr.concept_name not like 'Next Follow%' and vr.concept_name not like '%Hisp Origin%' and vr.concept_name!='Occupation Source'
+  and vr.concept_name not like 'Over-ride %' and vr.concept_name not like 'Place of Death%' and vr.concept_name not like 'Physician%'
+  and vr.concept_name not like 'Race%' and vr.concept_name not like 'Reason %' and vr.concept_name not like 'Record %'
+  and vr.concept_name not like 'Reporting %' and vr.concept_name not like 'RQRS %' and vr.concept_name not like 'RUCA %'
+  and vr.concept_name not like 'RuralUrban %' and vr.concept_name not like 'RX Coding %' and vr.concept_name not like 'RX Date %'
+  and vr.concept_name not like 'S Category %' and vr.concept_name not like 'Schema ID %' and vr.concept_name not like 'Secondary Diagnosis %'
+  and vr.concept_name not like 'SEER Cause%' and vr.concept_name not like 'SEER Other%' and vr.concept_name not like 'SEER Record%'
+  and vr.concept_name not like 'SEER Type%' and vr.concept_name not like 'Sequence Number%' and vr.concept_name not like 'Site Coding%'
+  and vr.concept_name not like 'Spanish%' and vr.concept_name not like 'State at %' and vr.concept_name not like 'Surv-Flag%'
+  and vr.concept_name not like 'Telephone%' and vr.concept_name not like 'URIC%' and vr.concept_name not like 'Morph Coding%'
+  and vr.concept_name not like 'ICD Revision%' and vr.concept_name not like 'Urban %' and vr.concept_name not like 'Pediatric ID%'
+  and vr.concept_name not like 'CoC Coding%' and vr.concept_name not like 'Coding System%' and vr.concept_name not like 'Path Report%'
+  and vr.concept_name not like 'Pediatric Staging%'
+-- Flavors of null in the values
+  and vl.concept_name!='None' and vl.concept_name!='Field not coded' and vl.concept_name not like 'Information not available to code this item%' 
+  and vl.concept_name!='Lymph nodes not assessed' and vl.concept_name!='NA' and vl.concept_name not like 'No histologic examination of primary site%' 
+  and vl.concept_name!='No information available; not recorded' and vl.concept_name!='No radiation treatment' and vl.concept_name not ilike 'Not applicable' 
+  and vl.concept_name not like 'Not applicable, no code assigned%' and vl.concept_name not like 'Not applicable: Information%' and vl.concept_name!='Not derived' 
+  and vl.concept_name!='Test done, results not in chart' and vl.concept_name not like 'Test not done%' and vl.concept_name not like 'Test ordered%' 
+  and vl.concept_name!='Test ordered, results not in chart' and vl.concept_name not like 'This field is left blank%' and vl.concept_name!='Unknown' 
+  and vl.concept_name not like 'Unknown Not documented%' and vl.concept_name not like 'Unknown or no information%' and vl.concept_name!='Unknown, not staged'
+  and vl.concept_name not like 'No information whatsoever%' and vl.concept_name not like 'A proper value is applicable%'
+),
+r as (
+  select distinct item, i_name, value, v_name, 
+    coalesce(r.target_id, q.target_id) as maps_to_id, coalesce(r.target_name, q.target_name) as maps_to_name, 
+    cast(null as integer) as maps_to_value_id, cast(null as varchar(255)) as maps_to_value_name, 
+    cast(null as numeric) as value_as_number, cast(null as integer) as unit_id, cast(null as varchar(255)) as unit_name
+  from q 
+  -- get maps for an identical group
+  left join ( 
+    select distinct item, i_name, value, v_name, target_id, target_name
+    from q join ( -- if a set of concept_ids within item, item name, value and value name has exactly one target consider them all mapped the same way.
+      select item, i_name, value, v_name from q group by item, i_name, value, v_name having count(distinct target_id)=1
+    ) using(item, i_name, value, v_name)
+    where target_id is not null --  those without mapping
+  ) r using (item, i_name, value, v_name)
+)
+select * from r -- where concept_id is null
+order by i_name, v_name
+;
+
+select * from naaccr_mapping;
+select * from concept_stage where concept_code like '%1880@70%';
+
+
+select c1.concept_id as c1_id, c1.concept_name as c1_name, c1.vocabulary_id as c1_vocab, c1.domain_id as c1_domain, c1.concept_class_id as c1_class, c1.invalid_reason as c1_ir,
+  r.relationship_id as rel, r.invalid_reason as r_ir, 
+  c2.concept_id as c2_id, c2.concept_name as c2_name, c2.vocabulary_id as c2_vocab, c2.domain_id as c2_domain, c2.concept_class_id as c2_class, c2.invalid_reason as c2_ir
+from concept c1
+join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null and relationship_id='Maps to Value'
+join concept c2 on c2.concept_id=r.concept_id_2
+where c1.vocabulary_id='NAACCR';
+
+
+-- Check relationships
+select distinct relationship_id from concept_relationship_stage;
+select distinct concept_class_id from concept_stage;
+select distinct concept_class_id, relationship_id from concept_relationship_stage join concept_stage on concept_code_1=concept_code;
+
+with parsed_value as (
+  select concept_code, concept_name, split_part(concept_code, '@', 1) as sch, split_part(concept_code, '@', 2) as item, split_part(concept_code, '@', 3) as value from concept_stage where regexp_count(concept_code, '@')=2 and concept_class_id='NAACCR Value' and invalid_reason is null
+union
+  select concept_code, concept_name, '' as sch, split_part(concept_code, '@', 1) as item, split_part(concept_code, '@', 2) as value from concept_stage where regexp_count(concept_code, '@')=1 and concept_class_id='NAACCR Value' and invalid_reason is null
+),
+parsed_item as (
+  select concept_code, concept_name, split_part(concept_code, '@', 1) as sch, split_part(concept_code, '@', 2) as item from concept_stage where regexp_count(concept_code, '@')=1 and concept_class_id='NAACCR Variable' and invalid_reason is null
+union
+  select concept_code, concept_name, '' as sch, concept_code as item from concept_stage where position('@' in concept_code)=0 and concept_class_id='NAACCR Variable' and invalid_reason is null
+)
+select p_i.concept_code, p_i.concept_name, relationship_id, concept_code_2, c2.concept_name
+-- select p_i.concept_code as variable_code, p_i.concept_name as variable_name, p_v.concept_code as value_code, p_v.concept_name as value_name, sch, item, value
+from parsed_value p_v
+full join parsed_item p_i using(sch, item)
+left join concept_relationship_stage on p_i.concept_code=concept_code_1
+left join concept_stage c2 on c2.concept_code=concept_code_2
+where
+-- p_i is null -- variable doesn't exist
+-- p_v is null -- value doesn't exist
+-- relationship doesn't exist
+p_i is not null and p_v is not null and not exists (select 1 from concept_relationship_stage where concept_code_1=p_i.concept_code and concept_code_2=p_v.concept_code and relationship_id='Has Answer')
+--  p_i is null or p_v is null) and exists (select 1 from concept_relationship_stage where (concept_code_1=p_i.concept_code or concept_code_2=p_v.concept_code) and relationship_id='Has Answer')
+;
+
+with parsed_value as (
+  select concept_code, concept_name, split_part(concept_code, '@', 1) as sch, split_part(concept_code, '@', 2) as item, split_part(concept_code, '@', 3) as value from concept_stage where regexp_count(concept_code, '@')=2 and concept_class_id='NAACCR Value'and invalid_reason is null
+union
+  select concept_code, concept_name, '' as sch, split_part(concept_code, '@', 1) as item, split_part(concept_code, '@', 2) as value from concept_stage where regexp_count(concept_code, '@')=1 and concept_class_id='NAACCR Value'and invalid_reason is null
+),
+parsed_item as (
+  select concept_code, concept_name, split_part(concept_code, '@', 1) as sch, split_part(concept_code, '@', 2) as item from concept_stage where regexp_count(concept_code, '@')=1 and concept_class_id='NAACCR Variable'and invalid_reason is null
+union
+  select concept_code, concept_name, '' as sch, concept_code as item from concept_stage where position('@' in concept_code)=0 and concept_class_id='NAACCR Variable'and invalid_reason is null
+),
+parsed_schema as (
+  select concept_code, concept_name, concept_code as sch from concept_stage where concept_class_id='NAACCR Schema'and invalid_reason is null
+)
+select p_s.concept_code, p_s.concept_name, p_i.concept_code, p_i.concept_name --,relationship_id, concept_code_2, c2.concept_name
+-- select p_i.concept_code as variable_code, p_i.concept_name as variable_name, p_v.concept_code as value_code, p_v.concept_name as value_name, sch, item, value
+from parsed_item p_i
+full join parsed_schema p_s using(sch)
+where
+-- left join concept_relationship_stage on p_i.concept_code=concept_code_1
+-- left join concept_stage c2 on c2.concept_code=concept_code_2
+-- p_s is null and sch!='' -- variable doesn't exist
+-- p_i is null -- value doesn't exist
+-- relationship doesn't exist
+p_s is not null and p_i is not null and not exists (select 1 from concept_relationship_stage where concept_code_1=p_s.concept_code and concept_code_2=p_i.concept_code and relationship_id='Schema to Variable')
+--  p_i is null or p_v is null) and exists (select 1 from concept_relationship_stage where (concept_code_1=p_i.concept_code or concept_code_2=p_v.concept_code) and relationship_id='Has Answer')
+;
+
+
+
+select distinct c1.concept_class_id, relationship_id, c2.concept_class_id from concept_stage c1 join concept_relationship_stage on concept_code_1=c1.concept_code join concept_stage c2 on c2.concept_code=concept_code_2 and concept_relationship_stage.invalid_reason is null
+--union 
+-- select distinct c1.concept_class_id, relationship_id, c2.concept_class_id from concept_stage c1 join concept_relationship_stage on concept_code_2=c1.concept_code join concept_stage c2 on c2.concept_code=concept_code_1 and concept_relationship_stage.invalid_reason is null
+order by 1, 2, 3; 
+
+select c1.concept_id as c1_id, c1.concept_name as c1_name, r.relationship_id as rel, r.invalid_reason as r_ir, 
+  c2.concept_id as c2_id, c2.concept_name as c2_name, c2.vocabulary_id as c2_vocab, c2.domain_id as c2_domain, c2.concept_class_id as c2_class, c2.invalid_reason as c2_ir
+from concept_stage c1
+join concept_relationship_stage r on r.concept_code_1=c1.concept_code and c1.vocabulary_id=r.vocabulary_id_1 and relationship_id='Schema to Value'
+join concept c2 on c2.concept_code=r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id_2
+where c1.concept_class_id='NAACCR Schema' and c2.concept_class_id='NAACCR;
+
+
+select * from concept_relationship_stage where concept_code_1='breast' and concept_code_2='breast@752';
+select * from concept_stage where concept_code in ('breast', 'breast@752');
+select * from concept_stage where concept_code like ('2190%');
+
+
+it as (
+  select sch||'@'||item as concept_code from parsed where sch!='' union select item from parsed
+),
+vl as (
+  select sch||'@'||item||'@'||value as concept_code from parsed where sch!='' union select item||'@'||value from parsed
+)
+-- select concept_code from concept_stage where concept_class_id='NAACCR Schema' except select sch from p;
+select concept_code from concept_stage where concept_class_id='NAACCR Variable' except select * from it;
+select concept_code from concepat_stage where concept_class_id='NAACCR Value' except select * from vl;
+
+select * from concept_stage where concept_code like '%thyroid@230%' order by 1;
+
+select * from concept_relationship_stage;

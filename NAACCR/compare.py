@@ -46,17 +46,13 @@ from build_concepts import build
 
 def _fetch_db_concepts():
     """Return {concept_code: row_dict} for all NAACCR concepts in prodv5."""
-    load_dotenv()
-    conn = psycopg2.connect(
-        host=os.getenv('DB_HOST'), port=os.getenv('DB_PORT'),
-        dbname=os.getenv('DB_NAME'), user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'))
+    conn = config.get_db_conn()
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(f"""
         SELECT concept_code, concept_name, domain_id, vocabulary_id,
                concept_class_id, standard_concept,
                valid_start_date, valid_end_date, invalid_reason
-        FROM prodv5.concept
+        FROM {config.DB_SOURCE_SCHEMA}.concept
         WHERE vocabulary_id = 'NAACCR'
     """)
     cols = [d[0] for d in cur.description]

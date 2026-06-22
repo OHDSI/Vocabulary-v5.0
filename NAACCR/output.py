@@ -2,29 +2,27 @@
 output.py
 
 Writes the results of compare.run() to:
-  christian.concept_manual
-  christian.concept_relationship_manual
+  {work_schema}.concept_stage
+  {work_schema}.concept_relationship_stage
 
-ProcessManualConcepts.sql (on the OHDSI vocab server) reads concept_manual,
-matches on concept_code + vocabulary_id, and merges into concept_stage.
-generic_update.sql then assigns concept_ids and finalises the load.
+The OHDSI vocabulary pipeline reads concept_stage and concept_relationship_stage,
+assigns concept_ids, and loads into the main vocabulary tables.
 
 Behaviour
 ---------
 - Truncates both target tables, then inserts fresh.
-- All four buckets (new, updated, same, retiring) are written to
-  concept_manual.  Retiring concepts get valid_end_date = today
-  and invalid_reason = 'D'.
-- Relationships are written to concept_relationship_manual.
+- All four buckets (new, updated, same, retiring) are written to concept_stage.
+  Retiring concepts get valid_end_date = today and invalid_reason = 'D'.
+- Relationships are deduplicated before writing.
+- Orphaned values (values whose parent Variable is not in the concept set)
+  are dropped with a warning.
 - valid_start_date defaults to 1970-01-01 when not supplied by source.
 - valid_end_date  defaults to 2099-12-31 when not supplied.
 """
 
-import os
 import datetime
 import psycopg2
 import psycopg2.extras
-from dotenv import load_dotenv
 
 import config
 from compare import run as compare_run
@@ -34,16 +32,6 @@ DATE_START = '1970-01-01'
 DATE_END   = '2099-12-31'
 
 
-# ── DB connection ─────────────────────────────────────────────────────────────
-
-def _connect():
-    load_dotenv()
-    return psycopg2.connect(
-        host=os.getenv('DB_HOST'), port=os.getenv('DB_PORT'),
-        dbname=os.getenv('DB_NAME'), user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'))
-
-
 def _coerce_date(val, default):
     if val is None:
         return default
@@ -51,27 +39,25 @@ def _coerce_date(val, default):
     return default if s in ('None', '') else s
 
 
-# ── Write concept_manual ────────────────────────────────────────────────
+# ── Write concept_stage ───────────────────────────────────────────────────────
 
 def _write_concepts(cur, all_concepts, retiring_codes, verbose=True):
     ws = config.DB_WORK_SCHEMA
-    cur.execute(f"TRUNCATE TABLE {ws}.concept_manual")
+    cur.execute(f"TRUNCATE TABLE {ws}.concept_stage")
 
     sql = f"""
-        INSERT INTO {ws}.concept_manual (
+        INSERT INTO {ws}.concept_stage (
             concept_name, domain_id, vocabulary_id, concept_class_id,
             standard_concept, concept_code,
             valid_start_date, valid_end_date, invalid_reason
         ) VALUES %s
     """
 
-    # Validate before bulk insert — find any concept_code > 50 chars
-    over50 = [(c['concept_code'], len(c['concept_code'])) for c in all_concepts
-              if len(c['concept_code']) > 50]
+    # Drop concept_codes over 50 chars
+    over50 = [c for c in all_concepts if len(c['concept_code']) > 50]
     if over50:
-        print(f"[output] WARNING: {len(over50)} concept_codes exceed 50 chars — dropping:")
-        for code, n in over50[:10]:
-            print(f"  ({n}) {code!r}")
+        if verbose:
+            print(f"[output] WARNING: dropping {len(over50)} concept_codes > 50 chars")
         all_concepts = [c for c in all_concepts if len(c['concept_code']) <= 50]
 
     rows = []
@@ -95,18 +81,38 @@ def _write_concepts(cur, all_concepts, retiring_codes, verbose=True):
 
     psycopg2.extras.execute_values(cur, sql, rows, page_size=1000)
     if verbose:
-        print(f"[output] Wrote {len(rows)} rows to {ws}.concept_manual")
+        print(f"[output] Wrote {len(rows)} rows to {ws}.concept_stage")
     return len(rows)
 
 
-# ── Write concept_relationship_manual ───────────────────────────────────
+# ── Write concept_relationship_stage ─────────────────────────────────────────
 
-def _write_relationships(cur, relationships, verbose=True):
+def _write_relationships(cur, relationships, known_codes, verbose=True):
     ws = config.DB_WORK_SCHEMA
-    cur.execute(f"TRUNCATE TABLE {ws}.concept_relationship_manual")
+    cur.execute(f"TRUNCATE TABLE {ws}.concept_relationship_stage")
+
+    # Drop relationships where either code is unknown
+    before = len(relationships)
+    relationships = [
+        r for r in relationships
+        if r['concept_code_1'] in known_codes and r['concept_code_2'] in known_codes
+    ]
+    if verbose and len(relationships) != before:
+        print(f"[output] Dropped {before - len(relationships)} rels with unknown codes")
+
+    # Deduplicate: same (code1, code2, relationship_id) triple
+    seen = set()
+    deduped = []
+    for r in relationships:
+        key = (r['concept_code_1'], r['concept_code_2'], r['relationship_id'])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(r)
+    if verbose and len(deduped) != len(relationships):
+        print(f"[output] Deduplicated {len(relationships) - len(deduped)} duplicate rels")
 
     sql = f"""
-        INSERT INTO {ws}.concept_relationship_manual (
+        INSERT INTO {ws}.concept_relationship_stage (
             concept_code_1, concept_code_2,
             vocabulary_id_1, vocabulary_id_2,
             relationship_id,
@@ -119,13 +125,43 @@ def _write_relationships(cur, relationships, verbose=True):
          config.VOCABULARY_ID, config.VOCABULARY_ID,
          r['relationship_id'],
          DATE_START, DATE_END, None)
-        for r in relationships
+        for r in deduped
     ]
     psycopg2.extras.execute_values(cur, sql, rows, page_size=1000)
     if verbose:
-        print(f"[output] Wrote {len(rows)} rows to "
-              f"{ws}.concept_relationship_manual")
+        print(f"[output] Wrote {len(rows)} rows to {ws}.concept_relationship_stage")
     return len(rows)
+
+
+# ── Ensure tables exist ───────────────────────────────────────────────────────
+
+def ensure_tables(conn):
+    ws = config.DB_WORK_SCHEMA
+    cur = conn.cursor()
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {ws}.concept_stage (
+            concept_name        VARCHAR(255),
+            domain_id           VARCHAR(20),
+            vocabulary_id       VARCHAR(20),
+            concept_class_id    VARCHAR(20),
+            standard_concept    VARCHAR(1),
+            concept_code        VARCHAR(50),
+            valid_start_date    DATE,
+            valid_end_date      DATE,
+            invalid_reason      VARCHAR(1)
+        )""")
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {ws}.concept_relationship_stage (
+            concept_code_1      VARCHAR(50),
+            concept_code_2      VARCHAR(50),
+            vocabulary_id_1     VARCHAR(20),
+            vocabulary_id_2     VARCHAR(20),
+            relationship_id     VARCHAR(20),
+            valid_start_date    DATE,
+            valid_end_date      DATE,
+            invalid_reason      VARCHAR(1)
+        )""")
+    conn.commit()
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -135,24 +171,16 @@ def run(verbose=True):
         print("[output] Running compare...")
     new, updated, same, retiring, relationships = compare_run(verbose=verbose)
 
-    all_concepts  = new + updated + same + retiring
+    all_concepts   = new + updated + same + retiring
     retiring_codes = {r['concept_code'] for r in retiring}
+    known_codes    = {c['concept_code'] for c in all_concepts}
 
-    # Drop any relationship where concept_code_1 doesn't exist in the full
-    # concept set.  This catches "Concept replaced by" pairs generated for
-    # zero-padded codes (e.g. 1502@08) whose single-digit predecessor (1502@8)
-    # was never in the DB and therefore isn't in retiring_codes.
-    known_codes = {c['concept_code'] for c in all_concepts}
-    before = len(relationships)
-    relationships = [r for r in relationships if r['concept_code_1'] in known_codes]
-    if verbose and len(relationships) != before:
-        print(f"[output] Dropped {before - len(relationships)} rels with unknown concept_code_1")
-
-    conn = _connect()
+    conn = config.get_db_conn()
     cur  = conn.cursor()
     try:
+        ensure_tables(conn)
         n_concepts = _write_concepts(cur, all_concepts, retiring_codes, verbose)
-        n_rels     = _write_relationships(cur, relationships, verbose)
+        n_rels     = _write_relationships(cur, relationships, known_codes, verbose)
         conn.commit()
     except Exception:
         conn.rollback()

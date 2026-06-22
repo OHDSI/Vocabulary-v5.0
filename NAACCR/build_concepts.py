@@ -181,16 +181,10 @@ def build(verbose=True):
     #   New schemas (not in DB):
     #     Use the EOD title directly.
     #   Never change concept_code — old codes remain valid forever.
-    import os, psycopg2
-    from dotenv import load_dotenv
-    load_dotenv()
-    _conn = psycopg2.connect(
-        host=os.getenv('DB_HOST'), port=os.getenv('DB_PORT'),
-        dbname=os.getenv('DB_NAME'), user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'))
+    _conn = config.get_db_conn()
     _cur = _conn.cursor()
-    _cur.execute("""SELECT concept_code, concept_name
-                    FROM prodv5.concept
+    _cur.execute(f"""SELECT concept_code, concept_name
+                    FROM {config.DB_SOURCE_SCHEMA}.concept
                     WHERE vocabulary_id = 'NAACCR'
                     AND concept_class_id = 'NAACCR Schema'""")
     _db_schema_names = {r[0]: r[1] for r in _cur.fetchall()}
@@ -257,7 +251,7 @@ def build(verbose=True):
         if not name:
             continue
         parent_domain = _variable_domain(var_by_item.get(item_num, {}))
-        is_range = bool(re.match(r'^\d+\.?\d*-\d+\.?\d*$', val["code"]))
+        is_range = bool(re.match(r'^[01]\d*\.?\d*-\d+\.?\d*$', val["code"]))
         concepts[code] = {
             "concept_code":     code,
             "concept_name":     name,
@@ -373,7 +367,7 @@ def build(verbose=True):
     # ── Schema-specific Values (schema@item@code) ─────────────────────────────
     _SKIP_ITEMS = _GENERIC_ITEMS  # for schema-specific values, only skip admin items
 
-    _RANGE_RE = re.compile(r'^\d+\.?\d*-\d+\.?\d*$')
+    _RANGE_RE = re.compile(r'^[01]\d*\.?\d*-\d+\.?\d*$')
 
     for val in all_schema_values:
         item_num  = val.get("item_number")

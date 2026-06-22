@@ -18,9 +18,12 @@ DB_USER     = os.environ["DB_USER"]
 DB_PASSWORD = os.environ["DB_PASSWORD"]
 
 # Schema that holds the official OMOP vocabularies (read-only for us)
-DB_SOURCE_SCHEMA = os.environ.get("DB_SOURCE_SCHEMA", "prodv5")
-# Schema where we can write (concept_stage_manual lives here)
-DB_WORK_SCHEMA   = os.environ.get("DB_WORK_SCHEMA", "christian")
+DB_SOURCE_SCHEMA   = os.environ.get("DB_SOURCE_SCHEMA", "prodv5")
+# Schema where we can write concept_stage / concept_relationship_stage
+DB_WORK_SCHEMA     = os.environ.get("DB_WORK_SCHEMA", "dev_christian")
+# Schema where raw source fetch tables live (naaccr_items, naaccr_eod_values, etc.)
+# Defaults to "sources"; override in .env while waiting for permissions
+DB_SOURCES_SCHEMA  = os.environ.get("DB_SOURCES_SCHEMA", "sources")
 
 def get_db_conn():
     """Return a new psycopg2 connection."""

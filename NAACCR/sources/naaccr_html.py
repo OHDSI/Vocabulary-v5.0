@@ -173,12 +173,19 @@ def fetch_all_values(verbose=True):
             print(f"[naaccr_csv] Loaded {len(values)} values from cache.")
         return values
 
+    # Items whose CSV files contain external vocabulary codes rather than NAACCR
+    # permissible values — excluded to avoid polluting the NAACCR vocabulary.
+    _EXCLUDE_ITEMS = {
+        '1910',   # Cause of Death — 93,000+ ICD-10 codes; belongs in ICD10 vocabulary
+        '1960',   # Site (73-91) ICD-O-1 — historical ICD-O-1 topography codes
+    }
+
     # Build xml_naaccr_id → item_number map from the SEER API.
-    # Only include items in the "Demographic" section — these are the geographic
-    # and demographic lookup tables (country, state, county, race, ethnicity,
-    # marital status, etc.) that are not covered by the API's allowed_codes.
-    # Items in other sections (staging, treatment, ICD, ICD-O) are either
-    # already returned by the API or belong to other OMOP vocabularies.
+    # All sections are included — the CSV files cover whatever sections imsweb has
+    # published lookup tables for (Demographic, Treatment, Radiation, etc.).
+    # The _ssdi_items filter in build_concepts.py ensures that any SSDI item
+    # accidentally covered by a CSV file does not produce spurious generic 2-part
+    # values.
     from sources.naaccr_api import fetch_all_variables
     if verbose:
         print("[naaccr_csv] Building xml_naaccr_id -> item_number map from API...")
@@ -186,7 +193,7 @@ def fetch_all_values(verbose=True):
     xml_to_item = {
         v['xml_naaccr_id']: v['item_number']
         for v in variables
-        if v.get('xml_naaccr_id') and v.get('section') == 'Demographic'
+        if v.get('xml_naaccr_id') and v['item_number'] not in _EXCLUDE_ITEMS
     }
 
     entries = _get_csv_list()
@@ -227,6 +234,23 @@ def fetch_all_values(verbose=True):
               f"({skipped} download failures, {no_match} CSVs with no API match).")
 
     return values
+
+
+def load_to_db(conn, verbose=True):
+    """Fetch all CSV lookup values, write to naaccr_csv_values in
+    DB_SOURCES_SCHEMA.  Truncates before inserting."""
+    import psycopg2.extras
+    s = config.DB_SOURCES_SCHEMA
+    values = fetch_all_values(verbose=verbose)
+    cur = conn.cursor()
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_csv_values")
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_csv_values (item_number, code, description) VALUES %s",
+        [(v['item_number'], v['code'], v.get('description')) for v in values],
+        page_size=500)
+    if verbose:
+        print(f"[naaccr_csv] Loaded {len(values)} rows -> {s}.naaccr_csv_values")
+    return len(values)
 
 
 if __name__ == "__main__":

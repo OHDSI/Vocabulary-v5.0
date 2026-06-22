@@ -309,6 +309,54 @@ def fetch_all(verbose=True):
     return concepts, relationships
 
 
+def load_to_db(conn, verbose=True):
+    """Fetch surgery concepts and replacements, write to naaccr_surgery_concepts
+    and naaccr_surgery_replacements.  Truncates before inserting."""
+    import psycopg2.extras
+    s = config.DB_SOURCES_SCHEMA
+    concepts, relationships = fetch_all(verbose=verbose)
+    cur = conn.cursor()
+
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_surgery_concepts")
+    rows = []
+    for c in concepts:
+        parts = c['concept_code'].split('@')   # proc_schema@item@code
+        rows.append((
+            parts[0], parts[1], parts[2],
+            c['concept_name'],
+            c['valid_start_date'], c['valid_end_date'],
+            c.get('standard_concept'), c.get('invalid_reason'),
+        ))
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_surgery_concepts "
+        f"(proc_schema, item_number, code, description, "
+        f" valid_start_date, valid_end_date, standard_concept, invalid_reason) VALUES %s",
+        rows, page_size=500)
+
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_surgery_replacements")
+    rep_rows = []
+    for r in relationships:
+        if r['relationship_id'] != 'Concept replaced by':
+            continue
+        old_parts = r['concept_code_1'].split('@')
+        new_parts = r['concept_code_2'].split('@')
+        rep_rows.append((
+            old_parts[0], old_parts[1], old_parts[2],
+            new_parts[0], new_parts[1], new_parts[2],
+        ))
+    if rep_rows:
+        psycopg2.extras.execute_values(cur,
+            f"INSERT INTO {s}.naaccr_surgery_replacements "
+            f"(old_proc_schema, old_item_number, old_code, "
+            f" new_proc_schema, new_item_number, new_code) VALUES %s",
+            rep_rows, page_size=500)
+
+    if verbose:
+        print(f"[surgery] Loaded {len(rows)} rows -> {s}.naaccr_surgery_concepts, "
+              f"{len(rep_rows)} rows -> {s}.naaccr_surgery_replacements")
+    return len(rows), len(rep_rows)
+
+
 if __name__ == "__main__":
     concepts, relationships = fetch_all(verbose=True)
     print(f"\nSample concepts:")

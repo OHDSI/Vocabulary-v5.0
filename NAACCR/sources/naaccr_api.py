@@ -119,6 +119,32 @@ def fetch_all_variables(version=None, verbose=True):
     return variables, values
 
 
+def load_to_db(conn, verbose=True):
+    """Fetch all NAACCR items and generic values, write to naaccr_items and
+    naaccr_api_values in DB_SOURCES_SCHEMA.  Truncates before inserting."""
+    import psycopg2.extras
+    s = config.DB_SOURCES_SCHEMA
+    variables, values = fetch_all_variables(verbose=verbose)
+    cur = conn.cursor()
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_items")
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_items "
+        f"(item_number, item_name, section, xml_naaccr_id, item_data_type, item_length) "
+        f"VALUES %s",
+        [(v['item_number'], v['item_name'], v.get('section'), v.get('xml_naaccr_id'),
+          v.get('item_data_type'), v.get('item_length')) for v in variables],
+        page_size=500)
+    cur.execute(f"TRUNCATE TABLE {s}.naaccr_api_values")
+    psycopg2.extras.execute_values(cur,
+        f"INSERT INTO {s}.naaccr_api_values (item_number, code, description) VALUES %s",
+        [(v['item_number'], v['code'], v.get('description')) for v in values],
+        page_size=500)
+    if verbose:
+        print(f"[naaccr_api] Loaded {len(variables)} rows -> {s}.naaccr_items, "
+              f"{len(values)} rows -> {s}.naaccr_api_values")
+    return len(variables), len(values)
+
+
 if __name__ == "__main__":
     variables, values = fetch_all_variables()
     print(f"\nSample variables:")

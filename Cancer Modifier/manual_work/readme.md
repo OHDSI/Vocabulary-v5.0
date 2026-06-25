@@ -8,7 +8,9 @@ The manual workflow has two possible inputs:
 
 #### STEP 1 of the refresh: upload existing manual tables
 Directory with manual files either class-specific or class-agnostic delta is https://drive.google.com/drive/u/3/folders/11T6VNxgPALmaxyeKgJN65F4WIjfISfvj.
+
 In the majority of refresh cases since summer 2026, please consider using the class-agnostic delta refresh: https://drive.google.com/drive/u/3/folders/1PHIk5eyTrWPut0Jto2w90J8PT6Mck2MR.
+
 1.1. Upload `concept_manual` into the working schema.
 Extract the required  flat file with delta content into the `concept_manual` table.
 Delta may contain newly-added valid concepts or apply adjustments to existing corpus. Make sure that deprecation/de-standartization is explicitly declared if desired.

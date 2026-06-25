@@ -10,13 +10,12 @@ The CDE script converts curated mining-review decisions into Cancer Modifier man
 
 #### Table purpose
 
-`dev_cancer_modifier.cancer_modifier_cde` stores one row per reviewed mapping, relationship, destandardization, or new-target decision. Do not make `source_concept_id` unique: the same source concept may appear in multiple CDE rows when it has multiple proposed mapping targets. This preserves 1-to-many mappings because the curator flags are reviewed per target row, not once per source concept.
+`dev_cancer_modifier.cancer_modifier_cde` stores one row per reviewed mapping, relationship, destandardization, or new-target decision. 'source_concept_id` considerations: the same source concept may appear in multiple CDE rows when it has multiple proposed mapping targets, so combinations of source_concept_id,relationship_id,target_concept_id should be treated as unique identifiers. This preserves 1-to-many mappings because the curator flags are reviewed per target row, not once per source concept (excetp 'to_destandardize' flag)
 
 Important decision fields:
 - `decision`: curator-approved row.
 - `to_destandardize`: approved source concept should be inserted or updated in `concept_manual` with `standard_concept = NULL`.
 - `create_standard`: approved row requires a new Cancer Modifier target concept. If `target_concept_id` is empty in the reviewed CDE file, resolve the target after the new Cancer Modifier concept is loaded into `concept_manual`.
-- `relationship_id`, `target_concept_id`: approved manual relationship target.
 
 #### Sequence of actions
 

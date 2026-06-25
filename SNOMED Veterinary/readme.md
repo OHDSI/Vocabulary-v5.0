@@ -221,7 +221,7 @@ SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping('devv5');
 \o
 ```
 
-### 13. Extract veterinary synonyms into SNOMED core
+### 13. Extract veterinary synonyms added to SNOMED core
 
 ```sql
 \i Extract_vet_synonyms_to_SNOMED_core.sql

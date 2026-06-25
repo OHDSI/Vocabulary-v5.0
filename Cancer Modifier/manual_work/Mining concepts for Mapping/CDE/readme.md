@@ -3,7 +3,7 @@
 The CDE script converts curated mining-review decisions into Cancer Modifier manual content. It is the handoff point between the working group review tables and the standard OHDSI manual tables used by `load_stage.sql`.
 
 #### Prerequisites
-- Curated review output from [`../6 - curation output clean.sql`](../6%20-%20curation%20output%20clean.sql) or [`../6 - curation output metadata backlog.sql`](../6%20-%20curation%20output%20metadata%20backlog.sql).
+- Curated review output from [`../6 - curation output metadata backlog.sql`](../6%20-%20curation%20output%20metadata%20backlog.sql). (or other heuristic)
 - A populated `dev_cancer_modifier.cancer_modifier_cde` table with curator decisions.
 - The `concept_manual` and `concept_relationship_manual` tables in `dev_cancer_modifier`.
 - Replace the parameter `:your_vocabs` with the source vocabularies included in the current review, for example `'SNOMED','NAACCR'`.

@@ -174,7 +174,7 @@ Updates the vocabulary version of SNOMED Veterinary.
 
 ```sql
 \i load_stage_VETERINARY.sql      -- Load the staging tables
-SELECT dev_veterinary.GenericUpdate_VET();
+SELECT devv5.GenericUpdate();
 ```
 
 ### 11. Run the check suite

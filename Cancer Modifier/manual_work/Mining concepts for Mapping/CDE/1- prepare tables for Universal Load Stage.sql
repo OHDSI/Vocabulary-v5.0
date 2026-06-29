@@ -29,6 +29,7 @@ Do not aggregate decision flags by source_concept_id.
 -- Run this DDL before loading the reviewed spreadsheet. It is IF NOT EXISTS so
 -- the transformation sections below can be re-run after data is loaded.
 -- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS dev_cancer_modifier.cancer_modifier_cde;
 CREATE TABLE IF NOT EXISTS dev_cancer_modifier.cancer_modifier_cde
 (
     source_concept_code       text,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS dev_cancer_modifier.cancer_modifier_cde
     relationship_id_predicate text,
     decision                  bool,
     to_destandardize          bool,
+    to_make_precoosrinated_source_pair          bool,
     create_standard           bool,
     comment                   text,
     target_concept_id         INT,
@@ -92,6 +94,50 @@ ON CONFLICT (concept_code, vocabulary_id)
 DO UPDATE
 SET standard_concept = NULL;
 
+
+-- -----------------------------------------------------------------------------
+-- Insert approved pre-coordinated pairs rows into concept_manual
+-- The precoordinated pairs creation step is implements as a part of manual work for LOINC (summer2026 release) because of the cdm 5.4 vocabulary tables limitations to properly represent EAVs
+-- -----------------------------------------------------------------------------
+INSERT INTO concept_manual AS cm (
+    concept_name,
+    domain_id,
+    vocabulary_id,
+    concept_class_id,
+    standard_concept,
+    concept_code,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason
+)
+SELECT DISTINCT ON (cde.source_concept_code, cde.source_vocabulary_id)
+    LEFT(TRIM(c.concept_name) || ': ' || TRIM(cc.concept_name), 255) as concept_name,
+   COALESCE(NULLIF(c.domain_id, ''), 'Observation') as domain_id,
+    c.vocabulary_id,
+    'Precoordinated pair' as concept_class_id,
+    NULL AS standard_concept,
+    cde.source_concept_code as concept_code,
+    CURRENT_DATE AS valid_start_date,
+    TO_DATE('20991231','yyyymmdd') AS valid_end_date ,
+    NULL as invalid_reason
+FROM dev_cancer_modifier.cancer_modifier_cde cde
+JOIN concept c
+on split_part(cde.source_concept_code,'|',1)=c.concept_code
+    and c.vocabulary_id=cde.source_vocabulary_id
+JOIN concept cc
+on split_part(cde.source_concept_code,'|',2)=cc.concept_code
+    and c.vocabulary_id=cde.source_vocabulary_id
+WHERE cde.decision::bool IS TRUE
+  AND cde.to_make_precoosrinated_source_pair::bool IS TRUE
+and c.vocabulary_id IN (:your_vocabs)
+and cc.vocabulary_id=c.vocabulary_id
+ORDER BY
+    cde.source_concept_code,
+    cde.source_vocabulary_id
+ON CONFLICT (concept_code, vocabulary_id)
+DO UPDATE
+SET standard_concept = NULL
+;
 
 
 -- Preserve existing manual standard_concept = 'X' rows while refreshing metadata.

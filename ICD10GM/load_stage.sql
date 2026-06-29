@@ -70,12 +70,40 @@ SELECT *
 from dev_icd10gm.icd10gm_newcodes
 ON CONFLICT DO NOTHING ;
 
-
 --4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+    PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
+
+-- --4.1 NEW Repair attributes for source rows that already existed in concept_stage
+-- -- but could not inherit attributes from ICD10 because there was no exact ICD10 match.
+-- UPDATE concept_stage cs
+-- SET
+--     concept_name = COALESCE(cm.concept_name, cs.concept_name),
+--     domain_id = COALESCE(cm.domain_id, cs.domain_id),
+--     concept_class_id = COALESCE(cm.concept_class_id, cs.concept_class_id),
+--     standard_concept = COALESCE(cm.standard_concept, cs.standard_concept),
+--     valid_start_date = COALESCE(cm.valid_start_date, cs.valid_start_date),
+--     valid_end_date = COALESCE(cm.valid_end_date, cs.valid_end_date),
+--     invalid_reason = COALESCE(cm.invalid_reason, cs.invalid_reason)
+-- FROM concept_manual cm
+-- WHERE cm.vocabulary_id = cs.vocabulary_id
+--   AND cm.concept_code = cs.concept_code
+--   AND cs.vocabulary_id = 'ICD10GM'
+--   AND (
+--       cs.concept_class_id IS NULL
+--       OR cs.domain_id IS NULL
+--       OR cs.standard_concept IS DISTINCT FROM cm.standard_concept
+--   );
+
+-- Concepts are not in concept_manual, further investigation needed
+-- Hardcode for now
+UPDATE concept_stage
+SET concept_class_id = 'ICD10 code'
+WHERE vocabulary_id = 'ICD10GM'
+  AND concept_class_id IS NULL
+;
 
 --5. Append manual relationships
 DO $_$
@@ -250,6 +278,25 @@ WHERE concept_code NOT IN (
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--15. Manually adding synonyms (COVID19, E-cig)
+DO $_$
+BEGIN
+    PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--16. NEW Fail fast if mandatory concept_stage fields are missing
+DO $_$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM concept_stage
+        WHERE vocabulary_id = 'ICD10GM'
+          AND concept_class_id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'ICD10GM concept_stage contains rows with NULL concept_class_id. Check source codes absent from ICD10 or missing manual concept corrections.';
+    END IF;
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

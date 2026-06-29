@@ -30,8 +30,8 @@ SELECT * FROM qa_tests.get_checks();
 
 7. Run scripts to get summary, and interpret the results:
 ```sql
-SELECT * FROM qa_tests.get_summary('concept');
-SELECT * FROM qa_tests.get_summary('concept_relationship');
+SELECT * FROM qa_tests.get_summary('concept', 'devv5');
+SELECT * FROM qa_tests.get_summary('concept_relationship', 'devv5');
 ```
 8. Run scripts to collect statistics, and interpret the results:
 ```sql

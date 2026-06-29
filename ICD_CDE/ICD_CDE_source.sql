@@ -50,9 +50,18 @@
 -- DROP TABLE IF EXISTS icd_cde_source_backup_13_05_2025;
 -- CREATE TABLE icd_cde_source_backup_13_05_2025 as SELECT * FROM icd_cde_source;
 
+---- Backup before update (12.06.2026)
+-- DROP TABLE IF EXISTS dev_icd10.icd_cde_source_backup_12_06_2026;
+-- CREATE TABLE dev_icd10.icd_cde_source_backup_12_06_2026
+--  AS(
+--      SELECT *
+--      FROM dev_icd10.icd_cde_source
+--  );
+
+
 --1. СDE source insertion
 --- DROP TABLE dev_icd10.icd_cde_source;
---- TRUNCATE TABLE dev_icd10.icd_cde_source;
+TRUNCATE TABLE dev_icd10.icd_cde_source;
 CREATE TABLE dev_icd10.icd_cde_source
 (
     source_code                TEXT NOT NULL,
@@ -87,7 +96,7 @@ CREATE TABLE dev_icd10.icd_cde_source
 
 
 -- 1. Update 'for_review' field;
-UPDATE icd_cde_source SET for_review = null;
+-- UPDATE icd_cde_source SET for_review = null;
 
 -- Insert mappings from external sources
 
@@ -357,7 +366,9 @@ SELECT source_code,
        valid_start_date,
        valid_end_date,
        mappings_origin
-FROM dev_icd10gm.icd10gm_refresh;
+FROM dev_icd10gm.icd10gm_refresh
+WHERE source_code_description IS NOT NULL -- added 06/19/2026
+;
 
 --CIM10 with mappings (only manual mappings, conflicts and unique codes are inserted)
 INSERT INTO icd_cde_source (source_code,
@@ -654,9 +665,12 @@ SELECT s.source_code,
        c.invalid_reason as target_invalid_reason,
        c.domain_id as target_domain_id,
        c.vocabulary_id as target_vocabulary_id,
-       s.rel_invalid_reason,
-       s.valid_start_date,
-       s.valid_end_date,
+        --        s.rel_invalid_reason,
+        --        s.valid_start_date,
+        --        s.valid_end_date,
+       null as rel_invalid_reason,
+       current_date as valid_start_date,
+       '2099-12-31'::date as valid_end_date,
        'CC' as mappings_origin
 FROM dev_icd10.icd_community_contribution s
 JOIN devv5.concept c on s.target_concept_id = c.concept_id;
@@ -708,6 +722,7 @@ SELECT * FROM icd_cde_source
 ORDER BY source_code;
 
 --8. check all the ICD10 concepts are in the CDE
+-- 37 U category rows with concept_class_id = 'ICD10 Hierarchy' , ignore for now
 SELECT *
 FROM dev_icd10.concept_stage
 WHERE (concept_code, concept_name) not in
@@ -829,6 +844,11 @@ FROM icd_cde_source
 GROUP BY source_code, source_vocabulary_id --group_id,
 HAVING COUNT (DISTINCT group_id) > 1;
 
+--group_name is different, mappings_origin = SNOMED_eq
+SELECT *
+FROM icd_cde_source
+WHERE source_code IN ('O96.0', 'O96.1');
+
 --13. Check for group_name uniqueness
 with names as (SELECT DISTINCT group_name FROM icd_cde_source)
 SELECT DISTINCT group_name
@@ -838,52 +858,209 @@ HAVING count(group_name) >1;
 
 --14. Update for_review field (can be on different conditions during every refresh)
 
+-- Backup before mapping for review
+DROP TABLE IF EXISTS dev_icd10.icd_cde_source_backup_27_06_2026;
+CREATE TABLE dev_icd10.icd_cde_source_backup_27_06_2026
+ AS(
+     SELECT *
+     FROM dev_icd10.icd_cde_source
+ );
+
+
+UPDATE icd_cde_source SET for_review = NULL;
+
+-- EXAMPLE of codes without mapping that should be loaded for manual review
+SELECT *
+FROM icd_cde_source
+WHERE mappings_origin = 'without mapping'
+AND source_vocabulary_id IN ('ICD10', 'ICD10CM', 'ICD9')
+;
+
+-- Currently ICD10 'M02.2' code is mapped to SNOMED 4083555
+SELECT * FROM icd_cde_source
+WHERE source_code = 'M02.2'
+AND source_vocabulary_id IN ('ICD10', 'ICD10CM');
+
+SELECT * FROM icd_cde_source
+WHERE source_code = 'A68.9'
+AND source_vocabulary_id IN ('CIM10');
+
+--SNOMED target concept got deprecated
+SELECT * FROM concept
+WHERE concept_id = 4083555;
+
+SELECT * FROM concept
+WHERE concept_id = 438963;
+
+-- Identifying concepts for manual review
+WITH bad_source_codes AS (
+    SELECT
+        source_code,
+        source_vocabulary_id
+    FROM icd_cde_source
+    GROUP BY
+        source_code,
+        source_vocabulary_id
+    HAVING
+        -- has at least one "without mapping" row
+        COUNT(*) FILTER (
+            WHERE mappings_origin = 'without mapping'
+        ) > 0
+
+        OR
+
+        -- has mappings, but none of them are valid standard mappings
+        COUNT(*) FILTER (
+            WHERE target_concept_id IS NOT NULL
+              AND COALESCE(mappings_origin, '') <> 'without mapping'
+        ) > 0
+        AND COUNT(*) FILTER (
+            WHERE target_concept_id IS NOT NULL
+              AND COALESCE(mappings_origin, '') <> 'without mapping'
+              AND target_standard_concept = 'S'
+              AND target_invalid_reason IS NULL
+--               AND rel_invalid_reason IS NULL
+        ) = 0
+)
+SELECT s.*
+FROM icd_cde_source s
+JOIN bad_source_codes b
+    ON b.source_code = s.source_code
+   AND b.source_vocabulary_id = s.source_vocabulary_id
+-- WHERE s.source_vocabulary_id IN ('ICD10', 'ICD10CM', 'ICD9')
+ORDER BY
+    s.source_vocabulary_id,
+    s.source_code,
+    s.source_code_description,
+    s.target_concept_id;
+
+
+-- Update statement for concepts without mapping or with mapping only to non-standard/invalid concepts
+UPDATE icd_cde_source SET for_review = '1'
+WHERE group_id in (
+    WITH counts AS (
+        WITH bad_source_codes AS (
+             SELECT source_code,
+                    source_vocabulary_id
+             FROM icd_cde_source
+             GROUP BY source_code,
+                      source_vocabulary_id
+             HAVING
+                 -- has at least one "without mapping" row
+                         COUNT(*) FILTER (
+                     WHERE mappings_origin = 'without mapping'
+                     ) > 0
+
+                 OR
+
+                 -- has mappings, but none of them are valid standard mappings
+                         COUNT(*) FILTER (
+                     WHERE target_concept_id IS NOT NULL
+                         AND COALESCE(mappings_origin, '') <>
+                             'without mapping'
+                     ) > 0
+                     AND COUNT(*) FILTER (
+                     WHERE target_concept_id IS NOT NULL
+                         AND COALESCE(mappings_origin, '') <>
+                             'without mapping'
+                         AND target_standard_concept = 'S'
+                         AND target_invalid_reason IS NULL
+                     --               AND rel_invalid_reason IS NULL
+                     ) = 0)
+                                   SELECT s.*
+                                   FROM icd_cde_source s
+                                            JOIN bad_source_codes b
+                                                 ON b.source_code = s.source_code
+                                                     AND b.source_vocabulary_id = s.source_vocabulary_id
+                                   -- WHERE s.source_vocabulary_id IN ('ICD10', 'ICD10CM', 'ICD9')
+                                   ORDER BY s.source_vocabulary_id,
+                                            s.source_code,
+                                            s.source_code_description,
+                                            s.target_concept_id)
+                   SELECT distinct group_id
+                   FROM counts
+                   WHERE source_vocabulary_id NOT IN ('CIM10', 'KCD7'))
+;
+--
+
 --For groups with external mappings sources
---UPDATE icd_cde_source SET for_review = '1'
---WHERE group_id in (
+-- UPDATE icd_cde_source SET for_review = '1'
+-- WHERE group_id in (
 --    SELECT group_id FROM icd_cde_source
 --    WHERE mappings_origin in ('SNOMED_eq', 'UMLS/NCIm')
 --    );
 
 --For groups with several concepts and several mapping sources
---UPDATE icd_cde_source SET for_review = '1'
---    WHERE group_id in (SELECT group_id FROM icd_cde_source
---GROUP BY group_id
---HAVING COUNT (DISTINCT (source_vocabulary_id, source_code)) >1)
---AND
---group_id in (SELECT group_id FROM icd_cde_source
---GROUP BY group_id
---HAVING COUNT (DISTINCT (mappings_origin)) > 1)
+-- UPDATE icd_cde_source SET for_review = '1'
+-- WHERE group_id in (
+--     SELECT group_id
+--     FROM icd_cde_source
+--     GROUP BY group_id
+--     HAVING COUNT (DISTINCT (source_vocabulary_id, source_code)) >1)
+--     AND
+--     group_id in (SELECT group_id FROM icd_cde_source
+--     GROUP BY group_id
+--     HAVING COUNT (DISTINCT (mappings_origin)) > 1);
 
---For some codes from users
+SELECT *
+FROM icd_cde_source s
+WHERE (s.source_vocabulary_id, s.source_code) IN (
+    SELECT source_vocabulary_id, source_code
+    FROM icd_cde_source
+    GROUP BY source_vocabulary_id, source_code
+    HAVING COUNT(DISTINCT target_concept_code) > 1
+       AND COUNT(*) FILTER (
+            WHERE mappings_origin IN ('SNOMED_eq', 'UMLS/NCIm')
+       ) > 0
+)
+ORDER BY source_code, source_code_description, source_vocabulary_id;
+
+SELECT * FROM icd_cde_source
+WHERE group_id IN (
+    SELECT group_id
+    FROM icd_cde_source
+    GROUP BY group_id
+    HAVING COUNT (DISTINCT (source_vocabulary_id, source_code)) > 1)
+AND group_id in (
+    SELECT group_id
+    FROM icd_cde_source
+    GROUP BY group_id
+    HAVING COUNT (DISTINCT (mappings_origin)) > 1)
+ORDER BY source_code,source_code_description, source_vocabulary_id;
+
+-- For some codes from users
 -- UPDATE icd_cde_source SET for_review = '1'
 -- where (source_code, source_vocabulary_id, target_concept_id) in
---                                                                     (select source_code, source_vocabulary_id, target_concept_id
---                                                         from last_three_cc_table
---                                                         where (source_code, source_vocabulary_id, target_concept_id) not in
---                                                                     (
---                                                                     select source_code, source_vocabulary_id,target_concept_id
---                                                                     from dev_icd10.icd_cde_source
---                                                                      where decision = '1'));
---
--- select *
---     from icd_cde_source where for_review = '1';
+--             (select source_code, source_vocabulary_id, target_concept_id
+-- from last_three_cc_table
+-- where (source_code, source_vocabulary_id, target_concept_id) not in
+--             (
+--             select source_code, source_vocabulary_id,target_concept_id
+--             from dev_icd10.icd_cde_source
+--              where decision = '1'));
 
-UPDATE icd_cde_source SET for_review = null;
 
-UPDATE icd_cde_source SET for_review = '1'
-where source_vocabulary_id = 'ICD9CM'
-        and
-    source_code in (
-            '659.30'
-        ) ;
+-- cnt total
+-- 217515 old
+-- 453625
+SELECT count(*)
+FROM icd_cde_source;
 
-select *
-    from icd_cde_source where for_review = '1';
+--cnt for_review = 1
+-- 24832 old
+-- 779
+SELECT count(*)
+FROM icd_cde_source where for_review = '1';
 
-select *
-    from icd_cde_source where source_vocabulary_id = 'ICD9CM'
-    and source_code in ('659.30');
+SELECT
+    mappings_origin,
+    COUNT(DISTINCT group_id) AS groups_for_review,
+    COUNT(*) AS rows_for_review
+FROM dev_icd10.icd_cde_source
+-- WHERE for_review = '1'
+GROUP BY mappings_origin
+ORDER BY rows_for_review DESC;
+
 
 --For 'Maps to' Meas value
 -- UPDATE icd_cde_source SET for_review = '1'
@@ -891,9 +1068,10 @@ select *
 --
 -- --For ICD10, ICD10CM codes without mapping
 -- UPDATE icd_cde_source SET for_review = '1'
--- WHERE group_id in (
---     SELECT group_id FROM icd_cde_source
---         WHERE source_vocabulary_id in ('ICD10', 'ICD10CM') AND target_concept_id is NULL);
+-- WHERE group_id IN (
+--     SELECT group_id
+--     FROM icd_cde_source
+--     WHERE source_vocabulary_id in ('ICD10', 'ICD10CM') AND target_concept_id is NULL);
 --
 -- --For 'Concept poss_eq' to
 -- UPDATE icd_cde_source SET for_review = '1'
@@ -938,23 +1116,23 @@ valid_end_date             date,
 mapper_id varchar);
 
 INSERT INTO icd_cde_manual (
-group_name,
-group_id,
-group_code,
-mappings_origin,
---for_review,
-relationship_id,
---decision,
-target_concept_id,
-target_concept_code,
-target_concept_name,
-target_concept_class_id,
-target_standard_concept,
-target_invalid_reason,
-target_domain_id,
-target_vocabulary_id
---valid_start_date,
---valid_end_date
+    group_name,
+    group_id,
+    group_code,
+    mappings_origin,
+    --for_review,
+    relationship_id,
+    --decision,
+    target_concept_id,
+    target_concept_code,
+    target_concept_name,
+    target_concept_class_id,
+    target_standard_concept,
+    target_invalid_reason,
+    target_domain_id,
+    target_vocabulary_id
+    --valid_start_date,
+    --valid_end_date
 )
 
 WITH code_agg as
@@ -968,23 +1146,23 @@ WITH code_agg as
     --GROUP BY group_id, target_concept_id
     --ORDER BY group_id)
 SELECT DISTINCT
-s.group_name,
-s.group_id,
-c.group_code,
-(array_agg (DISTINCT s.mappings_origin)) as mappings_origin,
---s.for_review,
-s.relationship_id,
---s.decision,
-s.target_concept_id,
-s.target_concept_code,
-s.target_concept_name,
-s.target_concept_class_id,
-s.target_standard_concept,
-s.target_invalid_reason,
-s.target_domain_id,
-s.target_vocabulary_id
---s.valid_start_date,
---s.valid_end_date
+    s.group_name,
+    s.group_id,
+    c.group_code,
+    (array_agg (DISTINCT s.mappings_origin)) as mappings_origin,
+    --s.for_review,
+    s.relationship_id,
+    --s.decision,
+    s.target_concept_id,
+    s.target_concept_code,
+    s.target_concept_name,
+    s.target_concept_class_id,
+    s.target_standard_concept,
+    s.target_invalid_reason,
+    s.target_domain_id,
+    s.target_vocabulary_id
+    --s.valid_start_date,
+    --s.valid_end_date
 FROM icd_cde_source s
 JOIN code_agg c ON s.group_id = c.group_id
 --JOIN map_or m ON s.group_id = m.group_id
@@ -1030,39 +1208,41 @@ GROUP BY s.group_name,
 ORDER BY group_id desc
 ;
 
-select *
-    from icd_cde_manual;
+SELECT *
+FROM icd_cde_manual
+;
+
 
 DROP TABLE for_manual_review;
 CREATE TABLE for_manual_review as (
-SELECT
-m.group_name,
-m.group_id,
-m.group_code,
-m.medium_group_id,
-m.medium_group_code,
-m.broad_group_id,
-m.broad_group_code,
-m.mappings_origin,
-m.for_review,
-m.relationship_id,
-m.relationship_id_predicate,
-m.decision,
-m.decision_date,
-m.comments,
-c.concept_id,
-c.concept_code,
-c.concept_name,
-c.concept_class_id,
-c.standard_concept,
-c.invalid_reason,
-c.domain_id,
-c.vocabulary_id,
-m.valid_start_date,
-m.valid_end_date,
-m.mapper_id
+    SELECT
+        m.group_name,
+        m.group_id,
+        m.group_code,
+        m.medium_group_id,
+        m.medium_group_code,
+        m.broad_group_id,
+        m.broad_group_code,
+        m.mappings_origin,
+        m.for_review,
+        m.relationship_id,
+        m.relationship_id_predicate,
+        m.decision,
+        m.decision_date,
+        m.comments,
+        c.concept_id,
+        c.concept_code,
+        c.concept_name,
+        c.concept_class_id,
+        c.standard_concept,
+        c.invalid_reason,
+        c.domain_id,
+        c.vocabulary_id,
+        m.valid_start_date,
+        m.valid_end_date,
+        m.mapper_id
 FROM icd_cde_manual m
-LEFT JOIN concept c ON m.target_concept_id = c.concept_id
+    LEFT JOIN concept c ON m.target_concept_id = c.concept_id
 WHERE m.target_concept_code = concept_code
 --AND c.standard_concept = 'S'
 --AND c.invalid_reason is null
@@ -1097,7 +1277,10 @@ m.valid_end_date,
 m.mapper_id
 FROM icd_cde_manual m
 LEFT JOIN concept c ON m.target_concept_code = c.concept_code
-WHERE m.target_concept_code IN (SELECT target_concept_code FROM icd_cde_manual m1 LEFT JOIN concept c1 ON m1.target_concept_id = c1.concept_id
+WHERE m.target_concept_code IN (
+    SELECT target_concept_code
+    FROM icd_cde_manual m1
+        LEFT JOIN concept c1 ON m1.target_concept_id = c1.concept_id
     WHERE m.target_concept_code != concept_code)
 AND c.standard_concept = 'S'
 AND c.invalid_reason is null
@@ -1110,10 +1293,16 @@ FROM icd_cde_manual
     WHERE mappings_origin = '{without mapping}'
     );
 
-SELECT * FROM for_manual_review
--- where mappings_origin != '{SNOMED_eq}'
-         order by group_id
-; --3199
+SELECT *
+FROM for_manual_review
+ORDER BY group_name;
+
+SELECT *
+FROM for_manual_review
+WHERE mappings_origin::text NOT LIKE '%SNOMED_eq%'
+AND mappings_origin::text NOT LIKE '%UMLS/NCIm%'
+ORDER BY group_id;
+--3199
 
 
 

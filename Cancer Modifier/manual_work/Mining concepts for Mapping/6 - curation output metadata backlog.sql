@@ -23,13 +23,6 @@ Inputs
 - devv5.concept_relationship
 - devv5.concept_relationship_metadata
 
-Created objects
----------------
-- dev_cancer_modifier.oncology_concept_mined_for_review_metadata_backlog
-- dev_cancer_modifier.oncology_concept_mined_for_review_metadata_backlog_snomed
-- dev_cancer_modifier.oncology_concept_mined_for_review_metadata_backlog_loinc
-- dev_cancer_modifier.oncology_concept_mined_for_review_metadata_backlog_naaccr
-
 Notes
 -----
 - Review grain is one row per proposed review decision or mapping target. A
@@ -270,8 +263,13 @@ SELECT source_concept_code,
        target_domain_id,
        target_vocabulary_id
 FROM dev_cancer_modifier.oncology_concept_mined_for_review_metadata_backlog
-WHERE source_vocabulary_id IN ( 'SNOMED','LOINC') --adjust as needed
-and action_req ~*'Tier-1' --adjust as needed
+WHERE (source_vocabulary_id IN ( 'SNOMED') --adjust as needed
+and
+     action_req ~*'Tier-1' --adjust as needed)
+    )
+   OR
+    (source_vocabulary_id IN ( 'LOINC') --adjust as needed
+         AND source_concept_code ~* '\|' and source_concept_id IS NULL )  -- proxy for precoordinated pairs
 ORDER BY
     source_vocabulary_id,
     to_tsvector(regexp_replace(source_concept_name, '\(.+\)', '', 'gi')),

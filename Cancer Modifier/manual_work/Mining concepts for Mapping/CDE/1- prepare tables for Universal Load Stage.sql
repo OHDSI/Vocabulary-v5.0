@@ -25,7 +25,7 @@ Do not aggregate decision flags by source_concept_id.
 */
 
 -- -----------------------------------------------------------------------------
--- Section CDE.01: Create CDE review table for curator decisions
+-- Create CDE review table for curator decisions
 -- Run this DDL before loading the reviewed spreadsheet. It is IF NOT EXISTS so
 -- the transformation sections below can be re-run after data is loaded.
 -- -----------------------------------------------------------------------------
@@ -56,51 +56,7 @@ CREATE TABLE IF NOT EXISTS dev_cancer_modifier.cancer_modifier_cde
 
 
 -- -----------------------------------------------------------------------------
--- Section CDE.02: Insert approved new Cancer Modifier targets into concept_manual
--- These targets can be referenced by mappings in the same refresh even when
--- target_concept_id is not available before GenericUpdate.
--- -----------------------------------------------------------------------------
-INSERT INTO concept_manual AS cm (
-    concept_name,
-    domain_id,
-    vocabulary_id,
-    concept_class_id,
-    standard_concept,
-    concept_code,
-    valid_start_date,
-    valid_end_date,
-    invalid_reason
-)
-SELECT DISTINCT ON (cde.target_concept_code, COALESCE(cde.target_vocabulary_id, 'Cancer Modifier'))
-    cde.target_concept_name,
-    cde.target_domain_id,
-    COALESCE(cde.target_vocabulary_id, 'Cancer Modifier') AS vocabulary_id,
-    cde.target_concept_class_id,
-    cde.target_standard_concept,
-    cde.target_concept_code,
-    CURRENT_DATE AS valid_start_date,
-    TO_DATE('2099-12-31','YYYY-MM-DD') AS valid_end_date,
-    cde.target_invalid_reason
-FROM dev_cancer_modifier.cancer_modifier_cde cde
-WHERE cde.decision IS TRUE
-  AND cde.create_standard IS TRUE
-  AND cde.target_concept_id IS NULL
-  AND cde.target_concept_code IS NOT NULL
-ORDER BY
-    cde.target_concept_code,
-    COALESCE(cde.target_vocabulary_id, 'Cancer Modifier')
-ON CONFLICT (concept_code, vocabulary_id)
-DO UPDATE
-SET concept_name = EXCLUDED.concept_name,
-    domain_id = EXCLUDED.domain_id,
-    concept_class_id = EXCLUDED.concept_class_id,
-    standard_concept = EXCLUDED.standard_concept,
-    valid_start_date = EXCLUDED.valid_start_date,
-    valid_end_date = EXCLUDED.valid_end_date,
-    invalid_reason = EXCLUDED.invalid_reason;
-
--- -----------------------------------------------------------------------------
--- Section CDE.03: Insert approved source destandardization rows into concept_manual
+-- Insert approved source destandardization rows into concept_manual
 -- -----------------------------------------------------------------------------
 INSERT INTO concept_manual AS cm (
     concept_name,
@@ -136,16 +92,7 @@ ON CONFLICT (concept_code, vocabulary_id)
 DO UPDATE
 SET standard_concept = NULL;
 
--- -----------------------------------------------------------------------------
--- Section CDE.04: Keep manual concept metadata synchronized with source concepts
--- -----------------------------------------------------------------------------
-UPDATE concept_manual cm
-set concept_name=c.concept_name,
-    valid_start_date = c.valid_start_date,valid_end_date =c.valid_end_date,invalid_reason=c.invalid_reason
-FROM concept c
-where (c.concept_code,c.vocabulary_id) =(cm.concept_code,cm.vocabulary_id)
-and c.vocabulary_id IN (:your_vocabs)
-;
+
 
 -- Preserve existing manual standard_concept = 'X' rows while refreshing metadata.
 UPDATE concept_manual cm
@@ -160,7 +107,7 @@ and c.vocabulary_id IN (:your_vocabs)
 ;
 
 -- -----------------------------------------------------------------------------
--- Section CDE.05: Insert approved mapping rows into concept_relationship_manual
+-- Insert approved mapping rows into concept_relationship_manual
 -- Keep this row-level. A single source_concept_id may legitimately contribute
 -- multiple approved mapping rows with different targets.
 -- -----------------------------------------------------------------------------
@@ -212,7 +159,7 @@ SET invalid_reason = NULL;
 ;
 
 -- -----------------------------------------------------------------------------
--- Section CDE.06: Update manual relationship for cases when mapping relationships should be explicitly detracted
+-- Update manual relationship for cases when mapping relationships should be explicitly detracted
 -- -----------------------------------------------------------------------------
 INSERT INTO concept_relationship_manual (concept_code_1,
                                          concept_code_2,

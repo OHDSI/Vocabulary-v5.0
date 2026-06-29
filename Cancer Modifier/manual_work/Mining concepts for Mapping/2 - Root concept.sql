@@ -59,7 +59,8 @@ VALUES (4300140, 'Tumor stage finding | SNOMED 385356007'),
         (4308014, 'ECOG performance status| SNOMED Observable Entity'),
         (4169154, 'Karnofsky performance status| SNOMED Staging / Scales'),
         (36303744, 'Karnofsky Performance Status [Interpretation]| LOINC Clinical Observation'),
-        (36305384, 'ECOG Performance Status score| LOINC Clinical Observation')
+        (36305384, 'ECOG Performance Status score| LOINC Clinical Observation'),
+        (3016308, '	Primary tumor.pathology Cancer| LOINC Clinical Observation')
 
 
 

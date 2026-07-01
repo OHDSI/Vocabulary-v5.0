@@ -203,6 +203,55 @@ SET invalid_reason = NULL;
 ;
 
 -- -----------------------------------------------------------------------------
+-- Insert approved mapping rows for precoordinated pairs to concept_relationship_manual
+-- -----------------------------------------------------------------------------
+WITH mapping_rows AS (
+    SELECT
+        c.concept_code AS concept_code_1,
+        c.vocabulary_id AS vocabulary_id_1,
+        a.relationship_id,
+        COALESCE(cc.concept_code, cm_target.concept_code, a.target_concept_code) AS concept_code_2,
+        COALESCE(cc.vocabulary_id, cm_target.vocabulary_id, a.target_vocabulary_id) AS vocabulary_id_2
+    FROM dev_cancer_modifier.cancer_modifier_cde a
+    JOIN concept_manual c
+        ON a.source_concept_code = c.concept_code
+        and a.source_vocabulary_id=c.vocabulary_id
+    LEFT JOIN concept cc
+        ON a.target_concept_id::int = cc.concept_id
+    LEFT JOIN concept_manual cm_target
+        ON a.target_concept_id IS NULL
+       AND cm_target.concept_code = a.target_concept_code
+       AND cm_target.vocabulary_id = COALESCE(a.target_vocabulary_id, 'Cancer Modifier')
+       AND a.create_standard IS TRUE
+    WHERE a.decision IS TRUE
+      AND a.relationship_id IN ('Maps to', 'Maps to value','Is a')
+    and c.concept_class_id='Precoordinated pair'
+)
+INSERT INTO concept_relationship_manual (concept_code_1,vocabulary_id_1,relationship_id,valid_start_date,valid_end_date,invalid_reason,concept_code_2,vocabulary_id_2)
+SELECT DISTINCT ON (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2)
+    concept_code_1,
+    vocabulary_id_1,
+    relationship_id,
+    CURRENT_DATE AS valid_start_date,
+    TO_DATE('2099-12-31','YYYY-MM-DD') AS valid_end_date,
+    NULL AS invalid_reason,
+    concept_code_2,
+    vocabulary_id_2
+FROM mapping_rows mr
+WHERE concept_code_2 IS NOT NULL
+  AND vocabulary_id_2 IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM concept_relationship_manual crm
+      WHERE crm.concept_code_1 = mr.concept_code_1
+        AND crm.vocabulary_id_1 = mr.vocabulary_id_1
+        AND crm.relationship_id = mr.relationship_id
+        AND crm.concept_code_2 = mr.concept_code_2
+        AND crm.vocabulary_id_2 = mr.vocabulary_id_2
+  )
+;
+
+-- -----------------------------------------------------------------------------
 -- Update manual relationship for cases when mapping relationships should be explicitly deprecated
 -- -----------------------------------------------------------------------------
 INSERT INTO concept_relationship_manual (concept_code_1,

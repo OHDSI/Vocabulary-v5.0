@@ -190,8 +190,8 @@ END $_$;
 --11. Introduction of precoordinated pairs relationship processed during the release
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
-	concept_code_2,
 	vocabulary_id_1,
+	concept_code_2,
 	vocabulary_id_2,
 	relationship_id,
 	valid_start_date,

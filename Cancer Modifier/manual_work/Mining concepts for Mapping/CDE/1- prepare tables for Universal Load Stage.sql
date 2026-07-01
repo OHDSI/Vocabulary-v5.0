@@ -134,9 +134,6 @@ and cc.vocabulary_id=c.vocabulary_id
 ORDER BY
     cde.source_concept_code,
     cde.source_vocabulary_id
-ON CONFLICT (concept_code, vocabulary_id)
-DO UPDATE
-SET standard_concept = NULL
 ;
 
 

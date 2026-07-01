@@ -32,7 +32,7 @@ END $_$;
 --2. Emulate universal load stage logic for the vocabularies changed by this refresh
 DO $LATESTUPDATE$
 DECLARE
-	pVocabs CONSTANT VARCHAR[]:=ARRAY['SNOMED','Cancer Modifier','Episode']; --ARRAY['NDC','SPL']
+	pVocabs CONSTANT VARCHAR[]:=ARRAY['SNOMED','LOINC','Cancer Modifier','Episode']; --ARRAY['NDC','SPL']
 	pSchemaName CONSTANT TEXT:='dev_cancer_modifier';
 
 	pVocab concept.vocabulary_id%TYPE;
@@ -187,37 +187,119 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
---11. Manual mappings
+--11. Introduction of precoordinated pairs relationship processed during the release
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+
+with correct_precoordinated_pairs as (SELECT cs.concept_code                 as concept_code_1,
+                                             cs.vocabulary_id                as vocabulary_id_1,
+                                             c.concept_code                  as concept_code_2,
+                                             c.vocabulary_id                 as vocabulary_id_2,
+                                             'Precoord pair of'              as relationship_id,
+                                             current_date                    as valid_start_date,
+                                             TO_DATE('20991231', 'yyyymmdd') as valid_end_date,
+                                             NULL                            as invalid_reason
+
+                                      from concept_stage cs
+                                               JOIN concept c
+                                                    on c.concept_code = split_part(cs.concept_code, '|', 1)
+                                      where cs.concept_class_id = 'Precoordinated pair'
+                                        and not exists(SELECT 1
+                                                       from concept cx
+                                                       where (cx.concept_code, cx.vocabulary_id) =
+                                                             (cs.concept_code, cs.vocabulary_id))
+                                        AND exists (SELECT 1
+                                                    from concept_relationship crx
+                                                             JOIN concept cx1
+                                                                  on crx.concept_id_2 = cx1.concept_id
+                                                                      and crx.relationship_id = 'Has Answer'
+                                                                      and crx.invalid_reason IS NULL
+                                                                      and cx1.vocabulary_id = 'LOINC'
+                                                    WHERE cx1.concept_code = split_part(cs.concept_code, '|', 2)
+                                                      and crx.concept_id_1 = c.concept_id)
+
+                                      UNION ALL
+
+                                      SELECT cs.concept_code                 as concept_code_1,
+                                             cs.vocabulary_id                as vocabulary_id_1,
+                                             c.concept_code                  as concept_code_2,
+                                             c.vocabulary_id                 as vocabulary_id_2,
+                                             'Precoord pair of'              as relationship_id,
+                                             current_date                    as valid_start_date,
+                                             TO_DATE('20991231', 'yyyymmdd') as valid_end_date,
+                                             NULL                            as invalid_reason
+
+                                      from concept_stage cs
+                                               JOIN concept c
+                                                    on c.concept_code = split_part(cs.concept_code, '|', 2)
+                                      where cs.concept_class_id = 'Precoordinated pair'
+                                        and not exists(SELECT 1
+                                                       from concept cx
+                                                       where (cx.concept_code, cx.vocabulary_id) =
+                                                             (cs.concept_code, cs.vocabulary_id))
+                                        AND exists (SELECT 1
+                                                    from concept_relationship crx
+                                                             JOIN concept cx1
+                                                                  on crx.concept_id_2 = cx1.concept_id
+                                                                      and crx.relationship_id = 'Answer of'
+                                                                      and crx.invalid_reason IS NULL
+                                                                      and cx1.vocabulary_id = 'LOINC'
+                                                    WHERE cx1.concept_code = split_part(cs.concept_code, '|', 1)
+                                                      and crx.concept_id_1 = c.concept_id))
+
+SELECT cpp.concept_code_1,
+       cpp.vocabulary_id_1,
+       cpp.concept_code_2,
+       cpp.vocabulary_id_2,
+       cpp.relationship_id,
+       cpp.valid_start_date,
+       cpp.valid_end_date,
+       cpp.invalid_reason
+FROM correct_precoordinated_pairs as cpp
+JOIN vocabulary v ON v.vocabulary_id=cpp.vocabulary_id_1
+and v.vocabulary_id=cpp.vocabulary_id_2
+WHERE v.latest_update IS NOT NULL
+;
+
+--12. Manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---12. Working with replacement mappings
+--13. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---13. Add mapping (Maps to) from deprecated to fresh concepts
+--14. Add mapping (Maps to) from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---14. Add mapping (Maps to value) from deprecated to fresh concepts
+--15. Add mapping (Maps to value) from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---16. Delete ambiguous 'Maps to' mappings
+--17. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();

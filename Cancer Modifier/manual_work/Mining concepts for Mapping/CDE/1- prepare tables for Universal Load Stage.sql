@@ -173,8 +173,9 @@ WITH mapping_rows AS (
         ON a.target_concept_id IS NULL
        AND cm_target.concept_code = a.target_concept_code
        AND cm_target.vocabulary_id = COALESCE(a.target_vocabulary_id, 'Cancer Modifier')
+       AND a.create_standard IS TRUE
     WHERE a.decision IS TRUE
-      AND a.relationship_id IN ('Maps to', 'Maps to value')
+      AND a.relationship_id IN ('Maps to', 'Maps to value','Is a')
       AND c.concept_id > 0
 )
 INSERT INTO concept_relationship_manual (concept_code_1,vocabulary_id_1,relationship_id,valid_start_date,valid_end_date,invalid_reason,concept_code_2,vocabulary_id_2)
@@ -205,7 +206,7 @@ SET invalid_reason = NULL;
 ;
 
 -- -----------------------------------------------------------------------------
--- Update manual relationship for cases when mapping relationships should be explicitly detracted
+-- Update manual relationship for cases when mapping relationships should be explicitly deprecated
 -- -----------------------------------------------------------------------------
 INSERT INTO concept_relationship_manual (concept_code_1,
                                          concept_code_2,
@@ -223,7 +224,7 @@ with expicit_deprecation AS (SELECT concept_code_1,
                                   valid_start_date,
                                   CURRENT_DATE as valid_end_date,
                                   'D'          as invalid_reason
-                           from concept_relationship_manual crm
+                           from devv5.base_concept_relationship_manual crm
                            WHERE crm.invalid_reason IS NULL
                              AND exists (SELECT 1
                                          FROM cancer_modifier_cde cde1
@@ -233,8 +234,7 @@ with expicit_deprecation AS (SELECT concept_code_1,
                                                (crm.concept_code_1, crm.vocabulary_id_1)
                                            and cde1.relationship_id IN ('Maps to', 'Maps to value')
                                            and cde1.decision is true)
-                             and crm.relationship_id IN ('Maps to', 'Maps to value'
-                               )
+                             and crm.relationship_id IN ('Maps to', 'Maps to value')
                              and (crm.concept_code_1, crm.vocabulary_id_1) <> (crm.concept_code_2, crm.vocabulary_id_2)
                            UNION ALL
                            SELECT c.concept_code,

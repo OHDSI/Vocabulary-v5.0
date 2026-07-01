@@ -280,11 +280,35 @@ ORDER BY
     target_concept_id
 ;
 
-SELECT *
+-- clarified for review output generation
+SELECT  source_concept_code,
+source_concept_id,
+max_record,
+source_concept_name,
+source_domain_id,
+action_req,
+source_vocabulary_id,
+relationship_id,
+relationship_id_predicate,
+null as decision,
+null as to_destandardize,
+null as create_stadard,
+null as to_make_precoosrinated_source_pair,
+null as keep_as_id,
+null as comment,
+target_concept_id,
+target_concept_code,
+target_concept_name,
+target_concept_class_id,
+target_standard_concept,
+target_invalid_reason,
+target_domain_id,
+target_vocabulary_id
 FROM oncology_concept_mined_for_review_metadata_backlog_tier_1
 ORDER BY
     source_vocabulary_id,
-    to_tsvector(regexp_replace(source_concept_name, '\(.+\)', '', 'gi')),
+    CASE when source_vocabulary_id='LOINC' then source_concept_code else
+    to_tsvector(regexp_replace(source_concept_name, '\(.+\)', '', 'gi'))::text end,
     source_concept_name,
     source_concept_code,
     relationship_id,

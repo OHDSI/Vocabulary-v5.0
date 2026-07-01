@@ -629,13 +629,14 @@ SELECT distinct 'Tier-2' as priority,
                 max(records) as max_record,max(score) as max_score
 FROM oncology_concept_mined_for_review s
 where s.origin ='Rule-based-mine'
-and s.source_concept_id IN  (
+and ( (s.source_concept_id IN  (
     SELECT descendant_concept_id
     FROM devv5.concept_ancestor ca
     JOIN oncology_concept_mined_for_review s2
     on s2.source_concept_id=ca.ancestor_concept_id
     where s2.origin NOT IN ('Rule-based-mine','Rule-based-mine:non-Standard')
-    )
+    ))
+OR s.source_concept_id is null) -- to permit precoordinated pairs integration
 group by source_concept_id,
                 source_concept_code,
                 source_concept_name,
@@ -661,14 +662,18 @@ SELECT distinct 'Tier-3' as priority,
                 max(records) as max_record,max(score) as max_score
 FROM oncology_concept_mined_for_review s
 where s.origin ='Rule-based-mine'
-and s.source_concept_id IN  (
+and (
+
+    ( s.source_concept_id IN  (
     SELECT concept_id_2
     FROM concept_relationship cr
     JOIN oncology_concept_mined_for_review s2
     on s2.source_concept_id=cr.concept_id_1
     and cr.invalid_reason IS NULL
     where s2.origin NOT IN ('Rule-based-mine','Rule-based-mine:non-Standard')
-    )
+    ))
+OR s.source_concept_id is null) -- to permit precoordinated pairs integration
+
 group by source_concept_id,
                 source_concept_code,
                 source_concept_name,
@@ -694,19 +699,20 @@ SELECT distinct 'Tier-4' as priority,
                 max(records) as max_record,max(score) as max_score
 FROM oncology_concept_mined_for_review s
 where s.origin ='Rule-based-mine:non-Standard'
-and s.source_concept_id IN  (
+and   (
+       (s.source_concept_id IN  (
     SELECT concept_id_2
     FROM concept_relationship cr
     JOIN oncology_concept_mined_for_review s2
     on s2.source_concept_id=cr.concept_id_1
     and cr.invalid_reason IS NULL
     where s2.origin NOT IN ('Rule-based-mine')
-    )
+    ))
+or s.seed_concept_id is null)
 group by source_concept_id,
                 source_concept_code,
                 source_concept_name,
                 source_concept_class_id,
                 source_domain_id,
                 source_vocabulary_id
-
 ;

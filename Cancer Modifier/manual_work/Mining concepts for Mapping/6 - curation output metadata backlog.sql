@@ -281,7 +281,11 @@ ORDER BY
 ;
 
 -- clarified for review output generation
-SELECT  source_concept_code,
+SELECT *
+FROM (
+SELECT
+distinct on (source_concept_code,source_vocabulary_id,relationship_id,relationship_id_predicate,target_concept_code,target_vocabulary_id)
+source_concept_code,
 source_concept_id,
 max_record,
 source_concept_name,
@@ -304,7 +308,7 @@ target_standard_concept,
 target_invalid_reason,
 target_domain_id,
 target_vocabulary_id
-FROM oncology_concept_mined_for_review_metadata_backlog_tier_1
+FROM oncology_concept_mined_for_review_metadata_backlog_tier_1) as tab
 ORDER BY
     source_vocabulary_id,
     CASE when source_vocabulary_id='LOINC' then source_concept_code else

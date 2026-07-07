@@ -32,7 +32,7 @@ END $_$;
 --2. Emulate universal load stage logic for the vocabularies changed by this refresh
 DO $LATESTUPDATE$
 DECLARE
-	pVocabs CONSTANT VARCHAR[]:=ARRAY['SNOMED','LOINC','Cancer Modifier','Episode']; --ARRAY['NDC','SPL']
+slight changes 	pVocabs CONSTANT VARCHAR[]:=ARRAY['SNOMED','LOINC','Cancer Modifier','Episode','OMOP Genomic']; --ARRAY['NDC','SPL']
 	pSchemaName CONSTANT TEXT:='dev_cancer_modifier';
 
 	pVocab concept.vocabulary_id%TYPE;

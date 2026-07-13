@@ -65,7 +65,47 @@ SELECT concept_name,
 	NULL AS invalid_reason
 FROM sources.icd10pcs;
 
+ANALYZE concept_stage;
+
 --4. Add all the other ICD10PCS Hierarchical terms from umls.mrconso
+-- filter out codes already loaded in step 3 before running the expensive window function
+WITH mr_new AS (
+	SELECT mr.code,
+		mr.str,
+		mr.tty
+	FROM sources.mrconso mr
+	LEFT JOIN concept_stage cs ON cs.concept_code = mr.code
+	WHERE mr.sab = 'ICD10PCS'
+		AND cs.concept_code IS NULL
+	),
+-- take the best str per code
+ranked AS (
+	SELECT DISTINCT
+		-- take the best str
+		FIRST_VALUE(vocabulary_pack.CutConceptName(str)) OVER (
+			PARTITION BY code ORDER BY CASE tty
+					WHEN 'PT' -- Preferred term (designated preferred name)
+						THEN 1
+					WHEN 'HT' -- Hierarchical term
+						THEN 2
+					WHEN 'HS' -- Short or alternate version of hierarchical term
+						THEN 3
+					WHEN 'HX' -- Expanded version of short hierarchical term
+						THEN 4
+					WHEN 'MTH_HX' -- MTH Hierarchical term expanded
+						THEN 5
+					ELSE 6
+					END,
+				CASE
+					WHEN LENGTH(str) <= 255
+						THEN LENGTH(str)
+					ELSE 0
+					END DESC,
+				str
+			) AS concept_name,
+		code AS concept_code
+	FROM mr_new
+	)
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -77,47 +117,20 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT
-	-- take the best str
-	FIRST_VALUE(vocabulary_pack.CutConceptName(str)) OVER (
-		PARTITION BY code ORDER BY CASE tty
-				WHEN 'PT' -- Preferred term (designated preferred name)
-					THEN 1
-				WHEN 'HT' -- Hierarchical term
-					THEN 2
-				WHEN 'HS' -- Short or alternate version of hierarchical term
-					THEN 3
-				WHEN 'HX' -- Expanded version of short hierarchical term
-					THEN 4
-				WHEN 'MTH_HX' -- MTH Hierarchical term expanded 
-					THEN 5
-				ELSE 6
-				END,
-			CASE 
-				WHEN LENGTH(str) <= 255
-					THEN LENGTH(str)
-				ELSE 0
-				END DESC,
-			str
-		) AS concept_name,
+SELECT ranked.concept_name,
 	'ICD10PCS' AS vocabulary_id,
 	'Procedure' AS domain_id,
 	'ICD10PCS Hierarchy' AS concept_class_id,
 	'S' AS standard_concept, -- non-billable Hierarchy concepts are met in patient data, that is why they are considered to be Standard as well
-	code AS concept_code,
+	ranked.concept_code,
 	(	SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'ICD10PCS'
-		) AS valid_start_date,
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10PCS'
+	) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.mrconso mr
-WHERE mr.sab = 'ICD10PCS'
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_stage cs
-		WHERE cs.concept_code = mr.code
-		);
+FROM ranked
+;
 
 --5. Add all synonyms from umls.mrconso to concept_synonym stage
 INSERT INTO concept_synonym_stage (
@@ -154,9 +167,9 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE 
+SELECT CASE
 		WHEN c.concept_name LIKE '% (Deprecated)'
-			THEN c.concept_name -- to support subsequent source deprecations 
+			THEN c.concept_name -- to support subsequent source deprecations
 		WHEN LENGTH(c.concept_name) <= 242
 			THEN c.concept_name || ' (Deprecated)' -- to get no more than 255 characters in total
 		ELSE LEFT(c.concept_name, 239) || '... (Deprecated)' -- to get no more than 255 characters in total and highlight concept_names which were cut
@@ -204,6 +217,8 @@ WHERE i.concept_code IS NULL
 ON CONFLICT DO NOTHING;
 
 --8. Add original names of resurrected concepts using the concept table
+CREATE INDEX IF NOT EXISTS idx_tmp_css_code ON concept_synonym_stage (synonym_concept_code);
+
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -223,6 +238,8 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
 	AND css.synonym_concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+
+DROP INDEX IF EXISTS idx_tmp_css_code;
 
 --9. Process manual tables for concept and relationship
 DO $_$

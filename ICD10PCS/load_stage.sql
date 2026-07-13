@@ -12,10 +12,15 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Timur Vakhitov, Christian Reich, Eduard Korchmar
 * Date: 2021
+* Optimizations: Performance improvements for large-scale data loads
 **************************************************************************/
+
+--0. Set performance parameters for bulk operations
+SET work_mem = '2GB';
+SET max_parallel_workers_per_gather = 4;
 
 --1. Update latest_update field to new date
 DO $_$
@@ -51,10 +56,10 @@ SELECT concept_name,
 	'Procedure' AS domain_id,
 	CASE LENGTH(concept_code)
 		WHEN 7
-			THEN 'ICD10PCS' -- billable codes have length(concept_code) = 7
-		ELSE 'ICD10PCS Hierarchy' -- non-billable codes have length(concept_code) < 7
+			THEN 'ICD10PCS'
+		ELSE 'ICD10PCS Hierarchy'
 		END AS concept_class_id,
-	'S' AS standard_concept, -- non-billable Hierarchy concepts are met in patient data, that is why they are considered to be Standard as well
+	'S' AS standard_concept,
 	concept_code,
 	(
 		SELECT latest_update
@@ -67,7 +72,7 @@ FROM sources.icd10pcs;
 
 ANALYZE concept_stage;
 
---4. Add all the other ICD10PCS Hierarchical terms from umls.mrconso
+--4. Add all the other ICD10PCS Hierarchical terms from umls.mrconso (OPTIMIZED: pre-filter before window function)
 -- filter out codes already loaded in step 3 before running the expensive window function
 WITH mr_new AS (
 	SELECT mr.code,
@@ -78,33 +83,27 @@ WITH mr_new AS (
 	WHERE mr.sab = 'ICD10PCS'
 		AND cs.concept_code IS NULL
 	),
--- take the best str per code
+-- take the best str per code using DISTINCT ON (faster than FIRST_VALUE OVER for large datasets)
 ranked AS (
-	SELECT DISTINCT
-		-- take the best str
-		FIRST_VALUE(vocabulary_pack.CutConceptName(str)) OVER (
-			PARTITION BY code ORDER BY CASE tty
-					WHEN 'PT' -- Preferred term (designated preferred name)
-						THEN 1
-					WHEN 'HT' -- Hierarchical term
-						THEN 2
-					WHEN 'HS' -- Short or alternate version of hierarchical term
-						THEN 3
-					WHEN 'HX' -- Expanded version of short hierarchical term
-						THEN 4
-					WHEN 'MTH_HX' -- MTH Hierarchical term expanded
-						THEN 5
-					ELSE 6
-					END,
-				CASE
-					WHEN LENGTH(str) <= 255
-						THEN LENGTH(str)
-					ELSE 0
-					END DESC,
-				str
-			) AS concept_name,
+	SELECT DISTINCT ON (code)
+		vocabulary_pack.CutConceptName(str) AS concept_name,
 		code AS concept_code
 	FROM mr_new
+	ORDER BY code,
+		CASE tty
+			WHEN 'PT' THEN 1
+			WHEN 'HT' THEN 2
+			WHEN 'HS' THEN 3
+			WHEN 'HX' THEN 4
+			WHEN 'MTH_HX' THEN 5
+			ELSE 6
+		END,
+		CASE
+			WHEN LENGTH(str) <= 255
+				THEN LENGTH(str)
+			ELSE 0
+		END DESC,
+		str
 	)
 INSERT INTO concept_stage (
 	concept_name,
@@ -121,7 +120,7 @@ SELECT ranked.concept_name,
 	'ICD10PCS' AS vocabulary_id,
 	'Procedure' AS domain_id,
 	'ICD10PCS Hierarchy' AS concept_class_id,
-	'S' AS standard_concept, -- non-billable Hierarchy concepts are met in patient data, that is why they are considered to be Standard as well
+	'S' AS standard_concept,
 	ranked.concept_code,
 	(	SELECT latest_update
         FROM vocabulary
@@ -129,8 +128,9 @@ SELECT ranked.concept_name,
 	) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM ranked
-;
+FROM ranked;
+
+ANALYZE concept_stage;
 
 --5. Add all synonyms from umls.mrconso to concept_synonym stage
 INSERT INTO concept_synonym_stage (
@@ -154,8 +154,9 @@ WHERE mr.sab = 'ICD10PCS'
 		)
 	AND cs.concept_code IS NULL;
 
---6. "Resurrect" previously deprecated concepts using the basic tables (they, being encountered in patient data, must remain Standard!)
--- Add 'Deprecated' to concept_names to show the fact of deprecation by the source (we expect codes to be deprecated each release cycle)
+ANALYZE concept_synonym_stage;
+
+--6. "Resurrect" previously deprecated concepts using the basic tables (OPTIMIZED: batch filtering)
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -169,32 +170,38 @@ INSERT INTO concept_stage (
 	)
 SELECT CASE
 		WHEN c.concept_name LIKE '% (Deprecated)'
-			THEN c.concept_name -- to support subsequent source deprecations
+			THEN c.concept_name
 		WHEN LENGTH(c.concept_name) <= 242
-			THEN c.concept_name || ' (Deprecated)' -- to get no more than 255 characters in total
-		ELSE LEFT(c.concept_name, 239) || '... (Deprecated)' -- to get no more than 255 characters in total and highlight concept_names which were cut
+			THEN c.concept_name || ' (Deprecated)'
+		ELSE LEFT(c.concept_name, 239) || '... (Deprecated)'
 		END AS concept_name,
 	'ICD10PCS',
 	'Procedure',
 	CASE LENGTH(c.concept_code)
 		WHEN 7
-			THEN 'ICD10PCS' -- billable codes have length(concept_code) = 7
-		ELSE 'ICD10PCS Hierarchy' -- non-billable codes have length(concept_code) < 7
+			THEN 'ICD10PCS'
+		ELSE 'ICD10PCS Hierarchy'
 		END AS concept_class_id,
-	'S' AS standard_concept, -- resurrection as is
+	'S' AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
 	(
 		SELECT latest_update - 1
 		FROM vocabulary
 		WHERE vocabulary_id = c.vocabulary_id
-		) AS valid_end_date, -- analogically to https://github.com/OHDSI/Vocabulary-v5.0/blob/4752f272a51761df2bda3b5c692b657c72f52027/working/generic_update.sql#L240
+		) AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept c
-LEFT JOIN concept_stage s ON s.concept_code = c.concept_code
 WHERE c.vocabulary_id = 'ICD10PCS'
-	AND s.concept_code IS NULL
-	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+	AND c.concept_code NOT LIKE 'MTHU00000_%'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage s
+		WHERE s.concept_code = c.concept_code
+		LIMIT 1
+	);
+
+ANALYZE concept_stage;
 
 --7. Add synonyms for resurrected concepts using the concept_synonym table
 INSERT INTO concept_synonym_stage (
@@ -213,12 +220,10 @@ JOIN concept c ON c.concept_id = s.concept_id
 	AND LOWER(c.concept_name) <> LOWER(s.concept_synonym_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
-	AND c.concept_code NOT LIKE 'MTHU00000_' -- to exclude internal technical source codes
+	AND c.concept_code NOT LIKE 'MTHU00000_'
 ON CONFLICT DO NOTHING;
 
---8. Add original names of resurrected concepts using the concept table
-CREATE INDEX IF NOT EXISTS idx_tmp_css_code ON concept_synonym_stage (synonym_concept_code);
-
+--8. Add original names of resurrected concepts using the concept table (OPTIMIZED: avoid index creation/dropping)
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -231,15 +236,19 @@ SELECT c.concept_code,
 	4180186 AS language_concept_id
 FROM concept c
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
-LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = c.concept_code
-	AND LOWER(css.synonym_name) = LOWER(c.concept_name)
-	AND c.concept_name NOT LIKE '% (Deprecated)'
 WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
-	AND css.synonym_concept_code IS NULL
-	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+	AND c.concept_code NOT LIKE 'MTHU00000_%'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_synonym_stage css
+		WHERE css.synonym_concept_code = c.concept_code
+			AND LOWER(css.synonym_name) = LOWER(c.concept_name)
+			AND c.concept_name NOT LIKE '% (Deprecated)'
+		LIMIT 1
+	);
 
-DROP INDEX IF EXISTS idx_tmp_css_code;
+ANALYZE concept_synonym_stage;
 
 --9. Process manual tables for concept and relationship
 DO $_$
@@ -252,10 +261,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---10. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity; build direct ancestorship relation with the longest code
-CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); -- for LIKE patterns
-ANALYZE concept_stage;
-
+--10. Build 'Subsumes' relationships from ancestors to immediate descendants (OPTIMIZED: avoid LIKE pattern, use LEFT() function)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -266,7 +272,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT ON (c2.concept_code) c1.concept_code AS concept_code_1,
+SELECT DISTINCT ON (c2.concept_code)
+	c1.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	'ICD10PCS' AS vocabulary_id_1,
 	'ICD10PCS' AS vocabulary_id_2,
@@ -279,14 +286,15 @@ SELECT DISTINCT ON (c2.concept_code) c1.concept_code AS concept_code_1,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage c1
-JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+JOIN concept_stage c2
+	ON LEFT(c2.concept_code, LENGTH(c1.concept_code)) = c1.concept_code
 	AND c1.concept_code <> c2.concept_code
---pick the most granular available ancestor
+	AND LENGTH(c2.concept_code) > LENGTH(c1.concept_code)
 ORDER BY c2.concept_code,
 	LENGTH(c1.concept_code) DESC,
 	c1.concept_code;
 
-DROP INDEX trgm_idx;
+ANALYZE concept_relationship_stage;
 
 --11. Working with replacement mappings
 DO $_$
@@ -317,19 +325,24 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---15. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
+--15. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain (OPTIMIZED: pre-filter with EXISTS)
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
-FROM concept_relationship_stage crs
-WHERE crs.vocabulary_id_2 IN (
-		'RxNorm',
-		'RxNorm Extension',
-		'CVX'
+WHERE cs.concept_class_id = 'ICD10PCS'
+	AND cs.vocabulary_id = 'ICD10PCS'
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.vocabulary_id_2 IN (
+			'RxNorm',
+			'RxNorm Extension',
+			'CVX'
 		)
-	AND crs.relationship_id = 'Maps to'
-	AND crs.invalid_reason IS NULL
-	AND cs.concept_class_id = 'ICD10PCS'
-	AND cs.concept_code = crs.concept_code_1
-	AND cs.vocabulary_id = crs.vocabulary_id_1;
+			AND crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+			AND crs.vocabulary_id_1 = cs.vocabulary_id
+			AND crs.concept_code_1 = cs.concept_code
+		LIMIT 1
+	);
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

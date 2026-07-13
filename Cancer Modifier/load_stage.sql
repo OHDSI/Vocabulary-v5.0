@@ -181,6 +181,43 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
+--9.1 Genomic concept class reconstruction
+UPDATE concept_stage cs
+SET concept_class_id='Gene Protein Variant'
+--SELECT *
+FROM concept c
+where
+    vocabulary_id='OMOP Genomic'
+    and concept_class_id !='Gene Protein Variant'
+and concept_name ~*'protein expression'
+and c.concept_code=cs.concept_code
+and c.vocabulary_id=cs.vocabulary_id
+;
+
+--9.1 Genomic concept class reconstruction
+-- Protein class renew
+UPDATE concept_stage cs
+SET concept_class_id='Gene Protein Variant'
+--SELECT *
+FROM concept c
+where vocabulary_id='OMOP Genomic'
+    and concept_class_id !='Gene Protein Variant'
+and concept_name ~*'protein expression'
+and c.concept_code=cs.concept_code
+and c.vocabulary_id=cs.vocabulary_id
+;
+
+--Gene variant class renew
+UPDATE concept_stage cs
+SET concept_class_id='Gene Variant'
+--SELECT *
+FROM concept c
+where vocabulary_id='OMOP Genomic'
+    and concept_class_id ='Genetic Variation'
+and c.concept_code=cs.concept_code
+and c.vocabulary_id=cs.vocabulary_id
+;
+
 --10. Manual synonyms
 DO $_$
 BEGIN

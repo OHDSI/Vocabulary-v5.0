@@ -220,6 +220,71 @@ CREATE TABLE IF NOT EXISTS dev_cancer_modifier.cancer_modifier_cde
 );
 
 
+-- Maps to value reconstruction for secondary spread
+INSERT INTO cancer_modifier_cde (source_concept_code, source_concept_id, max_record, source_concept_name,
+                                 source_domain_id, action_req, source_vocabulary_id, relationship_id,
+                                 relationship_id_predicate, decision, to_destandardize,
+                                 to_make_precoosrinated_source_pair, create_standard, comment, target_concept_id,
+                                 target_concept_code, target_concept_name, target_concept_class_id,
+                                 target_standard_concept, target_invalid_reason, target_domain_id, target_vocabulary_id)
+SELECT distinct cde.source_concept_code,
+       cde.source_concept_id,
+       NULL::int as max_record,
+       cde.source_concept_name,
+       cde.source_domain_id,
+       cde.action_req,
+       cde.source_vocabulary_id,
+       'Maps to value' as relationship_id,
+       'exactMatch' as relationship_id_predicate,
+       TRUE as decision,
+       TRUE as to_destandardize,
+       FALSE as to_make_precoosrinated_source_pair,
+       FALSE as create_standard,
+       'Value restore' as comment,
+       c.concept_id as target_concept_id,
+       c.concept_code as target_concept_code,
+       c.concept_name as target_concept_name,
+       c.concept_class_id as target_concept_class_id,
+       c.standard_concept as target_standard_concept,
+       c.invalid_reason as target_invalid_reason,
+       c.domain_id as target_domain_id,
+       c.vocabulary_id as target_vocabulary_id
+
+FROM cancer_modifier_cde cde
+JOIN concept c
+on c.concept_id=9191	--	Positive	Qualifier Value	Standard	Valid	Meas Value	SNOMED
+where not exists (
+    SELECT 1
+FROM cancer_modifier_cde cde1
+JOIN concept c
+on c.concept_id=cde1.target_concept_id
+where (cde1.source_concept_code,cde1.source_vocabulary_id)=(cde.source_concept_code,cde.source_vocabulary_id)
+and cde1.relationship_id='Maps to value'
+)
+and  exists(SELECT 1
+            FROM cancer_modifier_cde cde2
+                     JOIN concept c
+                          on c.concept_id = cde2.target_concept_id
+            where (cde2.source_concept_code, cde2.source_vocabulary_id) =
+                  (cde.source_concept_code, cde.source_vocabulary_id)
+              and cde2.relationship_id = 'Maps to'
+              and c.domain_id IN ('Measurement')
+              and (
+                cde.target_concept_id IN (SELECT descendant_concept_id
+                                          from concept_ancestor
+                                          where ancestor_concept_id IN (36769180, 36768587)) -- Metastasis, Lymph Nodes
+                    OR cde.target_concept_code IN (SELECT concept_code
+                                                   from concept
+                                                   where concept_class_id in ('Nodes', 'Metastasis')
+                                                     and standard_concept = 'S'
+                                                   UNION ALL
+                                                   SELECT concept_code
+                                                   from concept_manual
+                                                   where concept_class_id in ('Nodes', 'Metastasis')
+                                                     and standard_concept = 'S')
+                ))
+          ;
+
 -- -----------------------------------------------------------------------------
 -- Insert approved source destandardization rows into concept_manual
 -- -----------------------------------------------------------------------------

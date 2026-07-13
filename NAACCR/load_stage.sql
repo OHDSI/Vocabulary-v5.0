@@ -42,6 +42,31 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
+--1. As ProcessManualConcepts to minimize the legacy-tail in manual tables,
+-- direct injection of 'externally-produced-stage' content is expected to be omitted direct insert to
+INSERT INTO concept_stage (concept_id,
+       concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason)
+SELECT concept_id,
+       concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM dev_naaccr.naaccr_update_concept_stage ncs
+;
+
 --2. As ProcessManualRelationships to minimize the legacy-tail in manual tables,
 -- direct injection of 'externally-produced-stage' content is expected to be omitted direct insert to
 INSERT INTO concept_relationship_stage (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)

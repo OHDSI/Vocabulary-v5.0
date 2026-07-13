@@ -277,9 +277,10 @@ CREATE INDEX idx_billable ON temp_billable_codes (concept_code);
 
 -- Step 10b: Generate all parent codes (6, 5, 4, 3 char prefixes) from billable codes
 -- Using recursive CTE: O(n) instead of O(n²) comparisons
+-- Explicit type casting required for PostgreSQL recursive CTE
 CREATE TEMP TABLE temp_parent_codes AS
 WITH RECURSIVE code_parents AS (
-	SELECT DISTINCT concept_code AS parent_code, 7 AS depth
+	SELECT DISTINCT concept_code::VARCHAR(50) AS parent_code, 7 AS depth
 	FROM temp_billable_codes
 	WHERE EXISTS (
 		SELECT 1 FROM concept_stage cs
@@ -287,7 +288,7 @@ WITH RECURSIVE code_parents AS (
 		  AND cs.concept_class_id = 'ICD10PCS'
 	)
 	UNION ALL
-	SELECT DISTINCT LEFT(parent_code, LENGTH(parent_code) - 1),
+	SELECT DISTINCT LEFT(parent_code, LENGTH(parent_code) - 1)::VARCHAR(50),
 		depth - 1
 	FROM code_parents
 	WHERE depth > 3

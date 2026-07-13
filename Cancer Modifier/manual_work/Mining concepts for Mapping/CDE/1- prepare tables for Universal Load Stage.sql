@@ -1,6 +1,6 @@
 /*
 ================================================================================
-1- prepare tables for Universal Load Stage.sql
+1- prepare tables for Cancer Modifier Univeral Load Stage-style process
 ================================================================================
 
 Purpose
@@ -11,9 +11,11 @@ the oncology mining workflow.
 Inputs
 ------
 - dev_cancer_modifier.cancer_modifier_cde
+- dev_cancer_modifier. _manual_refresh tables populated with Data
 - concept
 - concept_manual
 - concept_relationship_manual
+- concept_synonym_manual
 
 Notes
 -----
@@ -23,6 +25,167 @@ one source concept may have multiple rows when it has multiple proposed targets.
 Do not aggregate decision flags by source_concept_id.
 ================================================================================
 */
+
+    -- -----------------------------------------------------------------------------
+-- Create and populate from folder concept_manual_refresh tables
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS dev_cancer_modifier.concept_manual_refresh;
+CREATE TABLE IF NOT EXISTS dev_cancer_modifier.concept_manual_refresh
+(
+    concept_name     varchar(255)
+        constraint chk_cmnl_concept_name
+            check ((concept_name)::text <> ''::text),
+    domain_id        varchar(20),
+    vocabulary_id    varchar(20) not null,
+    concept_class_id varchar(20),
+    standard_concept varchar(1),
+    concept_code     varchar(50) not null
+        constraint chk_cmnl_concept_code_cm_m
+            check ((concept_code)::text <> ''::text),
+    valid_start_date date,
+    valid_end_date   date,
+    invalid_reason   varchar(1),
+    constraint unique_manual_concepts_cm_m
+        unique (vocabulary_id, concept_code)
+);
+
+DROP TABLE IF EXISTS dev_cancer_modifier.concept_synonym_manual_refresh;
+CREATE TABLE IF NOT EXISTS dev_cancer_modifier.concept_synonym_manual_refresh
+(
+    synonym_name          varchar(1000) not null
+        constraint chk_csynmnl_concept_synonym_name_cm_m
+            check ((synonym_name)::text <> ''::text),
+    synonym_concept_code  varchar(50)   not null,
+    synonym_vocabulary_id varchar(20)   not null,
+    language_concept_id   integer       not null,
+    constraint unique_manual_synonyms_cm_m
+        unique (synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
+);
+
+DROP TABLE IF EXISTS dev_cancer_modifier.concept_relationship_manual_refresh;
+CREATE TABLE IF NOT EXISTS dev_cancer_modifier.concept_relationship_manual_refresh
+(
+
+    concept_code_1   varchar(50) not null
+        constraint chk_crm_concept_code_1_cm_m
+            check ((concept_code_1)::text <> ''::text),
+    concept_code_2   varchar(50) not null
+        constraint chk_crm_concept_code_2_cm_m
+            check ((concept_code_2)::text <> ''::text),
+    vocabulary_id_1  varchar(20) not null,
+    vocabulary_id_2  varchar(20) not null,
+    relationship_id  varchar(20) not null,
+    valid_start_date date        not null,
+    valid_end_date   date        not null,
+    invalid_reason   varchar(1)
+        constraint chk_crm_invalid_reason_cm_m
+            check ((COALESCE(invalid_reason, 'D'::character varying))::text = 'D'::text),
+    constraint unique_manual_relationships_cm_m
+        unique (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
+);
+
+--change concept_manual table according to concept_mapped table.
+INSERT INTO concept_manual AS cm
+(concept_name,
+ domain_id,
+ vocabulary_id,
+ concept_class_id,
+ standard_concept,
+ concept_code,
+ valid_start_date,
+ valid_end_date,
+ invalid_reason)
+SELECT concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM dev_cancer_modifier.concept_manual_refresh
+
+	ON CONFLICT ON CONSTRAINT unique_manual_concepts
+	DO UPDATE
+	SET concept_name = excluded.concept_name,
+	    domain_id = excluded.domain_id,
+	    standard_concept = excluded.standard_concept,
+		valid_start_date = CASE WHEN excluded.valid_start_date IS NOT NULL THEN excluded.valid_start_date ELSE cm.valid_start_date END,
+		valid_end_date = CASE WHEN excluded.valid_end_date IS NOT NULL THEN excluded.valid_end_date ELSE cm.valid_end_date END,
+		invalid_reason = excluded.invalid_reason
+WHERE ROW (cm.concept_name, cm.domain_id, cm.standard_concept, cm.valid_start_date, cm.valid_end_date, cm.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.concept_name, excluded.domain_id, excluded.standard_concept, excluded.valid_start_date, excluded.valid_end_date, excluded.invalid_reason)
+;
+
+
+
+
+
+
+--Synonyms manual population
+INSERT INTO concept_synonym_manual (synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
+SELECT synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id
+FROM concept_synonym_manual_refresh csmr
+;
+
+
+--Insert new relationships
+--Update existing relationships
+INSERT INTO dev_cancer_modifier.concept_relationship_manual AS mapped
+    (concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+
+	SELECT concept_code_1,
+	       concept_code_2,
+	       vocabulary_id_1,
+	       vocabulary_id_2,
+	       m.relationship_id,
+	       current_date-1 AS valid_start_date,
+           CASE WHEN m.invalid_reason IS NULL
+                  THEN to_date('20991231','yyyymmdd')
+                  ELSE current_date END AS valid_end_date,
+           m.invalid_reason
+	FROM dev_cancer_modifier.concept_relationship_manual_refresh m
+	--Only related to Cancer-Modifier orchestrated vocabularies vocabulary
+	WHERE (vocabulary_id_1 IN ('Cancer Modifier','OMOP Genomic') OR vocabulary_id_2 IN ('Cancer Modifier','OMOP Genomic'))
+
+	ON CONFLICT ON CONSTRAINT unique_manual_relationships
+	DO UPDATE
+	    --In case of mapping 'resuscitation' use current_date as valid_start_date; in case of mapping deprecation use previous valid_start_date
+	SET valid_start_date = CASE WHEN excluded.invalid_reason IS NULL THEN excluded.valid_start_date ELSE mapped.valid_start_date END,
+	    --In case of mapping 'resuscitation' use 2099-12-31 as valid_end_date; in case of mapping deprecation use current_date
+		valid_end_date = CASE WHEN excluded.invalid_reason IS NULL THEN excluded.valid_end_date ELSE current_date END,
+		invalid_reason = excluded.invalid_reason
+	WHERE ROW (mapped.invalid_reason)
+	IS DISTINCT FROM
+	ROW (excluded.invalid_reason);
+
+--Correction of valid_start_dates and valid_end_dates for deprecation of existing mappings, existing in base, but not manual tables
+UPDATE concept_relationship_manual crm
+SET valid_start_date = cr.valid_start_date,
+    valid_end_date = current_date
+FROM dev_cancer_modifier.concept_relationship_manual_refresh m
+JOIN concept c
+ON c.concept_code = m.concept_code_1 AND m.vocabulary_id_1 = c.vocabulary_id
+JOIN concept_relationship cr
+ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
+JOIN concept c1
+ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.concept_code_2 AND c1.vocabulary_id = m.vocabulary_id_2
+WHERE m.invalid_reason IS NOT NULL
+AND crm.concept_code_1 = m.concept_code_1 AND crm.vocabulary_id_1 = m.vocabulary_id_1
+AND crm.concept_code_2 = m.concept_code_2 AND crm.vocabulary_id_2 = m.vocabulary_id_2
+AND crm.relationship_id = m.relationship_id
+AND crm.invalid_reason IS NOT NULL
+;
+
 
 -- -----------------------------------------------------------------------------
 -- Create CDE review table for curator decisions
@@ -86,13 +249,10 @@ JOIN concept c
     ON c.concept_id = cde.source_concept_id
 WHERE cde.decision::bool IS TRUE
   AND cde.to_destandardize::bool IS TRUE
-and c.vocabulary_id IN (:your_vocabs)
-ORDER BY
-    c.concept_code,
-    c.vocabulary_id
+and c.vocabulary_id IN ('LOINC','SNOMED')
 ON CONFLICT (concept_code, vocabulary_id)
 DO UPDATE
-SET standard_concept = NULL;
+SET standard_concept = excluded.standard_concept;
 
 
 -- -----------------------------------------------------------------------------
@@ -129,11 +289,17 @@ on split_part(cde.source_concept_code,'|',2)=cc.concept_code
     and c.vocabulary_id=cde.source_vocabulary_id
 WHERE cde.decision::bool IS TRUE
   AND cde.to_make_precoosrinated_source_pair::bool IS TRUE
-and c.vocabulary_id IN (:your_vocabs)
+and c.vocabulary_id IN ('LOINC')
 and cc.vocabulary_id=c.vocabulary_id
-ORDER BY
-    cde.source_concept_code,
-    cde.source_vocabulary_id
+ON CONFLICT (concept_code, vocabulary_id)
+DO UPDATE
+SET concept_name = excluded.concept_name,
+    standard_concept=NULL,
+    invalid_reason=NULL,
+    valid_start_date=excluded.valid_start_date,
+    valid_end_date=excluded.valid_end_date,
+    domain_id=excluded.domain_id,
+concept_class_id='Precoordinated pair';
 ;
 
 
@@ -146,7 +312,7 @@ JOIN concept_manual d
 on (c.concept_code,c.vocabulary_id) = (d.concept_code,d.vocabulary_id)
 and d.standard_concept='X'
 where (c.concept_code,c.vocabulary_id) =(cm.concept_code,cm.vocabulary_id)
-and c.vocabulary_id IN (:your_vocabs)
+and c.vocabulary_id IN ('SNOMED','LOINC')
 ;
 
 -- -----------------------------------------------------------------------------
@@ -199,7 +365,7 @@ WHERE concept_code_2 IS NOT NULL
   )
 ON CONFLICT (concept_code_1, vocabulary_id_1,relationship_id,concept_code_2,vocabulary_id_2)
 DO UPDATE
-SET invalid_reason = NULL;
+SET invalid_reason = excluded.invalid_reason;
 ;
 
 -- -----------------------------------------------------------------------------
@@ -307,8 +473,11 @@ with expicit_deprecation AS (SELECT concept_code_1,
 
 SELECT *
 from expicit_deprecation
+ON CONFLICT (concept_code_1, vocabulary_id_1,relationship_id,concept_code_2,vocabulary_id_2)
+DO UPDATE
+SET invalid_reason = 'D',
+    valid_end_date=current_date;
 ;
-
 
 
 

@@ -305,6 +305,7 @@ WHERE parent_code <> '' AND LENGTH(parent_code) >= 3;
 CREATE INDEX idx_parent_codes ON temp_parent_codes (parent_code);
 
 -- Step 10c: Insert relationships using exact matches on pre-generated parent codes
+-- OPTIMIZED: Only create direct parent-child relationships (immediate subsumption)
 -- This uses simple hash joins on indexed temp tables (very fast)
 -- No nested loops or expensive pattern matching
 INSERT INTO concept_relationship_stage (
@@ -317,7 +318,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT ON (c2.concept_code)
+SELECT
 	pc.parent_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	'ICD10PCS' AS vocabulary_id_1,
@@ -327,14 +328,11 @@ SELECT DISTINCT ON (c2.concept_code)
 	TO_DATE('20991231', 'yyyymmdd'),
 	NULL
 FROM concept_stage c2
-JOIN temp_parent_codes pc ON pc.parent_code = LEFT(c2.concept_code, LENGTH(pc.parent_code))
-	AND LENGTH(c2.concept_code) > LENGTH(pc.parent_code)
+JOIN temp_parent_codes pc ON pc.parent_code = LEFT(c2.concept_code, LENGTH(pc.parent_code) + 1)
+	AND LENGTH(c2.concept_code) = LENGTH(pc.parent_code) + 1
 JOIN concept_stage c1 ON c1.concept_code = pc.parent_code
 WHERE c2.concept_class_id = 'ICD10PCS'
-	AND c1.vocabulary_id = 'ICD10PCS'
-ORDER BY c2.concept_code,
-	LENGTH(pc.parent_code) DESC,
-	pc.parent_code;
+	AND c1.vocabulary_id = 'ICD10PCS';
 
 DROP TABLE temp_billable_codes;
 DROP TABLE temp_parent_codes;

@@ -12,10 +12,10 @@ Directory with manual files either class-specific or class-agnostic delta is htt
 In the majority of refresh cases since summer 2026, please consider using the class-agnostic delta refresh: https://drive.google.com/drive/u/3/folders/1PHIk5eyTrWPut0Jto2w90J8PT6Mck2MR.
 
 1.1. Upload `concept_manual` into the working schema.
-Extract the required  flat file with delta content into the `concept_manual` table.
+Extract the required  flat file with delta content into the `concept_manual_refresh` table.
 Delta may contain newly-added valid concepts or apply adjustments to existing corpus. Make sure that deprecation/de-standartization is explicitly declared if desired.
 
-1.2. Upload `concept_relationship_manual` into the working schema if a curated relationship file is available. Make sure that deprecation/de-standartization is explicitly declared if desired.
+1.2. Upload `concept_relationship_manual_refresh` into the working schema if a curated relationship file is available. Make sure that deprecation/de-standartization is explicitly declared if desired.
 
 ##### csv format:
 - delimiter: ','

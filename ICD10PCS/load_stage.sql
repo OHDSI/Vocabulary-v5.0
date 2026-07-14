@@ -250,18 +250,7 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 
 ANALYZE concept_synonym_stage;
 
---9. Process manual tables for concept and relationship
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---10. Build 'Subsumes' relationships (AGGRESSIVE OPTIMIZATION)
+--9. Build 'Subsumes' relationships (AGGRESSIVE OPTIMIZATION)
 -- Key insight: ICD10PCS codes are hierarchical by length (3-7 chars)
 -- Instead of expensive nested loop join on substring matching, generate parent codes
 -- explicitly and use simple exact-match joins. This converts O(n²) to O(n*k) where k=5
@@ -338,6 +327,17 @@ DROP TABLE temp_billable_codes;
 DROP TABLE temp_parent_codes;
 
 ANALYZE concept_relationship_stage;
+
+--10. Process manual tables for concept and relationship
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 --11. Working with replacement mappings
 DO $_$

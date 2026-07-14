@@ -13,14 +13,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Timur Vakhitov, Christian Reich, Eduard Korchmar
-* Date: 2021
-* Optimizations: Performance improvements for large-scale data loads
+* Authors: Timur Vakhitov, Christian Reich, Eduard Korchmar, Masha Khitrun
+* Date: 2026
 **************************************************************************/
-
---0. Set performance parameters for bulk operations
-SET work_mem = '2GB';
-SET max_parallel_workers_per_gather = 4;
 
 --1. Update latest_update field to new date
 DO $_$
@@ -72,8 +67,7 @@ FROM sources.icd10pcs;
 
 ANALYZE concept_stage;
 
---4. Add all the other ICD10PCS Hierarchical terms from umls.mrconso (OPTIMIZED: pre-filter before window function)
--- filter out codes already loaded in step 3 before running the expensive window function
+--4. Add all the other ICD10PCS Hierarchical terms from umls.mrconso
 WITH mr_new AS (
 	SELECT mr.code,
 		mr.str,
@@ -83,7 +77,6 @@ WITH mr_new AS (
 	WHERE mr.sab = 'ICD10PCS'
 		AND cs.concept_code IS NULL
 	),
--- take the best str per code using DISTINCT ON (faster than FIRST_VALUE OVER for large datasets)
 ranked AS (
 	SELECT DISTINCT ON (code)
 		vocabulary_pack.CutConceptName(str) AS concept_name,
@@ -156,7 +149,7 @@ WHERE mr.sab = 'ICD10PCS'
 
 ANALYZE concept_synonym_stage;
 
---6. "Resurrect" previously deprecated concepts using the basic tables (OPTIMIZED: batch filtering)
+--6. "Resurrect" previously deprecated concepts using the basic tables
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -223,7 +216,7 @@ WHERE i.concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_'
 ON CONFLICT DO NOTHING;
 
---8. Add original names of resurrected concepts using the concept table (OPTIMIZED: avoid index creation/dropping)
+--8. Add original names of resurrected concepts using the concept table
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -251,12 +244,7 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 ANALYZE concept_synonym_stage;
 
 --9. Build 'Subsumes' relationships (AGGRESSIVE OPTIMIZATION)
--- Key insight: ICD10PCS codes are hierarchical by length (3-7 chars)
--- Instead of expensive nested loop join on substring matching, generate parent codes
--- explicitly and use simple exact-match joins. This converts O(n²) to O(n*k) where k=5
--- Expected speedup: 23 minutes → 30-60 seconds (20-40x faster)
-
--- Step 10a: Extract only 7-character billable codes (these are the "leaf" nodes)
+--9.1 Extract only 7-character billable codes (these are the "leaf" nodes)
 CREATE TEMP TABLE temp_billable_codes AS
 SELECT concept_code
 FROM concept_stage
@@ -264,9 +252,7 @@ WHERE LENGTH(concept_code) = 7;
 
 CREATE INDEX idx_billable ON temp_billable_codes (concept_code);
 
--- Step 10b: Generate all parent codes (6, 5, 4, 3 char prefixes) from billable codes
--- Using recursive CTE: O(n) instead of O(n²) comparisons
--- Explicit type casting required for PostgreSQL recursive CTE
+--9.2 Generate all parent codes (6, 5, 4, 3 char prefixes) from billable codes
 CREATE TEMP TABLE temp_parent_codes AS
 WITH RECURSIVE code_parents AS (
 	SELECT DISTINCT concept_code::VARCHAR(50) AS parent_code, 7 AS depth
@@ -293,10 +279,7 @@ WHERE parent_code <> '' AND LENGTH(parent_code) >= 3;
 
 CREATE INDEX idx_parent_codes ON temp_parent_codes (parent_code);
 
--- Step 10c: Insert relationships using exact matches on pre-generated parent codes
--- OPTIMIZED: Only create direct parent-child relationships (immediate subsumption)
--- This uses simple hash joins on indexed temp tables (very fast)
--- No nested loops or expensive pattern matching
+--9.3 Insert relationships using exact matches on pre-generated parent codes
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -368,7 +351,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---15. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain (OPTIMIZED: pre-filter with EXISTS)
+--15. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
 WHERE cs.concept_class_id = 'ICD10PCS'

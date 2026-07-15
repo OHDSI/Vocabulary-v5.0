@@ -299,6 +299,253 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
+--12.1 De-standardize LOINC questions and answers covered by Cancer Modifier pre-coordinated pairs
+/*
+Purpose:
+  De-standardize original LOINC question and answer concepts only when their
+  active production "Has Answer" universe is fully covered by the new
+  pre-coordinated pair representation.
+
+Coverage rules:
+  - For a QUESTION:
+      every active production LOINC "Has Answer" answer must be covered either by:
+        a) a mapped pre-coordinated pair; or
+        b) a no-information / administrative answer that is intentionally not mapped.
+      This allows broad answers such as "Other" or "Unknown" to stop blocking
+      the de-standardization of a specific question.
+
+  - For an ANSWER:
+      every active production LOINC question using that answer must be covered by:
+        a) a mapped pre-coordinated pair; or
+        b) an explicit in-scope pre-coordinated pair for a no-information /
+           administrative answer.
+      This prevents broad answers such as LA46-8 "Other" from being
+      de-standardized while they are still used by questions outside the
+      Cancer Modifier pre-coordinated-pair scope.
+*/
+WITH zero_map_acceptable_answers AS (
+    SELECT *
+    FROM (
+        VALUES
+            ('LA3983-9',  'Grade/differentiation unknown, not stated, or not applicable'),
+            ('LA4158-7',  'Code - not defined in code system'),
+            ('LA4489-6',  'Unknown'),
+            ('LA4543-0',  'N/A'),
+            ('LA4703-0',  'Not applicable (no AJCC staging scheme)'),
+            ('LA4720-4',  'Not applicable'),
+            ('LA7338-2',  'Not available'),
+            ('LA46-8',    'Other'),
+            ('LA4379-9',  'Registrar'),
+            ('LA4622-2',  'Managing physician'),
+            ('LA4651-1',  'Pathologist'),
+            ('LA4724-6',  'Other physician'),
+            ('LA4693-3',  'Not staged'),
+            ('LA4406-0',  'Unknown if Staged'),
+            ('LA4391-4',  'Recurrent, unstaged, unknown, Stage X'),
+            ('LA3595-1',  'Unstaged'),
+            ('LA3594-4',  'Unstaged, unknown'),
+            ('LA4708-9',  'NOS, unknown'),
+            ('LA13420-7', 'Unknown/Indeterminate'),
+            ('LA14100-4', 'Undetermined'),
+            ('LA11884-6', 'Indeterminate')
+    ) AS x(answer_concept_code, reason)
+),
+active_qa AS (
+    SELECT DISTINCT
+        q.concept_code  AS question_concept_code,
+        q.concept_name  AS question_concept_name,
+        q.vocabulary_id AS question_vocabulary_id,
+        a.concept_code  AS answer_concept_code,
+        a.concept_name  AS answer_concept_name,
+        a.vocabulary_id AS answer_vocabulary_id
+    FROM concept_relationship cr
+    JOIN concept q
+        ON q.concept_id = cr.concept_id_1
+    JOIN concept a
+        ON a.concept_id = cr.concept_id_2
+    WHERE cr.relationship_id = 'Has Answer'
+      AND cr.invalid_reason IS NULL
+      AND q.vocabulary_id = 'LOINC'
+      AND a.vocabulary_id = 'LOINC'
+),
+staged_pairs AS (
+    SELECT DISTINCT
+        cs.concept_code  AS pair_concept_code,
+        cs.concept_name  AS pair_concept_name,
+        cs.vocabulary_id AS pair_vocabulary_id
+    FROM concept_stage cs
+    WHERE cs.vocabulary_id = 'LOINC'
+      AND cs.concept_class_id = 'Precoordinated pair'
+),
+pair_links AS (
+    SELECT
+        concept_code_1,
+        vocabulary_id_1,
+        concept_code_2,
+        vocabulary_id_2
+    FROM concept_relationship_stage
+    WHERE relationship_id = 'Precoord pair of'
+      AND invalid_reason IS NULL
+
+    UNION
+
+    SELECT
+        concept_code_1,
+        vocabulary_id_1,
+        concept_code_2,
+        vocabulary_id_2
+    FROM concept_relationship_manual
+    WHERE relationship_id = 'Precoord pair of'
+      AND invalid_reason IS NULL
+),
+pair_components AS (
+    SELECT DISTINCT
+        sp.pair_concept_code,
+        sp.pair_concept_name,
+        sp.pair_vocabulary_id,
+        CASE
+            WHEN pl.concept_code_1 = sp.pair_concept_code
+             AND pl.vocabulary_id_1 = sp.pair_vocabulary_id
+            THEN pl.concept_code_2
+            ELSE pl.concept_code_1
+        END AS component_concept_code,
+        CASE
+            WHEN pl.concept_code_1 = sp.pair_concept_code
+             AND pl.vocabulary_id_1 = sp.pair_vocabulary_id
+            THEN pl.vocabulary_id_2
+            ELSE pl.vocabulary_id_1
+        END AS component_vocabulary_id
+    FROM staged_pairs sp
+    JOIN pair_links pl
+        ON (
+            pl.concept_code_1 = sp.pair_concept_code
+            AND pl.vocabulary_id_1 = sp.pair_vocabulary_id
+        )
+        OR (
+            pl.concept_code_2 = sp.pair_concept_code
+            AND pl.vocabulary_id_2 = sp.pair_vocabulary_id
+        )
+),
+qa_precoord_pairs AS (
+    SELECT DISTINCT
+        qa.question_concept_code,
+        qa.question_concept_name,
+        qa.question_vocabulary_id,
+        qa.answer_concept_code,
+        qa.answer_concept_name,
+        qa.answer_vocabulary_id,
+        pp.pair_concept_code,
+        pp.pair_concept_name,
+        pp.pair_vocabulary_id
+    FROM active_qa qa
+    LEFT JOIN (
+        SELECT DISTINCT
+            pcq.pair_concept_code,
+            pcq.pair_concept_name,
+            pcq.pair_vocabulary_id,
+            pcq.component_concept_code  AS question_concept_code,
+            pcq.component_vocabulary_id AS question_vocabulary_id,
+            pca.component_concept_code  AS answer_concept_code,
+            pca.component_vocabulary_id AS answer_vocabulary_id
+        FROM pair_components pcq
+        JOIN pair_components pca
+            ON pca.pair_concept_code = pcq.pair_concept_code
+           AND pca.pair_vocabulary_id = pcq.pair_vocabulary_id
+           AND (
+                pca.component_concept_code <> pcq.component_concept_code
+                OR pca.component_vocabulary_id <> pcq.component_vocabulary_id
+           )
+    ) pp
+        ON pp.question_concept_code = qa.question_concept_code
+       AND pp.question_vocabulary_id = qa.question_vocabulary_id
+       AND pp.answer_concept_code = qa.answer_concept_code
+       AND pp.answer_vocabulary_id = qa.answer_vocabulary_id
+),
+mapped_pairs AS (
+    SELECT DISTINCT
+        concept_code_1  AS pair_concept_code,
+        vocabulary_id_1 AS pair_vocabulary_id
+    FROM concept_relationship_stage
+    WHERE relationship_id IN ('Maps to', 'Maps to value')
+      AND vocabulary_id_1 = 'LOINC'
+      AND invalid_reason IS NULL
+
+    UNION
+
+    SELECT DISTINCT
+        concept_code_1  AS pair_concept_code,
+        vocabulary_id_1 AS pair_vocabulary_id
+    FROM concept_relationship_manual
+    WHERE relationship_id IN ('Maps to', 'Maps to value')
+      AND vocabulary_id_1 = 'LOINC'
+      AND invalid_reason IS NULL
+),
+qa_coverage AS (
+    SELECT
+        qa.question_concept_code,
+        qa.question_vocabulary_id,
+        qa.answer_concept_code,
+        qa.answer_vocabulary_id,
+        qa.pair_concept_code,
+        qa.pair_vocabulary_id,
+        CASE
+            WHEN mp.pair_concept_code IS NOT NULL
+            THEN 1
+            WHEN z.answer_concept_code IS NOT NULL
+            THEN 1
+            ELSE 0
+        END AS is_covered_for_question,
+        CASE
+            WHEN mp.pair_concept_code IS NOT NULL
+            THEN 1
+            WHEN z.answer_concept_code IS NOT NULL
+             AND qa.pair_concept_code IS NOT NULL
+            THEN 1
+            ELSE 0
+        END AS is_covered_for_answer
+    FROM qa_precoord_pairs qa
+    LEFT JOIN mapped_pairs mp
+        ON mp.pair_concept_code = qa.pair_concept_code
+       AND mp.pair_vocabulary_id = qa.pair_vocabulary_id
+    LEFT JOIN zero_map_acceptable_answers z
+        ON z.answer_concept_code = qa.answer_concept_code
+),
+eligible_concepts AS (
+    SELECT
+        qc.question_concept_code AS concept_code,
+        qc.question_vocabulary_id AS vocabulary_id
+    FROM qa_coverage qc
+    JOIN concept_stage cs
+        ON cs.concept_code = qc.question_concept_code
+       AND cs.vocabulary_id = qc.question_vocabulary_id
+    GROUP BY
+        qc.question_concept_code,
+        qc.question_vocabulary_id
+    HAVING COUNT(*) = SUM(is_covered_for_question)
+
+    UNION
+
+    SELECT
+        qc.answer_concept_code AS concept_code,
+        qc.answer_vocabulary_id AS vocabulary_id
+    FROM qa_coverage qc
+    JOIN concept_stage cs
+        ON cs.concept_code = qc.answer_concept_code
+       AND cs.vocabulary_id = qc.answer_vocabulary_id
+    GROUP BY
+        qc.answer_concept_code,
+        qc.answer_vocabulary_id
+    HAVING COUNT(*) = SUM(is_covered_for_answer)
+)
+UPDATE concept_stage cs
+SET standard_concept = NULL
+FROM eligible_concepts ec
+WHERE cs.concept_code = ec.concept_code
+  AND cs.vocabulary_id = ec.vocabulary_id
+  AND cs.vocabulary_id = 'LOINC'
+  AND cs.standard_concept IS NOT NULL
+;
+
 --13. Working with replacement mappings
 DO $_$
 BEGIN

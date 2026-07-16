@@ -29,8 +29,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'SNOMED Veterinary',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources_vet_sct2_concept_full where moduleId = '332351000009108' LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources_vet_sct2_concept_full LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.vet_sct2_concept_full where moduleId = '332351000009108' LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.vet_sct2_concept_full LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_VETERINARY'
 );
 END $_$;
@@ -102,19 +102,20 @@ SELECT sct2.concept_name,
 						THEN 2 --US English language reference set
 					ELSE 99
 					END,
-				CASE l.source_file_id
-					WHEN 'VET'
-						THEN 1 -- SNOMED VET
-					WHEN 'INT'
-						THEN 2 -- SNOMED INT
-					ELSE 99
-					END ASC,
+					-- commented out since ony vet extension loaded now
+				-- CASE l.source_file_id
+				--	WHEN 'VET'
+					--	THEN 1 -- SNOMED VET
+					-- WHEN 'INT'
+					--	THEN 2 -- SNOMED INT
+					-- ELSE 99
+					-- END ASC,
 				l.effectivetime DESC,
 				d.term
 			) AS rn
-	FROM sources_vet_sct2_concept_full c
-	JOIN sources_vet_sct2_desc_full d ON d.conceptid = c.id
-	JOIN sources_vet_der2_crefset_language l ON l.referencedcomponentid = d.id where c.moduleId = '332351000009108' 
+	FROM sources.vet_sct2_concept_full c
+	JOIN sources.vet_sct2_desc_full d ON d.conceptid = c.id
+	JOIN sources.vet_der2_crefset_languagefull l ON l.referencedcomponentid = d.id where c.moduleId = '332351000009108' 
 	 ) sct2
 WHERE sct2.rn = 1  
 AND not EXISTS (
@@ -128,7 +129,7 @@ AND not EXISTS (
 
 ANALYZE concept_stage;
 
---4.1 For concepts with latest entry in sources_vet_sct2_concept_full having active = 0, preserve invalid_reason and valid_end date
+--4.1 For concepts with latest entry in sources.vet_sct2_concept_full having active = 0, preserve invalid_reason and valid_end date
 UPDATE concept_stage cs
 SET invalid_reason = 'D',
 	valid_end_date = i.effectiveend
@@ -138,7 +139,7 @@ FROM (
 		SELECT DISTINCT ON (c.id) c.id,
 			DATE(c.effectivetime) AS effectiveend,
 			c.active
-		FROM sources_vet_sct2_concept_full c
+		FROM sources.vet_sct2_concept_full c
 		ORDER BY c.id,
 			c.effectivetime DESC
 		) s0
@@ -288,7 +289,7 @@ FROM (
 					SELECT concept_code,
 						active,
 						SUBSTRING(term, '\(([^(]+)\)$') AS f7,
-						rna AS rnb -- row number in sources_vet_sct2_desc_full
+						rna AS rnb -- row number in sources.vet_sct2_desc_full
 					FROM (
 						SELECT c.concept_code,
 							d.term,
@@ -298,9 +299,9 @@ FROM (
 								BY
 									d.active DESC, -- active ones
 									d.effectivetime DESC -- latest active ones
-								) rna -- row number in sources_vet_sct2_desc_full
+								) rna -- row number in sources.vet_sct2_desc_full
 						FROM concept_stage c
-						JOIN sources_vet_sct2_desc_full d ON d.conceptid = c.concept_code
+						JOIN sources.vet_sct2_desc_full d ON d.conceptid = c.concept_code
 						WHERE c.vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
 							AND d.typeid = '900000000000003001' -- only Fully Specified Names
 					) AS s0
@@ -479,7 +480,7 @@ FROM (
 		FIRST_VALUE(m.active) OVER (
 			PARTITION BY m.id ORDER BY m.effectivetime DESC
 			) AS active_status
-	FROM sources_vet_sct2_desc_full m
+	FROM sources.vet_sct2_desc_full m
 	) d
 JOIN concept_stage cs ON cs.concept_code = d.conceptid
 WHERE d.active_status = 1
@@ -529,7 +530,7 @@ SELECT cs.concept_code AS concept_code_1,
 	cs.valid_start_date,
 	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources_vet_sct2_concept_full c
+FROM sources.vet_sct2_concept_full c
 JOIN concept_stage cs ON cs.concept_code = c.id
 LEFT JOIN concept_stage csm ON csm.concept_code = c.moduleid
 LEFT JOIN concept c_core ON c_core.concept_code = c.moduleid
@@ -557,7 +558,7 @@ UNION ALL
 		DATE(c.effectivetime) AS valid_start_date,
 		TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 		NULL AS invalid_reason
-	FROM sources_vet_sct2_concept_full c
+	FROM sources.vet_sct2_concept_full c
 	JOIN concept_stage cs ON cs.concept_code = c.id
 	JOIN concept c_status ON c_status.concept_code = c.statusid
 		AND c_status.vocabulary_id = 'SNOMED'
@@ -593,8 +594,8 @@ WITH attr_rel AS (
 				r.typeid,
 				d.term,
 				r.active
-			FROM sources_vet_sct2_rela_full r
-			JOIN sources_vet_sct2_desc_full d ON d.conceptid = r.typeid
+			FROM sources.vet_sct2_rela_full r
+			JOIN sources.vet_sct2_desc_full d ON d.conceptid = r.typeid
 			-- get the latest in a sequence of relationships, to decide whether it is still active
 			ORDER BY r.id,
 				r.effectivetime DESC,
@@ -996,7 +997,7 @@ WITH cte AS (
 			sc.moduleid ORDER BY DATE(sc.effectivetime) DESC
 			) AS recent_status,
 		active
-	FROM sources_vet_der2_crefset_assreffull sc
+	FROM sources.vet_der2_crefset_assreffull sc
 	WHERE sc.refsetid IN (
 			'900000000000526001',
 			'900000000000523009',
@@ -1193,6 +1194,14 @@ AND EXISTS (SELECT 1
            AND ((c1.concept_code, c1.vocabulary_id) != (n.concept_code_2, n.vocabulary_id_2)
                OR cr.relationship_id != n.relationship_id)
                )
+-- FIX (matches the guard already applied to the 'Maps to' half below):
+-- the EXISTS above only constrains concept_code_1 (c) to be tied to a new
+-- vet-touching replacement; it does NOT constrain c1 (concept_code_2, the
+-- OLD relationship's target). Without this, a core SNOMED concept that
+-- happens to be concept_code_1 of a new vet replacement would drag in ALL
+-- of its other unrelated old replacement relationships for deprecation,
+-- including pure core-to-core ones with no vet content whatsoever.
+AND (c.vocabulary_id = 'SNOMED Veterinary' OR c1.vocabulary_id = 'SNOMED Veterinary')
 AND NOT EXISTS (
     SELECT 1
     FROM concept_relationship_manual crm
@@ -1233,7 +1242,6 @@ AND NOT EXISTS (
     AND crm.relationship_id LIKE 'Maps to%'
     AND crm.invalid_reason IS NULL)
 ;
-
 ANALYZE replacements;
 
 INSERT INTO concept_relationship_stage (
@@ -1575,7 +1583,7 @@ JOIN (
 			) AS destinationid,
 		r.effectivetime,
 		MAX(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime
-	FROM sources_vet_sct2_rela_full r
+	FROM sources.vet_sct2_rela_full r
 	LEFT JOIN concept_stage x ON x.concept_code = r.destinationid
 		AND x.invalid_reason IS NULL
 	LEFT JOIN concept x_core ON x_core.concept_code = r.destinationid
@@ -2049,7 +2057,7 @@ WITH concept_status AS (
 			statusid,
 			moduleid,
 			effectivetime
-		FROM sources_vet_sct2_concept_full c
+		FROM sources.vet_sct2_concept_full c
 		ORDER BY c.id,
 			c.effectivetime DESC
 		),
@@ -2063,7 +2071,7 @@ WITH concept_status AS (
 			RANK() OVER (
 				PARTITION BY d.conceptid ORDER BY d.effectivetime DESC
 				) AS rn
-		FROM sources_vet_sct2_desc_full d
+		FROM sources.vet_sct2_desc_full d
 		JOIN concept_status a ON a.conceptid = d.conceptid
 			AND a.active = 1
 		WHERE d.active = 1
@@ -2214,9 +2222,57 @@ WHERE concept_class_id IS NULL;
 
 -- Fix concept_relationship_stage: valid_end_date < valid_start_date
 -- (caused by latest_update date mismatch between SNOMED and SNOMED Veterinary in step 9.2)
+-- Fix concept_relationship_stage: valid_end_date <= valid_start_date
+-- But preserve self-mappings and external mappings (RxNorm/CVX) which should always go to 2099-12-31
 UPDATE concept_relationship_stage
-SET valid_end_date = valid_start_date
-WHERE valid_end_date < valid_start_date;
+SET valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+WHERE valid_end_date <= valid_start_date
+  AND NOT (concept_code_1 = concept_code_2 AND vocabulary_id_1 = vocabulary_id_2)  -- exclude self-mappings
+  AND NOT (vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension', 'CVX'));  -- exclude external mappings
+
+-- Fix concept_relationship_stage: Restore self-mappings that were incorrectly deprecated
+-- Self-mappings (where concept_code_1 = concept_code_2) should never be deprecated
+-- if the concept itself is valid, but DeprecateWrongMAPSTO() marks them as deprecated.
+UPDATE concept_relationship_stage
+SET invalid_reason = NULL,
+    valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+WHERE relationship_id = 'Maps to'
+  AND concept_code_1 = concept_code_2
+  AND vocabulary_id_1 = vocabulary_id_2
+  AND invalid_reason IS NOT NULL;
+
+-- Fix concept_relationship_stage: Add self-mappings for unmapped medicinal products
+-- OMOP convention: Pharma/Biol Product, Clinical Drug, and Clinical Drug Form concepts
+-- without external Maps to targets should have self-mappings to maintain Standard status
+INSERT INTO concept_relationship_stage 
+  (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2,
+   valid_start_date, valid_end_date)
+SELECT cs.concept_code, cs.vocabulary_id, 'Maps to', 
+       cs.concept_code, cs.vocabulary_id,
+       (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'SNOMED Veterinary'),
+       TO_DATE('20991231', 'YYYYMMDD')
+FROM concept_stage cs
+WHERE cs.vocabulary_id = 'SNOMED Veterinary'
+  AND cs.concept_class_id IN ('Pharma/Biol Product', 'Clinical Drug', 'Clinical Drug Form')
+  AND NOT EXISTS (
+      SELECT 1 FROM concept_relationship_stage cr
+      WHERE cr.concept_code_1 = cs.concept_code
+        AND cr.vocabulary_id_1 = cs.vocabulary_id
+        AND cr.relationship_id = 'Maps to'
+  )
+ON CONFLICT DO NOTHING;
+
+-- Ensure preserved external mappings from devv5 are marked as valid
+-- (prevent DeprecateWrongMAPSTO and other procedures from deprecating them)
+UPDATE concept_relationship_stage
+SET invalid_reason = NULL,
+    valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+WHERE relationship_id = 'Maps to'
+  AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension', 'CVX')
+  AND vocabulary_id_1 = 'SNOMED Veterinary';
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage
+-- should be ready to be fed into the generic_update.sql script
 
 --24. Clean up
 DROP TABLE IF EXISTS peak;
@@ -2224,7 +2280,4 @@ DROP TABLE IF EXISTS domain_snomed;
 DROP TABLE IF EXISTS snomed_ancestor;
 DROP TABLE IF EXISTS hierarchy_concept_lookup;
 DROP TABLE IF EXISTS replacements;
-
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage
--- should be ready to be fed into the generic_update.sql script
 

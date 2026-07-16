@@ -1,5 +1,6 @@
 -- MONDO ontology is stored as a JSON file
-CREATE TABLE mondo_json (
+DROP TABLE IF EXISTS dev_mondo.mondo_json;
+CREATE TABLE dev_mondo.mondo_json (
     id SERIAL PRIMARY KEY,
     version DATE,
     source_json JSONB NOT NULL,
@@ -20,8 +21,9 @@ ON mondo_json
 USING GIN (source_json jsonb_ops);
 
 
--- MONDO ontology sssom mapping mappings
-CREATE TABLE mondo_sssom_maps
+-- MONDO ontology sssom mappings
+DROP TABLE IF EXISTS dev_mondo.mondo_sssom_maps;
+CREATE TABLE dev_mondo.mondo_sssom_maps
 (
     subject_id            text,
     subject_label         text,

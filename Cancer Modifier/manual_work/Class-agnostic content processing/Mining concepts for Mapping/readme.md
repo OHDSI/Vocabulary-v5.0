@@ -5,7 +5,7 @@ This folder contains an optional mining workflow used to find oncology-related c
 #### Prerequisites
 - Run from the `dev_cancer_modifier` development schema, or set `search_path` so unqualified working tables resolve there.
 - SNOMED, LOINC, NAACCR and Cancer Modifier content must be available in the dev schema.
-- Deploy [`working/packages/vocabulary_pack/SeedBasedHecateMine_multithread.sql`](../../../working/packages/vocabulary_pack/SeedBasedHecateMine_multithread.sql) before running the Hecate mining step. Deployment notes are kept as comments in that script.
+- Deploy [`working/packages/vocabulary_pack/SeedBasedHecateMine_multithread.sql`](../../../../working/packages/vocabulary_pack/SeedBasedHecateMine_multithread.sql) before running the Hecate mining step. Deployment notes are kept as comments in that script.
 - The database server must have `plpython3u` and outbound HTTPS access to the Hecate API when semantic mining is used.
 
 #### Sequence of actions
@@ -40,4 +40,4 @@ Optional: run `6 - curation output metadata backlog.sql` when the goal is to avo
 
 #### CDE handoff
 
-After curator review, load the approved spreadsheet rows into `dev_cancer_modifier.cancer_modifier_cde` and run the script documented in [`CDE/readme.md`](CDE/readme.md). That script converts approved decisions into `concept_manual` and `concept_relationship_manual` rows for the Cancer Modifier `load_stage.sql`.
+After curator review, load the approved spreadsheet rows into `dev_cancer_modifier.cancer_modifier_cde` and run the script documented in [`CDE/readme.md`](../CDE/readme.md). That script converts approved decisions into `concept_manual` and `concept_relationship_manual` rows for the Cancer Modifier `load_stage.sql`.

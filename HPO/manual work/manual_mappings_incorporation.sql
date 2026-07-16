@@ -62,17 +62,33 @@ order by hpo_omop_domain_id, lex_match_range DESC,
     sem_match_range DESC
     )
 
-INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+INSERT INTO hpo_mapped (source_code, source_domain_id, source_vocabulary_id,
+                  mapping_tool, mapping_source, confidence, relationship_id,
+                 relationship_id_predicate,   target_concept_id, target_concept_code,
+                 target_concept_name, target_concept_class_id, target_standard_concept, target_invalid_reason,
+                 target_domain_id, target_vocabulary_id, mapper_id, reviewer_id)
 
 
-SELECT distinct source_code as concept_code_1,
-       target_concept_code as       concept_code_2,
-       'HPO' as vocabulary_id_1,
-       target_vocabulary_id as  vocabulary_id_2,
-       relationship_id,
-       current_date as valid_start_date,
-       to_date('2099-12-31','YYYY-MM-DD') as valid_end_date,
-       NULL AS invalid_reason
+SELECT distinct source_code,
+                source_domain_id,
+                'HPO'                                                       as source_vocabulary_id,
+                'AM-tool_U'                                                 as mapping_tool,
+                'Machine-produced mappings with spot-curation'              as mapping_source,
+                round(coalesce(semantic_similarity::numeric, lexical_similarity::numeric)::numeric, 2) as confidence,
+                relationship_id,
+                predicate_id,
+                target_concept_id,
+                target_concept_code,
+                target_concept_name,
+                target_concept_class_id,
+                target_standard_concept,
+                target_invalid_reason,
+                target_domain_id,
+                target_vocabulary_id,
+                'Thesaurus Health',
+                'Thesaurus Health'
+
+
 from tab t
 WHERE NOT EXISTS (SELECT 1
                   from concept_relationship_manual crmx
@@ -99,10 +115,4 @@ AND NOT EXISTS (SELECT 1
                   and crmx.vocabulary_id_1='HPO'
                   and crmx.invalid_reason is null
                   )
-;
-
-
-SELECT * from concept_relationship_manual
-where vocabulary_id_1='HPO'
-and relationship_id ~*'maps'
 ;

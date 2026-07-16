@@ -37,7 +37,7 @@ CREATE TABLE dev_hpo.hpo_json (
 -- Description: Stores associations between genes and phenotypes from HPO
 -- ============================================================================
 
-DROP TABLE dev_hpo.genes_to_hpo_phenotype;
+DROP TABLE IF EXISTS dev_hpo.genes_to_hpo_phenotype;
 CREATE TABLE dev_hpo.genes_to_hpo_phenotype (
     ncbi_gene_id INTEGER,
     gene_symbol VARCHAR(50),

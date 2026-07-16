@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Dmitry Dymshyts, Timur Vakhitov
-* Date: 2019
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Robert Miller
+* Date: 2025
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -65,7 +65,10 @@ SELECT NULL AS concept_id,
 	h.vocabulary_id,
 	h.concept_class_id,
 	CASE
-		WHEN h.concept_class_id = 'Regimen Class'
+		WHEN h.concept_class_id IN (
+				'Regimen Class',
+				'Component Class'	-- Added 2024/01/10
+				)
 			THEN 'C'
 		WHEN concept_class_id = 'Modality'
 			THEN 'S' -- can be used as a generic Regimen when we don't know what exact Chemo or Hormonotherapy patient got
@@ -108,7 +111,9 @@ SELECT DISTINCT r.concept_code_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	CASE 
+	CASE
+	    WHEN r.relationship_id = 'Has synthetic regimen'
+			THEN 'Has synth regimen'
 		WHEN r.relationship_id = 'Is historical in adult'
 			THEN 'Is hist in adult'
 		WHEN r.relationship_id = 'Is current in adult'
@@ -142,15 +147,42 @@ LEFT JOIN concept c ON c.concept_code = r.concept_code_2
 LEFT JOIN concept_stage cs2 ON cs2.concept_code = r.concept_code_2
 	AND cs2.vocabulary_id = r.vocabulary_id_2
 WHERE r.relationship_id NOT IN (
-		-- these aren't investigated well yet
-		'Was studied in', --looks irrelevant and non-needed as it's combined
-		'Has been compared to',
-		'Can be preceded by',
-		'Can be followed by',
-		'May require',
-		'Has major class',
-		'Has minor class'
-		)
+    -- these aren't investigated well yet
+                                'Was studied in', --looks irrelevant and non-needed as it's combined
+                                'Has been compared to',
+                                'Can be preceded by',
+                                'Can be followed by',
+                                'May require',
+                                'Has major class',
+                                'Has minor class',
+                                'Was NMPA approved yr',
+                                'Was PMDA approved yr',
+                                'Was FDA approved yr',
+                                'Was EMA approved yr',
+                                'Was HC approved yr',
+                                'Had experimental design',
+                                'Has second author',
+                                'Has middle author',
+                                'Has first author',
+                                'Has last author',
+                                'Has study group',
+                                'Has study type',
+                                'Has reported endpt',
+                                'Has min cycle length',
+                                'Has max cycle length',
+                                'Has min cycle num',
+                                'Has max cycle num',
+                                'Was published year',
+                                'Has min duration',
+                                'Has max duration',
+                                'Has PMCID',
+                                'Has PMID',
+                                'Has trial ID',
+                                'Was published in',
+                                'Has DOI',
+                                'Has URL',
+                                'Has reference'
+)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
 		r.concept_code_1 = '37'
@@ -338,6 +370,9 @@ FROM (
 				THEN 'Has radiotherapy Rx'
 			WHEN 'Has pept-drug cjgt'
 				THEN 'Has pept-drg cjg Rx'
+
+		    WHEN 'Has growth factor'
+				THEN 'Has growth factor Rx'
 			ELSE NULL
 			END AS relationship_id,
 		cs1.valid_start_date,
@@ -413,7 +448,18 @@ JOIN concept_relationship_stage rb ON rb.concept_code_1 = ra.concept_code_1
 	AND rb.relationship_id = 'Is a'
 	AND rb.invalid_reason IS NULL -- component to component class
 WHERE ra.relationship_id = 'Maps to'
-	AND ra.invalid_reason IS NULL;
+	AND ra.invalid_reason IS NULL
+	AND (	-- prevent duplication inserts (comment above says no issue with it but... caused issue)
+			rb.concept_code_2, 
+			ra.concept_code_2, 
+			'Subsumes'
+		) NOT IN (
+		SELECT 
+			concept_code_1, 
+			concept_code_2,
+			relationship_id 
+		FROM concept_relationship_stage
+		);
 
 --11. Concept synonym
 INSERT INTO concept_synonym_stage (
@@ -422,7 +468,8 @@ INSERT INTO concept_synonym_stage (
 	synonym_name,
 	language_concept_id
 	)
-SELECT css.synonym_concept_code,
+SELECT DISTINCT 	-- distinct added to avoid duplicates; otherwise->(ERROR: duplicate key value violates unique constraint "idx_pk_css")
+	css.synonym_concept_code,
 	css.synonym_vocabulary_id,
 	REPLACE(css.synonym_name, '<sup>', '') AS synonym_name, -- fall2022 brings <syp>  is curated manually to make synonyms more reliable
 	css.language_concept_id
@@ -432,7 +479,6 @@ JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	-- 15704 has empty name, typo, I suppose
 	AND css.synonym_name IS NOT NULL
 	AND css.synonym_name NOT ILIKE '%\\>%'; --\\>  fall2022 release brings synonyms with URL structure for regimens
-
 
 --11.1 Concept synonym cleanup
 --delete rows not existing in CS
@@ -483,10 +529,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---15. Add mapping from deprecated to fresh concepts
+--15.1 Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--15.2 Add mapping from deprecated to fresh concepts for 'Maps to value'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
 --16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts

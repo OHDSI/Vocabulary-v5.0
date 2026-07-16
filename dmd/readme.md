@@ -5,23 +5,79 @@ Prerequisites:
 - Working directory dmd
 - Updated and released versions of RxNorm, RxNorm Extension and SNOMED vocabularies
 
-Update algorithm:
-
 1. Run create_source_tables.sql
-2. Download nhsbsa_dmd_X.X.X_xxxxxxxxxxxxxx.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/6/subpack/24/releases
-3. Extract f_ampp2_xxxxxxx.xml, f_amp2_xxxxxxx.xml, f_vmpp2_xxxxxxx.xml, f_vmp2_xxxxxxx.xml, f_lookup2_xxxxxxx.xml, f_vtm2_xxxxxxx.xml and f_ingredient2_xxxxxxx.xml
-4. Rename to f_ampp2.xml, f_amp2.xml, f_vmpp2.xml, f_vmp2.xml, f_lookup2.xml, f_vtm2.xml and f_ingredient2.xml
-5. Download nhsbsa_dmdbonus_X.X.X_YYYYMMDDXXXXXX.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/6/subpack/25/releases
-6. Extract weekXXYYYY-rX_X-BNF.zip/f_bnf1_XXXXXXX.xml and rename to dmdbonus.xml
-7. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('DMD',TO_DATE('20210201','YYYYMMDD'),'dm+d Version 2.0.0 20210201');
 
-8. Run additional_DDL.sql
-9. Run load_stage.sql;
-    - Update latest_update to current version
-    - Commented portions include SELECTs needed to update manual tables
-10. Run build_RxE.sql from ../working
-11. Run postprocessing.sql
-12. Run devv5.generic_update() function
+2. Register to [NHSBSA](https://isd.digital.nhs.uk/trud/users/authenticated/filters/0/home) if you have not already, sign in and request the **latest version** of dm+d data.
 
-R_TO_C_ALL contents which is sufficient for December 2020 1st week release is available under:
-https://drive.google.com/drive/u/2/folders/1-_gcibtoQwhqnqAtf1bd02djLEicBr9w
+* Click on the **Subscribe** option associated with the dm+d data release. This subscription is necessary to enable the download functionality for the vocabulary files.
+
+4. Once subscribed, fill `vocabulary_access` table in development schema with your credentials to give an access to file download.
+
+5. Run [`vocabulary_download.get_dmd()`](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_download/get_dmd.sql) in development schema to load all required source files, including dm+d XML files into OMOP-compliant source tables in the dedicated source schema. Files are stored in ZIP archives.
+
+6. Run [`vocabulary_download.bash_functions_dmd()`](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_download/bash_functions_dmd.sql) to unpack all ZIP archives and get respective XMLs.
+
+7. Once the dm+d XML files are acquired and their content is accessible within a database, PostgreSQL's built-in XML processing functions, particularly `xpath()`, allow us to target and retrieve data based on the hierarchical paths within each XML file. The provided PostgreSQL code snippet demonstrates how to extract data from the `f_vtm2.xml` file:
+
+        --vtms: Virtual Therapeutic Moiety
+        CREATE TABLE vtms AS
+        SELECT
+            unnest(xpath('/VTM/NM/text()', i.xmlfield))::VARCHAR AS NM,
+            unnest(xpath('/VTM/VTMID/text()', i.xmlfield))::VARCHAR AS VTMID,
+            unnest(xpath('/VTM/VTMIDPREV/text()', i.xmlfield))::VARCHAR AS VTMIDPREV,
+            to_date(unnest(xpath('/VTM/VTMIDDT/text()', i.xmlfield))::VARCHAR,'YYYY-MM-DD') AS VTMIDDT,
+            unnest(xpath('/VTM/INVALID/text()', i.xmlfield))::VARCHAR AS INVALID
+        FROM (
+            SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) AS xmlfield
+            FROM sources.f_vtm2 i
+        ) AS i;
+
+This example illustrates the general approach to extracting data from the dm+d XML source files. Similar techniques applied to process the other XML files based on their specific structures.
+
+For **each of the eight XML** files, a specific extraction process is defined to pull out the necessary attributes and elements corresponding to the respective dm+d entities. All queries could be found in `load_stage.sql``add link here` and do not require any changes.
+
+8. Run [`additional_DDL.sql`](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/dmd/additional_DDL.sql) to create the auxiliary drug staging tables (DRUG_CONCEPT_STAGE, DS_STAGE, INTERNAL_RELATIONSHIP_STAGE, RELATIONSHIP_TO_CONCEPT, PC_STAGE) required for processing dm+d data.
+
+9. Run 
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true, include_deprecated_rels=> true, include_synonyms=> true);
+   ```
+
+10. Run load_stage.sql
+
+11. Run automated and manual checks before the next step.
+
+12. Run
+```sql
+   DO $_$
+   BEGIN
+       PERFORM vocabulary_pack.BuildRxE();
+   END $_$;
+   ```
+13. Run postprocessing.sql
+
+14. Run generic_update:
+   ```sql
+   DO $_$
+   BEGIN
+       PERFORM devv5.GenericUpdate();
+   END $_$;
+   ```
+15. Run basic tables check (should retrieve NULL):
+   ```sql
+    SELECT * FROM qa_tests.get_checks();
+```
+16. Run scripts to get summary, and interpret the results:
+    ```sql
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept','dev_test9');
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship','dev_test9');
+    ```
+17. Run scripts to collect statistics, and interpret the results:
+    ```sql
+    SELECT DISTINCT * FROM qa_tests.get_domain_changes();
+    SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+    SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+    SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+    SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+    ```
+For the more precise update process and vocabulary specification, look at the documentation folder.

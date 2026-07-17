@@ -115,11 +115,7 @@ END $_$;*/
 --12. get_summary - changes in tables between dev-schema (current) and devv5/prodv5/any other schema
 --supported tables: concept, concept_relationship, concept_ancestor
 
---12.1. first clean cache
---NOT needed anymore (because get_summary was refactored)
---select * from qa_tests.purge_cache();
-
---12.2. summary (table to check, schema to compare)
+--12.1. summary (table to check, schema to compare)
 select vocabulary_id_1,
        standard_concept,
        concept_class_id,
@@ -128,7 +124,7 @@ select vocabulary_id_1,
        concept_delta_percentage
 from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 
---12.3. summary (table to check, schema to compare)
+--12.2. summary (table to check, schema to compare)
 select vocabulary_id_1,
        vocabulary_id_2,
        relationship_id,
@@ -137,7 +133,7 @@ select vocabulary_id_1,
        concept_delta_percentage
 from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
 
---12.4. summary (table to check, schema to compare)
+--12.3. summary (table to check, schema to compare)
 --you would not need it normally because we run concept_ancestor constructor only on the release to Athena step
 --select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
 

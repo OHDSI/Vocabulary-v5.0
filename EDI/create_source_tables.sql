@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Timur Vakhitov
-* Date: 2020
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Seng Chan You, Yiju Park
+* Date: 2024
 **************************************************************************/
 
 DROP TABLE IF EXISTS SOURCES.EDI_DATA;
@@ -32,6 +32,7 @@ CREATE TABLE SOURCES.EDI_DATA
    ANCESTOR_CONCEPT_CODE  VARCHAR (1000),
    PREVIOUS_CONCEPT_CODE  VARCHAR (1000),
    MATERIAL               TEXT,
+   COMPANY_NAME          VARCHAR (255),
    DOSAGE                 TEXT,
    DOSAGE_UNIT            TEXT,
    SANJUNG_NAME           TEXT,

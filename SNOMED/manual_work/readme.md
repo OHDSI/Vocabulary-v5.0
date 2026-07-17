@@ -1,5 +1,5 @@
 ### Process of working with _manual tables
-1. Upload concept_manual table into the working schema. Currently concept_manual table is empty.
+18.1. Upload concept_manual table into the working schema. Currently concept_manual table is empty.
 The possible content is generated using the query:
 ```sql
 SELECT concept_name,
@@ -15,7 +15,7 @@ FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name
 ```
 
-2. Upload concept_relationship_manual into the working schema (skip this step if implementing on the Pallas vocabulary server).
+18.2. Upload concept_relationship_manual into the working schema (skip this step if implementing on the Pallas vocabulary server).
 Extract the [respective csv file](https://drive.google.com/file/d/1iz9GwyqEbGHZ4xXVcZs-fyXJKU47ulrU/view?usp=sharing) into the concept_relationship_manual table.
 The file was generated using the query:
 ```sql
@@ -39,21 +39,22 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 - quote always: FALSE
 - NULL string: empty
 
+18.3. Work with [snomed_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/SNOMED/manual_work/snomed_refresh.sql) file:
 
-3. Work with [snomed_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/SNOMED/manual_work/snomed_refresh.sql) file:
+18.3.1. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous SNOMED refresh.
 
-3.1. Backup concept_relationship_manual table and concept_manual table.
+18.3.2. Review the previous mapping and map new concepts. Use _cr_invalid_reason_ field to deprecate mappings.
 
-3.2. Create snomed_mapped table and pre-populate it with the resulting manual table of the previous SNOMED refresh.
+18.3.3. Truncate the snomed_mapped table. Save the spreadsheet as the snomed_mapped table and upload it into the working schema.
 
-3.3. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+18.3.4. Perform any mapping checks you have set.
 
-3.4. Truncate the snomed_mapped table. Save the spreadsheet as the snomed_mapped table and upload it into the working schema.
+18.3.5. Iteratively repeat steps 18.3.2-18.3.4 if found any issues.
 
-3.5. Perform any mapping checks you have set.
+18.3.6. Change concept_relationship_manual table according to snomed_mapped table.
 
-3.6. Iteratively repeat steps 3.3-3.5 if found any issues.
+18.3.7. Create concept_mapped table and populate it with concepts that require manual changes.
 
-3.7. Deprecate all mappings that differ from the new version of resulting mapping file.
+18.3.8 Truncate concept_mapped table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema.
 
-3.8. Insert new and corrected mappings into the concept_relationship_manual table.
+18.3.9 Change concept_manual table according to concept_mapped table.

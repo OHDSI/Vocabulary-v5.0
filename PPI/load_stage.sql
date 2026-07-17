@@ -14,15 +14,15 @@
 * limitations under the License.
 *
 * Authors: Medical team
-* Date: 2021
+* Date: 2024
 **************************************************************************/
 
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'PPI',
 	pVocabularyDate			=> current_date, -- Date of Version Update from PPI Codebook (as we have a lot of small updates - use current date)
-	pVocabularyVersion		=> 'Codebook Version 0.4.43 + COVID + MHWB + SDOH + PFH',  -- Current Codebook Version from PPI Codebook
+	pVocabularyVersion		=> 'Codebook Version 0.4.43 + COVID + MHWB + SDOH + PFH + BHP + EHH',  -- Current Codebook Version from PPI Codebook
 	pVocabularyDevSchema	=> 'dev_ppi'
 );
 END $_$;

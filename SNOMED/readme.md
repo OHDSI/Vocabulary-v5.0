@@ -83,5 +83,42 @@ Rename to der2_cRefset_AssociationFull_INT.txt, der2_cRefset_AssociationFull_UK.
 Rename to der2_cRefset_AttributeValueFull_INT.txt, der2_cRefset_AttributeValueFull_UK.txt, der2_cRefset_AttributeValueFull_US.txt and der2_cRefset_AttributeValue_GB_DE.txt
 
 12. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED',TO_DATE('20180131','YYYYMMDD'),'Snomed Release 20180131');
-13. Run load_stage.sql
-14. Run generic_update: devv5.GenericUpdate();
+13. Run 
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true, include_deprecated_rels=> true, include_synonyms=> true);
+   ```
+14. Run AddPeaks.sql if any changes in peaks are necessary.
+
+15. Run load_stage.sql
+
+16. Run generic_update:
+   ```sql
+   DO $_$
+   BEGIN
+       PERFORM devv5.GenericUpdate();
+   END $_$;
+   ```
+17. Run basic tables check (should retrieve NULL):
+   ```sql
+    SELECT * FROM qa_tests.get_checks();
+```
+18. Perform manual work described in the readme.md file in the 'manual_work' folder.
+
+Repeat steps 13-18.
+
+19. Run vocabulary-specific QA from 'specific_qa' folder.
+
+20. Run scripts to get summary, and interpret the results:
+    ```sql
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
+    ```
+21. Run scripts to collect statistics, and interpret the results:
+    ```sql
+    SELECT DISTINCT * FROM qa_tests.get_domain_changes();
+    SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+    SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+    SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+    SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+    ```
+22. If no problems, enjoy!

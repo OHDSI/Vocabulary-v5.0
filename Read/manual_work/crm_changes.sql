@@ -82,7 +82,23 @@ with mapping AS -- select all new codes with their mappings from manual file
                'Read' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
-               CASE WHEN cr_invalid_reason IN ('U', 'D') --for case when we want to deprecate mapping that doesn't exist in crm: taking valid start date from devv5.concept
+               CASE WHEN lk.cr_invalid_reason IN ('U', 'D') --for case when we want to deprecate mapping that doesn't exist in crm: taking valid start date from devv5.concept
+                       AND exists (SELECT 1
+                                     from devv5.concept a
+                                     where a.vocabulary_id = 'Read'
+                                       and a.concept_code=lk.read_code
+                                       and EXISTS  (select 1
+                                                          from devv5.concept_relationship acr
+                                                           JOIN devv5.concept a1
+                                                           ON a1.concept_id=acr.concept_id_2
+                                                              and a1.vocabulary_id = lk.repl_by_vocabulary
+                                                              and a1.concept_code=lk.repl_by_code
+                                                           WHERE acr.concept_id_1=a.concept_id
+                                                               and acr.relationship_id = lk.repl_by_relationship
+                                                                and acr.invalid_reason IS NULL
+                                                            )
+                       )
+                   AND repl_by_code IN (select concept_code from devv5.concept where vocabulary_id= repl_by_vocabulary and concept_id IN (select concept_id_2 from devv5.concept_relationship))
                    THEN (SELECT valid_start_date
                          FROM devv5.concept_relationship
                          WHERE concept_id_1 IN (SELECT concept_id
@@ -92,6 +108,8 @@ with mapping AS -- select all new codes with their mappings from manual file
                                               FROM devv5.concept
                                               WHERE concept_code = repl_by_code AND vocabulary_id = repl_by_vocabulary)
                          AND relationship_id = repl_by_relationship and invalid_reason IS NULL)
+                   WHEN cr_invalid_reason IN ('U', 'D')
+                   THEN current_date
                    ELSE current_date END AS valid_start_date, -- set the date of the refresh as valid_start_date
                CASE WHEN (cr_invalid_reason NOT IN ('U', 'D') OR cr_invalid_reason IS NULL)
                    THEN to_date('20991231','yyyymmdd')
@@ -99,7 +117,7 @@ with mapping AS -- select all new codes with their mappings from manual file
                CASE WHEN (cr_invalid_reason NOT IN ('U', 'D') OR cr_invalid_reason IS NULL)
                    THEN NULL
                 ELSE cr_invalid_reason END AS invalid_reason
-        FROM refresh_lookup_done
+        FROM refresh_lookup_done lk
         WHERE repl_by_id != 0 -- select only codes with mapping to standard concepts
     )
 -- insert new mappings into concept_relationship_manual table

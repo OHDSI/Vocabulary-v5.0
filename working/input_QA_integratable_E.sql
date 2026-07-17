@@ -17,7 +17,7 @@
 * Date: 2020
 
 
---relationship_to_concept: 8
+--relationship_to_concept: 9
 --internal_relationship_stage: 5
 --ds_stage: 17
 --drug_concept_stage: 12
@@ -134,8 +134,14 @@ FROM (
 		) AS s1
 	
 	UNION ALL
+
+	-- missing precedence
+	SELECT concept_code_1, 'precedence cannot be empty', 'relationship_to_concept'
+	FROM relationship_to_concept
+	WHERE precedence IS NULL
 	
-	--relationship_to_concept
+	UNION ALL
+
 	--concept_code_1, precedence duplicates
 	SELECT concept_code_1, 'concept_code_2 duplicates', 'relationship_to_concept'
 	FROM (

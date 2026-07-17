@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Maria Khitrun
-* Date: 2023
+* Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Masha Khitrun
+* Date: 2025
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -36,6 +36,17 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Add CPT4 concepts from the source into the concept_stage using the MRCONSO table provided by UMLS  https://www.ncbi.nlm.nih.gov/books/NBK9685/table/ch03.T.concept_names_and_sources_file_mr/
+WITH tda AS ( -- Therapeutic Drug Assays have their optimal names under another tty
+    SELECT DISTINCT code
+    FROM sources.mrconso c
+         JOIN sources.mrhier m on c.cui = m.cui
+WHERE c.sab = 'CPT'
+  AND m.sab = 'CPT'
+  AND suppress = 'N'
+  AND tty = 'ETCLIN'
+  AND ptr LIKE '%A23574843%'
+)
+
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -65,10 +76,12 @@ WHERE sab = 'CPT'
 		'O', -- All obsolete content, whether they are obsolesced by the source or by NLM
 		'Y' -- Non-obsolete content deemed suppressible during inversion
 		)
-	AND tty IN (
-		'PT', -- Designated preferred name
-		'GLP' -- Global period
-		);
+	AND (CASE WHEN scui IN (SELECT code FROM tda)
+	                THEN tty = 'ETCLIN'
+	            ELSE tty IN ('PT', -- Designated preferred name
+		                    'GLP')-- Global period
+	    END)
+;
 
 --4. Add Place of Sevice (POS) CPT terms which do not appear in patient data and used for hierarchical search
 INSERT INTO concept_stage (
@@ -460,22 +473,8 @@ FROM (
 					'44015' -- Tube or needle catheter jejunostomy
 					)
 				THEN 'Visit'
-			WHEN m2.tui IN (
-					'T081',
-					'T097',
-					'T077'
-					)
-				OR (
-					m2.tui = 'T185'
-					AND tty <> 'HT'
-					)
-				OR (
-					m2.tui = 'T080'
-					AND cs.concept_name NOT ILIKE '%modifier%'
-					)
-				THEN 'Meas Value'
 			WHEN m2.tui = 'T059'
-				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling')
+				AND cs.concept_name !~* ('processing|preparation|procedure|isolation|storage|preservation|thawing|biopsy|treatment|consultation|collection|fertilization|insemination|sampling|digitization')
 				AND cs.concept_code NOT IN (
 						'86960',
 						'86965',
@@ -498,8 +497,25 @@ FROM (
 						'1019105',
 						'1037591'
 						)
-					OR cs.concept_code = '1036228'
+					OR cs.concept_code IN ('1036228', '0564T')
+					OR (length(cs.concept_code) > 2
+					    AND cs.concept_code LIKE '%U') -- Proprietary Laboratory Analyses
 				THEN 'Measurement'
+			WHEN m2.tui IN (
+					'T081',
+					'T097',
+					'T077'
+					)
+				OR (
+					m2.tui = 'T185'
+					AND tty <> 'HT'
+					AND tty <> 'MP'
+					)
+				OR (
+					m2.tui = 'T080'
+					AND cs.concept_name NOT ILIKE '%modifier%'
+					)
+				THEN 'Meas Value'
 			WHEN (
 					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|assessment|recording|screening|\ycare\y|counseling|insertion|abortion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
 					AND (
@@ -554,13 +570,12 @@ FROM (
 						)
 				THEN 'Observation'
 			WHEN c.concept_code IN (
-					'0777T',
 					'TP',
 					'KR'
 					)
 				THEN 'Device'
 			WHEN c.concept_id IS NOT NULL
-				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
+				THEN c.domain_id -- regarding the fact that CPT4 codes are met in Claims as procedures
 			ELSE 'Procedure'
 			END AS domain_id -- preserve existing domains for all other cases
 	FROM concept_stage cs
@@ -687,6 +702,8 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+	PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo(null, '{CVX, RxNorm}', null);
 END $_$;
 
 --Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -716,19 +733,10 @@ WHERE crs.vocabulary_id_2 IN (
 	AND cs.concept_code = crs.concept_code_1
 	AND cs.vocabulary_id = crs.vocabulary_id_1;
 
---18. All concepts having mappings should be NON-standard
-UPDATE concept_stage cs
-SET standard_concept = NULL
-FROM concept_relationship_stage crs
-WHERE crs.relationship_id = 'Maps to'
-	AND crs.invalid_reason IS NULL
-	AND cs.concept_class_id <> 'CPT4 Hierarchy'
-	AND cs.standard_concept IS NOT NULL
-	AND cs.concept_code = crs.concept_code_1
-	AND cs.vocabulary_id = crs.vocabulary_id_1
-			AND NOT (
-				crs.concept_code_1 = crs.concept_code_2
-				AND crs.vocabulary_id_1 = crs.vocabulary_id_2
-				); --exclude mappings to self
+--18. All non-standard "zombie" concepts should be deprecated:
+UPDATE concept_stage c
+SET invalid_reason = 'D'
+WHERE c.valid_end_date < current_date
+AND c.standard_concept is null;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

@@ -32,4 +32,4 @@ $BODY$
 			r1.reverse_relationship_id
 			);
 $BODY$
-LANGUAGE 'sql' STABLE STRICT;
+LANGUAGE 'sql' STABLE STRICT PARALLEL SAFE;

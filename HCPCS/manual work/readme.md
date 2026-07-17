@@ -36,14 +36,18 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 9.3.1. Create hcpcs_mapped table and pre-populate it with the resulting manual table of the previous hcpcs refresh.
 
-9.3.2. Review the previous mapping and map new concepts. If previous mapping should be changed or deprecated, use cr_invalid_reason field.
+9.3.2. Review the previous mapping and map new concepts. Use _cr_invalid_reason_ field to deprecate mappings.
 
-9.3.3. Select concepts to map and add them to the manual file in the spreadsheet editor.
+9.3.3. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
 
-9.3.4. Truncate the hcpcs_mapped table. Save the spreadsheet as the hcpcs_mapped table and upload it into the working schema.
+9.3.4. Perform any mapping checks you have set.
 
-9.3.5. Perform any mapping checks you have set.
+9.3.5. Iteratively repeat steps 9.3.2-9.3.4 if found any issues.
 
-9.3.6. Iteratively repeat steps 9.3.2-9.3.5 if found any issues.
+9.3.6. Change concept_relationship_manual table according to hcpcs_mapped table.
 
-9.3.7 Change concept_relationship_manual table according to hcpcs_mapped table.
+9.3.7. Create concept_mapped table and populate it with concepts that require manual changes.
+
+9.3.8  Truncate concept_mapped table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema.
+
+9.3.9  Change concept_manual table according to concept_mapped table.

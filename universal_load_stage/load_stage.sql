@@ -99,16 +99,20 @@ JOIN vocabulary v1 ON v1.vocabulary_id = c1.vocabulary_id
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 JOIN vocabulary v2 ON v2.vocabulary_id = c2.vocabulary_id
 WHERE cr.invalid_reason IS NULL
-	AND (
-		--load only updatable vocabularies 
-		v1.latest_update IS NOT NULL
-		OR v2.latest_update IS NOT NULL
-		)
+	--load only updatable vocabularies 
+	AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
 	/*
 	put only 'direct' versions of relationships
 	this will protect us from cases where some function, for example, DeleteAmbiguousMapsTo, will update the old 'Maps to' relationship, and its reverse version will remain unaffected
 	*/
-	AND cr.relationship_id = devv5.GetPrimaryRelationshipID(cr.relationship_id);
+	--AND cr.relationship_id = devv5.GetPrimaryRelationshipID(cr.relationship_id);
+	AND (
+			CASE 
+				WHEN cr.invalid_reason IS NULL
+					AND COALESCE(v1.latest_update, v2.latest_update) IS NOT NULL
+					THEN devv5.GetPrimaryRelationshipID(cr.relationship_id)
+				END
+			) = cr.relationship_id;
 
 --5. Load full list of synonyms
 INSERT INTO concept_synonym_stage

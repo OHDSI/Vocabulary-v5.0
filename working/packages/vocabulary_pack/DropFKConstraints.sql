@@ -27,7 +27,7 @@ BEGIN
 	FROM pg_constraint pc
 	WHERE pc.contype = 'f'
 		AND pc.connamespace = CURRENT_SCHEMA::REGNAMESPACE
-		AND pc.confrelid::REGCLASS::TEXT = ANY (pTargetTables);
+		AND pc.confrelid = ANY (pTargetTables::REGCLASS[]);
 
 	EXECUTE COALESCE(iDropDDL,'');
 	RETURN COALESCE(iCreateDDL,'');

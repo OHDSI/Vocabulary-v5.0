@@ -1,3 +1,10 @@
+/*
+================================================================================
+2- prepare tables for Cancer Modifier Univeral Load Stage-style process (CDE part)
+================================================================================
+================================================================================
+*/
+
 --Once new content or updates to main corpus of cancer modifier is applied - perform data population
 
 -- Maps to value reconstruction for secondary spread

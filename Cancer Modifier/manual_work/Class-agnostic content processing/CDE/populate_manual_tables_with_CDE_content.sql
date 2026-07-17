@@ -287,7 +287,13 @@ INSERT INTO concept_relationship_manual (concept_code_1,
                                          valid_start_date,
                                          valid_end_date,
                                          invalid_reason)
-with expicit_deprecation AS (SELECT concept_code_1,
+with expicit_deprecation AS (SELECT distinct ON (concept_code_1,
+    concept_code_1,
+                                  concept_code_2,
+                                  vocabulary_id_1,
+                                  vocabulary_id_2,
+                                  relationship_id )
+    concept_code_1,
                                   concept_code_2,
                                   vocabulary_id_1,
                                   vocabulary_id_2,
@@ -304,9 +310,21 @@ with expicit_deprecation AS (SELECT concept_code_1,
                                          WHERE (c1.concept_code, c1.vocabulary_id) =
                                                (crm.concept_code_1, crm.vocabulary_id_1)
                                            and cde1.relationship_id IN ('Maps to', 'Maps to value')
-                                           and cde1.decision is true)
+                                           and cde1.decision is true
+                                   --      and cde1.comment!='value reconstruction')
                              and crm.relationship_id IN ('Maps to', 'Maps to value')
+
                              and (crm.concept_code_1, crm.vocabulary_id_1) <> (crm.concept_code_2, crm.vocabulary_id_2)
+                           and not exists(
+                               SELECT 1
+FROM cancer_modifier_cde cde2
+where cde2.source_concept_code=crm.concept_code_1
+and cde2.source_vocabulary_id=crm.vocabulary_id_1
+GROUP BY source_concept_code, source_vocabulary_id
+HAVING
+    COUNT(*) FILTER (WHERE relationship_id = 'Maps to value') > 0
+    AND COUNT(*) FILTER (WHERE relationship_id != 'Maps to value') = 0)
+                           )
                            UNION ALL
                            SELECT c.concept_code,
                                   cc.concept_code,
@@ -326,16 +344,29 @@ with expicit_deprecation AS (SELECT concept_code_1,
                                          FROM cancer_modifier_cde cde1
                                          where cde1.source_concept_id = cr.concept_id_1
                                            and cde1.relationship_id IN ('Maps to', 'Maps to value')
-                                           and cde1.decision is true)
+                                           and cde1.decision is true
+                                      --   and cde1.comment!='value reconstruction'
+                                         )
                              and cr.relationship_id IN ('Maps to', 'Maps to value')
-                             and cr.concept_id_1 != cr.concept_id_2)
+                             and cr.concept_id_1 != cr.concept_id_2
+                           and not exists(
+                               SELECT 1
+FROM cancer_modifier_cde cde2
+where cde2.source_concept_code=c.concept_code
+and cde2.source_vocabulary_id=c.vocabulary_id
+GROUP BY source_concept_code, source_vocabulary_id
+HAVING
+    COUNT(*) FILTER (WHERE relationship_id = 'Maps to value') > 0
+    AND COUNT(*) FILTER (WHERE relationship_id != 'Maps to value') = 0)
+                           )
 
 SELECT *
 from expicit_deprecation
 ON CONFLICT (concept_code_1, vocabulary_id_1,relationship_id,concept_code_2,vocabulary_id_2)
 DO UPDATE
 SET invalid_reason = 'D',
-    valid_end_date=current_date;
+    valid_end_date=current_date,
+    valid_start_date=excluded.valid_start_date;
 ;
 
 

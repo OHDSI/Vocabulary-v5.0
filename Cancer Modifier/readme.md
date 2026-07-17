@@ -11,20 +11,21 @@ The Cancer Modifier load_stage.sql follows the universal load stage approach: it
 #### Sequence of actions
 
 ##### Manual work and source preparation
-1. Perform manual work described in the [`manual_work/readme.md`](manual_work/readme.md) file.
-2. If new oncology candidates are needed to be reviewd/curated, run the mining workflow described in [`manual_work/Mining concepts for Mapping/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/readme.md).
-3. If the mining workflow is used, prepare the CDE review output and convert approved rows to manual tables as described in [`manual_work/Mining concepts for Mapping/CDE/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/CDE/readme.md).
-
-The manual work is intentionally split between the top-level and subfolder readmes. This file describes the refresh sequence; [`manual_work/readme.md`](manual_work/readme.md) describes manual table handling; [`manual_work/Mining concepts for Mapping/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/readme.md) describes candidate mining; and [`manual_work/Mining concepts for Mapping/CDE/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/CDE/readme.md) describes how reviewed CDE rows become `concept_manual` and `concept_relationship_manual` content.
-
-##### Filling stage and basic tables
-4. Run FULL FastRecreate:
+1. Run FULL FastRecreate:
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5',
                                 include_concept_ancestor=>true,
                                 include_deprecated_rels=>true,
                                 include_synonyms=>true);
 ```
+##### Filling stage and basic tables
+2. Perform manual work described in the [`manual_work/readme.md`](manual_work/readme.md) file.
+3. If new oncology candidates are needed to be reviewd/curated, run the mining workflow described in [`manual_work/Mining concepts for Mapping/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/readme.md).
+4. If the mining workflow is used, prepare the CDE review output and convert approved rows to manual tables as described in [`manual_work/Mining concepts for Mapping/CDE/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/CDE/readme.md).
+
+The manual work is intentionally split between the top-level and subfolder readmes. This file describes the refresh sequence; [`manual_work/readme.md`](manual_work/readme.md) describes manual table handling; [`manual_work/Mining concepts for Mapping/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/readme.md) describes candidate mining; and [`manual_work/Mining concepts for Mapping/CDE/readme.md`](manual_work/Mining%20concepts%20for%20Mapping/CDE/readme.md) describes how reviewed CDE rows become `concept_manual` and `concept_relationship_manual` content.
+
+
 5. Run `load_stage.sql`.
 6. Run check_stage_tables function (should retrieve NULL):
 ```sql

@@ -14,6 +14,7 @@ INSERT INTO cancer_modifier_cde (source_concept_code, source_concept_id, max_rec
                                  to_make_precoosrinated_source_pair, create_standard, comment, target_concept_id,
                                  target_concept_code, target_concept_name, target_concept_class_id,
                                  target_standard_concept, target_invalid_reason, target_domain_id, target_vocabulary_id)
+
 SELECT distinct cde.source_concept_code,
        cde.source_concept_id,
        NULL::int as max_record,
@@ -25,7 +26,7 @@ SELECT distinct cde.source_concept_code,
        'exactMatch' as relationship_id_predicate,
        TRUE as decision,
        TRUE as to_destandardize,
-       FALSE as to_make_precoosrinated_source_pair,
+      cde.to_make_precoosrinated_source_pair as to_make_precoosrinated_source_pair,
        FALSE as create_standard,
        'Value restore' as comment,
        c.concept_id as target_concept_id,
@@ -60,16 +61,22 @@ and  exists(SELECT 1
                 cde.target_concept_id IN (SELECT descendant_concept_id
                                           from concept_ancestor
                                           where ancestor_concept_id IN (36769180, 36768587)) -- Metastasis, Lymph Nodes
-                    OR cde.target_concept_code IN (SELECT concept_code
+                    OR (cde.target_concept_code,cde.target_vocabulary_id) IN (SELECT concept_code,vocabulary_id
                                                    from concept
-                                                   where concept_class_id in ('Nodes', 'Metastasis')
+                                                   where (
+                                                       concept_class_id in ('Nodes', 'Metastasis','Extension/Invasion')
+                                                           OR vocabulary_id='OMOP Genomic')
                                                      and standard_concept = 'S'
                                                    UNION ALL
-                                                   SELECT concept_code
+                                                   SELECT concept_code,vocabulary_id
                                                    from concept_manual
-                                                   where concept_class_id in ('Nodes', 'Metastasis')
+                                                   where (
+                                                       concept_class_id in ('Nodes', 'Metastasis','Extension/Invasion')
+                                                           OR vocabulary_id='OMOP Genomic')
                                                      and standard_concept = 'S')
-                ))
+                )
+            and cde.decision IS TRUE
+            )
           ;
 
 -- -----------------------------------------------------------------------------

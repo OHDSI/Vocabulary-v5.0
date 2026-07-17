@@ -1,9 +1,9 @@
-### STEP 3 of the refresh: prepare CDE output for universal load stage
+### Reasoning behind the cancer_modifier_cde
 
 The CDE script converts curated mining-review decisions into Cancer Modifier manual content. It is the handoff point between the working group review tables and the standard OHDSI manual tables used by `load_stage.sql`.
 
-#### Prerequisites
-- Curated review output from [`../6 - curation output metadata backlog.sql`](../Mining%20concepts%20for%20Mapping/6%20-%20curation%20output%20metadata%20backlog.sql). (or other heuristic)
+#### Prerequisites for developer
+- Output from [`../6 - curation output metadata backlog.sql`](../Mining%20concepts%20for%20Mapping/6%20-%20curation%20output%20metadata%20backlog.sql). (or other heuristic) used for curator review
 - A populated `dev_cancer_modifier.cancer_modifier_cde` table with curator decisions.
 - The `concept_manual` and `concept_relationship_manual` tables in `dev_cancer_modifier`.
 - Replace the parameter `:your_vocabs` with the source vocabularies included in the current review, for example `'SNOMED','NAACCR'`.
@@ -20,10 +20,10 @@ Important decision fields:
 #### Sequence of actions
 
 1. Create or refresh `dev_cancer_modifier.cancer_modifier_cde` using the final CDE DDL.
-2. Load the curator-approved spreadsheet rows into `dev_cancer_modifier.cancer_modifier_cde`.
+2. Load the curator-approved spreadsheet rows into `dev_cancer_modifier.cancer_modifier_cde`. (loated at )
 3. Insert approved new Cancer Modifier concepts, their synonyms and relationships into `concept_manual`, `concept_synonym_manual` and  `concept_relationship_manual` first via corresponding `_manual_refresh` tables.
 4. Insert approved mappings into `concept_relationship_manual` after the target concepts are present or resolvable.
-5. Run `populate_manual_tables_with_refresh_content.sql` after replacing `:your_vocabs`.
+5. Run `populate_manual_tables_with_CDE_content.sql`.
 6. Review the affected `concept_manual` and `concept_relationship_manual` rows before running `Cancer Modifier/load_stage.sql`.
 
 Rows approved for destandardization are inserted into `concept_manual`. Rows approved for mapping are inserted into `concept_relationship_manual` when the source and target concepts can be resolved and the relationship is not already present. This order matches `load_stage.sql`, where manual concepts are processed before manual relationships.

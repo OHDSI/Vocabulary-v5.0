@@ -546,6 +546,76 @@ WHERE cs.concept_code = ec.concept_code
   AND cs.standard_concept IS NOT NULL
 ;
 
+-- 12.2 Add 'Positive' value mappings for genomic and oncology concepts
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT
+    c.concept_code AS concept_code_1,
+     pos.concept_code AS concept_code_2,
+    c.vocabulary_id AS vocabulary_id_1,
+    pos.vocabulary_id AS vocabulary_id_2,
+    'Maps to value' AS relationship_id,
+    CURRENT_DATE AS valid_start_date,
+    TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+    NULL::varchar AS invalid_reason
+FROM concept_stage c
+-- Get the codes for the "Positive" concept
+CROSS JOIN (
+    SELECT concept_code, vocabulary_id
+    FROM concept
+    WHERE concept_id = 9191
+) pos
+-- 1. Find valid 'Maps to' relationships IN THE STAGING TABLE
+JOIN concept_relationship_stage crs_maps_to
+  ON crs_maps_to.concept_code_1 = c.concept_code
+  AND crs_maps_to.vocabulary_id_1 = c.vocabulary_id
+  AND crs_maps_to.relationship_id = 'Maps to'
+  AND crs_maps_to.invalid_reason IS NULL
+-- 2. Find the target concepts they map to (joining by code and vocabulary)
+JOIN concept c_target
+  ON c_target.concept_code = crs_maps_to.concept_code_2
+  AND c_target.vocabulary_id = crs_maps_to.vocabulary_id_2
+WHERE c.vocabulary_id = 'SNOMED'
+  -- 3. Only keep targets related to Genomics, Nodes, or Metastasis
+  AND (
+      c_target.vocabulary_id = 'OMOP Genomic'
+      OR c_target.concept_class_id IN ('Nodes', 'Metastasis', 'Extension/Invasion')
+      OR c_target.concept_id IN (
+          SELECT descendant_concept_id
+          FROM concept_ancestor
+          WHERE ancestor_concept_id IN (36769180, 36768587) -- Nodes, Metastasis
+      )
+  )
+  -- 4. Skip if a 'Maps to value' already exists in the main table
+  AND NOT EXISTS (
+      SELECT 1
+      FROM concept_relationship cr_mtv
+      WHERE cr_mtv.concept_id_1 = c.concept_id
+        AND cr_mtv.relationship_id = 'Maps to value'
+        AND cr_mtv.invalid_reason IS NULL
+  )
+  -- 5. Skip if a 'Maps to value' already exists in the staging table
+  AND NOT EXISTS (
+      SELECT 1
+      FROM concept_relationship_stage crs_mtv
+      WHERE crs_mtv.concept_code_1 = c.concept_code
+        AND crs_mtv.vocabulary_id_1 = c.vocabulary_id
+        AND crs_mtv.relationship_id = 'Maps to value'
+        AND crs_mtv.invalid_reason IS NULL
+  )
+  -- 6. Skip concepts with negative words in their name
+  AND c.concept_name !~* '\y(negative|no|absent|without|w/o|not)\y'
+;
+
+
 --13. Working with replacement mappings
 DO $_$
 BEGIN

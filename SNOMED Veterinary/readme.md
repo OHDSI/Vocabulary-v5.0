@@ -4,6 +4,11 @@ End-to-end procedure for building the SNOMED Veterinary Extension as an OHDSI
 vocabulary: download and stage the source files, then run the psql build and QA
 pipeline against the `devv5` / `dev_veterinary` schema.
 
+Prerequisites:
+* Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+* Working directory SNOMED Veterinary.
+* SNOMED must be updated in 'devv5' first.
+
 > **Placeholders:** `YYYYMMDD` is the release date, `INT1000009` is the
 > Veterinary Extension module identifier, and `VTSzzzzzzz` is the versioned
 > release folder name. Replace each with the actual values from your downloads.
@@ -122,13 +127,16 @@ and rename each file as follows.
 
 ---
 
+### 5. Create source tables
+[create_source_tables.sql](create_source_tables.sql)
+
+### 6. Load input tables
+Loads the Veterinary Extension, then loads SNOMED International into the `sources_*` tables.
+[sources_load_input_tables.sql](sources_load_input_tables.sql)
+
 ## Part 2 — Build Pipeline
 
-Run the following in `psql`, in order. The `\i` meta-command runs a SQL script
-file; `\o` redirects query output to a file (and `\o` with no argument restores
-output to the terminal).
-
-### 5. Recreate the working schema
+### 7. Recreate the working schema
 
 ```sql
 SELECT devv5.FastRecreateSchema(
@@ -139,90 +147,38 @@ SELECT devv5.FastRecreateSchema(
 );
 ```
 
-### 6. Add the `AddPeaks` function
+### 8. Create or update the `AddPeaks` function if necessary
+[AddPeaks.sql](AddPeaks.sql)
 
-Add the `AddPeaks` function if it is not already available.
+### 9. Make any necessary changes to the manual tables
 
-```sql
-\i AddPeaks.sql
+### 10. Load staging tables
+[load_stage_VETERINARY.sql](load_stage_VETERINARY.sql)
+
+### 11. Run GenericUpdate
+   ```sql
+   DO $_$
+   BEGIN
+       PERFORM devv5.GenericUpdate();
+   END $_$;
 ```
 
-### 7. Create source tables
-
-```sql
-\i create_source_tables.sql
-```
-
-### 8. Load input tables
-
-Loads the Veterinary Extension, then loads SNOMED International into the
-`sources_*` tables.
-
-```sql
-\i sources_load_input_tables.sql
-```
-
-### 9. Update the vocabulary version
-
-Updates the vocabulary version of SNOMED Veterinary.
-
-```sql
-\i update_vocabulary.sql
-```
-
-### 10. Load staging tables and run the generic update
-
-```sql
-\i load_stage_VETERINARY.sql      -- Load the staging tables
-SELECT devv5.GenericUpdate();
-```
-
-### 11. Run the check suite
-
+### 12. Run the check suite (should return null)
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
 
-> Should return **0 rows**.
+### 13. Run QA scripts, output to file, and interpret the results
+    ```sql
+    SELECT DISTINCT * FROM qa_tests.get_domain_changes();
+    SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
+    SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
+    SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
+    SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
+    ```
 
-### 12. Run QA scripts, output to file, and interpret the results
+### 14. Run checks for manual review:
+ [manual_checks_after_generic_update.sql](manual_checks_after_generic_update.sql)
 
-```sql
-\o get_summary_concept_devv5.txt
-SELECT DISTINCT * FROM qa_tests.get_summary('concept', 'devv5');
-\o
-
-\o get_summary_concept_relationship_devv5.txt
-SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship', 'devv5');
-\o
-
-\o qa_tests_get_domain_changes.txt
-SELECT DISTINCT * FROM qa_tests.get_domain_changes('devv5');
-\o
-
-\o qa_tests_get_newly_concepts.txt
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts('devv5');
-\o
-
-\o qa_tests_get_standard_concept_changes.txt
-SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes('devv5');
-\o
-
-\o qa_tests_get_newly_concepts_standard_concept_status.txt
-SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status('devv5');
-\o
-
-\o qa_tests_get_changes_concept_mapping.txt
-SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping('devv5');
-\o
-
-\o manual_checks_after_generic_update.txt
-\i manual_checks_after_generic_update.sql
-\o
-```
-
-### 13. Extract veterinary synonyms added to SNOMED core
-
-```sql
-\i Extract_vet_synonyms_to_SNOMED_core.sql
-```
+### 15. Extract veterinary synonyms added to SNOMED core
+[Extract_vet_synonyms_to_SNOMED_core.sql](Extract_vet_synonyms_to_SNOMED_core.sql)

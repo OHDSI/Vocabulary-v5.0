@@ -148,12 +148,12 @@ SELECT devv5.FastRecreateSchema(
 ```
 
 ### 8. Create or update the `AddPeaks` function if necessary
-[AddPeaks.sql](AddPeaks.sql)
+[AddPeaks.sql](../SNOMED/AddPeaks.sql)
 
 ### 9. Make any necessary changes to the manual tables
 
 ### 10. Load staging tables
-[load_stage_VETERINARY.sql](load_stage_VETERINARY.sql)
+[load_stage.sql](load_stage.sql)
 
 ### 11. Run GenericUpdate
    ```sql
@@ -168,17 +168,19 @@ SELECT devv5.FastRecreateSchema(
 SELECT * FROM qa_tests.get_checks();
 ```
 
-### 13. Run QA scripts, output to file, and interpret the results
-    ```sql
+### 13. Run QA scripts and interpret the results
+```sql
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept');
+    SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
     SELECT DISTINCT * FROM qa_tests.get_domain_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
     SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
     SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
-    ```
+   ```
 
 ### 14. Run checks for manual review:
- [manual_checks_after_generic_update.sql](manual_checks_after_generic_update.sql)
+[manual_checks_after_generic_update.sql](../working/manual_checks_after_generic_update.sql)
 
 ### 15. Extract veterinary synonyms added to SNOMED core
 [Extract_vet_synonyms_to_SNOMED_core.sql](Extract_vet_synonyms_to_SNOMED_core.sql)

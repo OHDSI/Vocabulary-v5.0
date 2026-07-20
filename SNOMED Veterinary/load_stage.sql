@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Medical team
-* Date: 2019
+* Authors: Loyd Wayde Shipman
+* Date: 2026
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -146,18 +146,6 @@ FROM (
 	WHERE s0.active = 0
 	) i
 WHERE i.id = cs.concept_code;
-
---4.2 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
-UPDATE concept_stage
-SET concept_name = vocabulary_pack.CutConceptName(TRANSLATE(concept_name, '>,<,^', '-'))
-WHERE (
-		(
-			concept_name LIKE '%>%'
-			AND concept_name LIKE '%<%'
-			)
-		OR (concept_name LIKE '%^%^%')
-		)
-	AND LENGTH(concept_name) > 5;
 
 ANALYZE concept_stage;
 
@@ -1685,14 +1673,11 @@ FROM (
 	) i
 WHERE d.concept_code = i.peak_code;
 
---Update top SNOMED concept
-UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = '138875005';
-
 --13.4. Update concept_stage from newly created domains
 UPDATE concept_stage c
 SET domain_id = i.domain_id
 FROM domain_snomed i
-WHERE c.vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
+WHERE c.vocabulary_id IN ('SNOMED Veterinary')
 	AND i.concept_code = c.concept_code;
 
 --14. For deprecated concepts without hierarchy assign domains from base table
@@ -1735,14 +1720,14 @@ UPDATE concept_stage
 SET domain_id = 'Measurement'
 WHERE concept_name ILIKE '%score%'
 	AND concept_class_id = 'Observable Entity'
-	AND vocabulary_id IN ('SNOMED', 'SNOMED Veterinary');
+	AND vocabulary_id IN ('SNOMED Veterinary');
 
 --Trim word 'route' from concepts in 'Route' domain
 UPDATE concept_stage
 SET concept_name = regexp_replace(concept_name, '\sroute$', '')
 WHERE concept_name LIKE '% route'
 	AND domain_id = 'Route'
-	AND vocabulary_id IN ('SNOMED', 'SNOMED Veterinary');
+	AND vocabulary_id IN ('SNOMED Veterinary');
 
 --Fix navigational concepts
 UPDATE concept_stage cs
@@ -1826,13 +1811,13 @@ SET standard_concept = CASE domain_id
 			THEN NULL -- Units are UCUM
 		ELSE 'S'
 		END
-WHERE cs.vocabulary_id IN ('SNOMED', 'SNOMED Veterinary');
+WHERE cs.vocabulary_id IN ('SNOMED Veterinary');
 
 --17.1. Make invalid concepts non-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE invalid_reason IS NOT NULL
-	AND cs.vocabulary_id IN ('SNOMED', 'SNOMED Veterinary');
+	AND cs.vocabulary_id IN ('SNOMED Veterinary');
 
 --17.2. De-standardize navigational concepts
 UPDATE concept_stage cs
@@ -1846,13 +1831,13 @@ UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route'
-	AND vocabulary_id IN ('SNOMED', 'SNOMED Veterinary');
+	AND vocabulary_id IN ('SNOMED Veterinary');
 
 --17.4. Make domain 'Geography' non-standard, except countries and vet-specific locations
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_class_id = 'Location'
-	AND vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
+	AND vocabulary_id IN ('SNOMED Veterinary')
 	AND concept_code NOT IN (
 		SELECT descendant_concept_code
 		FROM snomed_ancestor
@@ -1871,7 +1856,7 @@ WHERE EXISTS (
 		WHERE crs.concept_code_1 = cs.concept_code
 			AND crs.relationship_id = 'Has proc context'
 			AND crs.concept_code_2 = '385658003'
-			AND crs.vocabulary_id_2 IN ('SNOMED', 'SNOMED Veterinary')
+			AND crs.vocabulary_id_2 IN ('SNOMED Veterinary')
 			AND crs.invalid_reason IS NULL
 		);
 
@@ -1927,7 +1912,7 @@ WHERE concept_class_id IN (
 		'Physical Object'
 		)
 	AND domain_id <> 'Device'
-	AND vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
+	AND vocabulary_id IN ('SNOMED Veterinary')
 	AND concept_code NOT IN (
 		'26421000009105', -- Has life circumstance (vet-specific attribute)
 		'26431000009107', -- Has physiologic state (vet-specific attribute)
@@ -1939,7 +1924,7 @@ WHERE concept_class_id IN (
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE concept_class_id = 'Social Context'
-	AND vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
+	AND vocabulary_id IN ('SNOMED Veterinary')
 	AND NOT EXISTS (
 		SELECT 1
 		FROM snomed_ancestor sa
@@ -1981,7 +1966,7 @@ FROM concept_stage cs
 JOIN devv5.concept cc ON LOWER(cs.concept_name) = LOWER(cc.concept_name)
 WHERE cs.domain_id = 'Drug'
     AND cs.concept_class_id = 'Substance'
-    AND cs.vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
+    AND cs.vocabulary_id IN ('SNOMED Veterinary')
     AND cc.vocabulary_id LIKE 'RxNorm%'
     AND cc.standard_concept = 'S'
     AND NOT EXISTS (
@@ -2025,7 +2010,7 @@ JOIN devv5.concept_relationship cr1 ON cc.concept_id = cr1.concept_id_1
                                      AND cr1.relationship_id = 'Maps to'
                                      AND cr1.invalid_reason IS NULL
 JOIN devv5.concept c2 ON c2.concept_id = cr1.concept_id_2
-WHERE c.vocabulary_id IN ('SNOMED', 'SNOMED Veterinary')
+WHERE c.vocabulary_id IN ('SNOMED Veterinary')
   AND c.domain_id = 'Drug'
   AND c2.vocabulary_id LIKE 'RxNorm%'
   AND NOT EXISTS (SELECT 1
@@ -2166,101 +2151,21 @@ BEGIN
 END $_$;
 
 --23. Pre-GenericUpdate QA fixes
-
--- Fix concept_stage: invalid_reason = NULL for concepts with valid_end_date < 20991231
-UPDATE concept_stage
-SET invalid_reason = 'D'
-WHERE valid_end_date < TO_DATE('20991231', 'YYYYMMDD')
-  AND invalid_reason IS NULL;
-
--- Fix concept_stage: invalid_reason = 'X' is not valid in concept_stage, convert to 'D'
-UPDATE concept_stage
-SET invalid_reason = 'D',
-    valid_end_date = (
-        SELECT latest_update - 1
-        FROM vocabulary
-        WHERE vocabulary_id = 'SNOMED Veterinary'
-    )
-WHERE invalid_reason = 'X';
-
 -- Fix concept_stage: valid_end_date < valid_start_date (caused by LEAST() logic in step 9.6
 -- picking a replacement relationship valid_start_date older than the concept's own start date)
 UPDATE concept_stage
 SET valid_end_date = valid_start_date
 WHERE valid_end_date < valid_start_date;
 
--- Fix concept_stage: NULL concept_name for deprecated concepts inserted via ProcessManualConcepts()
--- Pull name from concept table where available
-UPDATE concept_stage cs
-SET concept_name = c.concept_name
-FROM concept c
-WHERE c.concept_code = cs.concept_code
-    AND c.vocabulary_id = cs.vocabulary_id
-    AND (cs.concept_name IS NULL OR cs.concept_name = '')
-    AND c.concept_name IS NOT NULL
-    AND c.concept_name <> '';
-
 -- For any remaining rows not found in concept, assign a placeholder
 UPDATE concept_stage
 SET concept_name = 'No name provided - ' || concept_code
 WHERE concept_name IS NULL OR concept_name = '';
 
--- Fix concept_stage: NULL concept_class_id for concepts inserted via ProcessManualConcepts()
--- Pull from concept table where available
-UPDATE concept_stage cs
-SET concept_class_id = c.concept_class_id
-FROM concept c
-WHERE c.concept_code = cs.concept_code
-    AND c.vocabulary_id = cs.vocabulary_id
-    AND cs.concept_class_id IS NULL
-    AND c.concept_class_id IS NOT NULL;
-
 -- For any remaining rows not found in concept, assign a placeholder
 UPDATE concept_stage
 SET concept_class_id = 'Undefined'
 WHERE concept_class_id IS NULL;
-
--- Fix concept_relationship_stage: valid_end_date < valid_start_date
--- (caused by latest_update date mismatch between SNOMED and SNOMED Veterinary in step 9.2)
--- Fix concept_relationship_stage: valid_end_date <= valid_start_date
--- But preserve self-mappings and external mappings (RxNorm/CVX) which should always go to 2099-12-31
-UPDATE concept_relationship_stage
-SET valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-WHERE valid_end_date <= valid_start_date
-  AND NOT (concept_code_1 = concept_code_2 AND vocabulary_id_1 = vocabulary_id_2)  -- exclude self-mappings
-  AND NOT (vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension', 'CVX'));  -- exclude external mappings
-
--- Fix concept_relationship_stage: Restore self-mappings that were incorrectly deprecated
--- Self-mappings (where concept_code_1 = concept_code_2) should never be deprecated
--- if the concept itself is valid, but DeprecateWrongMAPSTO() marks them as deprecated.
-UPDATE concept_relationship_stage
-SET invalid_reason = NULL,
-    valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-WHERE relationship_id = 'Maps to'
-  AND concept_code_1 = concept_code_2
-  AND vocabulary_id_1 = vocabulary_id_2
-  AND invalid_reason IS NOT NULL;
-
--- Fix concept_relationship_stage: Add self-mappings for unmapped medicinal products
--- OMOP convention: Pharma/Biol Product, Clinical Drug, and Clinical Drug Form concepts
--- without external Maps to targets should have self-mappings to maintain Standard status
-INSERT INTO concept_relationship_stage 
-  (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2,
-   valid_start_date, valid_end_date)
-SELECT cs.concept_code, cs.vocabulary_id, 'Maps to', 
-       cs.concept_code, cs.vocabulary_id,
-       (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'SNOMED Veterinary'),
-       TO_DATE('20991231', 'YYYYMMDD')
-FROM concept_stage cs
-WHERE cs.vocabulary_id = 'SNOMED Veterinary'
-  AND cs.concept_class_id IN ('Pharma/Biol Product', 'Clinical Drug', 'Clinical Drug Form')
-  AND NOT EXISTS (
-      SELECT 1 FROM concept_relationship_stage cr
-      WHERE cr.concept_code_1 = cs.concept_code
-        AND cr.vocabulary_id_1 = cs.vocabulary_id
-        AND cr.relationship_id = 'Maps to'
-  )
-ON CONFLICT DO NOTHING;
 
 -- Ensure preserved external mappings from devv5 are marked as valid
 -- (prevent DeprecateWrongMAPSTO and other procedures from deprecating them)

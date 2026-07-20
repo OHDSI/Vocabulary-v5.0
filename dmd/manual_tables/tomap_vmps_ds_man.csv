@@ -1,0 +1,883 @@
+"drug_concept_code";"drug_concept_name";"ingredient_concept_code";"ingredient_concept_name";"amount_value";"amount_name";"denominator_value";"denominator_unit"
+"10064011000001101";Echinacea tablets;"715517000";Echinacea;;;;
+"10064211000001106";Ferric chloride solution strong BPC 1973;"420810003";Ferric chloride;;;;
+"10142211000001100";Sodium hyaluronate cream;"387578003";Sodium hyaluronate;;;;
+"10161711000001105";Levodopa 20mg/ml / Carbidopa monohydrate 5mg/ml intestinal gel 100ml cassette;"387086006";Levodopa;20;mg;1;ml
+"10161711000001105";Levodopa 20mg/ml / Carbidopa monohydrate 5mg/ml intestinal gel 100ml cassette;"73579000";Carbidopa;5;mg;1;ml
+"10196911000001104";Multivitamin and Mineral capsules;;;;;;
+"10225111000001100";Carmellose gelatin paste;;;;;;
+"10244711000001100";Sodium dichloroisocyanurate 50% granules;"387319002";Sodium bicarbonate;;;;
+"10244711000001100";Sodium dichloroisocyanurate 50% granules;"420472007";Sodium dichloroisocyanurate;;;;
+"10328411000001106";Multimineral capsules;;;;;;
+"10328511000001105";Generic Vega Vitamin B Complex capsules;;;;;;
+"10560811000001100";Apple mistletoe solution for injection 1ml ampoules;"10562111000001106";Apple mistletoe;;;;
+"10560911000001105";Caffeine citrate powder;"255641001";Caffeine;;;;
+"10561211000001107";Cetrimide powder;"395895003";Cetrimide;;;;
+"10561311000001104";Chlorocresol powder;"255884003";Chlorocresol;;;;
+"10561511000001105";Generic Seven Seas Jointcare Complete capsules;;;;;;
+"10562711000001107";Apple mistletoe / Copper carbonate solution for injection 1ml ampoules;"10562111000001106";Apple mistletoe;;;;
+"10562711000001107";Apple mistletoe / Copper carbonate solution for injection 1ml ampoules;"424351000";Copper carbonate;;;;
+"10562811000001104";Apple mistletoe / Silver carbonate solution for injection 1ml ampoules;"10562111000001106";Apple mistletoe;;;;
+"10562811000001104";Apple mistletoe / Silver carbonate solution for injection 1ml ampoules;"442425008";Silver carbonate;;;;
+"10562911000001109";Crystal violet powder BP 1980;"387239001";Methylrosanilinium chloride;;;;
+"10563011000001101";Guaifenesin powder;"87174009";Guaifenesin;;;;
+"10583911000001104";Sodium DL-3-hydroxybutyrate powder;"10584011000001101";Sodium DL-3-hydroxybutyrate;;;;
+"10606311000001103";Apple mistletoe / Mercuric sulphate solution for injection 1ml ampoules;"10562111000001106";Apple mistletoe;;;;
+"10606311000001103";Apple mistletoe / Mercuric sulphate solution for injection 1ml ampoules;"62304003";Mercuric sulfate;;;;
+"10606411000001105";Apple mistletoe oral drops;"10562111000001106";Apple mistletoe;;;;
+"10606611000001108";Ferrous sulfate heptahydrate powder;"725858004";Ferrous sulfate heptahydrate;;;;
+"10607011000001103";Ipecacuanha liquid extract;"4670811000001103";Ipecacuanha liquid extract;;;;
+"10607111000001102";Mineralised methylated spirit;"259221006";Methyl alcohol;;;;
+"10607111000001102";Mineralised methylated spirit;"419442005";Ethanol;;;;
+"10607211000001108";Oak mistletoe / Copper carbonate solution for injection 1ml ampoules;"10562411000001101";Oak mistletoe;;;;
+"10607211000001108";Oak mistletoe / Copper carbonate solution for injection 1ml ampoules;"424351000";Copper carbonate;;;;
+"10607311000001100";Oak mistletoe / Mercuric sulphate solution for injection 1ml ampoules;"10562411000001101";Oak mistletoe;;;;
+"10607311000001100";Oak mistletoe / Mercuric sulphate solution for injection 1ml ampoules;"62304003";Mercuric sulfate;;;;
+"10607411000001107";Oak mistletoe / Silver carbonate solution for injection 1ml ampoules;"10562411000001101";Oak mistletoe;;;;
+"10607411000001107";Oak mistletoe / Silver carbonate solution for injection 1ml ampoules;"442425008";Silver carbonate;;;;
+"10607511000001106";Oak mistletoe oral drops;"10562411000001101";Oak mistletoe;;;;
+"10607611000001105";Oak mistletoe solution for injection 1ml ampoules;"10562411000001101";Oak mistletoe;;;;
+"10607711000001101";Pine mistletoe / Mercuric sulphate solution for injection 1ml ampoules;"10562511000001102";Pine mistletoe;;;;
+"10607711000001101";Pine mistletoe / Mercuric sulphate solution for injection 1ml ampoules;"62304003";Mercuric sulfate;;;;
+"10607811000001109";Pine mistletoe oral drops;"10562511000001102";Pine mistletoe;;;;
+"10607911000001104";Pine mistletoe solution for injection 1ml ampoules;"10562511000001102";Pine mistletoe;;;;
+"10608111000001101";Silver nitrate powder;"373483000";Silver nitrate;;;;
+"10655811000001109";Generic GSF-Syrup oral gel 18g sachets;"11320009";Sucrose;;;;
+"10655811000001109";Generic GSF-Syrup oral gel 18g sachets;"58202007";Fructose;;;;
+"10655811000001109";Generic GSF-Syrup oral gel 18g sachets;"67079006";Glucose;;;;
+"10694711000001106";Generic Z-Hyalin 1% ophthalmic viscosurgical device 1ml pre-filled syringes;;;;;;
+"10694811000001103";Generic Z-Hyalin Plus 1.5% ophthalmic viscosurgical device 1ml pre-filled syringes;;;;;;
+"10749011000001106";Generic Ringers irrigation solution 2litre Flowfusor bottles;;;;;;
+"10774211000001101";Generic Seven Seas Jointcare Max capsules;;;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11170511000001108";Haemophilus influenzae type b polysaccharide protein conjugate;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"10795711000001100";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"10826411000001108";Generic ORA-Plus oral suspension;"10828111000001104";Microcrystalline cellulose;;;;
+"10826411000001108";Generic ORA-Plus oral suspension;"10828211000001105";Xanthan gum;;;;
+"10826411000001108";Generic ORA-Plus oral suspension;"109240008";Carrageenan;;;;
+"10826411000001108";Generic ORA-Plus oral suspension;"51224002";Carmellose sodium;;;;
+"10827111000001100";Generic ORA-Sweet SF oral solution;"10828211000001105";Xanthan gum;;;;
+"10827111000001100";Generic ORA-Sweet SF oral solution;"19839007";Sorbitol;;;;
+"10827111000001100";Generic ORA-Sweet SF oral solution;"442253006";Saccharin sodium;;;;
+"10827111000001100";Generic ORA-Sweet SF oral solution;"80582002";Glycerol;;;;
+"10840911000001101";Generic ORA-Sweet oral solution;"11320009";Sucrose;;;;
+"10840911000001101";Generic ORA-Sweet oral solution;"19839007";Sorbitol;;;;
+"10840911000001101";Generic ORA-Sweet oral solution;"80582002";Glycerol;;;;
+"10893611000001107";Human papillomavirus (type 6 11 16 18) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11170911000001101";Human papillomavirus type 11 L1 protein;;;;
+"10893611000001107";Human papillomavirus (type 6 11 16 18) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171011000001109";Human papillomavirus type 16 L1 protein;;;;
+"10893611000001107";Human papillomavirus (type 6 11 16 18) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171111000001105";Human papillomavirus type 18 L1 protein;;;;
+"10893611000001107";Human papillomavirus (type 6 11 16 18) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171211000001104";Human papillomavirus type 6 L1 protein;;;;
+"10911611000001104";Saw-scaled viper venom antiserum solution for injection 10ml ampoules;"10909511000001100";Saw-scaled viper venom antiserum;;;;
+"10912511000001106";Generic Crofab snake venom antiserum 1g powder for solution for injection vials;"10912111000001102";Western diamondback rattlesnake venom antiserum;;;;
+"10912511000001106";Generic Crofab snake venom antiserum 1g powder for solution for injection vials;"10912211000001108";Eastern diamondback rattlesnake venom antiserum;;;;
+"10912511000001106";Generic Crofab snake venom antiserum 1g powder for solution for injection vials;"10912311000001100";Mojave rattlesnake venom antiserum;;;;
+"10912511000001106";Generic Crofab snake venom antiserum 1g powder for solution for injection vials;"10912411000001107";Cottonmouth snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10914411000001100";Puff adder snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10914511000001101";Gaboon adder snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10914611000001102";Rinkhals cobra snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10914711000001106";Green mamba snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10914811000001103";Jameson's mamba snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10914911000001108";Black mamba snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10915011000001108";Cape cobra snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10915111000001109";Forest cobra snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10915211000001103";Egyptian cobra snake venom antiserum;;;;
+"10915411000001104";Generic SAIMR polyvalent snake antivenom 10ml solution for injection vials;"10915311000001106";Black necked spitting cobra snake venom antiserum;;;;
+"10916111000001103";Central American polyvalent snake venom antisera solution for injection 10ml ampoules;"10915811000001102";Central American lancehead snake venom antiserum;;;;
+"10916111000001103";Central American polyvalent snake venom antisera solution for injection 10ml ampoules;"10915911000001107";Tropical rattlesnake venom antiserum;;;;
+"10916111000001103";Central American polyvalent snake venom antisera solution for injection 10ml ampoules;"10916011000001104";South American bushmaster snake venom antiserum;;;;
+"10916911000001100";Generic Snake antivenin powder and solvent for solution for injection vials;"10909511000001100";Saw-scaled viper venom antiserum;;;;
+"10916911000001100";Generic Snake antivenin powder and solvent for solution for injection vials;"10916611000001106";Indian cobra snake venom antiserum;;;;
+"10916911000001100";Generic Snake antivenin powder and solvent for solution for injection vials;"10916711000001102";Common krait snake venom antiserum;;;;
+"10916911000001100";Generic Snake antivenin powder and solvent for solution for injection vials;"10916811000001105";Russell's viper snake venom antiserum;;;;
+"11146411000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg tablets;"4104007";Chondroitin sulfate;400;mg;;
+"11146411000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg tablets;"4104007";Chondroitin sulfate;500;mg;;
+"11146411000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg tablets;"734505004";Glucosamine sulfate;400;mg;;
+"11146411000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg tablets;"734505004";Glucosamine sulfate;500;mg;;
+"11236611000001109";Hepatitis A GBM strain (adsorbed) / Typhoid polysaccharide vaccine suspension for injection 1ml pre-filled syringes;"11237311000001101";Hepatitis A virus (GBM strain) inactivated;;;;
+"11236611000001109";Hepatitis A GBM strain (adsorbed) / Typhoid polysaccharide vaccine suspension for injection 1ml pre-filled syringes;"11237611000001106";Salmonella typhi (Ty2 strain) Vi capsular polysaccharide;;;;
+"11236711000001100";Hepatitis A HM175 strain (adsorbed) / Typhoid polysaccharide vaccine suspension for injection 1ml pre-filled syringes;"11237411000001108";Hepatitis A virus (HM175 strain) inactivated;;;;
+"11236711000001100";Hepatitis A HM175 strain (adsorbed) / Typhoid polysaccharide vaccine suspension for injection 1ml pre-filled syringes;"11237611000001106";Salmonella typhi (Ty2 strain) Vi capsular polysaccharide;;;;
+"11359411000001106";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg tablets;"4104007";Chondroitin sulfate;100;mg;;
+"11359411000001106";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg tablets;"4104007";Chondroitin sulfate;400;mg;;
+"11359411000001106";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg tablets;"734505004";Glucosamine sulfate;100;mg;;
+"11359411000001106";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg tablets;"734505004";Glucosamine sulfate;400;mg;;
+"11360011000001101";Synovial fluid 10mg/1ml injection pre-filled syringes;;;10;mg;;ml
+"11393511000001100";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg capsules;"4104007";Chondroitin sulfate;100;mg;;
+"11393511000001100";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg capsules;"4104007";Chondroitin sulfate;400;mg;;
+"11393511000001100";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg capsules;"734505004";Glucosamine sulfate;100;mg;;
+"11393511000001100";Glucosamine sulfate 400mg / Chondroitin sulfate 100mg capsules;"734505004";Glucosamine sulfate;400;mg;;
+"11422011000001103";Nitric oxide 100ppm cylinders 353litres;"6710000";Nitric oxide;100;ppm;;
+"11422511000001106";Nitric oxide 100ppm cylinders 1963litres;"6710000";Nitric oxide;100;ppm;;
+"11422911000001104";Nitric oxide 800ppm cylinders 353litres;"6710000";Nitric oxide;800;ppm;;
+"11423511000001104";Nitric oxide 800ppm cylinders 1963litres;"6710000";Nitric oxide;800;ppm;;
+"11649211000001101";Generic Add Ins low protein sachets and tablets;;;;;;
+"11649311000001109";Generic Add Ins low protein tablets;;;;;;
+"12089711000001106";Generic Multibionta 50+ Extra capsules and tablets;"734505004";Glucosamine sulfate;;;;
+"12298911000001108";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg chewable tablets;"4104007";Chondroitin sulfate;400;mg;;
+"12298911000001108";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg chewable tablets;"4104007";Chondroitin sulfate;500;mg;;
+"12298911000001108";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg chewable tablets;"70237008";Glucosamine;400;mg;;
+"12298911000001108";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg chewable tablets;"70237008";Glucosamine;500;mg;;
+"12299011000001104";Human papillomavirus (type 16 18) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171011000001109";Human papillomavirus type 16 L1 protein;;;;
+"12299011000001104";Human papillomavirus (type 16 18) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171111000001105";Human papillomavirus type 18 L1 protein;;;;
+"12540211000001102";Glucosamine hydrochloride 250mg/5ml / Chondroitin sulfate 200mg/5ml oral solution;"4104007";Chondroitin sulfate;200;mg;5;ml
+"12540211000001102";Glucosamine hydrochloride 250mg/5ml / Chondroitin sulfate 200mg/5ml oral solution;"4104007";Chondroitin sulfate;250;mg;5;ml
+"12540211000001102";Glucosamine hydrochloride 250mg/5ml / Chondroitin sulfate 200mg/5ml oral solution;"70237008";Glucosamine;200;mg;5;ml
+"12540211000001102";Glucosamine hydrochloride 250mg/5ml / Chondroitin sulfate 200mg/5ml oral solution;"70237008";Glucosamine;250;mg;5;ml
+"12563511000001102";Generic Nicobrevin capsules;;;;;;
+"13573211000001104";Glucosamine sulfate 1g / Ascorbic acid 50mg tablets;"43706004";Ascorbic acid;50;mg;;
+"13573211000001104";Glucosamine sulfate 1g / Ascorbic acid 50mg tablets;"43706004";Ascorbic acid;1000;mg;;
+"13573211000001104";Glucosamine sulfate 1g / Ascorbic acid 50mg tablets;"734505004";Glucosamine sulfate;50;mg;;
+"13573211000001104";Glucosamine sulfate 1g / Ascorbic acid 50mg tablets;"734505004";Glucosamine sulfate;1000;mg;;
+"13573311000001107";Glucosamine sulfate 500mg / Ascorbic acid 25mg tablets;"43706004";Ascorbic acid;25;mg;;
+"13573311000001107";Glucosamine sulfate 500mg / Ascorbic acid 25mg tablets;"43706004";Ascorbic acid;500;mg;;
+"13573311000001107";Glucosamine sulfate 500mg / Ascorbic acid 25mg tablets;"734505004";Glucosamine sulfate;25;mg;;
+"13573311000001107";Glucosamine sulfate 500mg / Ascorbic acid 25mg tablets;"734505004";Glucosamine sulfate;500;mg;;
+"13639611000001106";Macrogol compound oral powder sachets NPF;"39972003";Sodium;;;;
+"13639611000001106";Macrogol compound oral powder sachets NPF;"50213009";Chloride;;;;
+"13639611000001106";Macrogol compound oral powder sachets NPF;"68615006";Bicarbonate;;;;
+"13639611000001106";Macrogol compound oral powder sachets NPF;"712566007";Macrogol '3350';;;;
+"13639611000001106";Macrogol compound oral powder sachets NPF;"88480006";Potassium;;;;
+"14015211000001108";Measles Mumps and Rubella vaccine (live) powder and solvent for suspension for injection 0.5ml pre-filled syringes;"11172311000001103";Measles virus live attenuated;;;;
+"14015211000001108";Measles Mumps and Rubella vaccine (live) powder and solvent for suspension for injection 0.5ml pre-filled syringes;"11172411000001105";Mumps virus live attenuated;;;;
+"14015211000001108";Measles Mumps and Rubella vaccine (live) powder and solvent for suspension for injection 0.5ml pre-filled syringes;"11173211000001100";Rubella virus live attenuated;;;;
+"14679911000001101";Generic Bio-Pycnogenol 40mg tablets;;;;;;
+"14800311000001108";Glucose 25% in glycerol nasal drops;"67079006";Glucose;;;;
+"14800311000001108";Glucose 25% in glycerol nasal drops;"80582002";Glycerol;;;;
+"14937311000001105";Generic Emerita Pro-Gest cream;"16683002";Progesterone;;;;
+"15651211000001104";Influenza H1N1 vaccine (split virion inactivated adjuvanted) emulsion and suspension for emulsion for injection;"16091511000001102";Influenza virus split virion (H1N1 strain) inactivated;;;;
+"15651311000001107";Influenza H1N1 vaccine (whole virion Vero cell derived inactivated) suspension for injection;"15651811000001103";Influenza H1N1 vaccine;;;;
+"16101211000001105";Generic CCS Foot Care cream;"111089004";Liquid paraffin;;;;
+"16101211000001105";Generic CCS Foot Care cream;"12510000";Eucalyptus oil;;;;
+"16101211000001105";Generic CCS Foot Care cream;"387092000";Urea;;;;
+"16101211000001105";Generic CCS Foot Care cream;"64686009";Benzalkonium chloride;;;;
+"16101211000001105";Generic CCS Foot Care cream;"77370004";Lactic acid;;;;
+"16101211000001105";Generic CCS Foot Care cream;"80582002";Glycerol;;;;
+"16132411000001105";Olive oil ear drops;"41834005";Olive oil;;;;
+"16646711000001100";Generic Power Health Cranberry Juice Double Strength 4.5g tablets;;;;;;
+"16665511000001109";Generic Valupak Magnesium tablets;"72717003";Magnesium;;;;
+"16750011000001106";Generic Indian Brandee oral liquid;;;;;;
+"17071611000001109";Generic Kalms tablets;"17072011000001105";Gentian;;;;
+"17071611000001109";Generic Kalms tablets;"427339006";Valerian root extract;;;;
+"17071611000001109";Generic Kalms tablets;"8987711000001100";Lupulus;;;;
+"17155911000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 100mg tablets;"4104007";Chondroitin sulfate;100;mg;;
+"17155911000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 100mg tablets;"4104007";Chondroitin sulfate;500;mg;;
+"17155911000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 100mg tablets;"734505004";Glucosamine sulfate;100;mg;;
+"17155911000001105";Glucosamine sulfate 500mg / Chondroitin sulfate 100mg tablets;"734505004";Glucosamine sulfate;500;mg;;
+"17175311000001107";Sodium hyaluronate 0.1% / Dexpanthenol 2% eye drops preservative free;"387578003";Sodium hyaluronate;1;mg;;ml
+"17175311000001107";Sodium hyaluronate 0.1% / Dexpanthenol 2% eye drops preservative free;"387578003";Sodium hyaluronate;20;mg;;ml
+"17175311000001107";Sodium hyaluronate 0.1% / Dexpanthenol 2% eye drops preservative free;"86431009";Pantothenic acid;1;mg;;ml
+"17175311000001107";Sodium hyaluronate 0.1% / Dexpanthenol 2% eye drops preservative free;"86431009";Pantothenic acid;20;mg;;ml
+"17192211000001101";Meningococcal oligosaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"39832811000001105";Meningococcal group A oligosaccharide protein conjugate;;;;
+"17192211000001101";Meningococcal oligosaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"39832911000001100";Meningococcal group C oligosaccharide protein conjugate;;;;
+"17192211000001101";Meningococcal oligosaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"39833011000001108";Meningococcal group W135 oligosaccharide protein conjugate;;;;
+"17192211000001101";Meningococcal oligosaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"39833111000001109";Meningococcal group Y oligosaccharide protein conjugate;;;;
+"17235711000001106";Generic Power Health Glucosamine gel;"734505004";Glucosamine sulfate;;;;
+"17235911000001108";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg capsules;"4104007";Chondroitin sulfate;400;mg;;
+"17235911000001108";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg capsules;"4104007";Chondroitin sulfate;500;mg;;
+"17235911000001108";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg capsules;"734505004";Glucosamine sulfate;400;mg;;
+"17235911000001108";Glucosamine sulfate 500mg / Chondroitin sulfate 400mg capsules;"734505004";Glucosamine sulfate;500;mg;;
+"17280711000001105";Glucosamine sulfate 375mg/5ml / Chondroitin sulfate 300mg/5ml oral solution;"4104007";Chondroitin sulfate;300;mg;5;ml
+"17280711000001105";Glucosamine sulfate 375mg/5ml / Chondroitin sulfate 300mg/5ml oral solution;"4104007";Chondroitin sulfate;375;mg;5;ml
+"17280711000001105";Glucosamine sulfate 375mg/5ml / Chondroitin sulfate 300mg/5ml oral solution;"734505004";Glucosamine sulfate;300;mg;5;ml
+"17280711000001105";Glucosamine sulfate 375mg/5ml / Chondroitin sulfate 300mg/5ml oral solution;"734505004";Glucosamine sulfate;375;mg;5;ml
+"17313611000001103";Glucosamine sulfate 500mg / Ascorbic acid 250mg tablets;"43706004";Ascorbic acid;250;mg;;
+"17313611000001103";Glucosamine sulfate 500mg / Ascorbic acid 250mg tablets;"43706004";Ascorbic acid;500;mg;;
+"17313611000001103";Glucosamine sulfate 500mg / Ascorbic acid 250mg tablets;"734505004";Glucosamine sulfate;250;mg;;
+"17313611000001103";Glucosamine sulfate 500mg / Ascorbic acid 250mg tablets;"734505004";Glucosamine sulfate;500;mg;;
+"17429111000001109";Generic Solgar Advanced Glucosamine Complex tablets;"70237008";Glucosamine;;;;
+"17429111000001109";Generic Solgar Advanced Glucosamine Complex tablets;"734505004";Glucosamine sulfate;;;;
+"17429211000001103";Generic Solgar Glucosamine MSM Complex tablets;"10902011000001101";White willow liquid extract;;;;
+"17429211000001103";Generic Solgar Glucosamine MSM Complex tablets;"115535002";Dimethyl sulfoxide;;;;
+"17429211000001103";Generic Solgar Glucosamine MSM Complex tablets;"126230002";Calcium ascorbate;;;;
+"17429211000001103";Generic Solgar Glucosamine MSM Complex tablets;"227400003";Ginger;;;;
+"17429211000001103";Generic Solgar Glucosamine MSM Complex tablets;"70237008";Glucosamine;;;;
+"17483011000001102";Ash mistletoe solution for injection 1ml ampoules;"17484211000001105";Ash mistletoe;;;;
+"17483511000001105";Generic Bio-Glucosamine + MSM cream;"13531711000001108";Dementholised mint oil;;;;
+"17483511000001105";Generic Bio-Glucosamine + MSM cream;"387414008";Menthol;;;;
+"17483511000001105";Generic Bio-Glucosamine + MSM cream;"412190005";Dimethyl sulfone;;;;
+"17483511000001105";Generic Bio-Glucosamine + MSM cream;"734505004";Glucosamine sulfate;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"22038003";Selenium;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"227400003";Ginger;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"259666007";Alpha tocopherol;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"30178006";Vitamin D;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"4104007";Chondroitin sulfate;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"419382002";Cyanocobalamin;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"43706004";Ascorbic acid;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"63718003";Folic acid;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"66925006";Copper;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"734505004";Glucosamine sulfate;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"86739005";Zinc;;;;
+"17483711000001100";Generic Jointace Max Triple Pack capsules and tablets;"87869004";Manganese;;;;
+"17483911000001103";Generic Solgar Celadrin Glucosamine Complex tablets;;;;;;
+"17563111000001108";Generic PR Freeze spray;"259153006";Chloroform;;;;
+"17563111000001108";Generic PR Freeze spray;"8591008";Dichlorodifluoromethane;;;;
+"17631511000001101";Generic Jointflex Extra capsules and tablets;"17565711000001105";Ginger extract;;;;
+"17631511000001101";Generic Jointflex Extra capsules and tablets;"17565811000001102";Turmeric extract;;;;
+"17631511000001101";Generic Jointflex Extra capsules and tablets;"734505004";Glucosamine sulfate;;;;
+"17645611000001100";Hydrolysed whey protein / Maltodextrin powder;"11482011000001108";Maltodextrin;;;;
+"17645611000001100";Hydrolysed whey protein / Maltodextrin powder;"17632311000001103";Hydrolysed whey protein;;;;
+"17651311000001106";Ammonia solution dilute;"3732411000001107";Ammonia solution dilute;;;;
+"17651411000001104";Ammonia solution strong;"43953005";Ammonia;;;;
+"17651811000001102";Generic HealthAid Osteoflex cream;"12510000";Eucalyptus oil;;;;
+"17651811000001102";Generic HealthAid Osteoflex cream;"387414008";Menthol;;;;
+"17651811000001102";Generic HealthAid Osteoflex cream;"391737006";Almond oil;;;;
+"17651811000001102";Generic HealthAid Osteoflex cream;"4104007";Chondroitin sulfate;;;;
+"17651811000001102";Generic HealthAid Osteoflex cream;"70237008";Glucosamine;;;;
+"18496411000001109";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg effervescent tablets;"4104007";Chondroitin sulfate;400;mg;;
+"18496411000001109";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg effervescent tablets;"4104007";Chondroitin sulfate;500;mg;;
+"18496411000001109";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg effervescent tablets;"70237008";Glucosamine;400;mg;;
+"18496411000001109";Glucosamine hydrochloride 500mg / Chondroitin sulfate 400mg effervescent tablets;"70237008";Glucosamine;500;mg;;
+"18595111000001100";Generic Vega Digestive Enzymes Formula capsules;;;;;;
+"19272011000001108";Generic MacuShield capsules;;;;;;
+"19448411000001104";Hepatitis A (inactivated) / Hepatitis B (rDNA) vaccine (adsorbed) suspension for injection 1ml vials;"11170711000001103";Hepatitis A virus inactivated;;;;
+"19448411000001104";Hepatitis A (inactivated) / Hepatitis B (rDNA) vaccine (adsorbed) suspension for injection 1ml vials;"22290004";Hepatitis B virus surface antigen;;;;
+"19492011000001102";Generic VegEpa capsules;;;;;;
+"19525011000001108";Generic Inteflora 250 capsules;;;;;;
+"19821211000001102";Generic Cortaflex HA 400mg capsules;"38218009";Hyaluronic acid;;;;
+"19821211000001102";Generic Cortaflex HA 400mg capsules;"4104007";Chondroitin sulfate;;;;
+"19821211000001102";Generic Cortaflex HA 400mg capsules;"734505004";Glucosamine sulfate;;;;
+"20122211000001102";Generic Digestisan oral drops sugar free;;;;;;
+"20478511000001102";Generic SafetyGel absorbent tablets;;;;;;
+"20556211000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml pre-filled syringes;"11172811000001107";Neisseria meningitidis group C capsular polysaccharide protein conjugate;;;;
+"20556211000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml pre-filled syringes;"20532711000001101";Neisseria meningitidis group A capsular polysaccharide protein conjugate;;;;
+"20556211000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml pre-filled syringes;"20532811000001109";Neisseria meningitidis group W135 capsular polysaccharide protein conjugate;;;;
+"20556211000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml pre-filled syringes;"20532911000001104";Neisseria meningitidis group Y capsular polysaccharide protein conjugate;;;;
+"21407311000001106";Generic Macusan tablets;;;;;;
+"21704811000001104";Generic Macusan plus tablets;;;;;;
+"22192211000001103";Generic Viviscal Maximum Strength tablets;;;;;;
+"22375111000001100";Saccharomyces Boulardii capsules;"700441006";Saccharomyces boulardii;;;;
+"22663711000001103";Generic Natural Cranberry with Vitamin C capsules;;;;;;
+"22777711000001109";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml vials;"387578003";Sodium hyaluronate;800;mg;50;ml
+"22777711000001109";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml vials;"387578003";Sodium hyaluronate;1000;mg;50;ml
+"22777711000001109";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml vials;"838509000";Chondroitin;800;mg;50;ml
+"22777711000001109";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml vials;"838509000";Chondroitin;1000;mg;50;ml
+"23611911000001107";Generic Bexsero vaccine suspension for injection 0.5ml pre-filled syringes;"23604911000001108";Neisseria meningitidis group B NHBA fusion protein;;;;
+"23611911000001107";Generic Bexsero vaccine suspension for injection 0.5ml pre-filled syringes;"23605011000001108";Neisseria meningitidis group B NadA protein;;;;
+"23611911000001107";Generic Bexsero vaccine suspension for injection 0.5ml pre-filled syringes;"23605111000001109";Neisseria meningitidis group B fHbp fusion protein;;;;
+"23611911000001107";Generic Bexsero vaccine suspension for injection 0.5ml pre-filled syringes;"23605211000001103";Outer membrane vesicles (OMV) from Neisseria meningitidis group B containing the PorA P1.4;;;;
+"23946411000001100";Generic Wellkid Smart chewable tablets;;;;;;
+"23946811000001103";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml pre-filled syringes;"387578003";Sodium hyaluronate;800;mg;50;ml
+"23946811000001103";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml pre-filled syringes;"387578003";Sodium hyaluronate;1000;mg;50;ml
+"23946811000001103";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml pre-filled syringes;"838509000";Chondroitin;800;mg;50;ml
+"23946811000001103";Sodium hyaluronate 800mg / Sodium chondroitin sulfate 1g intravesical solution 50ml pre-filled syringes;"838509000";Chondroitin;1000;mg;50;ml
+"24446911000001108";Generic Bio-Kult capsules;;;;;;
+"24609511000001100";Generic Alacramyn polyvalent scorpion antivenom powder and solvent for solution for infusion vials;;;;;;
+"24856811000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg solution for injection 1ml pre-filled syringes;"387578003";Sodium hyaluronate;30;mg;1;ml
+"24856811000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg solution for injection 1ml pre-filled syringes;"387578003";Sodium hyaluronate;40;mg;1;ml
+"24856811000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg solution for injection 1ml pre-filled syringes;"838509000";Chondroitin;30;mg;1;ml
+"24856811000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg solution for injection 1ml pre-filled syringes;"838509000";Chondroitin;40;mg;1;ml
+"27440611000001109";Generic Cortaflex HA 200mg capsules;"38218009";Hyaluronic acid;;;;
+"27440611000001109";Generic Cortaflex HA 200mg capsules;"4104007";Chondroitin sulfate;;;;
+"27440611000001109";Generic Cortaflex HA 200mg capsules;"734505004";Glucosamine sulfate;;;;
+"27623211000001102";Generic Nortase capsules;;;;;;
+"28049611000001104";Indacaterol 85micrograms/dose / Glycopyrronium bromide 54micrograms/dose inhalation powder capsules with device;"702801003";Indacaterol;85;mcg;1;dose
+"28049611000001104";Indacaterol 85micrograms/dose / Glycopyrronium bromide 54micrograms/dose inhalation powder capsules with device;"769097000";Glycopyrronium;54;mcg;1;dose
+"28881511000001105";Generic Digestizyme capsules;;;;;;
+"28881611000001109";Generic Eyewise tablets;;;;;;
+"28881711000001100";Ginkgo biloba modified-release tablets;"420733007";Ginkgo biloba;;;;
+"28990411000001109";Recombinant human hyaluronidase solution for infusion 1.25ml vials;"387280008";Hyaluronidase;;;;
+"28990511000001108";Recombinant human hyaluronidase solution for infusion 15ml vials;"387280008";Hyaluronidase;;;;
+"28990611000001107";Recombinant human hyaluronidase solution for infusion 2.5ml vials;"387280008";Hyaluronidase;;;;
+"28990711000001103";Recombinant human hyaluronidase solution for infusion 5ml vials;"387280008";Hyaluronidase;;;;
+"28991111000001105";Recombinant human hyaluronidase solution for infusion 10ml vials;"387280008";Hyaluronidase;;;;
+"29716811000001101";Generic Probioguard capsules;;;;;;
+"29981011000001108";Escherichia coli capsules;;;;;;
+"30799011000001103";Generic Glucosamine Complete tablets;"13440211000001104";Dog rose;;;;
+"30799011000001103";Generic Glucosamine Complete tablets;"17565711000001105";Ginger extract;;;;
+"30799011000001103";Generic Glucosamine Complete tablets;"4104007";Chondroitin sulfate;;;;
+"30799011000001103";Generic Glucosamine Complete tablets;"412190005";Dimethyl sulfone;;;;
+"30799011000001103";Generic Glucosamine Complete tablets;"52130006";Quercetin;;;;
+"30799011000001103";Generic Glucosamine Complete tablets;"734505004";Glucosamine sulfate;;;;
+"30799111000001102";Generic Glucosamine QCV tablets;"30994311000001106";Apple cider vinegar;;;;
+"30799111000001102";Generic Glucosamine QCV tablets;"52130006";Quercetin;;;;
+"30799111000001102";Generic Glucosamine QCV tablets;"734505004";Glucosamine sulfate;;;;
+"30799311000001100";Generic Gold capsules;;;;;;
+"30799511000001106";Generic Omega 369 1200mg capsules;;;;;;
+"31703511000001104";Generic Efamarine Omega 6+3 capsules;;;;;;
+"32654811000001101";Generic Vivomixx capsules;;;;;;
+"32676311000001102";Sodium hyaluronate 0.15% / Trehalose 3% eye drops preservative free;"387578003";Sodium hyaluronate;1.5;mg;;ml
+"32676311000001102";Sodium hyaluronate 0.15% / Trehalose 3% eye drops preservative free;"387578003";Sodium hyaluronate;30;mg;;ml
+"32676311000001102";Sodium hyaluronate 0.15% / Trehalose 3% eye drops preservative free;"44102011000001103";Trehalose;1.5;mg;;ml
+"32676311000001102";Sodium hyaluronate 0.15% / Trehalose 3% eye drops preservative free;"44102011000001103";Trehalose;30;mg;;ml
+"32676711000001103";Sodium hyaluronate 0.15% / Trehalose 3% eye drops 0.4ml unit dose preservative free;"387578003";Sodium hyaluronate;1.5;mg;0.4;ml
+"32676711000001103";Sodium hyaluronate 0.15% / Trehalose 3% eye drops 0.4ml unit dose preservative free;"387578003";Sodium hyaluronate;30;mg;0.4;ml
+"32676711000001103";Sodium hyaluronate 0.15% / Trehalose 3% eye drops 0.4ml unit dose preservative free;"44102011000001103";Trehalose;1.5;mg;0.4;ml
+"32676711000001103";Sodium hyaluronate 0.15% / Trehalose 3% eye drops 0.4ml unit dose preservative free;"44102011000001103";Trehalose;30;mg;0.4;ml
+"32861911000001105";Generic B5 Weeds and Shrub Pollen 2.5% solution for skin prick test;"32861411000001102";Mugwort (Artemisia vulgaris) pollen allergen extract;;;;
+"32861911000001105";Generic B5 Weeds and Shrub Pollen 2.5% solution for skin prick test;"32861511000001103";Fat hen (Chenopodium species) pollen allergen extract;;;;
+"32861911000001105";Generic B5 Weeds and Shrub Pollen 2.5% solution for skin prick test;"32861611000001104";Atriplex species pollen allergen extract;;;;
+"32861911000001105";Generic B5 Weeds and Shrub Pollen 2.5% solution for skin prick test;"32861711000001108";Nettle (Urtica dioica) pollen allergen extract;;;;
+"32861911000001105";Generic B5 Weeds and Shrub Pollen 2.5% solution for skin prick test;"32861811000001100";Plantain (Plantago lanceolata) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32869511000001102";Alder (Alnus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32869611000001103";Ash (Fraxinus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32869711000001107";Beech (Fagus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32869811000001104";Birch (Betula species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32869911000001109";Ulmus species pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32870011000001108";Hazel (Corylus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32870111000001109";Oak (Common, Quercus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32870211000001103";Plane (Platanus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32870311000001106";Poplar (Populus species) pollen allergen extract;;;;
+"32870511000001100";Generic B3 Tree Pollens 2.5% solution for skin prick test;"32870411000001104";Salix species pollen allergen extract;;;;
+"32877011000001109";Generic Lestrin plant sterols tablets;;;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"16100011000001109";Timothy grass (Phleum pratense) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883111000001106";Bent (Agrostis capillaris) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883211000001100";Brome (Bromus species) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883311000001108";Cocksfoot (Orchard grass, Dactylis glomerata) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883411000001101";Dogstail (Cynosurus cristatus) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883511000001102";Tall fescue (Meadow fescue, Festuca pratensis) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883611000001103";Meadow foxtail (Alopecurus pratensis) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883711000001107";Meadow grass (Kentucky blue grass, Poa pratensis) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883811000001104";False oat grass (Arrhenatherum elatius) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32883911000001109";Rye grass (Lolium perenne) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32884011000001107";Sweet vernal (Anthoxanthum odoratum) pollen allergen extract;;;;
+"32884311000001105";Generic B2 Grass Pollens 10000DU/ml ODC solution for skin prick test;"32884211000001102";Yorkshire fog (Velvet grass, Holcus lanatus) pollen allergen extract;;;;
+"330047006";Synovial fluid 20mg/2ml injection pre-filled syringes;;;20;mg;;ml
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11170911000001101";Human papillomavirus type 11 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171011000001109";Human papillomavirus type 16 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171111000001105";Human papillomavirus type 18 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171211000001104";Human papillomavirus type 6 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"33393211000001109";Human papillomavirus type 31 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"33393311000001101";Human papillomavirus type 33 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"33393411000001108";Human papillomavirus type 45 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"33393511000001107";Human papillomavirus type 52 L1 protein;;;;
+"33494711000001106";Human papillomavirus (type 6 11 16 18 31 33 45 52 58) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"33393611000001106";Human papillomavirus type 58 L1 protein;;;;
+"33497311000001103";Generic Trees mix I (early blossoming) 100000BU/ml solution for skin prick test;"32870311000001106";Poplar (Populus species) pollen allergen extract;;;;
+"33497311000001103";Generic Trees mix I (early blossoming) 100000BU/ml solution for skin prick test;"33497011000001101";Alder (Alnus glutinosa) pollen allergen extract;;;;
+"33497311000001103";Generic Trees mix I (early blossoming) 100000BU/ml solution for skin prick test;"33497111000001100";Hazel (Corylus avellana) pollen allergen extract;;;;
+"33497311000001103";Generic Trees mix I (early blossoming) 100000BU/ml solution for skin prick test;"33497211000001106";Willow (Salix caprea) pollen allergen extract;;;;
+"33497311000001103";Generic Trees mix I (early blossoming) 100000BU/ml solution for skin prick test;"33523511000001100";Elm (Ulmus scabra) pollen allergen extract;;;;
+"33510911000001106";Generic Trees mix II (mid blossoming) 100000BU/ml solution for skin prick test;"32869811000001104";Birch (Betula species) pollen allergen extract;;;;
+"33510911000001106";Generic Trees mix II (mid blossoming) 100000BU/ml solution for skin prick test;"33510611000001100";Beech (Fagus sylvatica) pollen allergen extract;;;;
+"33510911000001106";Generic Trees mix II (mid blossoming) 100000BU/ml solution for skin prick test;"33510711000001109";Oak (Quercus robur) pollen allergen extract;;;;
+"33510911000001106";Generic Trees mix II (mid blossoming) 100000BU/ml solution for skin prick test;"33510811000001101";Platanus orientalis pollen allergen extract;;;;
+"33512211000001101";Generic Weed mix 100000BU/ml solution for skin prick test;"32861411000001102";Mugwort (Artemisia vulgaris) pollen allergen extract;;;;
+"33512211000001101";Generic Weed mix 100000BU/ml solution for skin prick test;"32861711000001108";Nettle (Urtica dioica) pollen allergen extract;;;;
+"33512211000001101";Generic Weed mix 100000BU/ml solution for skin prick test;"32861811000001100";Plantain (Plantago lanceolata) pollen allergen extract;;;;
+"33512211000001101";Generic Weed mix 100000BU/ml solution for skin prick test;"33512011000001106";Wall Pellitory (Parietaria officinalis) pollen allergen extract;;;;
+"33512211000001101";Generic Weed mix 100000BU/ml solution for skin prick test;"33512111000001107";Dandelion (Taraxacum vulgare) pollen allergen extract;;;;
+"33523611000001101";Bacillus Calmette-Guerin vaccine powder and solvent for suspension for injection ampoules;"11172511000001109";Mycobacterium bovis BCG;;;;
+"33838411000001108";Generic Sanderson's Throat Specific mixture;;;;;;
+"3387411000001103";Generic Algicon oral suspension sugar free;"3511411000001105";Aluminium hydroxide / Magnesium carbonate co-gel;28;mg;1;ml
+"3387411000001103";Generic Algicon oral suspension sugar free;"387401007";Magnesium carbonate;35;mg;1;ml
+"3387411000001103";Generic Algicon oral suspension sugar free;"417987009";Magnesium alginate;50;mg;1;ml
+"3387411000001103";Generic Algicon oral suspension sugar free;"77849004";Potassium bicarbonate;10;mg;1;ml
+"34088211000001102";Generic DEKAs Essential capsules;;;;;;
+"34088311000001105";Generic DEKAs Plus chewable tablets;;;;;;
+"34088611000001100";Generic DEKAs Plus softgels capsules;;;;;;
+"34199511000001101";Generic Health Plus Omega Complex capsules;;;;;;
+"34235611000001106";Generic Urostemol Men capsules;;;;;;
+"34235711000001102";Generic Urostemol Prosta capsules;;;;;;
+"34235811000001105";Generic Urostemol capsules;;;;;;
+"34235911000001100";Generic Urostemol femina capsules;;;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11173511000001102";Streptococcus pneumoniae serotype 1 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11173611000001103";Streptococcus pneumoniae serotype 10A capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11173711000001107";Streptococcus pneumoniae serotype 11A capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11173811000001104";Streptococcus pneumoniae serotype 12F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11173911000001109";Streptococcus pneumoniae serotype 14 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174011000001107";Streptococcus pneumoniae serotype 15B capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174111000001108";Streptococcus pneumoniae serotype 17A or 17F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174211000001102";Streptococcus pneumoniae serotype 18C capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174311000001105";Streptococcus pneumoniae serotype 19A capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174411000001103";Streptococcus pneumoniae serotype 19F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174511000001104";Streptococcus pneumoniae serotype 2 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174611000001100";Streptococcus pneumoniae serotype 20 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174711000001109";Streptococcus pneumoniae serotype 22F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174811000001101";Streptococcus pneumoniae serotype 23F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11174911000001106";Streptococcus pneumoniae serotype 3 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175011000001106";Streptococcus pneumoniae serotype 33F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175111000001107";Streptococcus pneumoniae serotype 4 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175211000001101";Streptococcus pneumoniae serotype 5 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175311000001109";Streptococcus pneumoniae serotype 6B capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175411000001102";Streptococcus pneumoniae serotype 7F capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175511000001103";Streptococcus pneumoniae serotype 8 capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175611000001104";Streptococcus pneumoniae serotype 9N capsular polysaccharide;;;;
+"3439211000001108";Pneumococcal polysaccharide vaccine solution for injection 0.5ml pre-filled syringes;"11175711000001108";Streptococcus pneumoniae serotype 9V capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11173511000001102";Streptococcus pneumoniae serotype 1 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11173611000001103";Streptococcus pneumoniae serotype 10A capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11173711000001107";Streptococcus pneumoniae serotype 11A capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11173811000001104";Streptococcus pneumoniae serotype 12F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11173911000001109";Streptococcus pneumoniae serotype 14 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174011000001107";Streptococcus pneumoniae serotype 15B capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174111000001108";Streptococcus pneumoniae serotype 17A or 17F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174211000001102";Streptococcus pneumoniae serotype 18C capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174311000001105";Streptococcus pneumoniae serotype 19A capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174411000001103";Streptococcus pneumoniae serotype 19F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174511000001104";Streptococcus pneumoniae serotype 2 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174611000001100";Streptococcus pneumoniae serotype 20 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174711000001109";Streptococcus pneumoniae serotype 22F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174811000001101";Streptococcus pneumoniae serotype 23F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11174911000001106";Streptococcus pneumoniae serotype 3 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175011000001106";Streptococcus pneumoniae serotype 33F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175111000001107";Streptococcus pneumoniae serotype 4 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175211000001101";Streptococcus pneumoniae serotype 5 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175311000001109";Streptococcus pneumoniae serotype 6B capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175411000001102";Streptococcus pneumoniae serotype 7F capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175511000001103";Streptococcus pneumoniae serotype 8 capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175611000001104";Streptococcus pneumoniae serotype 9N capsular polysaccharide;;;;
+"3439311000001100";Pneumococcal polysaccharide vaccine solution for injection 0.5ml vials;"11175711000001108";Streptococcus pneumoniae serotype 9V capsular polysaccharide;;;;
+"34617111000001104";Generic Trumenba vaccine suspension for injection 0.5ml pre-filled syringes;"34613211000001101";Neisseria meningitidis serogroup B fHbp subfamily A fusion protein;;;;
+"34617111000001104";Generic Trumenba vaccine suspension for injection 0.5ml pre-filled syringes;"34613311000001109";Neisseria meningitidis serogroup B fHbp subfamily B fusion protein;;;;
+"3465911000001108";Glucose tablets;"67079006";Glucose;;;;
+"3467011000001102";Inactive tablets;;;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11170511000001108";Haemophilus influenzae type b polysaccharide protein conjugate;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"34769511000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) powder and suspension for suspension for injection 0.5ml pre-filled syringes;"22290004";Hepatitis B virus surface antigen;;;;
+"3486611000001105";Hepatitis A (adsorbed) / Typhoid polysaccharide vaccine suspension for injection 1ml pre-filled syringes;"9894211000001105";Hepatitis A vaccine;;;;
+"3486611000001105";Hepatitis A (adsorbed) / Typhoid polysaccharide vaccine suspension for injection 1ml pre-filled syringes;"9895511000001109";Typhoid vaccine;;;;
+"34938511000001103";Measles Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml pre-filled syringes;"11172311000001103";Measles virus live attenuated;;;;
+"34938511000001103";Measles Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml pre-filled syringes;"11172411000001105";Mumps virus live attenuated;;;;
+"34938511000001103";Measles Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml pre-filled syringes;"11173211000001100";Rubella virus live attenuated;;;;
+"35061811000001102";House dust mites (Dermatophagoides pteronyssinus and Dermatophagoides farinae) allergen extract 12 SQ-HDM oral lyophilisates sugar free;"32889711000001105";Dermatophagoides pteronyssinus allergen extract;;;;
+"35061811000001102";House dust mites (Dermatophagoides pteronyssinus and Dermatophagoides farinae) allergen extract 12 SQ-HDM oral lyophilisates sugar free;"32901611000001107";Dermatophagoides farinae allergen extract;;;;
+"35369211000001101";Diphtheria / Tetanus vaccine (adsorbed) for adults and adolescents suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"35369211000001101";Diphtheria / Tetanus vaccine (adsorbed) for adults and adolescents suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"387578003";Sodium hyaluronate;30;mg;0.5;ml
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"387578003";Sodium hyaluronate;30;milligram;0.5;milliliter
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"387578003";Sodium hyaluronate;40;mg;0.5;ml
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"387578003";Sodium hyaluronate;40;milligram;0.5;milliliter
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"838509000";Chondroitin;30;mg;0.5;ml
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"838509000";Chondroitin;30;milligram;0.5;milliliter
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"838509000";Chondroitin;40;mg;0.5;ml
+"35554311000001100";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.5ml pre-filled syringes;"838509000";Chondroitin;40;milligram;0.5;milliliter
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"387578003";Sodium hyaluronate;30;mg;0.75;ml
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"387578003";Sodium hyaluronate;30;milligram;0.75;milliliter
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"387578003";Sodium hyaluronate;40;mg;0.75;ml
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"387578003";Sodium hyaluronate;40;milligram;0.75;milliliter
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"838509000";Chondroitin;30;mg;0.75;ml
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"838509000";Chondroitin;30;milligram;0.75;milliliter
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"838509000";Chondroitin;40;mg;0.75;ml
+"35554411000001107";Sodium hyaluronate 30mg / Sodium chondroitin sulfate 40mg ophthalmic viscosurgical device 0.75ml pre-filled syringes;"838509000";Chondroitin;40;milligram;0.75;milliliter
+"3556311000001101";Generic Sultrin Triple Sulfa cream with applicator;"371427008";Sulfabenzamide;;;;
+"3556311000001101";Generic Sultrin Triple Sulfa cream with applicator;"372676007";Sulfacetamide;;;;
+"3556311000001101";Generic Sultrin Triple Sulfa cream with applicator;"387093005";Sulfathiazole;;;;
+"3557511000001109";Generic Unguentum M cream;;;;;;
+"3559211000001100";Meningococcal polysaccharide A and C vaccine powder and solvent for solution for injection vials;"11172611000001108";Neisseria meningitidis group A capsular polysaccharide;;;;
+"3559211000001100";Meningococcal polysaccharide A and C vaccine powder and solvent for solution for injection vials;"11172711000001104";Neisseria meningitidis group C capsular polysaccharide;;;;
+"3559311000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"11172811000001107";Neisseria meningitidis group C capsular polysaccharide protein conjugate;;;;
+"3559311000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"20532711000001101";Neisseria meningitidis group A capsular polysaccharide protein conjugate;;;;
+"3559311000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"20532811000001109";Neisseria meningitidis group W135 capsular polysaccharide protein conjugate;;;;
+"3559311000001108";Meningococcal polysaccharide A C W135 and Y conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"20532911000001104";Neisseria meningitidis group Y capsular polysaccharide protein conjugate;;;;
+"35608211000001100";Generic Spherox implantation suspension pre-filled syringes;"35606711000001108";Autologous chondrocyte spheroids;;;;
+"35608611000001103";Generic Spherox implantation suspension applicators;"35606711000001108";Autologous chondrocyte spheroids;;;;
+"35750411000001102";Naloxone 1.8mg/0.1ml nasal spray unit dose;"372890007";Naloxone;1.8;mg;0.1;ml
+"35824711000001101";Generic Lepicol capsules;;;;;;
+"35896211000001109";Nitric oxide 100ppm;"6710000";Nitric oxide;100;parts per million;;
+"35896211000001109";Nitric oxide 100ppm;"6710000";Nitric oxide;100;ppm;;
+"35896311000001101";Nitric oxide 800ppm;"6710000";Nitric oxide;800;parts per million;;
+"35896311000001101";Nitric oxide 800ppm;"6710000";Nitric oxide;800;ppm;;
+"35926511000001106";Sodium cromoglicate 2% eye drops unit dose preservative free;"387221005";Sodium cromoglicate;20;mg;1;ml
+"36017211000001107";Poliomyelitis vaccine (live oral) drops;"11172211000001106";Human poliovirus live attenuated;;;;
+"36028611000001102";Multivitamin tablets;;;;;;
+"36055411000001109";Hepatitis A (inactivated) / Hepatitis B (rDNA) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11170711000001103";Hepatitis A virus inactivated;;;;
+"36055411000001109";Hepatitis A (inactivated) / Hepatitis B (rDNA) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"22290004";Hepatitis B virus surface antigen;;;;
+"36055511000001108";Hepatitis A (inactivated) / Hepatitis B (rDNA) vaccine (adsorbed) suspension for injection 1ml pre-filled syringes;"11170711000001103";Hepatitis A virus inactivated;;;;
+"36055511000001108";Hepatitis A (inactivated) / Hepatitis B (rDNA) vaccine (adsorbed) suspension for injection 1ml pre-filled syringes;"22290004";Hepatitis B virus surface antigen;;;;
+"36146311000001103";Typhoid vaccine (live oral strain ty21a) gastro-resistant capsules;"11173311000001108";Salmonella typhi strain Ty 21a;;;;
+"37248111000001104";Generic Diluted Sauton AJV solvent for suspension for injection 1ml vials;;;;;;
+"37616211000001103";Sodium hyaluronate lotion;"387578003";Sodium hyaluronate;;;;
+"3766311000001106";Generic Lipobase cream;;;;;;
+"37948711000001104";Generic Bio-Kult Migrea capsules;;;;;;
+"37948811000001107";Generic Bio-Kult Mind capsules;;;;;;
+"38515511000001108";Esketamine 28mg/0.2ml nasal spray unit dose;"785816006";Esketamine;28;mg;0.2;ml
+"38678211000001104";Sodium hyaluronate 0.2% / Carbomer '980' 0.2% eye drops preservative free;"387578003";Sodium hyaluronate;2;mg;;ml
+"38678211000001104";Sodium hyaluronate 0.2% / Carbomer '980' 0.2% eye drops preservative free;"387578003";Sodium hyaluronate;2;milligram;1;milliliter
+"38678211000001104";Sodium hyaluronate 0.2% / Carbomer '980' 0.2% eye drops preservative free;"395936001";Carbomer;2;mg;;ml
+"38678211000001104";Sodium hyaluronate 0.2% / Carbomer '980' 0.2% eye drops preservative free;"395936001";Carbomer;2;milligram;1;milliliter
+"38679011000001104";Perfluorohexyloctane eye drops preservative free;"42638511000001106";Perfluorohexyloctane;;;;
+"38703311000001104";Generic Bio-Kult Boosted capsules;;;;;;
+"38703411000001106";Generic Bio-Kult S.Boulardii capsules;;;;;;
+"39116211000001106";Generic COVID-19 Vaccine Vaxzevria (ChAdOx1 S [recombinant]) not less than 2.5x100000000 infectious units/0.5ml dose suspension for injection multidose vials;"39330711000001103";COVID-19 vaccine;250000000;unit;0.5;milliliter
+"39116211000001106";Generic COVID-19 Vaccine Vaxzevria (ChAdOx1 S [recombinant]) not less than 2.5x100000000 infectious units/0.5ml dose suspension for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"39116311000001103";Indacaterol 125micrograms/dose / Mometasone 127.5micrograms/dose inhalation powder capsules with device;"395802006";Mometasone furoate;127.5;mcg;1;dose
+"39116311000001103";Indacaterol 125micrograms/dose / Mometasone 127.5micrograms/dose inhalation powder capsules with device;"702801003";Indacaterol;125;mcg;1;dose
+"39116411000001105";Indacaterol 125micrograms/dose / Mometasone 260micrograms/dose inhalation powder capsules with device;"395802006";Mometasone furoate;260;mcg;1;dose
+"39116411000001105";Indacaterol 125micrograms/dose / Mometasone 260micrograms/dose inhalation powder capsules with device;"702801003";Indacaterol;125;mcg;1;dose
+"39116511000001109";Indacaterol 125micrograms/dose / Mometasone 62.5micrograms/dose inhalation powder capsules with device;"395802006";Mometasone furoate;62.5;mcg;1;dose
+"39116511000001109";Indacaterol 125micrograms/dose / Mometasone 62.5micrograms/dose inhalation powder capsules with device;"702801003";Indacaterol;125;mcg;1;dose
+"39134511000001107";Generic Enerzair Breezhaler 114micrograms/dose / 46micrograms/dose / 136micrograms/dose inhalation powder capsules with device;"395802006";Mometasone furoate;136;mcg;1;dose
+"39134511000001107";Generic Enerzair Breezhaler 114micrograms/dose / 46micrograms/dose / 136micrograms/dose inhalation powder capsules with device;"702801003";Indacaterol;114;mcg;1;dose
+"39134511000001107";Generic Enerzair Breezhaler 114micrograms/dose / 46micrograms/dose / 136micrograms/dose inhalation powder capsules with device;"769097000";Glycopyrronium;46;mcg;1;dose
+"39306411000001103";Generic Bio-Kult Candea capsules;;;;;;
+"39306511000001104";Generic Bio-Kult Pro-Cyan capsules;;;;;;
+"39326811000001106";Generic Spikevax COVID-19 mRNA (nucleoside modified) Vaccine 0.1mg/0.5ml dose dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.1;milligram;0.5;milliliter
+"39326811000001106";Generic Spikevax COVID-19 mRNA (nucleoside modified) Vaccine 0.1mg/0.5ml dose dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"39343311000001109";Generic ORA-Blend SF oral suspension;"10828111000001104";Microcrystalline cellulose;;;;
+"39343311000001109";Generic ORA-Blend SF oral suspension;"10828211000001105";Xanthan gum;;;;
+"39343311000001109";Generic ORA-Blend SF oral suspension;"109240008";Carrageenan;;;;
+"39343311000001109";Generic ORA-Blend SF oral suspension;"51224002";Carmellose sodium;;;;
+"39343411000001102";Generic ORA-Blend oral suspension;"10828111000001104";Microcrystalline cellulose;;;;
+"39343411000001102";Generic ORA-Blend oral suspension;"10828211000001105";Xanthan gum;;;;
+"39343411000001102";Generic ORA-Blend oral suspension;"109240008";Carrageenan;;;;
+"39343411000001102";Generic ORA-Blend oral suspension;"51224002";Carmellose sodium;;;;
+"39375211000001103";Generic COVID-19 Vaccine Valneva (inactivated adjuvanted whole virus) 40antigen units/0.5ml dose suspension for injection multidose vials;OMOP0000000002;COVID-19 vaccine, whole virus, inactivated, adjuvanted with Alum and CpG 1018;;;;
+"39478211000001100";Generic COVID-19 Vaccine Nuvaxovid (recombinant adjuvanted) 5micrograms/0.5ml dose dispersion for injection multidose vials;OMOP0000000001;COVID-19 vaccine, recombinant, full-length nanoparticle spike (S) protein, adjuvanted with Matrix-M;;;;
+"39486611000001109";Sodium hyaluronate 0.2% / Hypromellose 0.2% eye drops preservative free;"387578003";Sodium hyaluronate;2;mg;;ml
+"39486611000001109";Sodium hyaluronate 0.2% / Hypromellose 0.2% eye drops preservative free;"387578003";Sodium hyaluronate;2;milligram;1;milliliter
+"39486611000001109";Sodium hyaluronate 0.2% / Hypromellose 0.2% eye drops preservative free;"412410003";Hypromellose;2;mg;;ml
+"39486611000001109";Sodium hyaluronate 0.2% / Hypromellose 0.2% eye drops preservative free;"412410003";Hypromellose;2;milligram;1;milliliter
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11170511000001108";Haemophilus influenzae type b polysaccharide protein conjugate;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"39494911000001105";Diphtheria / Tetanus / Pertussis (acellular component) / Hepatitis B (surface antigen) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"22290004";Hepatitis B virus surface antigen;;;;
+"39643111000001100";Generic Bio-Kult Pregnea capsules;;;;;;
+"39714611000001108";Sumatriptan 20mg/0.1ml nasal spray unit dose;"395892000";Sumatriptan;20;mg;0.1;ml
+"39718311000001108";Measles vaccine (live) powder and solvent for solution for injection vials;"11172311000001103";Measles virus live attenuated;;;;
+"39721111000001109";Zolmitriptan 5mg/0.1ml nasal spray unit dose;"363582006";Zolmitriptan;5;mg;0.1;ml
+"39828011000001104";Generic COVID-19 Vaccine Medicago (CoVLP) 3.75micrograms/0.5ml dose emulsion for injection multidose vials;OMOP0000000003;COVID-19 vaccine, recombinant, plant-derived Virus-Like Particle (VLP) spike (S) protein, adjuvanted with AS03;;;;
+"39878711000001101";Generic Bio-Kult Brighten capsules;;;;;;
+"40039411000001101";Meningococcal polysaccharide A C W135 and Y conjugate vaccine solution for injection 0.5ml vials;"11172811000001107";Neisseria meningitidis group C capsular polysaccharide protein conjugate;;;;
+"40039411000001101";Meningococcal polysaccharide A C W135 and Y conjugate vaccine solution for injection 0.5ml vials;"20532711000001101";Neisseria meningitidis group A capsular polysaccharide protein conjugate;;;;
+"40039411000001101";Meningococcal polysaccharide A C W135 and Y conjugate vaccine solution for injection 0.5ml vials;"20532811000001109";Neisseria meningitidis group W135 capsular polysaccharide protein conjugate;;;;
+"40039411000001101";Meningococcal polysaccharide A C W135 and Y conjugate vaccine solution for injection 0.5ml vials;"20532911000001104";Neisseria meningitidis group Y capsular polysaccharide protein conjugate;;;;
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"387578003";Sodium hyaluronate;2;milligram;1;milliliter
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"387578003";Sodium hyaluronate;2.5;mg;;ml
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"387578003";Sodium hyaluronate;2.5;milligram;1;milliliter
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"387578003";Sodium hyaluronate;20;mg;;ml
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"44102011000001103";Trehalose;2;milligram;1;milliliter
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"44102011000001103";Trehalose;2.5;mg;;ml
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"44102011000001103";Trehalose;2.5;milligram;1;milliliter
+"40077411000001107";Sodium hyaluronate 0.25% / Trehalose 2% eye drops preservative free;"44102011000001103";Trehalose;20;mg;;ml
+"40110311000001104";Generic Kinerva Daily Vitality capsules;;;;;;
+"40235011000001101";Generic Viperfav concentrate for solution for infusion 4ml vials;"10927711000001109";European viper snake venom antiserum;;;;
+"40235011000001101";Generic Viperfav concentrate for solution for infusion 4ml vials;"40234711000001103";Asp viper snake venom antiserum;;;;
+"40235011000001101";Generic Viperfav concentrate for solution for infusion 4ml vials;"40234811000001106";Horned viper snake venom antiserum;;;;
+"40335311000001107";Generic COVID-19 Vaccine Covaxin (NIV-2020-770 inactivated) 6micrograms/0.5ml dose suspension for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.006;milligram;0.5;milliliter
+"40335311000001107";Generic COVID-19 Vaccine Covaxin (NIV-2020-770 inactivated) 6micrograms/0.5ml dose suspension for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40335411000001100";Generic COVID-19 Vaccine Covaxin (NIV-2020-770 inactivated) 6micrograms/0.5ml dose suspension for injection vials;"39330711000001103";COVID-19 vaccine;0.006;milligram;0.5;milliliter
+"40335411000001100";Generic COVID-19 Vaccine Covaxin (NIV-2020-770 inactivated) 6micrograms/0.5ml dose suspension for injection vials;"39330711000001103";COVID-19 vaccine;;;;
+"40366311000001107";Generic COVID-19 Vaccine Covishield (ChAdOx1 S [recombinant]) 5x10000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;50000000000;unit;0.5;milliliter
+"40366311000001107";Generic COVID-19 Vaccine Covishield (ChAdOx1 S [recombinant]) 5x10000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40366411000001100";Generic COVID-19 Vaccine Covishield (ChAdOx1 S [recombinant]) 5x10000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;50000000000;unit;0.5;milliliter
+"40366411000001100";Generic COVID-19 Vaccine Covishield (ChAdOx1 S [recombinant]) 5x10000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;;;;
+"40388611000001103";Generic COVID-19 Vaccine Sputnik V Component I (recombinant serotype 26 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;100000000000;unit;0.5;milliliter
+"40388611000001103";Generic COVID-19 Vaccine Sputnik V Component I (recombinant serotype 26 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40388711000001107";Generic COVID-19 Vaccine Sputnik V Component I (recombinant serotype 26 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;100000000000;unit;0.5;milliliter
+"40388711000001107";Generic COVID-19 Vaccine Sputnik V Component I (recombinant serotype 26 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;;;;
+"40388811000001104";Generic COVID-19 Vaccine Sputnik V Component II (recombinant serotype 5 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;100000000000;unit;0.5;milliliter
+"40388811000001104";Generic COVID-19 Vaccine Sputnik V Component II (recombinant serotype 5 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40388911000001109";Generic COVID-19 Vaccine Sputnik V Component II (recombinant serotype 5 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;100000000000;unit;0.5;milliliter
+"40388911000001109";Generic COVID-19 Vaccine Sputnik V Component II (recombinant serotype 5 adenoviral particles) 100000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;;;;
+"40411511000001102";Generic COVID-19 Vaccine AZD2816 AstraZeneca (ChAdOx1 nCOV-19) 3.5x10000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;35000000000;unit;0.5;milliliter
+"40411511000001102";Generic COVID-19 Vaccine AZD2816 AstraZeneca (ChAdOx1 nCOV-19) 3.5x10000000000 viral particles/0.5ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40506711000001109";Generic COVID-19 Vaccine Sanofi (CoV2 preS dTM monovalent D614 [recombinant]) 5micrograms/0.5ml dose suspension for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.005;milligram;0.5;milliliter
+"40506711000001109";Generic COVID-19 Vaccine Sanofi (CoV2 preS dTM monovalent D614 [recombinant]) 5micrograms/0.5ml dose suspension for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40520611000001105";Generic COVID-19 Vaccine Moderna (mRNA-1273.529) 50micrograms/0.25ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.05;milligram;0.25;milliliter
+"40520611000001105";Generic COVID-19 Vaccine Moderna (mRNA-1273.529) 50micrograms/0.25ml dose solution for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40573611000001100";Nitric oxide 400ppm;"6710000";Nitric oxide;400;parts per million;;
+"40573611000001100";Nitric oxide 400ppm;"6710000";Nitric oxide;400;ppm;;
+"40658411000001104";Generic COVID-19 Vaccine Moderna (mRNA-1273.214) 50micrograms/0.5ml dose dispersion for injection vials;"39330711000001103";COVID-19 vaccine;0.05;milligram;0.5;milliliter
+"40658411000001104";Generic COVID-19 Vaccine Moderna (mRNA-1273.214) 50micrograms/0.5ml dose dispersion for injection vials;"39330711000001103";COVID-19 vaccine;;;;
+"40711511000001105";Generic HealthAid Colonease Plus capsules;;;;;;
+"40713711000001104";Generic COVID-19 Vaccine Convidecia (Adenovirus Type 5 Vector [recombinant]) 40000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;40000000000;unit;0.5;milliliter
+"40713711000001104";Generic COVID-19 Vaccine Convidecia (Adenovirus Type 5 Vector [recombinant]) 40000000000 viral particles/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;;;;
+"40813111000001102";Generic COVID-19 Vaccine Spikevax 0 (Zero)/O (Omicron) 0.1mg/ml dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.1;milligram;1;milliliter
+"40813111000001102";Generic COVID-19 Vaccine Spikevax 0 (Zero)/O (Omicron) 0.1mg/ml dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40872511000001107";Generic COVID-19 Vaccine VidPrevtyn Beta (CoV2 preS dTM monovalent B.1.351 [recombinant adjuvanted]) 5micrograms/0.5ml dose solution and emulsion for emulsion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.005;milligram;0.5;milliliter
+"40872611000001106";Generic COVID-19 Vaccine Sanofi (CoV2 preS dTM bivalent D614+B.1.351 [recombinant adjuvanted]) 2.5micrograms/2.5micrograms/0.5ml dose emulsion for injection multidose vials;"39330711000001103";COVID-19 vaccine;;;;
+"40889811000001109";Generic AquADEKS capsules;;;;;;
+"40889911000001104";Generic AquADEKS chewable tablets;;;;;;
+"40970511000001101";Generic MacuLEH Light tablets;;;;;;
+"41088111000001104";Generic TYR Easy tablets;;;;;;
+"41166811000001100";Generic XPhe minis tablets;;;;;;
+"41411711000001102";Generic novel Oral Polio Vaccine (nOPV2) monovalent attenuated type multidose vials;"9895011000001101";Poliomyelitis vaccine;;;;
+"41435811000001101";Generic Equazen capsules;;;;;;
+"41435911000001106";Generic Equazen chews chewable capsules;;;;;;
+"41481811000001108";Echinacea drops;;;;;;
+"41481911000001103";Generic Equazen triple strength capsules;;;;;;
+"41482011000001105";Generic Life On Haem-Life capsules;;;;;;
+"41482211000001100";Generic Life On Pregnancy Care Mama-Life Multivitamin capsules;;;;;;
+"41610211000001101";Naloxone 1.26mg/0.1ml nasal spray unit dose;"372890007";Naloxone;1.26;mg;0.1;ml
+"41621211000001101";Cholera vaccine (recombinant live oral) effervescent powder and powder for oral suspension;"41621811000001100";Vibrio cholerae live attenuated;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"16100011000001109";Timothy grass (Phleum pratense) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"32883311000001108";Cocksfoot (Orchard grass, Dactylis glomerata) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"32883511000001102";Tall fescue (Meadow fescue, Festuca pratensis) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"32883711000001107";Meadow grass (Kentucky blue grass, Poa pratensis) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"32883911000001109";Rye grass (Lolium perenne) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"32884211000001102";Yorkshire fog (Velvet grass, Holcus lanatus) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"33514711000001103";Barley (Hordeum vulgare) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"33517511000001100";Oat (cultivated) (Avena sativa) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"33518411000001100";Rye (Secale cereale) pollen allergen extract;;;;
+"41800711000001102";Generic Grasses / Cereals mix pollen 100000BU/ml solution for skin prick test;"33519211000001109";Wheat (Triticum aestivum) pollen allergen extract;;;;
+"41801411000001104";Generic House Dust Mite mix 100DBU/ml solution for skin prick test;"32889711000001105";Dermatophagoides pteronyssinus allergen extract;;;;
+"41801411000001104";Generic House Dust Mite mix 100DBU/ml solution for skin prick test;"32901611000001107";Dermatophagoides farinae allergen extract;;;;
+"41823011000001100";Generic COVID-19 Vaccine Moderna (mRNA-1273.222) 50micrograms/0.5ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;0.05;milligram;0.5;milliliter
+"41823411000001109";Generic COVID-19 Vaccine Moderna (mRNA-1283.222) 10micrograms/0.2ml dose solution for injection vials;"39330711000001103";COVID-19 vaccine;0.01;milligram;0.2;milliliter
+"41869511000001100";Generic Feathers mix 20micrograms/ml solution for skin prick test;"41846411000001101";Chicken feathers allergen extract;;;;
+"41869511000001100";Generic Feathers mix 20micrograms/ml solution for skin prick test;"41849211000001109";Goose feathers allergen extract;;;;
+"41869511000001100";Generic Feathers mix 20micrograms/ml solution for skin prick test;"41850311000001107";Duck feathers allergen extract;;;;
+"41869911000001107";Generic Moulds mix 25micrograms/ml solution for skin prick test;"32900711000001106";Alternaria alternata (A.tenuis) allergen extract;;;;
+"41869911000001107";Generic Moulds mix 25micrograms/ml solution for skin prick test;"33583811000001106";Aspergillus fumigatus allergen extract;;;;
+"41869911000001107";Generic Moulds mix 25micrograms/ml solution for skin prick test;"33586511000001100";Cladosporium herbarum allergen extract;;;;
+"41870811000001100";Generic Weed mix pollen 50HEP/ml solution for skin prick test;"32861411000001102";Mugwort (Artemisia vulgaris) pollen allergen extract;;;;
+"41870811000001100";Generic Weed mix pollen 50HEP/ml solution for skin prick test;"32861811000001100";Plantain (Plantago lanceolata) pollen allergen extract;;;;
+"41870811000001100";Generic Weed mix pollen 50HEP/ml solution for skin prick test;"41870211000001101";Goosefoot (Chenopodium album) pollen allergen extract;;;;
+"41870811000001100";Generic Weed mix pollen 50HEP/ml solution for skin prick test;"41999811000001107";Russian thistle (Salsola species) pollen allergen extract;;;;
+"41871411000001106";Generic Tree mix 2 pollen 500micrograms/ml solution for skin prick test;"33545911000001106";Poplar (Populus alba) pollen allergen extract;;;;
+"41871411000001106";Generic Tree mix 2 pollen 500micrograms/ml solution for skin prick test;"41870911000001105";Elm (Ulmus campestris) pollen allergen extract;;;;
+"41871411000001106";Generic Tree mix 2 pollen 500micrograms/ml solution for skin prick test;"41871011000001102";Willow (Salix fragilis) pollen allergen extract;;;;
+"41908211000001104";Generic Tree mix 1 pollen 50HEP/ml solution for skin prick test;"33181211000001103";Birch (Betula verrucosa) pollen allergen extract;;;;
+"41908211000001104";Generic Tree mix 1 pollen 50HEP/ml solution for skin prick test;"33497011000001101";Alder (Alnus glutinosa) pollen allergen extract;;;;
+"41908211000001104";Generic Tree mix 1 pollen 50HEP/ml solution for skin prick test;"33497111000001100";Hazel (Corylus avellana) pollen allergen extract;;;;
+"41909911000001100";Generic Park Trees mix pollen 500micrograms/ml solution for skin prick test;"33181211000001103";Birch (Betula verrucosa) pollen allergen extract;;;;
+"41909911000001100";Generic Park Trees mix pollen 500micrograms/ml solution for skin prick test;"33497011000001101";Alder (Alnus glutinosa) pollen allergen extract;;;;
+"41909911000001100";Generic Park Trees mix pollen 500micrograms/ml solution for skin prick test;"33497111000001100";Hazel (Corylus avellana) pollen allergen extract;;;;
+"41909911000001100";Generic Park Trees mix pollen 500micrograms/ml solution for skin prick test;"33510711000001109";Oak (Quercus robur) pollen allergen extract;;;;
+"41909911000001100";Generic Park Trees mix pollen 500micrograms/ml solution for skin prick test;"33545911000001106";Poplar (Populus alba) pollen allergen extract;;;;
+"41909911000001100";Generic Park Trees mix pollen 500micrograms/ml solution for skin prick test;"41908511000001101";Plane (Platanus hyspanica) pollen allergen extract;;;;
+"42000111000001103";Generic Cockroach mix 6% solution for skin prick test;"41815511000001104";German cockroach (Blatella germanica) allergen extract;;;;
+"42000111000001103";Generic Cockroach mix 6% solution for skin prick test;"41857911000001109";American cockroach (Periplaneta americana) allergen extract;;;;
+"42096111000001103";Dengue tetravalent vaccine (live attenuated) powder and solvent for solution for injection 0.5ml pre-filled syringes;"41213611000001106";Dengue virus serotype 1 live attenuated;;;;
+"42096111000001103";Dengue tetravalent vaccine (live attenuated) powder and solvent for solution for injection 0.5ml pre-filled syringes;"41213711000001102";Dengue virus serotype 2 live attenuated;;;;
+"42096111000001103";Dengue tetravalent vaccine (live attenuated) powder and solvent for solution for injection 0.5ml pre-filled syringes;"41213811000001105";Dengue virus serotype 3 live attenuated;;;;
+"42096111000001103";Dengue tetravalent vaccine (live attenuated) powder and solvent for solution for injection 0.5ml pre-filled syringes;"41213911000001100";Dengue virus serotype 4 live attenuated;;;;
+"42429111000001109";Generic Spring Trees mix pollen 2.6mg/ml solution for skin prick test;"33181211000001103";Birch (Betula verrucosa) pollen allergen extract;;;;
+"42429111000001109";Generic Spring Trees mix pollen 2.6mg/ml solution for skin prick test;"33497011000001101";Alder (Alnus glutinosa) pollen allergen extract;;;;
+"42429111000001109";Generic Spring Trees mix pollen 2.6mg/ml solution for skin prick test;"33497111000001100";Hazel (Corylus avellana) pollen allergen extract;;;;
+"42429111000001109";Generic Spring Trees mix pollen 2.6mg/ml solution for skin prick test;"33563911000001104";Ash (Fraxinus excelsior) pollen allergen extract;;;;
+"42456511000001106";Generic 6 Grass mix pollen 50HEP/ml solution for skin prick test;"16100011000001109";Timothy grass (Phleum pratense) pollen allergen extract;;;;
+"42456511000001106";Generic 6 Grass mix pollen 50HEP/ml solution for skin prick test;"32883311000001108";Cocksfoot (Orchard grass, Dactylis glomerata) pollen allergen extract;;;;
+"42456511000001106";Generic 6 Grass mix pollen 50HEP/ml solution for skin prick test;"32883711000001107";Meadow grass (Kentucky blue grass, Poa pratensis) pollen allergen extract;;;;
+"42456511000001106";Generic 6 Grass mix pollen 50HEP/ml solution for skin prick test;"32883911000001109";Rye grass (Lolium perenne) pollen allergen extract;;;;
+"42456511000001106";Generic 6 Grass mix pollen 50HEP/ml solution for skin prick test;"32884211000001102";Yorkshire fog (Velvet grass, Holcus lanatus) pollen allergen extract;;;;
+"42456511000001106";Generic 6 Grass mix pollen 50HEP/ml solution for skin prick test;"41836211000001101";Meadow fescue (Festuca elatior) pollen allergen extract;;;;
+"42457111000001104";Generic 4 Cereal mix pollen 50HEP/ml solution for skin prick test;"33514711000001103";Barley (Hordeum vulgare) pollen allergen extract;;;;
+"42457111000001104";Generic 4 Cereal mix pollen 50HEP/ml solution for skin prick test;"33517511000001100";Oat (cultivated) (Avena sativa) pollen allergen extract;;;;
+"42457111000001104";Generic 4 Cereal mix pollen 50HEP/ml solution for skin prick test;"33518411000001100";Rye (Secale cereale) pollen allergen extract;;;;
+"42457111000001104";Generic 4 Cereal mix pollen 50HEP/ml solution for skin prick test;"33519211000001109";Wheat (Triticum aestivum) pollen allergen extract;;;;
+"42468811000001101";Generic Fish mix 2mg/ml solution for skin prick test;"41815411000001103";Mackerel allergen extract;;;;
+"42468811000001101";Generic Fish mix 2mg/ml solution for skin prick test;"41865311000001109";Tuna allergen extract;;;;
+"42468811000001101";Generic Fish mix 2mg/ml solution for skin prick test;"41866011000001102";Salmon allergen extract;;;;
+"42469211000001107";Generic White Fish mix 2mg/ml solution for skin prick test;"41817011000001100";Sole allergen extract;;;;
+"42469211000001107";Generic White Fish mix 2mg/ml solution for skin prick test;"41861711000001106";Cod allergen extract;;;;
+"42469211000001107";Generic White Fish mix 2mg/ml solution for skin prick test;"42434111000001105";Hake allergen extract;;;;
+"42511511000001104";Generic Uromune (MV140) perlingual spray;"42511211000001102";Proteus vulgaris inactivated;;;;
+"42511511000001104";Generic Uromune (MV140) perlingual spray;"42511311000001105";Klebsiella pneumoniae inactivated;;;;
+"42511511000001104";Generic Uromune (MV140) perlingual spray;"42511411000001103";Escherichia coli inactivated;;;;
+"42511511000001104";Generic Uromune (MV140) perlingual spray;"42542711000001105";Enterococcus faecalis Inactivated;;;;
+"42556811000001103";Sodium hyaluronate 0.2% / Ectoine 2% eye drops preservative free;"387578003";Sodium hyaluronate;2;milligram;1;milliliter
+"42556811000001103";Sodium hyaluronate 0.2% / Ectoine 2% eye drops preservative free;"387578003";Sodium hyaluronate;20;milligram;1;milliliter
+"42556811000001103";Sodium hyaluronate 0.2% / Ectoine 2% eye drops preservative free;"44103211000001102";Ectoine;2;milligram;1;milliliter
+"42556811000001103";Sodium hyaluronate 0.2% / Ectoine 2% eye drops preservative free;"44103211000001102";Ectoine;20;milligram;1;milliliter
+"42626711000001103";Respiratory Syncytial Virus (RSV) vaccine (bivalent recombinant) powder and solvent for solution for injection 0.5ml vials;"42577411000001100";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup A;;;;
+"42626711000001103";Respiratory Syncytial Virus (RSV) vaccine (bivalent recombinant) powder and solvent for solution for injection 0.5ml vials;"42577511000001101";Respiratory Syncytial Virus recombinant glycoprotein F (RSVPreF) subgroup B;;;;
+"42718011000001102";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed reduced antigen(s) content) suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"42718011000001102";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed reduced antigen(s) content) suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"42718011000001102";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed reduced antigen(s) content) suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"42948211000001108";Generic Tree mix 3 pollen 500micrograms/ml solution for skin prick test;"33510611000001100";Beech (Fagus sylvatica) pollen allergen extract;;;;
+"42948211000001108";Generic Tree mix 3 pollen 500micrograms/ml solution for skin prick test;"33510711000001109";Oak (Quercus robur) pollen allergen extract;;;;
+"42948211000001108";Generic Tree mix 3 pollen 500micrograms/ml solution for skin prick test;"33563911000001104";Ash (Fraxinus excelsior) pollen allergen extract;;;;
+"42986311000001105";Generic Spikevax JN.1 COVID-19 mRNA Vaccine 0.1mg/ml dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.1;milligram;1;milliliter
+"43113511000001103";Generic Comirnaty JN.1 COVID-19 mRNA Vaccine 30micrograms/0.3ml dose dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.03;milligram;0.3;milliliter
+"43113611000001104";Generic Comirnaty JN.1 Children 5-11 years COVID-19 mRNA Vaccine 10micrograms/0.3ml dose dispersion for injection single dose vials;"39330711000001103";COVID-19 vaccine;0.01;milligram;0.3;milliliter
+"43113711000001108";Generic Comirnaty JN.1 Children 6 months - 4 years COVID-19 mRNA Vaccine 3micrograms/0.3ml dose concentrate for dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.003;milligram;0.3;milliliter
+"43726311000001100";Generic Comirnaty JN.1 COVID-19 mRNA Vaccine 30micrograms/0.3ml dose dispersion for injection pre-filled syringes;"39330711000001103";COVID-19 vaccine;0.03;milligram;0.3;milliliter
+"43907711000001103";Generic Spikevax JN.1 COVID-19 mRNA Vaccine 50micrograms/0.5ml dose dispersion for injection pre-filled syringes;"39330711000001103";COVID-19 vaccine;0.05;milligram;0.5;milliliter
+"44146311000001106";Generic Comirnaty KP.2 adults and adolescents from 12 years COVID-19 mRNA Vaccine 30micrograms/0.3ml dose dispersion for injection multidose vials;"39330711000001103";COVID-19 vaccine;0.03;milligram;0.3;milliliter
+"4435511000001106";Generic TCP antiseptic ointment;;;;;;
+"44941611000001105";Netilmicin 3mg/ml / Dexamethasone 1mg/ml eye gel 0.4ml unit dose preservative free;"372584003";Dexamethasone;1;mg;1;ml
+"44941611000001105";Netilmicin 3mg/ml / Dexamethasone 1mg/ml eye gel 0.4ml unit dose preservative free;"387110005";Netilmicin;3;mg;1;ml
+"4639811000001109";Measles Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml vials;"11172311000001103";Measles virus live attenuated;;;;
+"4639811000001109";Measles Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml vials;"11172411000001105";Mumps virus live attenuated;;;;
+"4639811000001109";Measles Mumps and Rubella vaccine (live) powder and solvent for solution for injection 0.5ml vials;"11173211000001100";Rubella virus live attenuated;;;;
+"4702311000001106";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"4702311000001106";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"4702311000001106";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"4702411000001104";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) injection pre-filled syringes / Haemophilus type b conjugate vaccine injection vials;"11170511000001108";Haemophilus influenzae type b polysaccharide protein conjugate;;;;
+"4702411000001104";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) injection pre-filled syringes / Haemophilus type b conjugate vaccine injection vials;"11173111000001106";Pertussis antigens;;;;
+"4702411000001104";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) injection pre-filled syringes / Haemophilus type b conjugate vaccine injection vials;"14608011000001104";Tetanus toxoid;;;;
+"4702411000001104";Diphtheria / Tetanus / Pertussis (acellular component) vaccine (adsorbed) injection pre-filled syringes / Haemophilus type b conjugate vaccine injection vials;"161000221102";Diphtheria toxoid;;;;
+"4792911000001109";Sumatriptan 10mg/0.1ml nasal spray unit dose;"395892000";Sumatriptan;10;mg;0.1;ml
+"5005111000001108";Tick-borne encephalitis immunoglobulin human solution for injection 2ml vials;"420839003";Tick-borne encephalitis immunoglobulin human;;;;
+"5005211000001102";Tick-borne encephalitis immunoglobulin human solution for injection 5ml vials;"420839003";Tick-borne encephalitis immunoglobulin human;;;;
+"5174411000001103";Gentian compound infusion concentrated;"10063611000001105";Bitter-orange peel dried;;;;
+"5174411000001103";Gentian compound infusion concentrated;"17072011000001105";Gentian;;;;
+"5174411000001103";Gentian compound infusion concentrated;"17563911000001106";Lemon peel dried;;;;
+"5174411000001103";Gentian compound infusion concentrated;"419442005";Ethanol;;;;
+"5211011000001103";Orange tincture BP 2001;"10063611000001105";Bitter-orange peel dried;;;;
+"5211011000001103";Orange tincture BP 2001;"5214111000001104";Ethanol 70%;;;;
+"5224511000001102";Ferric chloride solution;"420810003";Ferric chloride;;;;
+"5239411000001104";Hydrochloric acid dilute liquid;"27763000";Hydrochloric acid;;;;
+"5240411000001105";Podophyllin paint;"387398009";Podophyllum resin;;;;
+"5376211000001100";"3 tree mix glutaraldehyde modified 4800units/3ml vaccine solution for injection vials";"32869511000001102";Alder (Alnus species) pollen allergen extract;1600;units;3;ml
+"5376211000001100";"3 tree mix glutaraldehyde modified 4800units/3ml vaccine solution for injection vials";"32869511000001102";Alder (Alnus species) pollen allergen extract;;;;
+"5376211000001100";"3 tree mix glutaraldehyde modified 4800units/3ml vaccine solution for injection vials";"32869811000001104";Birch (Betula species) pollen allergen extract;1600;units;3;ml
+"5376211000001100";"3 tree mix glutaraldehyde modified 4800units/3ml vaccine solution for injection vials";"32869811000001104";Birch (Betula species) pollen allergen extract;;;;
+"5376211000001100";"3 tree mix glutaraldehyde modified 4800units/3ml vaccine solution for injection vials";"32870011000001108";Hazel (Corylus species) pollen allergen extract;1600;units;3;ml
+"5376211000001100";"3 tree mix glutaraldehyde modified 4800units/3ml vaccine solution for injection vials";"32870011000001108";Hazel (Corylus species) pollen allergen extract;;;;
+"5376311000001108";"3 tree mix glutaraldehyde modified 12000units/3ml vaccine solution for injection vials";"32869511000001102";Alder (Alnus species) pollen allergen extract;4000;units;3;ml
+"5376311000001108";"3 tree mix glutaraldehyde modified 12000units/3ml vaccine solution for injection vials";"32869511000001102";Alder (Alnus species) pollen allergen extract;;;;
+"5376311000001108";"3 tree mix glutaraldehyde modified 12000units/3ml vaccine solution for injection vials";"32869811000001104";Birch (Betula species) pollen allergen extract;4000;units;3;ml
+"5376311000001108";"3 tree mix glutaraldehyde modified 12000units/3ml vaccine solution for injection vials";"32869811000001104";Birch (Betula species) pollen allergen extract;;;;
+"5376311000001108";"3 tree mix glutaraldehyde modified 12000units/3ml vaccine solution for injection vials";"32870011000001108";Hazel (Corylus species) pollen allergen extract;4000;units;3;ml
+"5376311000001108";"3 tree mix glutaraldehyde modified 12000units/3ml vaccine solution for injection vials";"32870011000001108";Hazel (Corylus species) pollen allergen extract;;;;
+"5376411000001101";"3 tree mix glutaraldehyde modified 1800units/3ml vaccine solution for injection vials";"32869511000001102";Alder (Alnus species) pollen allergen extract;600;units;3;ml
+"5376411000001101";"3 tree mix glutaraldehyde modified 1800units/3ml vaccine solution for injection vials";"32869511000001102";Alder (Alnus species) pollen allergen extract;;;;
+"5376411000001101";"3 tree mix glutaraldehyde modified 1800units/3ml vaccine solution for injection vials";"32869811000001104";Birch (Betula species) pollen allergen extract;600;units;3;ml
+"5376411000001101";"3 tree mix glutaraldehyde modified 1800units/3ml vaccine solution for injection vials";"32869811000001104";Birch (Betula species) pollen allergen extract;;;;
+"5376411000001101";"3 tree mix glutaraldehyde modified 1800units/3ml vaccine solution for injection vials";"32870011000001108";Hazel (Corylus species) pollen allergen extract;600;units;3;ml
+"5376411000001101";"3 tree mix glutaraldehyde modified 1800units/3ml vaccine solution for injection vials";"32870011000001108";Hazel (Corylus species) pollen allergen extract;;;;
+"7386611000001107";Diphtheria / Tetanus / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"7386611000001107";Diphtheria / Tetanus / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"7386611000001107";Diphtheria / Tetanus / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"7386611000001107";Diphtheria / Tetanus / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"7386611000001107";Diphtheria / Tetanus / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"7565511000001101";Ginkgo biloba capsules;"420733007";Ginkgo biloba;;;;
+"7565611000001102";Herbal capsules;;;;;;
+"7565711000001106";Herbal tablets;;;;;;
+"7565811000001103";Multivitamin and Mineral tablets;;;;;;
+"7567211000001107";Garlic capsules;"735030001";Garlic;;;;
+"7594611000001100";Multimineral tablets;;;;;;
+"7594911000001106";Multivitamin chewable tablets;;;;;;
+"7597211000001109";Cranberry capsules;"227421003";Cranberry;;;;
+"7660311000001107";Cranberry tablets;"227421003";Cranberry;;;;
+"7660411000001100";Garlic tablets;"735030001";Garlic;;;;
+"7660711000001106";Generic Quest Enzyme Digest tablets;;;;;;
+"7661411000001109";Poliomyelitis vaccine (inactivated) suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"7661411000001109";Poliomyelitis vaccine (inactivated) suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"7661411000001109";Poliomyelitis vaccine (inactivated) suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"7719111000001109";Bifidobacterium and Lactobacillus capsules;"44109611000001103";Bifidobacterium;;;;
+"7719111000001109";Bifidobacterium and Lactobacillus capsules;"710318008";Lactobacillus;;;;
+"7720011000001109";Echinacea capsules;"715517000";Echinacea;;;;
+"7720411000001100";Lactobacillus capsules;"710318008";Lactobacillus;;;;
+"7875711000001100";St. John's wort tablets;"420467003";Hypericum;;;;
+"7876811000001100";Generic Biotene dry mouth gum sugar free;"11416411000001100";Lactoperoxidase;;;;
+"7876811000001100";Generic Biotene dry mouth gum sugar free;"20160006";Glucose oxidase;;;;
+"7876911000001105";Bifidobacterium and Lactobacillus tablets;"44109611000001103";Bifidobacterium;;;;
+"7876911000001105";Bifidobacterium and Lactobacillus tablets;"710318008";Lactobacillus;;;;
+"7902611000001101";Dried yeast tablets;"412534006";Yeast;;;;
+"7902711000001105";Generic HealthAid Osteoflex modified-release tablets;;;;;;
+"7902911000001107";Ginkgo biloba tablets;"420733007";Ginkgo biloba;;;;
+"7903911000001100";St. John's wort capsules;"420467003";Hypericum;;;;
+"7904011000001102";St. John's wort liquid;"420467003";Hypericum;;;;
+"7965811000001108";Multivitamin and Mineral chewable tablets;;;;;;
+"7967911000001108";Generic Potter's Slippery Elm stomach chewable tablets;"227388008";Cinnamon;;;;
+"7967911000001108";Generic Potter's Slippery Elm stomach chewable tablets;"256018002";Clove oil;;;;
+"7967911000001108";Generic Potter's Slippery Elm stomach chewable tablets;"52283007";Peppermint oil;;;;
+"7967911000001108";Generic Potter's Slippery Elm stomach chewable tablets;"8988811000001107";Slippery elm bark;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"372591000";Ipecacuanha;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"421163000";Lobelia;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"421848001";Skullcap;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"8039311000001105";Horehound liquid extract;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"8041711000001106";Elecampane liquid extract;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"8041811000001103";Cimicifuga;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"8042111000001100";Hyssop liquid extract;;;;
+"7968111000001106";Generic Potter's Vegetable Cough Remover elixir;"8042411000001105";Pleurisy root;;;;
+"7969511000001108";Copper ointment;;;;;;
+"7992011000001105";Generic Weleda Massage Balm with Arnica;;;;;;
+"7994811000001105";Glycerophosphated Casein powder;"415543009";Sodium glycerophosphate;;;;
+"7994811000001105";Glycerophosphated Casein powder;"50593009";Casein;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"420447007";Buchu leaf;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"420698006";Buchu dry extract;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"8986211000001105";Bearberry dry extract;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"8986911000001101";Clivers dry extract;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"8987011000001102";Couch-grass dry extract;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"8987211000001107";Equisetum dry extract;;;;
+"7996811000001103";Generic Potter's Antitis tablets;"8988711000001104";Shepherd's purse dry extract;;;;
+"7996911000001108";Generic Potter's Newrelax tablets;"412266000";Valerian extract;;;;
+"7996911000001108";Generic Potter's Newrelax tablets;"421502001";Vervain dry extract;;;;
+"7996911000001108";Generic Potter's Newrelax tablets;"421848001";Skullcap;;;;
+"7996911000001108";Generic Potter's Newrelax tablets;"8987711000001100";Lupulus;;;;
+"7997011000001107";Generic Potter's Wellwoman tablets;"412266000";Valerian extract;;;;
+"7997011000001107";Generic Potter's Wellwoman tablets;"420742000";Motherwort;;;;
+"7997011000001107";Generic Potter's Wellwoman tablets;"421848001";Skullcap;;;;
+"7997011000001107";Generic Potter's Wellwoman tablets;"8986011000001100";Achillea;;;;
+"7997011000001107";Generic Potter's Wellwoman tablets;"8989011000001106";Tilia flowers;;;;
+"8016311000001107";Generic Salonpas medicated plasters;"111136003";Camphor;;;;
+"8016311000001107";Generic Salonpas medicated plasters;"386988003";Methyl salicylate;;;;
+"8016311000001107";Generic Salonpas medicated plasters;"421208001";Levomenthol;;;;
+"8016311000001107";Generic Salonpas medicated plasters;"422128007";Hydroxyethyl salicylate;;;;
+"8035211000001100";Generic Vocalzone Throat pastilles;"387414008";Menthol;;;;
+"8035211000001100";Generic Vocalzone Throat pastilles;"420477001";Myrrh tincture;;;;
+"8035211000001100";Generic Vocalzone Throat pastilles;"52283007";Peppermint oil;;;;
+"8035211000001100";Generic Vocalzone Throat pastilles;"8147711000001108";Liquorice extract;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"11170511000001108";Haemophilus influenzae type b polysaccharide protein conjugate;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"11173111000001106";Pertussis antigens;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"14608011000001104";Tetanus toxoid;;;;
+"8100611000001109";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) / Haemophilus type b conjugate vaccine (adsorbed) suspension for injection 0.5ml vials;"161000221102";Diphtheria toxoid;;;;
+"8153411000001106";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"8153411000001106";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"8153411000001106";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"8153411000001106";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"8153411000001106";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"8153411000001106";Diphtheria / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"8888711000001107";Diphtheria (low dose) / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171411000001100";Human poliovirus type 1 inactivated;;;;
+"8888711000001107";Diphtheria (low dose) / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171511000001101";Human poliovirus type 2 inactivated;;;;
+"8888711000001107";Diphtheria (low dose) / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11171611000001102";Human poliovirus type 3 inactivated;;;;
+"8888711000001107";Diphtheria (low dose) / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"11173111000001106";Pertussis antigens;;;;
+"8888711000001107";Diphtheria (low dose) / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"14608011000001104";Tetanus toxoid;;;;
+"8888711000001107";Diphtheria (low dose) / Tetanus / Pertussis (acellular component) / Poliomyelitis (inactivated) vaccine (adsorbed) suspension for injection 0.5ml pre-filled syringes;"161000221102";Diphtheria toxoid;;;;
+"8976211000001104";Generic Potter's Acidosis tablets;"4030111000001102";Rhubarb extract;;;;
+"8976211000001104";Generic Potter's Acidosis tablets;"8986711000001103";Charcoal medicinal vegetable;;;;
+"8976211000001104";Generic Potter's Acidosis tablets;"8987811000001108";Meadowsweet;;;;
+"8976511000001101";Generic Potter's Garlic tablets;"20507001";Garlic oil;;;;
+"8976511000001101";Generic Potter's Garlic tablets;"735030001";Garlic;;;;
+"8976711000001106";Chlorhexidine 0.5% / Isopropyl alcohol 70% impregnated swabs;"259268001";Isopropyl alcohol;5;mg;;ml
+"8976711000001106";Chlorhexidine 0.5% / Isopropyl alcohol 70% impregnated swabs;"259268001";Isopropyl alcohol;700;mg;;ml
+"8976711000001106";Chlorhexidine 0.5% / Isopropyl alcohol 70% impregnated swabs;"96317008";Chlorhexidine acetate;5;mg;;ml
+"8976711000001106";Chlorhexidine 0.5% / Isopropyl alcohol 70% impregnated swabs;"96317008";Chlorhexidine acetate;700;mg;;ml
+"8976911000001108";Chamomilla oral powder sachets sugar free;"768492006";Levomenol;;;;
+"8981511000001104";Generic Potter's Piletabs tablets;"8986111000001104";Agrimony dry extract;;;;
+"8981511000001104";Generic Potter's Piletabs tablets;"8986611000001107";Cascara dry extract;;;;
+"8981511000001104";Generic Potter's Piletabs tablets;"8988211000001106";Pilewort;;;;
+"8981511000001104";Generic Potter's Piletabs tablets;"8988911000001102";Stone root;;;;
+"8981611000001100";Generic Potter's Prementaid tablets;"412266000";Valerian extract;;;;
+"8981611000001100";Generic Potter's Prementaid tablets;"420924003";Motherwort dry extract;;;;
+"8981611000001100";Generic Potter's Prementaid tablets;"421231001";Vervain;;;;
+"8981611000001100";Generic Potter's Prementaid tablets;"8986211000001105";Bearberry dry extract;;;;
+"8981611000001100";Generic Potter's Prementaid tablets;"8988411000001105";Pulsatilla dry extract;;;;
+"8981711000001109";Generic Potter's Rheumatic Pain tablets;"8986011000001100";Achillea;;;;
+"8981711000001109";Generic Potter's Rheumatic Pain tablets;"8987411000001106";Guaiacum resin;;;;
+"8981711000001109";Generic Potter's Rheumatic Pain tablets;"8987611000001109";Lappa root;;;;
+"8981711000001109";Generic Potter's Rheumatic Pain tablets;"8987911000001103";Menyanthes;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"227606003";Treacle;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"229862008";Syrup;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"4727511000001105";Capsicum tincture;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"5214311000001102";Liquorice liquid extract;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"52283007";Peppermint oil;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"80582002";Glycerol;;;;
+"8981811000001101";Generic Potter's Sarsaparilla Jamaican mixture;"8988611000001108";Sarsaparilla root extract;;;;
+"9052311000001104";Generic HTDEFIX powder and solvent for solution for injection vials;"34086003";Antithrombin III;;;;
+"9052311000001104";Generic HTDEFIX powder and solvent for solution for injection vials;"54378000";Factor IX;;;;
+"9052311000001104";Generic HTDEFIX powder and solvent for solution for injection vials;"7348004";Factor II;;;;
+"9052311000001104";Generic HTDEFIX powder and solvent for solution for injection vials;"81444003";Factor X;;;;
+"9097211000001104";Squill liquid extract;"11713004";Water;;;;
+"9097211000001104";Squill liquid extract;"419442005";Ethanol;;;;
+"9097211000001104";Squill liquid extract;"6333002";Squill extract;;;;
+"9186611000001108";Testosterone 50mg/5g transdermal gel unit dose tube;"43688007";Testosterone;50;mg;5000;mg
+"9262011000001100";Cod liver oil 294mg capsules;"126082008";Cod liver oil;;;;
+"9262011000001100";Cod liver oil 294mg capsules;"18414002";Colecalciferol;;;;
+"9262011000001100";Cod liver oil 294mg capsules;"9474711000001102";Retinol;;;;
+"9324711000001105";Bacillus Calmette-Guerin vaccine powder and solvent for suspension for injection vials;"11172511000001109";Mycobacterium bovis BCG;;;;
+"9383011000001103";Cod liver oil liquid;"126082008";Cod liver oil;;;;
+"9383011000001103";Cod liver oil liquid;"18414002";Colecalciferol;;;;
+"9383011000001103";Cod liver oil liquid;"9474711000001102";Retinol;;;;
+"9750211000001108";Generic Flexeze Double Strength tablets;"4104007";Chondroitin sulfate;;;;
+"9750211000001108";Generic Flexeze Double Strength tablets;"43706004";Ascorbic acid;;;;
+"9750211000001108";Generic Flexeze Double Strength tablets;"5540006";Calcium;;;;
+"9750211000001108";Generic Flexeze Double Strength tablets;"734505004";Glucosamine sulfate;;;;
+"9819511000001108";Generic Pollinex Grasses + Rye Extension Course suspension for injection 1.5ml vials;;;;;;
+"9819611000001107";Generic Pollinex Grasses + Rye No 1 suspension for injection 1ml vials;;;;;;
+"9819711000001103";Generic Pollinex Grasses + Rye No 2 suspension for injection 1ml vials;;;;;;
+"9819811000001106";Generic Pollinex Grasses + Rye No 3 suspension for injection 1ml vials;;;;;;
+"9822011000001100";Generic Pollinex Trees Extension Course suspension for injection 1.5ml vials;;;;;;
+"9822111000001104";Generic Pollinex Trees No 1 suspension for injection 1ml vials;"782576004";Tree pollen;;;;
+"9822211000001105";Generic Pollinex Trees No 2 suspension for injection 1ml vials;"782576004";Tree pollen;;;;
+"9822311000001102";Generic Pollinex Trees No 3 suspension for injection 1ml vials;"782576004";Tree pollen;;;;
+"9904411000001100";Haemophilus type b / Meningococcal C conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"11170611000001107";Haemophilus influenzae type b polysaccharide tetanus toxoid conjugate;;;;
+"9904411000001100";Haemophilus type b / Meningococcal C conjugate vaccine powder and solvent for solution for injection 0.5ml vials;"11237511000001107";Neisseria meningitidis group C strain C11 capsular polysaccharide tetanus toxoid conjugate;;;;

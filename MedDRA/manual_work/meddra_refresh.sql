@@ -387,7 +387,13 @@ AND relationship_id = 'Maps to'
 AND target_vocabulary_id IN ('SNOMED', 'OMOP Extension')
   --Except for Measurements. Inverse Logic is used for them
 AND source_code NOT IN (SELECT source_code FROM dev_meddra.meddra_environment AS t1
-WHERE relationship_id='Maps to value' AND decision='1' AND (target_domain_id = 'Meas Value' OR target_concept_class_id = 'Qualifier Value')
+WHERE (relationship_id='Maps to value' AND decision='1' AND (target_domain_id = 'Meas Value' OR target_concept_class_id = 'Qualifier Value'))
+OR (decision='1' AND
+    t1.target_concept_id IN ('1340204', '4210989', '4167217', '4175586', '4236282', '4051104',
+                            '40481925', '1340216', '1340217', '1340218', '1340219', '1340220',
+                            '1340221', '1340222', '1340223', '1340224', '1340225', '1340226',
+                            '1340205', '1340206', '1340207', '1340208', '1340209', '1340210',
+                            '1340211', '1340212', '1340213', '1340214', '1340215'))
 )
 
 UNION ALL

@@ -200,7 +200,8 @@ AS (
 					'C1450'
 					)
 				THEN 'Procedure'
-			WHEN concept_code BETWEEN 'C7500' AND 'C7565'
+			WHEN concept_code BETWEEN 'C7500' AND 'C7571'
+			    OR concept_code BETWEEN 'C8004' AND 'C8006'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'C7900' AND 'C7903'
 				THEN 'Observation'
@@ -227,12 +228,14 @@ AS (
 					'C9123',
 					'C9150',
 					'C9156',
+			        'C9176',
 					'C9200',
 					'C9201',
 					'C9221',
 					'C9222',
 					'C9246',
 					'C9247',
+			        'C9300',
 					'C9458',
 					'C9459',
 					'C9461'
@@ -319,6 +322,9 @@ AS (
 			       AND length(concept_code) >2
 				THEN 'Device' -- all of them Level 1: E0100-E9999
 					-- G codes
+		    WHEN concept_code BETWEEN 'G0011'
+		        AND 'G0013' -- HIV pre-exposure prophylaxis
+		        THEN 'Procedure'
 			WHEN l2.str = 'Vaccine Administration'
 				THEN 'Drug' -- Level 2: G0008-G0010
 			WHEN concept_code = 'G0002'
@@ -370,7 +376,8 @@ AS (
 			WHEN concept_code BETWEEN 'G0179'
 					AND 'G0182'
 				THEN 'Observation' -- Level 2: G0179-G0182 previously 'Physician Services'
-			WHEN concept_code = 'G0202'
+			WHEN concept_code IN ('G0202',
+                'G0183')
 				THEN 'Measurement'
 			WHEN concept_code BETWEEN 'G0237'
 					AND 'G0239'
@@ -506,8 +513,9 @@ AS (
 			WHEN concept_code BETWEEN 'G0507'
 					AND 'G0514'
 				THEN 'Observation' -- Preventive services
-			WHEN concept_code = 'G0659'
-				THEN 'Measurement' --Drug test
+			WHEN concept_code IN ('G0659',
+                'G0567')
+				THEN 'Measurement'
 			WHEN concept_code = 'G2250'
 				THEN 'Procedure' --	Remote assessment of recorded video and/or images
 			WHEN concept_code BETWEEN 'G0908'
@@ -749,8 +757,10 @@ AS (
 					'M0100', --Intragastric hypothermia using gastric freezing
 					'M0201', -- Covid-19 vaccine administration
 					'M0300', --Iv chelation therapy (chemical endarterectomy)
-					'M0301'
-					) --Fabric wrapping of abdominal aneurysm
+					'M0301', --Fabric wrapping of abdominal aneurysm
+					'M0235', -- Intravenous infusion, monoclonal antibody products
+			        'M0236'
+			                     ) --Fabric wrapping of abdominal aneurysm
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'M0220'
 					AND 'M0250'
@@ -801,7 +811,9 @@ AS (
 				THEN 'Observation' -- Level 2: Q0092-Q0092, only setup
 			WHEN l2.str = 'Laboratory (CMS Temporary Codes)'
 				THEN 'Measurement' -- Level 2: Q0111-Q0115
-			WHEN concept_code BETWEEN 'Q0136'
+			WHEN concept_code in ('Q0188', 'Q0235')
+				THEN 'Procedure'
+		    WHEN concept_code BETWEEN 'Q0136'
 					AND 'Q0249'
 				AND concept_code NOT BETWEEN 'Q0182'
 					AND 'Q0188'
@@ -815,8 +827,6 @@ AS (
 				THEN 'Device'
 			WHEN concept_code = 'Q0186'
 				THEN 'Observation'
-			WHEN concept_code = 'Q0188'
-				THEN 'Procedure'
 			WHEN l2.str = 'Ventricular Assist Devices (CMS Temporary Codes)'
 				THEN 'Device' -- Level 2: Q0477-Q0509
 			WHEN concept_code BETWEEN 'Q0510'
@@ -856,7 +866,7 @@ AS (
 			WHEN concept_code = 'Q4078'
 				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'Q4100'
-					AND 'Q4353'
+					AND 'Q4433'
 				THEN 'Device' -- Tissue substitutes
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
@@ -941,7 +951,9 @@ AS (
 			WHEN concept_code BETWEEN 'S4030'
 					AND 'S4031'
 				THEN 'Observation' -- Sperm procurement and cryopreservation services
-			WHEN concept_code BETWEEN 'S4005'
+			WHEN concept_code = 'S4024'
+		        THEN 'Device'
+		    WHEN concept_code BETWEEN 'S4005'
 					AND 'S4042'
 				THEN 'Procedure' -- IVF procedures
 			WHEN concept_code BETWEEN 'S4988'
@@ -1141,7 +1153,7 @@ FROM t_domains t
 WHERE cs.concept_code = t.concept_code
 	AND cs.concept_class_id <> 'HCPCS Class';
 
--- 5.2. If some codes does not have domain_id pick it up from existing concept table
+-- 5.2. If some codes do not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs
 SET domain_id = c.domain_id
 FROM concept c
@@ -1152,10 +1164,12 @@ WHERE c.concept_code = cs.concept_code
 
 --5.3. Insert missing codes from manual extraction and assign domains to those concepts can't be assigned automatically
 --ProcessManualConcepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
+DO
+$_$
+    BEGIN
+        PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+    END
+$_$;
 
 --5.4. Since nobody really cares about Modifiers domain, in case it's not covered by the concept_manual, set it to Observation
 UPDATE concept_stage
@@ -1375,6 +1389,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+	PERFORM VOCABULARY_PACK.AddPropagatedHierarchyMapsTo(null, '{RxNorm}', null);
 END $_$;
 
 --14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
@@ -1389,5 +1404,11 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+--16. All non-standard "zombie" concepts should be deprecated:
+UPDATE concept_stage c
+SET invalid_reason = 'D'
+WHERE c.valid_end_date < current_date
+AND c.standard_concept IS NULL
+AND c.invalid_reason IS NULL;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

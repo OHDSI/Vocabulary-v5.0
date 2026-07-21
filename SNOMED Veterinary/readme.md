@@ -126,40 +126,44 @@ and rename each file as follows.
 >   `cRefset`.
 
 ---
-### 6. Create SNOMED Veteriary Edition
+### 5. Create SNOMED Veteriary Edition
 Open each SNOMED Veterinary files and remove the header. 
 ```
 Copy sct2_Concept_Full_INT_YYYYMMDD.txt  + sct2_Concept_Full_YYYYMMDD.txt  sct2_Concept_Full_VTS.txt 
 ```
-Copy sct2_Description_Full-en_INT_20250201.txt + sct2_Description_Full_en_VTS_20250930.txt sct2_Description_Full_VTS.txt 
+```
+Copy sct2_Description_Full-en_INT_YYYYMMDD.txt + sct2_Description_Full_en_VTS_YYYYMMDD.txt sct2_Description_Full_VTS.txt 
+```
+```
+Copy sct2_Relationship_Full_INT_YYYYMMDD.txt +  
+sct2_Relationship_Full_VTS_YYYYMMDD.txt sct2_Relationship_Full_VTS.txt 
+```
+```
+Copy der2_cRefset_AssociationFull_INT_YYYYMMDD.txt +  
+der2_cRefset_AssociationReferenceFull_VTS_YYYYMMDD.txt der2_cRefset_AssociationFull_VTS.txt 
+```
+```
+Copy der2_cRefset_AttributeValueFull_INT_YYYYMMDD.txt + 
 
-Copy sct2_Relationship_Full_INT_20250201.txt +  
-
-sct2_Relationship_Full_VTS_20250930.txt sct2_Relationship_Full_VTS.txt 
-
-Copy der2_cRefset_AssociationFull_INT_20250201.txt +  
-
-der2_cRefset_AssociationReferenceFull_VTS_20250930.txt der2_cRefset_AssociationFull_VTS.txt 
-
-Copy der2_cRefset_AttributeValueFull_INT_20250201.txt + 
-
- der2_cRefset_AttributeValueFull_VTS_20250930.txt  der2_cRefset_AttributeValueFull_VTS.txt 
-
-Copy der2_cRefset_LanguageFull-en_INT_20250201.txt + der2_cRefset_LanguageFull_en_VTS_20250930.txt der2_sRefset_LanguageFull_en_VTS.txt 
-
-Copy der2_ssRefset_ModuleDependencyFull_INT_20250201.txt +  
-
-der2_ssRefset_ModuleDependencyfull_VTS_20250930.txt der2_ssRefset_ModuleDependencyfull_VTS.txt 
-### 5. Create source tables
+ der2_cRefset_AttributeValueFull_VTS_YYYYMMDD.txt  der2_cRefset_AttributeValueFull_VTS.txt 
+```
+```
+Copy der2_cRefset_LanguageFull-en_INT_YYYYMMDD.txt + der2_cRefset_LanguageFull_en_VTS_YYYYMMDD.txt der2_sRefset_LanguageFull_en_VTS.txt 
+```
+```
+Copy der2_ssRefset_ModuleDependencyFull_INT_YYYYMMDD.txt +  
+der2_ssRefset_ModuleDependencyfull_VTS_YYYYMMDD.txt der2_ssRefset_ModuleDependencyfull_VTS.txt
+```
+### 6. Create source tables
 [create_source_tables.sql](create_source_tables.sql)
 
-### 6. Load input tables
-Loads the Veterinary Extension, then loads SNOMED International into the `sources_*` tables.
+### 7. Load input tables
+Loads the Veterinary Edition into the `sources_*` tables.
 [sources_load_input_tables.sql](sources_load_input_tables.sql)
 
 ## Part 2 — Build Pipeline
 
-### 7. Recreate the working schema
+### 8. Recreate the working schema
 
 ```sql
 SELECT devv5.FastRecreateSchema(
@@ -170,15 +174,15 @@ SELECT devv5.FastRecreateSchema(
 );
 ```
 
-### 8. Create or update the `AddPeaks` function if necessary
+### 9. Create or update the `AddPeaks` function if necessary
 [AddPeaks.sql](../SNOMED/AddPeaks.sql)
 
-### 9. Make any necessary changes to the manual tables
+### 10. Make any necessary changes to the manual tables
 
-### 10. Load staging tables
+### 11. Load staging tables
 [load_stage.sql](load_stage.sql)
 
-### 11. Run GenericUpdate
+### 12. Run GenericUpdate
    ```sql
    DO $_$
    BEGIN
@@ -186,12 +190,12 @@ SELECT devv5.FastRecreateSchema(
    END $_$;
 ```
 
-### 12. Run the check suite (should return null)
+### 13. Run the check suite (should return null)
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
 
-### 13. Run QA scripts and interpret the results
+### 14. Run QA scripts and interpret the results
 ```sql
     SELECT DISTINCT * FROM qa_tests.get_summary('concept');
     SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
@@ -202,8 +206,8 @@ SELECT * FROM qa_tests.get_checks();
     SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
    ```
 
-### 14. Run checks for manual review:
+### 15. Run checks for manual review:
 [manual_checks_after_generic_update.sql](../working/manual_checks_after_generic_update.sql)
 
-### 15. Extract veterinary synonyms added to SNOMED core
+### 16. Extract veterinary synonyms added to SNOMED core
 [Extract_vet_synonyms_to_SNOMED_core.sql](Extract_vet_synonyms_to_SNOMED_core.sql)

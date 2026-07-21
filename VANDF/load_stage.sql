@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Dmitry Dymshyts, Timur Vakhitov, Varvara Savitskaya, Oleg Zhuk
-* Date: 2023
+* Authors: Dmitry Dymshyts, Timur Vakhitov, Varvara Savitskaya, Oleg Zhuk, Masha Khitrun
+* Date: 2026
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -142,6 +142,7 @@ WHERE rx.sab = 'VANDF'
 	AND cs.concept_code IS NULL;
 
 --6. Fill relationships VANDF to RxNorm
+--6.1. Direct mappings to RxNorm:
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -153,16 +154,17 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 SELECT rx.code AS concept_code_1,
-	c.concept_code AS concept_code_2,
+   	c.concept_code AS concept_code_2,
 	'VANDF' AS vocabulary_id_1,
 	'RxNorm' AS vocabulary_id_2,
 	'Maps to' AS relationship_id,
-	v.latest_update AS valid_start_date,
+	(SELECT latest_update
+	 FROM vocabulary
+	 WHERE vocabulary_id = 'VANDF') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept c
 JOIN sources.rxnconso rx ON rx.rxcui = c.concept_code
-JOIN vocabulary v ON v.vocabulary_id = 'VANDF'
 WHERE rx.sab = 'VANDF'
 	AND rx.tty IN (
 		'CD',
@@ -171,6 +173,53 @@ WHERE rx.sab = 'VANDF'
 		)
 	AND c.vocabulary_id = 'RxNorm'
 	AND c.standard_concept = 'S';
+
+--6.2 Use intermediate step:
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT rx1.code AS concept_code_1,
+       c.concept_code AS concept_code_2,
+       'VANDF' AS vocabulary_id_1,
+       c.vocabulary_id AS vocabulary_id_2,
+       'Maps to' AS relationship_id,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'VANDF') AS valid_start_date,
+       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+       NULL AS invalid_reason
+    FROM sources.rxnconso rx1
+    JOIN sources.rxnconso rx2 USING (rxcui)
+    JOIN sources.rxnrel r1 on rx1.rxcui = r1.rxcui1
+    JOIN concept c on c.concept_code = r1.rxcui2 AND c.vocabulary_id = 'RxNorm' AND c.standard_concept = 'S'
+    WHERE rx1.sab = 'VANDF'
+      AND rx2.sab = 'RXNORM'
+      AND rx1.tty IN
+      (
+		'CD',
+		'PT',
+		'IN'
+		)
+      AND r1.rela = (
+          CASE WHEN rx2.tty IN ('SCDFP', 'PIN')
+          THEN 'has_form'
+              WHEN rx2.tty = 'MIN'
+              THEN 'part_of'
+             END
+        )
+  AND NOT EXISTS (SELECT 1
+                   FROM concept_relationship_stage crs
+                   WHERE crs.concept_code_1 = rx1.code
+                   AND crs.vocabulary_id_1 = 'VANDF'
+                   AND crs.relationship_id = 'Maps to')
+;
 
 --7. Fill relationships VANDF to VA Class
 ANALYZE concept_stage;
@@ -296,7 +345,47 @@ WHERE (
 		'4042670', --PHENYLADE 60 POWDER.RENST-ORAL
 		'4042556', --DIALYSATE,DUOSOL BICARB 25 4K/0CA BRAUN #4556
 		'4042575', --RESERVOIR,SIMPLICITY
-		'4042375' --DRESSING,FOAM,DERMABLUE PLUS 2IN X 2IN
+		'4042375', --DRESSING,FOAM,DERMABLUE PLUS 2IN X 2IN
+	    '4043088', --CARTRIDGE,TANDEM MOBI
+	    '4043105', --LANCET, VIVAGUARD SAFETY 28G
+	    '4043127', --REMEDY SILICONE CREAM,TOP
+	    '4043127', --REMEDY NO-RINSE FOAM,TOP
+	    '4043165', --DIMETHICONE SOLN,TOP
+	    '4043181', --LUBRICANT,ASTROGLIDE LIQUID,TOP
+	    '4043214', --CATHERIZATION SET,FOLEY W/O CATH DYNAREX #4926
+	    '4043396', --VIBRATING DEVICE,CONSTIPATION
+	    '4043399', --DRESSING,URGOCLEAN SILVER
+	    '4043452', --CERVICAL CAP
+	    '4043472', --BLOOD/GLUCOSE/LEUKOCYTES/NITRITE/PROTEIN TEST
+	    '4043509', --DRESSING,OPTIVIEW
+	    '4043621', --STIMULATOR,MUSCLE
+	    '4043664', --CHIN-UP
+	    '4043850', --LIQUID HOPE PEPTIDE FORMULA
+	    '4043851', --LIQUID HOPE PEPTIDE HP FORMULA
+	    '4043939', --KATE FARMS 1.0 PEPTIDE LIQUID VANILLA
+	    '4044114', --BOOST VHC LIQUID CHOCOLATE
+	    '4044281', --CONTACT LENS SOLN (LACRIPURE)
+	    '4044307', --THICK & EASY CLEAR (NECTAR) PWDR PKT,1.4GM
+	    '4044308', --THICK & EASY CLEAR (HONEY) PWDR,PKT,3.2GM
+	    '4044333', --KATE FARMS1.5 PEPTIDE LIQUID VANILLA
+	    '4044350', --TWOCAL HN LIQUID,1000ML
+	    '4044369', --COMPLEAT ORGANIC BLENDS CHICKEN LIQUID
+	    '4044372', --PROSOURCE NO CARB
+	    '4044374', --PROSOURCE NO CARB LIQUID,ORAL,30ML NEUTRAL
+	    '4044379', --JUVEN PWDR PKT,PINAPPLE COCONUT
+	    '4044397', --JUVEN PWDR PKT,PINEAPPLE COCONUT
+	    '4043166', --PEGULICIANINE
+	    '4043186', --BANATROL TF
+	    '4043187', --BANATROL TF LIQUID,PKT
+	    '4043924', --CONTACT LENS SOLN (TANGIBLE CLEAN)
+	    '4044285', --COMPLEAT STANDARD 1.4 CAL LIQUID VANILLA
+	    '4044365', --COMPLEAT STANDARD 1.4 CAL LIQUID 1000ML
+	    '4044344', --PUSH 20 PLUS LIQUID,ORAL,37.5ML APPLE
+	    '4044366', --PUSH 20 PLUS
+	    '4044367', --PUSH 20 PLUS LIQUID,ORAL,37.5ML ORANGE
+	    '4044368', --PUSH 20 PLUS LIQUID,ORAL,37.5ML BLCHRY
+	    '4044294', --KATE FARMS NUTRITION SHAKE STRAWBERRY
+	    '4043828' --KATE FARMS 1.4 LIQUID STRAWBERRY
 		);
 
 --13. Assigning standard values for valid devices

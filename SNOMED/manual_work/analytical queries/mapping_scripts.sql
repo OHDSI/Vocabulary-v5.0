@@ -535,6 +535,40 @@ and c.concept_class_id = 'Observable Entity'
 and cc.concept_class_id = 'Staging / Scales'
 ;
 
+select c.concept_name,
+        c.concept_code,
+        c.concept_class_id,
+        c.invalid_reason,
+        c.domain_id,
+        c.vocabulary_id,
+		null as cr_invalid_reason,
+        null as mapping_tool,
+        null as mapping_source,
+        '1' as confidence,
+        'Maps to' as relationship_id,
+        'eq' as relationship_preference,
+        'score/scale dedup' as source,
+        null as comment,
+        cc.concept_id,
+		cc.concept_code,
+       	cc.concept_name,
+       	cc.concept_class_id as target_concept_class_id,
+       	cc.standard_concept as target_standard_concept,
+       	cc.invalid_reason as target_invalid_reason,
+       	cc.domain_id as target_domain_id,
+       	cc.vocabulary_id as target_vocabulary_id,
+       	'MK' as mapper_id
+from concept c
+left join concept cc on regexp_replace(c.concept_name, 'Assessment using ', '') = regexp_replace(cc.concept_name, ' scale', '')
+where c.vocabulary_id = 'SNOMED'
+and cc.vocabulary_id = 'SNOMED'
+and c.standard_concept = 'S'
+and cc.standard_concept = 'S'
+and c.domain_id = 'Measurement'
+and c.concept_class_id = 'Procedure'
+and cc.concept_class_id = 'Staging / Scales'
+;
+
 -- 3. Extract source concepts for manual mapping
 select c.concept_name,
         c.concept_code,

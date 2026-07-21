@@ -1,18 +1,19 @@
 -- Post-GenericUpdate fixes for SNOMED Veterinary
 -- Run this immediately after GenericUpdate completes
 
+-- RxNorm is standard, don't change SNOMED Veterinary drugs to standard
 -- Fix 1: Restore Standard status for unmapped medicinal products with external mappings
-UPDATE concept c
-SET standard_concept = 'S'
-WHERE c.vocabulary_id = 'SNOMED Veterinary'
-  AND c.concept_class_id IN ('Pharma/Biol Product', 'Clinical Drug', 'Clinical Drug Form')
-  AND c.standard_concept IS NULL
-  AND c.invalid_reason IS NULL
-  AND EXISTS (
-      SELECT 1 FROM concept_relationship cr
-      WHERE cr.concept_id_1 = c.concept_id
-        AND cr.relationship_id = 'Maps to'
-  );
+-- UPDATE concept c
+-- SET standard_concept = 'S'
+-- WHERE c.vocabulary_id = 'SNOMED Veterinary'
+--  AND c.concept_class_id IN ('Pharma/Biol Product', 'Clinical Drug', 'Clinical Drug Form')
+--   AND c.standard_concept IS NULL
+--   AND c.invalid_reason IS NULL
+--   AND EXISTS (
+--       SELECT 1 FROM concept_relationship cr
+--       WHERE cr.concept_id_1 = c.concept_id
+--         AND cr.relationship_id = 'Maps to'
+--   );
 
 -- Fix 2: Restore any Maps to relationships that were incorrectly deprecated and fix their dates
 -- Catches both deprecated relationships (invalid_reason = 'D') and bad date ranges (valid_end_date <= valid_start_date)

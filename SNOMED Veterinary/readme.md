@@ -126,7 +126,30 @@ and rename each file as follows.
 >   `cRefset`.
 
 ---
+### 6. Create SNOMED Veteriary Edition
+Open each SNOMED Veterinary files and remove the header. 
+```
+Copy sct2_Concept_Full_INT_YYYYMMDD.txt  + sct2_Concept_Full_YYYYMMDD.txt  sct2_Concept_Full_VTS.txt 
+```
+Copy sct2_Description_Full-en_INT_20250201.txt + sct2_Description_Full_en_VTS_20250930.txt sct2_Description_Full_VTS.txt 
 
+Copy sct2_Relationship_Full_INT_20250201.txt +  
+
+sct2_Relationship_Full_VTS_20250930.txt sct2_Relationship_Full_VTS.txt 
+
+Copy der2_cRefset_AssociationFull_INT_20250201.txt +  
+
+der2_cRefset_AssociationReferenceFull_VTS_20250930.txt der2_cRefset_AssociationFull_VTS.txt 
+
+Copy der2_cRefset_AttributeValueFull_INT_20250201.txt + 
+
+ der2_cRefset_AttributeValueFull_VTS_20250930.txt  der2_cRefset_AttributeValueFull_VTS.txt 
+
+Copy der2_cRefset_LanguageFull-en_INT_20250201.txt + der2_cRefset_LanguageFull_en_VTS_20250930.txt der2_sRefset_LanguageFull_en_VTS.txt 
+
+Copy der2_ssRefset_ModuleDependencyFull_INT_20250201.txt +  
+
+der2_ssRefset_ModuleDependencyfull_VTS_20250930.txt der2_ssRefset_ModuleDependencyfull_VTS.txt 
 ### 5. Create source tables
 [create_source_tables.sql](create_source_tables.sql)
 

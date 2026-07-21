@@ -17,7 +17,7 @@ Prerequisites:
 
 ## Part 1 — Source File Preparation
 > **The Veterinary Edition of SNOMED is created as a community contribution
->by Veterinary Terminology Services at Virginia Tech and submitted to the
+> by Veterinary Terminology Services at Virginia Tech and submitted to the
 > OHDSI Vocabulary Team to load into the sources database tables.
 
 

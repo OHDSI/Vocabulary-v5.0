@@ -18,13 +18,13 @@
 **************************************************************************/
 
 -- ===========================================================================
--- sources_load_input_tables.sql
+-- sources.load_input_tables.sql
 --
--- Client-side replacement for the sources_load_input_tables() PL/pgSQL
+-- Client-side replacement for the sources.load_input_tables() PL/pgSQL
 -- function, using psql's \copy meta-command instead of server-side COPY.
 --
 -- Both the SNOMED Veterinary release files AND the SNOMED International
--- release files load into the SAME sources_vet_* tables, since
+-- release files load into the SAME sources.vet_* tables, since
 -- load_stage_test.sql step 3 expects a single unified set of source tables
 -- filtered by moduleId.
 --
@@ -38,7 +38,7 @@
 -- USAGE:
 --   Edit the hardcoded paths and dates below for the current release, then
 --   run from within an existing psql session:
---     \i sources_load_input_tables.sql
+--     \i sources.load_input_tables.sql
 -- ===========================================================================
 
 
@@ -50,35 +50,40 @@
 SET client_encoding = 'UTF8';
 
 TRUNCATE TABLE
-    sources_vet_sct2_concept_full,
-    sources_vet_sct2_desc_full,
-    sources_vet_sct2_rela_full,
-    sources_vet_der2_crefset_assreffull;
+    sources.vet_sct2_concept_full,
+    sources.vet_sct2_desc_full,
+    sources.vet_sct2_rela_full,
+    sources.vet_der2_crefset_assreffull;
 
-\copy sources_vet_sct2_concept_full(id,effectivetime,active,moduleid,statusid) FROM 'E:/SNOMED Files/SNOMED Veterinary/sct2_Concept_Full_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_sct2_concept_full(id,effectivetime,active,moduleid,statusid) FROM 'E:/SNOMED Files/SNOMED Veterinary/sct2_Concept_Full_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-UPDATE sources_vet_sct2_concept_full
+UPDATE sources.vet_sct2_concept_full
 SET vocabulary_date = '2026-03-31'::date,
     vocabulary_version = 'SNOMED Veterinary 2026-03-31'
 WHERE vocabulary_date IS NULL;
 
-\copy sources_vet_sct2_desc_full FROM 'E:/SNOMED Files/SNOMED Veterinary/sct2_Description_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_sct2_desc_full FROM 'E:/SNOMED Files/SNOMED Veterinary/sct2_Description_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-\copy sources_vet_sct2_rela_full FROM 'E:/SNOMED Files/SNOMED Veterinary/sct2_Relationship_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_sct2_rela_full FROM 'E:/SNOMED Files/SNOMED Veterinary/sct2_Relationship_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-\copy sources_vet_der2_crefset_assreffull FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_cRefset_AssociationFull_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_der2_crefset_assreffull FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_cRefset_AssociationFull_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-\copy sources_vet_der2_crefset_language(id,effectiveTime,active,moduleId,refsetId,referencedComponentId,acceptabilityId) FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_cRefset_LanguageFull_en_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_der2_crefset_language(id,effectiveTime,active,moduleId,refsetId,referencedComponentId,acceptabilityId) FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_cRefset_LanguageFull_en_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-\copy sources_vet_der2_crefset_attributevalue_full FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_cRefset_AttributeValueFull_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_der2_crefset_attributevalue_full FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_cRefset_AttributeValueFull_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-\copy sources_vet_der2_ssRefset_ModuleDependency FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_ssRefset_ModuleDependencyfull_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
+\copy sources.vet_der2_ssRefset_ModuleDependency FROM 'E:/SNOMED Files/SNOMED Veterinary/der2_ssRefset_ModuleDependencyfull_VTS.txt' DELIMITER E'\t' CSV QUOTE E'\b' HEADER
 
-UPDATE sources_vet_der2_crefset_language
+UPDATE sources.vet_der2_crefset_language
 SET source_file_id = 'VET'
-WHERE source_file_id IS NULL;
+WHERE mooduleId = '332351000009108';
+
+UPDATE sources.vet_der2_crefset_language
+SET source_file_id = 'INT'
+WHERE mooduleId != '332351000009108';
 
 \echo 'SNOMED Veterinary Edition file load complete.'
+
 
 -- ===========================================================================
 -- SECTION 2: Post-load indexing, analysis, and archiving
@@ -86,20 +91,20 @@ WHERE source_file_id IS NULL;
 
 \echo 'Indexing and analyzing combined source tables...'
 
-CREATE INDEX IF NOT EXISTS idx_vet_desc_conceptid ON sources_vet_sct2_desc_full (conceptid);
-CREATE INDEX IF NOT EXISTS idx_vet_rela_id ON sources_vet_sct2_rela_full (id);
+CREATE INDEX IF NOT EXISTS idx_vet_desc_conceptid ON sources.vet_sct2_desc_full (conceptid);
+CREATE INDEX IF NOT EXISTS idx_vet_rela_id ON sources.vet_sct2_rela_full (id);
 
-ANALYZE sources_vet_sct2_concept_full;
-ANALYZE sources_vet_sct2_desc_full;
-ANALYZE sources_vet_sct2_rela_full;
-ANALYZE sources_vet_der2_crefset_assreffull;
-ANALYZE sources_vet_der2_crefset_language;
-ANALYZE sources_vet_der2_crefset_attributevalue_full;
+ANALYZE sources.vet_sct2_concept_full;
+ANALYZE sources.vet_sct2_desc_full;
+ANALYZE sources.vet_sct2_rela_full;
+ANALYZE sources.vet_der2_crefset_assreffull;
+ANALYZE sources.vet_der2_crefset_language;
+ANALYZE sources.vet_der2_crefset_attributevalue_full;
 
 -- NOTE: AddVocabularyToArchive requires INSERT permission on
--- sources_archive.archive_conversion, which this account does not have.
+-- sources.archive.archive_conversion, which this account does not have.
 -- Skipped here; ask a DBA/admin to run archiving separately if needed.
--- SELECT sources_archive.AddVocabularyToArchive(
+-- SELECT sources.archive.AddVocabularyToArchive(
 --     'SNOMED Veterinary',
 --     ARRAY['vet_sct2_concept_full','vet_sct2_desc_full','vet_sct2_rela_full',
 --           'vet_der2_crefset_assreffull','vet_der2_crefset_language',

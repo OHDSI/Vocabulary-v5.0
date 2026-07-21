@@ -148,8 +148,7 @@ der2_cRefset_AssociationReferenceFull_VTS_YYYYMMDD.txt der2_cRefset_AssociationF
 ```
 ```
 Copy der2_cRefset_AttributeValueFull_INT_YYYYMMDD.txt + 
-
- der2_cRefset_AttributeValueFull_VTS_YYYYMMDD.txt  der2_cRefset_AttributeValueFull_VTS.txt 
+der2_cRefset_AttributeValueFull_VTS_YYYYMMDD.txt  der2_cRefset_AttributeValueFull_VTS.txt 
 ```
 ```
 Copy der2_cRefset_LanguageFull-en_INT_YYYYMMDD.txt + der2_cRefset_LanguageFull_en_VTS_YYYYMMDD.txt der2_sRefset_LanguageFull_en_VTS.txt 
@@ -184,7 +183,8 @@ SELECT devv5.FastRecreateSchema(
 [AddPeaks.sql](../SNOMED/AddPeaks.sql)
 
 ### 10. Make any necessary changes to the manual tables
-
+Remove all SNOMED International concepts, synonyms and relationships from manual tables, thus leaving only SNOMED Veterinary content.
+[update_manual_files.sql](update_manual_files.sql)
 ### 11. Load staging tables
 [load_stage.sql](load_stage.sql)
 

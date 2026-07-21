@@ -166,6 +166,8 @@ Loads the Veterinary Edition into the `sources_*` tables.
 [sources_load_input_tables.sql](sources_load_input_tables.sql)
 
 ## Part 2 — Build Pipeline
+> Proceed with the build pipeline after notification from the
+> OHDSI Vocabulary Team that the sources tables are populated.
 
 ### 8. Recreate the working schema
 

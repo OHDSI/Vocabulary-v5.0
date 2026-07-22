@@ -60,7 +60,13 @@ FROM sources.mrconso m
 JOIN sources.mrsty s USING (cui)
 WHERE sab = 'ORPHANET'
 AND suppress = 'N'
-AND tty = 'PT';
+AND tty = 'PT'
+AND EXISTS (
+    SELECT 1
+    FROM cc_submission ccs
+    WHERE ccs.concept_code_1 = m.code
+)
+;
 
 
 -- 3. Populate concept_synonym table:
@@ -76,7 +82,13 @@ SELECT DISTINCT m.code,
 	            4180186
 FROM sources.mrconso m
 WHERE sab = 'ORPHANET'
-AND tty = 'SY';
+AND tty = 'SY'
+AND EXISTS (
+    SELECT 1
+    FROM concept_stage cs
+    WHERE cs.concept_code = m.code
+    AND cs.vocabulary_id = 'ORPHAcode'
+);
 
 INSERT INTO concept_synonym_manual (
     synonym_name,
@@ -99,7 +111,7 @@ WHERE NOT EXISTS(
 )
     AND synonym_name IS NOT NULL;
 
--- 4. Create hierarchical relationships:
+/*-- 4. Create hierarchical relationships: -- POSTPONED
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -131,7 +143,7 @@ FROM sources.mrrel r
         AND c2.tty = 'PT'
         AND c1.code != c2.code
         AND c2.ts = 'P'
-;
+;*/
 
 --5. Add everything from the Manual tables
 --Working with manual concepts

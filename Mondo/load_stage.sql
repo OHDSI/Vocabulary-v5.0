@@ -649,7 +649,7 @@ FROM (
 WHERE x.descendant_concept_code = concept_code;
 
 
--- 6.4. Neoplasms are considered Conditions
+-- 6.4. Codes to be considered Conditions
 UPDATE concept_stage
 SET domain_id = x.default_domain,
     concept_class_id = x.default_class
@@ -661,7 +661,7 @@ FROM (
     FROM (
       SELECT *
       FROM mondo_hierarchy s
-      WHERE ancestor_concept_code = 'MONDO_0045024' -- Neoplasm
+      WHERE ancestor_concept_code IN ('MONDO_0700096', 'MONDO_0045024') -- Disease,Neoplasm
     ) AS tabx
     GROUP BY descendant_concept_code, descendant_concept_name
   )
@@ -710,7 +710,6 @@ BEGIN
   PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
-
 -- 12. Clean up
 DROP TABLE  mondo_source;
 DROP TABLE mondo_hierarchy;
@@ -718,4 +717,3 @@ DROP TABLE mondo_hierarchy;
 -- At the end, concept_stage, concept_relationship_stage, and concept_synonym_stage
 -- should be ready to be fed into the generic_update.sql script.
 -- Authenticate outside this script when required; do not store credentials in vocabulary SQL.
-

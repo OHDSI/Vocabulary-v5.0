@@ -12,7 +12,7 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 ```
 2. Make sure the source tables and related triggers are created/implemented (`create_source_tables.sql`)
 3. Run functions developed to scrape  HPO sources into prepared source tables (`download_hpo_sources.sql`)
-4. Run `hpo_mapping_refresh` (manual work) in order to populate concept_relationship_manual table (use the inputs provided by steward)
+4. Run `hpo_mapping_refresh` (manual work) in order to populate concept_relationship_manual table (use the inputs provided by steward). Link - https://drive.google.com/drive/folders/1FkfSMk7XUmlF6asDG_eTEJ3Bwaft3-n4?usp=sharing
 5. Run `load_stage.sql` in the OHDSI vocabulary working schema 
 6. Run generic_update:
 ```sql

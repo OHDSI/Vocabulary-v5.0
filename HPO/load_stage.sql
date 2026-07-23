@@ -524,6 +524,7 @@ JOIN concept_stage cs_root
 ORDER BY concept_code_1, level
 ;
 
+/* These links are excluded from the scope until a relevant use case exists
 -- 5.4 Gene-to-phenotype integration
 -- specific genes (translated to OMOP Genomic) to HPO phenotypes connection
 INSERT INTO concept_relationship_stage (
@@ -646,7 +647,7 @@ FROM (
     ON cs2.concept_code = h.concept_code
 ) AS tab_genes_to_ph
 ;
-
+*/
 
 -- 6. Hierarchy-based domain/class correction
 UPDATE concept_stage

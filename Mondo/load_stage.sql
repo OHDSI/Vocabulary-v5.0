@@ -524,6 +524,68 @@ JOIN concept_stage cs_root
 ORDER BY concept_code_1, level
 ;
 
+-- 5.4 Cleaning of non-Human content
+--FROM CONCEPT_STAGE
+DELETE
+--SELECT *
+FROM concept_stage cs
+WHERE concept_code IN (
+    SELECT descendant_concept_code
+    FROM mondo_hierarchy m
+    where m.ancestor_concept_code = 'MONDO_0005583' -- non-Human entities
+    )
+AND NOT EXISTS (
+    SELECT 1
+    FROM mondo_hierarchy m1
+    where ancestor_concept_code= 'MONDO_0700096' -- human disease
+    and m1.descendant_concept_code=cs.concept_code
+)
+;
+
+--FROM CONCEPT_SYNONYM_STAGE
+DELETE
+--SELECT *
+FROM dev_mondo.concept_synonym_stage css
+WHERE synonym_concept_code IN (
+    SELECT descendant_concept_code
+    FROM mondo_hierarchy m
+    where m.ancestor_concept_code = 'MONDO_0005583' -- non-Human entities
+    )
+AND NOT EXISTS (
+    SELECT 1
+    FROM mondo_hierarchy m1
+    where ancestor_concept_code= 'MONDO_0700096' -- human disease
+    and m1.descendant_concept_code=css.synonym_concept_code
+)
+;
+
+--FROM CONCEPT_RELATIONSHIP_STAGE
+DELETE
+--SELECT *
+FROM concept_relationship_stage crs
+WHERE concept_code_1 IN (SELECT descendant_concept_code
+                         FROM mondo_hierarchy m
+                         where m.ancestor_concept_code = 'MONDO_0005583') -- non-Human entities
+
+  AND NOT EXISTS (SELECT 1
+                  FROM mondo_hierarchy m1
+                  where ancestor_concept_code = 'MONDO_0700096' -- human disease
+                    and m1.descendant_concept_code = crs.concept_code_1)
+;
+
+DELETE
+--SELECT *
+FROM concept_relationship_stage crs
+WHERE concept_code_2 IN (SELECT descendant_concept_code
+                         FROM mondo_hierarchy m
+                         where m.ancestor_concept_code = 'MONDO_0005583') -- non-Human entities
+
+  AND NOT EXISTS (SELECT 1
+                  FROM mondo_hierarchy m1
+                  where ancestor_concept_code = 'MONDO_0700096' -- human disease
+                    and m1.descendant_concept_code = crs.concept_code_2)
+;
+
 
 -- 6. Hierarchy-based domain/class correction
 UPDATE concept_stage
@@ -698,17 +760,18 @@ BEGIN
   PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
--- 10. Deprecate 'Maps to' mappings that point to deprecated/upgraded concepts
+-- 10. Add mappings from deprecated to current concepts for 'Maps to value'
+DO $_$
+BEGIN
+  PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+-- 11. Deprecate 'Maps to' mappings that point to deprecated/upgraded concepts
 DO $_$
 BEGIN
   PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
--- 11. Add mappings from deprecated to current concepts for 'Maps to value'
-DO $_$
-BEGIN
-  PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
 
 -- 12. Clean up
 DROP TABLE  mondo_source;

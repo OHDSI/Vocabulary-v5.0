@@ -26,5 +26,5 @@ Prerequisites:
 
 **4. Run  - it as a part of load stage as Semantic mapping update (step 7)** 
 * Isolate the portion for manual review (isolation heuristic may vary depending on release plans)
-* Populate the hpo_mapped table with content to be processed at the time of the release (`manual_mapping_incorporation.sql`) (fow steward only)
+* Populate the hpo_mapped table with content to be processed at the time of the release (`manual_mapping_incorporation.sql`) (for steward only). Link - https://drive.google.com/drive/folders/1FkfSMk7XUmlF6asDG_eTEJ3Bwaft3-n4?usp=sharing
 **5. Continue the load stage (Core Vocabulary team should use only fully equipped manual tables inputs, not hte pipeline)** 

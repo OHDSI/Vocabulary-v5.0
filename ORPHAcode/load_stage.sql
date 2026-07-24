@@ -100,7 +100,7 @@ SELECT DISTINCT synonym_name,
        concept_code_1,
        vocabulary_id_1,
        language_concept_id
-FROM cc_submission sub
+FROM dev_orphanet.cc_submission sub
 WHERE NOT EXISTS(
         SELECT 1
         FROM concept_synonym_stage css

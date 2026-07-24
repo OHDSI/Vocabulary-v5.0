@@ -545,7 +545,7 @@ AND NOT EXISTS (
 --FROM CONCEPT_SYNONYM_STAGE
 DELETE
 --SELECT *
-FROM dev_mondo.concept_synonym_stage css
+FROM concept_synonym_stage css
 WHERE synonym_concept_code IN (
     SELECT descendant_concept_code
     FROM mondo_hierarchy m

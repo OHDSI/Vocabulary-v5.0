@@ -167,6 +167,7 @@ combined_hpo_source AS (
     NULL AS synonym_name,
     NULL AS synonym_type,
     bpv_refrence,
+    bpv_refrence,
     bpv_predicate
   FROM property_enh_hpo_source
 
@@ -263,14 +264,14 @@ WITH staging_source AS (
             ELSE to_date('2099-12-31', 'YYYY-MM-DD')
           END ASC
       ) AS dense_rank_id
-    FROM dev_hpo.HPO_source s
+    FROM hpo_source s
     JOIN (
       SELECT latest_update, vocabulary_id
       FROM vocabulary
       WHERE vocabulary_id = 'HPO'
     ) a ON 1 = 1
     -- valid_start_date set
-    LEFT JOIN dev_hpo.HPO_source ss
+    LEFT JOIN hpo_source ss
       ON ss.concept_code = s.concept_code
       AND ss.bpv_predicate = 'http://purl.org/dc/elements/1.1/date'
     LEFT JOIN HPO_source sss

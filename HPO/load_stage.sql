@@ -167,7 +167,6 @@ combined_hpo_source AS (
     NULL AS synonym_name,
     NULL AS synonym_type,
     bpv_refrence,
-    bpv_refrence,
     bpv_predicate
   FROM property_enh_hpo_source
 

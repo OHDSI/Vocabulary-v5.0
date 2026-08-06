@@ -620,10 +620,11 @@ FROM dev_atc.covid19_atc_rxnorm_manual cov
                                                                  AND cov.to_drop IS NULL
 WHERE (concept_code_atc, c1.concept_code) NOT IN (SELECT concept_code_1, concept_code_2 FROM concept_relationship_stage);
 
--- 13. Process manual relationships
+-- 13. Process manual tables
 DO
 $_$
     BEGIN
+        PERFORM VOCABULARY_PACK.ProcessManualConcepts();
         PERFORM VOCABULARY_PACK.ProcessManualRelationships();
     END
 $_$;

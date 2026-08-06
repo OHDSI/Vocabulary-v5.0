@@ -16,4 +16,6 @@ SET concept_code = gen_random_uuid(),
     concept_name = 'Invalid ICDO3 concept, do not use'
 WHERE concept_id = 36402927;
 
+-- Fix UCUM unit spelling:
+
 

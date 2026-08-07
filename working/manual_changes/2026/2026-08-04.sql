@@ -17,5 +17,8 @@ SET concept_code = gen_random_uuid(),
 WHERE concept_id = 36402927;
 
 -- Fix UCUM unit spelling:
-
+UPDATE concept
+SET concept_code = 'mosm/kg{H2O}',
+    concept_name = 'milliosmole per kilogram of H2O'
+WHERE concept_id = 8991;
 

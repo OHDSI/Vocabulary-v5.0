@@ -30,6 +30,28 @@ WHERE (concept_code_1, concept_code_2) IN (SELECT DISTINCT t1.concept_code_atc, 
   AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension');
 
 ---ATC - Ings
+----- Dedeprecate Ings connections, that are in manual table and are deprecated in manual
+UPDATE concept_relationship_manual
+SET invalid_reason = NULL,
+    valid_end_date = TO_DATE('20991231', 'yyyymmdd')
+WHERE (concept_code_1, relationship_id, concept_code_2) IN (WITH CTE AS (SELECT class_code AS concept_code_1,
+                                                                                    relationship_id,
+                                                                                    UNNEST(STRING_TO_ARRAY(ids, ', '))::INT AS concept_id
+                                                                             FROM dev_atc.new_atc_codes_ings_for_manual)
+                                                                SELECT t1.concept_code_1,
+                                                                       t1.relationship_id,
+                                                                       t2.concept_code AS concept_code_2
+                                                                FROM CTE AS t1
+                                                                         JOIN devv5.concept t2 ON t1.concept_id = t2.concept_id)
+  AND vocabulary_id_1 = 'ATC'
+  AND vocabulary_id_2 IN ('RxNorm', 'RxNorm Extension')
+  AND relationship_id IN ('ATC - RxNorm pr lat',
+                          'ATC - RxNorm sec lat',
+                          'ATC - RxNorm pr up',
+                          'ATC - RxNorm sec up')
+  AND invalid_reason IS NOT NULL;
+
+--- Deprecate Ings connections that are not in manual table
 UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
@@ -49,6 +71,8 @@ WHERE (concept_code_1, relationship_id, concept_code_2) NOT IN (WITH CTE AS (SEL
                           'ATC - RxNorm pr up',
                           'ATC - RxNorm sec up')
   AND invalid_reason IS NULL;
+
+--------------------------------
 
 --This step is needed to deprecate wrong relationships
 
@@ -155,4 +179,4 @@ UPDATE concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = CURRENT_DATE
 WHERE relationship_id = 'Maps to'
-  AND (concept_code_1, concept_code_2) IN (SELECT source_code_atc, source_code_rx FROM drop_maps_to);
+  AND (concept_code_1, concept_code_2) IN (SELECT source_code_atc, source_code_rx FROM dev_atc.drop_maps_to);

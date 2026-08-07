@@ -18,7 +18,7 @@
 * Date: 2024
 **************************************************************************/
 
---1. Update a 'latest_update' field to a new date
+-- 1. Update the 'latest_update' field to a new date
 DO
 $_$
     BEGIN
@@ -32,14 +32,24 @@ $_$
 $_$;
 
 
---2. Truncate all working tables
+-- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Populate concept_stage
+    DO $$
+    BEGIN
+        IF current_schema() != 'devv5' THEN -- should be run only in dev_atc schema.
+            -- collect all new sources
+            PERFORM FROM dev_atc.collect_atc_rxnorm_from_sources();
+            -- apply all manual changes
+            PERFORM FROM  dev_atc.update_atc_relationships();
+        END IF;
+    END $$;
+
+-- 3. Populate concept_stage
 INSERT INTO concept_stage
             (concept_id,
              concept_name,
@@ -51,7 +61,6 @@ INSERT INTO concept_stage
              valid_start_date,
              valid_end_date,
              invalid_reason)
-
 SELECT t1.concept_id,
        CASE
            WHEN t1.adm_r IS NULL THEN TRIM(t1.name)
@@ -67,13 +76,84 @@ SELECT t1.concept_id,
        valid_start_date,
        valid_end_date,
        invalid_reason
-FROM (WITH CTE
-               AS ---Subquery to add 4th lvl class name before uninformative 5th class names combinations, various, various combinations
+FROM (
+        WITH cte AS ---Subquery to add 4th lvl class name before uninformative 5th class names combinations, various, various combinations
                (SELECT atc_1.class_code AS class_code,
                        LOWER(atc_2.class_name) || ' - ' || atc_1.class_name AS combo_name
                 FROM sources.atc_codes atc_1
                          JOIN sources.atc_codes atc_2 ON LEFT(atc_1.class_code, 5) = atc_2.class_code AND LOWER(atc_1.class_name) IN ('combinations', 'various', 'various combinations')
-                                                                                                      AND LENGTH(atc_1.class_code) = 7)
+                                                                                                      AND LENGTH(atc_1.class_code) = 7),
+            cte_2 AS (
+                        select
+                                DISTINCT class_code,
+                                class_name,
+                                CASE
+
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A01AB' THEN 'local oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A01AC' THEN 'local oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A01AD' THEN 'local oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A06AG' THEN 'rectal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'A10AE' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B02BD' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B02BC' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B03AA' THEN 'oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B03AB' THEN 'oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'B03AC' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 4) = 'B05B' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 4) = 'B05X' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'C05AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'C05BA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'C05BB' THEN 'parenteral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D01AE' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D02BA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D04AA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D04AB' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D05AD' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D05AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D06AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D10AD' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D10AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D10BX' THEN 'oral'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'D11AE' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'G02BA' THEN 'implant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'G02BB' THEN 'vaginal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'G02CC' THEN 'vaginal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'M02AA' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'M02AX' THEN 'ointment'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'N01AA' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'N01AB' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'R01AX' THEN 'nasal'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'R03BX' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'V03AN' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'V09EA' THEN 'inhalant'
+                                    WHEN LENGTH(class_code) = 7 AND LEFT(class_code, 5) = 'V09EB' THEN 'parenteral'
+
+                                    WHEN adm_r = 'Chewing gum' THEN 'chewing gum'
+                                    WHEN adm_r IN ('Inhal', 'Inhal. powder', 'Inhal.aerosol', 'Inhal.powder', 'Inhal.solution') THEN 'inhalant'
+                                    WHEN adm_r = 'Instill.solution' THEN 'instillation solution'
+                                    WHEN adm_r = 'N' THEN 'nasal'
+                                    WHEN adm_r = 'O' THEN 'oral'
+                                    WHEN adm_r IN ('O,P', '"O,P"') THEN 'oral, parenteral'
+                                    WHEN adm_r = 'P' THEN 'parenteral'
+                                    WHEN adm_r = 'R' THEN 'rectal'
+                                    WHEN adm_r = 'SL' THEN 'sublingual'
+                                    WHEN adm_r = 'TD' THEN 'transdermal'
+                                    WHEN adm_r = 'V' THEN 'vaginal'
+                                    WHEN adm_r IN ('implant', 's.c. implant', 'urethral') THEN 'implant'
+                                    WHEN adm_r = 'intravesical' THEN 'intravesical'
+                                    WHEN adm_r = 'lamella' THEN 'lamella'
+                                    WHEN adm_r = 'ointment' THEN 'ointment'
+                                    WHEN adm_r = 'oral aerosol' THEN 'local oral'
+                                    ELSE NULL
+                                END AS adm_r
+                            FROM sources.atc_codes
+                        ),
+            cte_3 AS (
+                SELECT class_code,
+                       string_agg(distinct adm_r,', ') AS adm_r
+                FROM cte_2
+                GROUP BY class_code
+            )
       SELECT DISTINCT NULL::INT AS concept_id,
                       CASE
                           WHEN (active = 'NA' OR active = 'C') AND t1.class_name NOT IN ('combinations', 'various', 'various combinations')
@@ -84,7 +164,7 @@ FROM (WITH CTE
                               THEN '[' || active || '] ' || t3.combo_name --- If D or U and name in ('combinations', 'various', 'various combinations')
                           ELSE '[' || active || '] ' || t1.class_name
                           END AS name,
-                      t2.new AS adm_r,
+                      t2.adm_r AS adm_r,
                       'Drug' AS domain_id,
                       'ATC' AS vocabulary_id,
                       CASE
@@ -109,17 +189,17 @@ FROM (WITH CTE
                           ELSE active
                           END AS invalid_reason
       FROM sources.atc_codes t1
-               LEFT JOIN dev_atc.new_adm_r t2 ON t1.class_code = t2.class_code
-               LEFT JOIN CTE t3 ON t1.class_code = t3.class_code
+               LEFT JOIN cte_3 t2 ON t1.class_code = t2.class_code
+               LEFT JOIN cte t3 ON t1.class_code = t3.class_code
       WHERE t1.active != 'C') t1;
 
 --3. Populate concept_synonym_stage
 INSERT INTO concept_synonym_stage
-(synonym_concept_id,
- synonym_name,
- synonym_concept_code,
- synonym_vocabulary_id,
- language_concept_id)
+            (synonym_concept_id,
+             synonym_name,
+             synonym_concept_code,
+             synonym_vocabulary_id,
+             language_concept_id)
 SELECT DISTINCT NULL::INT AS synonym_concept_id,
                 CASE
                     WHEN t1.synonym_name IS NULL THEN TRIM(t2.class_name)
@@ -171,39 +251,9 @@ FROM (SELECT class_code AS synonym_concept_code,
        WHERE LENGTH(class_code) = 7)) t1
          JOIN sources.atc_codes t2 ON t1.synonym_concept_code = t2.class_code;
 
---concept_relationship_stage population
 
---4. Insert ATC - Ingredient relationships
-INSERT INTO concept_relationship_stage
-            (concept_id_1,
-             concept_id_2,
-             concept_code_1,
-             concept_code_2,
-             vocabulary_id_1,
-             vocabulary_id_2,
-             relationship_id,
-             valid_start_date,
-             valid_end_date,
-             invalid_reason)
-SELECT NULL::INT AS concept_id_1,
-       NULL::INT AS concept_id_2,
-       class_code AS concept_code_1,
-       t2.concept_code AS concept_code_2,
-       'ATC' AS vocabulary_id_1,
-       t2.vocabulary_id AS vocabulary_id_2,
-       relationship_id,
-       CURRENT_DATE AS valid_start_date,
-       TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
-       NULL AS invalid_reason
-FROM (SELECT class_code,
-             class_name,
-             relationship_id,
-             UNNEST(STRING_TO_ARRAY(ids, ', ')) AS concept_code_2
-      FROM dev_atc.new_atc_codes_ings_for_manual) t1
-         JOIN devv5.concept t2 ON t1.concept_code_2::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
-
-
---5. Insert Maps to relationships
+-- 4. Populate concept_relationship_stage
+-- 4a. Insert ATC - Ingredient relationships (except ATC - RxNorm sec up)
 INSERT INTO concept_relationship_stage
             (concept_id_1,
              concept_id_2,
@@ -216,6 +266,110 @@ INSERT INTO concept_relationship_stage
              valid_end_date,
              invalid_reason)
 SELECT DISTINCT NULL::INT AS concept_id_1,
+       NULL::INT AS concept_id_2,
+       class_code AS concept_code_1,
+       t2.concept_code AS concept_code_2,
+       'ATC' AS vocabulary_id_1,
+       t2.vocabulary_id AS vocabulary_id_2,
+       t1.relationship_id,
+       CURRENT_DATE AS valid_start_date,
+       TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
+       NULL AS invalid_reason
+FROM (SELECT DISTINCT class_code,
+             class_name,
+             relationship_id,
+             UNNEST(STRING_TO_ARRAY(ids, ', ')) AS concept_id_2
+      FROM dev_atc.new_atc_codes_ings_for_manual
+      WHERE relationship_id != 'ATC - RxNorm sec up'
+      ) t1
+         JOIN devv5.concept_relationship cr on t1.CONCEPT_ID_2::INT = cr.concept_id_1 AND cr.invalid_reason IS NULL AND cr.relationship_id = 'Maps to'
+         JOIN devv5.concept t2 ON cr.concept_id_2::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
+
+-- 4b. Insert ATC - RxNorm sec up relationships (auto-collection based on ATC - RxNorm connections)
+INSERT INTO concept_relationship_stage
+            (concept_id_1,
+            concept_id_2,
+            concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
+            relationship_id,
+            valid_start_date,
+            valid_end_date,
+            invalid_reason)
+    WITH all_ids_except_secups AS
+             (WITH sec_up_conns AS
+                       (SELECT *
+                        FROM dev_atc.new_atc_codes_ings_for_manual
+                        WHERE relationship_id = 'ATC - RxNorm sec up')
+              SELECT class_code,
+                     string_agg(ids, ',') AS ids
+              FROM dev_atc.new_atc_codes_ings_for_manual
+              WHERE class_code IN (SELECT class_code FROM sec_up_conns)
+                AND relationship_id != 'ATC - RxNorm sec up'
+              GROUP BY class_code),
+    main_query AS
+    (
+        SELECT t1.class_code,
+               string_agg(DISTINCT c.concept_id::TEXT, ',') AS all_ids_on_markt,
+               t2.ids AS except_secups
+        FROM dev_atc.new_unique_atc_codes_rxnorm t1
+             JOIN devv5.concept_ancestor ca ON ca.descendant_concept_id = t1.ids
+             JOIN devv5.concept c ON ca.ancestor_concept_id = c.concept_id
+                                    AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                    AND c.concept_class_id IN ('Ingredient', 'Precise Ingredient')
+             JOIN all_ids_except_secups t2 ON t1.class_code = t2.class_code
+        GROUP BY t1.class_code, t2.ids
+    ),
+        only_sec_ups AS (
+                        SELECT class_code,
+                               (SELECT string_agg(id::text, ',')
+                                FROM (SELECT unnest(string_to_array(all_ids_on_markt, ',')::bigint[]) AS id
+                                      EXCEPT
+                                      SELECT unnest(string_to_array(except_secups, ',')::bigint[]) AS id
+                                     ) t
+                               ) AS result_ids_only_secups
+                        FROM main_query),
+        class_code_secup_id AS (
+                                SELECT
+                                    class_code,
+                                    unnest(string_to_array(result_ids_only_secups, ','))::INT AS ids
+                                FROM only_sec_ups)
+        SELECT
+           NULL::INT AS concept_id_1,
+           NULL::INT AS concept_id_2,
+           t1.class_code AS concept_code_1,
+           t2.concept_code AS concept_code_2,
+           'ATC' AS vocabulary_id_1,
+           t2.vocabulary_id AS vocabulary_id_2,
+           'ATC - RxNorm sec up',
+           CURRENT_DATE AS valid_start_date,
+           TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
+           NULL AS invalid_reason
+        FROM class_code_secup_id t1 JOIN devv5.concept t2 ON t1.ids = t2.concept_id
+                                                    AND t2.invalid_reason IS NULL
+                                                    AND t2.standard_concept = 'S';
+
+-- 5. Insert 'Maps to' relationships
+INSERT INTO concept_relationship_stage
+            (concept_id_1,
+             concept_id_2,
+             concept_code_1,
+             concept_code_2,
+             vocabulary_id_1,
+             vocabulary_id_2,
+             relationship_id,
+             valid_start_date,
+             valid_end_date,
+             invalid_reason)
+WITH cte AS (SELECT class_code,
+             class_name,
+             relationship_id,
+             UNNEST(STRING_TO_ARRAY(ids, ', ')) AS concept_id_2
+      FROM dev_atc.new_atc_codes_ings_for_manual
+      WHERE relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat'))
+
+SELECT DISTINCT NULL::INT AS concept_id_1,
                 NULL::INT AS concept_id_2,
                 class_code AS concept_code_1,
                 t2.concept_code AS concept_code_2,
@@ -225,17 +379,13 @@ SELECT DISTINCT NULL::INT AS concept_id_1,
                 CURRENT_DATE AS valid_start_date,
                 TO_DATE('2099-12-31', 'YYYY-MM-DD') AS valid_end_date,
                 NULL AS invalid_reason
-FROM (SELECT class_code,
-             class_name,
-             relationship_id,
-             UNNEST(STRING_TO_ARRAY(ids, ', ')) AS concept_code_2
-      FROM dev_atc.new_atc_codes_ings_for_manual
-      WHERE relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat')) t1
-         JOIN devv5.concept t2 ON t1.concept_code_2::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+FROM cte t1
+      JOIN devv5.concept_relationship cr on t1.concept_id_2::INT = cr.concept_id_1 AND cr.invalid_reason IS NULL AND cr.relationship_id = 'Maps to' --- only fresh mappings, anaolog of AddFreshMapsTo
+      JOIN devv5.concept t2 ON cr.concept_id_2 = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 WHERE (class_code, t2.concept_code) NOT IN (SELECT source_code_atc, source_code_rx
                                             FROM dev_atc.drop_maps_to);
 
---6. Insert ATC - RxNorm relationships
+-- 6. Insert 'ATC - RxNorm' relationships
 DROP TABLE IF EXISTS new_unique_atc_codes_rxnorm;
 CREATE UNLOGGED TABLE new_unique_atc_codes_rxnorm AS
 SELECT DISTINCT class_code, ids
@@ -267,7 +417,7 @@ SELECT NULL::INT AS concept_id_1,
 FROM new_unique_atc_codes_rxnorm t1
          JOIN devv5.concept t2 ON t1.ids::INT = t2.concept_id AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
 
---7. Insert replacement relationships
+-- 7. Insert replacement relationships
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -286,7 +436,7 @@ SELECT class_code AS concept_code_1,
 FROM sources.atc_codes
 WHERE active = 'U';
 
---8. Insert ATC - SNOMED and internal relationships
+-- 8. Insert ATC - SNOMED and internal relationships
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -340,8 +490,8 @@ WHERE uppr.invalid_reason IS NULL
     );
 
 
----9. Insert all valid connections to ATC from devv5.concept_relationship (except Ings connections,
--- because their full list in table dev_atc.new_atc_codes_ings_for_manual), which are not in stage table
+-- 9. Insert all valid connections to ATC from devv5.concept_relationship (except Ings connections,
+-- because their full list in table new_atc_codes_ings_for_manual), which are not in concept_relationship_stage
 INSERT INTO concept_relationship_stage
             (concept_code_1,
              concept_code_2,
@@ -407,7 +557,38 @@ WHERE (concept_code_1, relationship_id, concept_code_2) IN
          AND cr.invalid_reason = 'D')
   AND invalid_reason IS NULL;
 
--- 11. COVID-19 Manual mapping. Kill all ATC - RxNorm that came from sources (because they are not representative
+-- 11. Deprecate all alive ingredient connections that are already in CR table and didn't appear in stage through manual tables
+INSERT INTO concept_relationship_stage
+            (concept_code_1,
+             concept_code_2,
+             vocabulary_id_1,
+             vocabulary_id_2,
+             relationship_id,
+             valid_start_date,
+             valid_end_date,
+             invalid_reason)
+SELECT t1.concept_code,
+       t2.concept_code,
+       t1.vocabulary_id,
+       t2.vocabulary_id,
+       cr.relationship_id,
+       cr.valid_start_date,
+       CURRENT_DATE AS valid_end_date,
+       'D' AS invalid_reason
+FROM concept_relationship cr
+     JOIN concept t1 on cr.concept_id_1 = t1.concept_id
+                                    AND cr.invalid_reason IS NULL
+                                    AND t1.vocabulary_id = 'ATC'
+                                    AND cr.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+     JOIN concept t2 on cr.concept_id_2 = t2.concept_id
+                                    AND t2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+where (t1.concept_code, t2.concept_code) NOT IN   (SELECT crs.concept_code_1, crs.concept_code_2
+                                                  FROM concept_relationship_stage crs
+                                                  WHERE  crs.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
+                                                  );
+
+
+-- 12. COVID-19 Manual mapping. Kill all ATC - RxNorm that came from sources (because they are not representative
 -- while they are on Clinical Drug Form level)
 UPDATE concept_relationship_stage
 SET invalid_reason = 'D',
@@ -436,20 +617,21 @@ SELECT concept_code_atc AS concept_code_1,
        TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM dev_atc.covid19_atc_rxnorm_manual cov
          JOIN devv5.concept c1 ON cov.concept_id = c1.concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                                                 AND cov.to_drop IS NULL;
+                                                                 AND cov.to_drop IS NULL
+WHERE (concept_code_atc, c1.concept_code) NOT IN (SELECT concept_code_1, concept_code_2 FROM concept_relationship_stage);
 
---12. Process manual relationships
+-- 13. Process manual tables
 DO
 $_$
     BEGIN
+        PERFORM VOCABULARY_PACK.ProcessManualConcepts();
         PERFORM VOCABULARY_PACK.ProcessManualRelationships();
     END
 $_$;
 
-
 ANALYZE concept_relationship_stage;
 
---13. Working with replacement mappings
+-- 14. Working with replacement mappings
 DO
 $_$
     BEGIN
@@ -458,7 +640,7 @@ $_$
 $_$;
 
 
---14. Add mapping from deprecated to fresh concepts
+--15. Add mapping from deprecated to fresh concepts
 DO
 $_$
     BEGIN
@@ -466,7 +648,7 @@ $_$
     END
 $_$;
 
---15. Add mapping (to value) from deprecated to fresh concepts
+--16. Add mapping (to value) from deprecated to fresh concepts
 DO
 $_$
     BEGIN
@@ -474,7 +656,7 @@ $_$
     END
 $_$;
 
---16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO
 $_$
     BEGIN
@@ -482,7 +664,7 @@ $_$
     END
 $_$;
 
---17. Delete ambiguous 'Maps to' mappings
+--18. Delete ambiguous 'Maps to' mappings
 DO
 $_$
     BEGIN
@@ -491,3 +673,4 @@ $_$
 $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+

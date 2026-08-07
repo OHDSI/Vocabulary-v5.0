@@ -270,7 +270,7 @@ BEGIN
           cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
         WHEN cVocabularyName = 'HEMONC'
         THEN
-          cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'Mon dd, yyyy');
+          cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'hemonc knowledgebase.+?<span class="text-muted">(.+?)</span>'),'Mon dd, yyyy');
           cVocabVer := 'HemOnc '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
         WHEN cVocabularyName = 'DMD'
         THEN
@@ -344,12 +344,20 @@ BEGIN
                 cVocabDate := cVocabSrcDate;
                 cVocabVer := cVocabSrcVer;
             END IF;
-        WHEN cVocabularyName = 'EORTC'
+        WHEN cVocabularyName = 'EORTC '
         THEN
             cVocabDate := CURRENT_DATE;
             cVocabVer := 'EORTC '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
             cVocabOldDate := COALESCE(cVocabOldDate,cVocabSrcDate);
             cVocabOldVer := COALESCE(cVocabOldVer,cVocabSrcVer);
+        WHEN cVocabularyName = 'EMA'
+        THEN
+            cVocabDate := CURRENT_DATE;
+            cVocabVer := 'EMA '||TO_CHAR(cVocabDate,'yyyy-mm-dd');
+            -- update should happen every weekend
+            cVocabSrcDate := CURRENT_DATE - 1;
+            cVocabOldDate := COALESCE(cVocabOldDate,cVocabSrcDate);
+            cVocabOldVer := COALESCE(cVocabOldVer,cVocabSrcVer);            
         ELSE
             RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
     END CASE;

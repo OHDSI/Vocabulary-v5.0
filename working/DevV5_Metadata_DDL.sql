@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Aliaksei Katyshou
-* Date: 2024
+* Authors: Aliaksei Katyshou, Masha Khitrun
+* Date: 2026
 **************************************************************************/
 
 -- concept_metadata
@@ -25,7 +25,7 @@ CREATE TABLE concept_metadata (
     concept_category varchar(20),
     reuse_status varchar(20),
     FOREIGN KEY (concept_id) REFERENCES concept (concept_id),
-    CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'J')),
+    CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'V')),
     CONSTRAINT chk_reuse_status CHECK (reuse_status IN ('RF', 'RP', 'R')),
     UNIQUE (concept_id)
 );
@@ -47,7 +47,7 @@ CREATE TABLE concept_relationship_metadata (
     FOREIGN KEY (concept_id_1, concept_id_2, relationship_id) 
         REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
     CONSTRAINT chk_relationship_predicate_id 
-        CHECK (relationship_predicate_id IN ('eq', 'up', 'down')),
+        CHECK (relationship_predicate_id IN ('exactMatch', 'broadMatch', 'narrowMatch')),
     CONSTRAINT chk_confidence 
         CHECK (confidence >= 0 AND confidence <= 1),
     UNIQUE (concept_id_1, concept_id_2, relationship_id)

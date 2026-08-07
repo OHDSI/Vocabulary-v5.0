@@ -54,7 +54,7 @@ BEGIN
 			c2.vocabulary_id = ANY (iVocabularies)
 			OR iVocabularies IS NULL
 			)
-	WHERE r.invalid_reason IS NULL;
+    WHERE r.invalid_reason IS NULL;
 
 	CREATE INDEX idx_temp_ca_base$ ON temporary_ca_base$ (ancestor_concept_id) INCLUDE (descendant_concept_id, levels_of_separation) WITH (FILLFACTOR=100);
 	ANALYZE temporary_ca_base$;
@@ -158,7 +158,7 @@ BEGIN
 			SELECT c_int.vocabulary_id
 			FROM concept_relationship cr_int
 			JOIN concept c_int ON c_int.concept_id = cr_int.concept_id_1
-			WHERE r_int.invalid_reason IS NULL
+            WHERE cr_int.invalid_reason IS NULL
 			)
 		AND (pIncludeInvalidReason OR c.invalid_reason IS NULL)
 		AND (pIncludeNonStandard OR c.standard_concept IS NOT NULL);
@@ -177,15 +177,22 @@ BEGIN
 			);
 
 	--Add new records and update existing
-	INSERT INTO concept_ancestor AS ca
-	SELECT *
-	FROM temporary_ca$ 
-	ON CONFLICT ON CONSTRAINT xpkconcept_ancestor
-	DO UPDATE
-	SET min_levels_of_separation = excluded.min_levels_of_separation,
-		max_levels_of_separation = excluded.max_levels_of_separation
-	WHERE ca.min_levels_of_separation <> excluded.min_levels_of_separation
-		OR ca.max_levels_of_separation <> excluded.max_levels_of_separation;
+    INSERT INTO concept_ancestor AS ca
+    SELECT 
+      ancestor_concept_id, 
+      descendant_concept_id, 
+      MIN(min_levels_of_separation) AS min_levels_of_separation, 
+      MAX(max_levels_of_separation) AS max_levels_of_separation
+    FROM temporary_ca$  
+    GROUP BY 
+        ancestor_concept_id, 
+        descendant_concept_id
+    ON CONFLICT ON CONSTRAINT xpkconcept_ancestor
+    DO UPDATE
+    SET min_levels_of_separation = excluded.min_levels_of_separation,
+        max_levels_of_separation = excluded.max_levels_of_separation
+    WHERE ca.min_levels_of_separation <> excluded.min_levels_of_separation
+        OR ca.max_levels_of_separation <> excluded.max_levels_of_separation;
 
 	ANALYZE concept_ancestor;
 

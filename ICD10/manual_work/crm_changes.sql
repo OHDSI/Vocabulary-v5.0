@@ -47,7 +47,7 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
                         AND rl.target_concept_code = crm.concept_code_2 --to the same concept_code
                         AND rl.target_vocabulary_id = crm.vocabulary_id_2 --of the same vocabulary
                         AND rl.relationship_id = crm.relationship_id --with the same relationship
-                        AND rl.source_vocabulary_id = 'ICD10'     )
+                        AND rl.source_vocabulary_id = 'ICD10')
 ;
 
 -- activate mapping, that became valid again
@@ -109,4 +109,3 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
-

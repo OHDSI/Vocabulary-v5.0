@@ -1,6 +1,6 @@
 -- Create table icd10_refresh
 DROP TABLE icd9cm_refresh;
-TRUNCATE TABLE icd9cm_refresh;
+--TRUNCATE TABLE icd9cm_refresh;
 CREATE TABLE icd9cm_refresh
 (
     source_code             TEXT NOT NULL,

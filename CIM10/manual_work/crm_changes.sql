@@ -17,6 +17,8 @@
 * Date: 2021
 **************************************************************************/
 -- 1. Update the concept_relationship_stage table
+-- CREATE TABLE concept_relationship_manual_bu as (SELECT * FROM concept_relationship_manual);
+-- INSERT INTO concept_relationship_manual (SELECT * FROM concept_relationship_manual_bu);
 TRUNCATE TABLE dev_CIM10.concept_relationship_manual;
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
@@ -83,6 +85,7 @@ with mapping AS -- select all new codes with their mappings from manual file
         FROM dev_icd10.icd_cde_proc
         WHERE target_concept_id is not null -- select only codes with mapping to standard concepts
         AND source_vocabulary_id = 'CIM10'
+        and target_concept_id != 0
     )
 -- insert new mappings into concept_relationship_manual table
 INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -109,22 +112,3 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                        relationship_id FROM concept_relationship_manual)
     )
 ;
-
--- Some manual fixes
---INSERT INTO concept_relationship_manual VALUES
---('Z52.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z52.80', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z52.88', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z52.88', '53958007', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z95.80', 'OMOP5165859', 'CIM10', 'OMOP Extension', 'Maps to', '2024-02-27', '2099-12-31', null);
---
---INSERT INTO concept_relationship_manual VALUES
---('Z95.80', '429381005', 'CIM10', 'SNOMED', 'Maps to value', '2024-02-27', '2099-12-31', null);

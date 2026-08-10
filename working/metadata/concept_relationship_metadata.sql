@@ -327,7 +327,7 @@ SELECT cr.concept_id_1 as concept_id_1,
          else m.mapping_tool end  as mapping_tool,
        m.mapper_id as mapper,
        m.reviewer_id as reviewer
-FROM dev_cpt4.cpt4_mapped m
+FROM dev_cancer_modifier.cpt4_mapped m
 JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
 JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
@@ -627,10 +627,29 @@ GROUP BY c.vocabulary_id
 ;
 
 
-
-
-
-
+-- Cancer Modifier metadata enrichment
+INSERT INTO concept_relationship_metadata
+SELECT cr.concept_id_1 as concept_id_1,
+       cr.concept_id_2 as concept_id_2,
+       cr.relationship_id as relationship_id,
+     CASE WHEN length(trim(m.relationship_id_predicate))=0 then null
+          when lower(trim(m.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(m.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
+          else m.relationship_id_predicate end as relationship_predicate_id,
+       null as relationship_group,
+      1.0 as confidence,
+      'MM_C' as mapping_tool,
+       'Vlad Korsik' as mapper,
+       'Nemesis Health/Oncology WG' as reviewer
+FROM dev_cancer_modifier.cancer_modifier_cde m
+JOIN devv5.concept c on (m.source_concept_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
+JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
+JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
+WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
+      AND (cr.concept_id_1, cr.concept_id_2, cr.relationship_id) NOT IN (SELECT concept_id_1, concept_id_2, relationship_id FROM concept_relationship_metadata)
+AND cr.invalid_reason IS NULL
+AND m.relationship_id_predicate IS NOT NULL;
 
 --TODO @irina --fix ICD-env!!! (duplication is here)
 --TODO @Masha -- add mapping source where possible

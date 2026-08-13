@@ -34,6 +34,7 @@ AND EXISTS (
     FROM dev_voc_metadata.concept c
     WHERE c.concept_id = rr.concept_id
 );
+
 -- Apparent Void from various OMOPed terminologies
 INSERT INTO concept_metadata (concept_id,concept_category)
 WITH void_pool AS (SELECT DISTINCT c.*

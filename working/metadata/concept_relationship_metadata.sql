@@ -482,8 +482,8 @@ AND EXISTS (
 )
 ;
 
-
--- Mapping tool standardization and normalization
+--3. Manual fixes:
+--3.1. Mapping tool standardization and normalization
 UPDATE concept_relationship_metadata
 SET mapping_tool = CASE
     WHEN mapping_tool IN ('Atlas, Databricks, and human') THEN 'MM_U'
@@ -495,22 +495,17 @@ SET mapping_tool = CASE
 END
 WHERE mapping_tool IN ('Atlas, Databricks, and human', 'ManualMapping', 'MM_C', 'AM-lib_C');
 
--- Set and format reviewer emails
+--3.2 Set and format reviewer emails
 UPDATE concept_relationship_metadata AS b
 SET reviewer = CASE
     -- Map initials to full email addresses
-    WHEN UPPER(TRIM(a.reviewer)) = 'DB' THEN INITCAP(REPLACE(SPLIT_PART('dmitry.buralkin@odysseusinc.com', '@', 1), '_', ' '))
+    WHEN UPPER(TRIM(a.reviewer)) IN ('DB', 'JC', 'YK', 'IZ', 'AT', 'AY') THEN INITCAP(REPLACE(SPLIT_PART('Vocabulary Team@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'EP' THEN INITCAP(REPLACE(SPLIT_PART('yauheni.paulenkovich@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'MS' OR a.reviewer ILIKE '%salavei%' THEN INITCAP(REPLACE(SPLIT_PART('mikita_salavei@epam.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.reviewer)) = 'JC' THEN INITCAP(REPLACE(SPLIT_PART('janice.cruz@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'VK' THEN INITCAP(REPLACE(SPLIT_PART('vlad.korsik@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'OZ' OR a.reviewer ILIKE '%zhuk%' THEN INITCAP(REPLACE(SPLIT_PART('oleg.zhuk@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) IN ('OT', 'TO') THEN INITCAP(REPLACE(SPLIT_PART('tetiana_orlova@epam.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.reviewer)) = 'YK' THEN INITCAP(REPLACE(SPLIT_PART('yuri.korin@odysseusinc.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.reviewer)) = 'IZ' THEN INITCAP(REPLACE(SPLIT_PART('irina.zherko@odysseusinc.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.reviewer)) = 'AT' THEN INITCAP(REPLACE(SPLIT_PART('anton_tatur1@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'VALUE:' THEN INITCAP(REPLACE(SPLIT_PART('Vocabulary Team@epam.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.reviewer)) = 'AY' THEN INITCAP(REPLACE(SPLIT_PART('aliaksandr_yurchanka3@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'MK' OR a.reviewer ILIKE '%khitrun%' THEN INITCAP(REPLACE(SPLIT_PART('maria_khitrun@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'MR' THEN INITCAP(REPLACE(SPLIT_PART('maria_rahozhkina@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.reviewer)) = 'VS' THEN INITCAP(REPLACE(SPLIT_PART('varvara_savitskaya@epam.com', '@', 1), '_', ' '))
@@ -525,26 +520,20 @@ AND a.concept_id_2 = b.concept_id_2
 AND a.relationship_id = b.relationship_id;
 
 
--- Set and format mapper emails
+--3.3. Set and format mapper emails
 UPDATE concept_relationship_metadata AS b
 SET mapper = CASE
     -- Map initials to full email addresses or community/team names
-    WHEN UPPER(TRIM(a.mapper)) = 'DB' THEN INITCAP(REPLACE(SPLIT_PART('dmitry.buralkin@odysseusinc.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) = 'EP' THEN INITCAP(REPLACE(SPLIT_PART('yauheni.paulenkovich@odysseusinc.com', '@', 1), '_', ' '))
+    WHEN UPPER(TRIM(a.reviewer)) IN ('DB', 'JC', 'YK', 'IZ', 'AT', 'AY', 'EP') THEN INITCAP(REPLACE(SPLIT_PART('Vocabulary Team@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'MS' OR a.mapper ILIKE '%salavei%' THEN INITCAP(REPLACE(SPLIT_PART('mikita.salavei@odysseusinc.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) = 'JC' THEN INITCAP(REPLACE(SPLIT_PART('janice.cruz@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'VK' THEN INITCAP(REPLACE(SPLIT_PART('vlad.korsik@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'OZ' OR a.mapper ILIKE '%zhuk%' THEN INITCAP(REPLACE(SPLIT_PART('oleg.zhuk@odysseusinc.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) IN ('OT', 'TO') THEN INITCAP(REPLACE(SPLIT_PART('tetiana_orlova@epam.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) = 'YK' THEN INITCAP(REPLACE(SPLIT_PART('yuri.korin@odysseusinc.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) = 'IZ' THEN INITCAP(REPLACE(SPLIT_PART('irina.zherko@odysseusinc.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) = 'AT' THEN INITCAP(REPLACE(SPLIT_PART('anton.tatur@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'VALUE:' THEN INITCAP(REPLACE(SPLIT_PART('Vocabulary Team@epam.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) = 'AY' THEN INITCAP(REPLACE(SPLIT_PART('aliaksandr_yurchanka3@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'MK' OR a.mapper ILIKE '%khitrun%' THEN INITCAP(REPLACE(SPLIT_PART('maria_khitrun@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'VS' THEN INITCAP(REPLACE(SPLIT_PART('varvara_savitskaya@epam.com', '@', 1), '_', ' '))
     WHEN UPPER(TRIM(a.mapper)) = 'TS' OR a.mapper ILIKE '%skugarevskaya%' THEN INITCAP(REPLACE(SPLIT_PART('tatsiana_skuhareuskaya@epam.com', '@', 1), '_', ' '))
-    WHEN UPPER(TRIM(a.mapper)) ILIKE 'CC' THEN 'Ohdsi Community'
+    WHEN UPPER(TRIM(a.mapper)) ILIKE 'CC' THEN 'OHDSI Community'
     WHEN LENGTH(TRIM(a.mapper)) = 0 THEN NULL
     -- Format existing emails: apply formatting for dot and underscore separators
     ELSE INITCAP(REPLACE(SPLIT_PART(INITCAP(REPLACE(SPLIT_PART(a.mapper, '@', 1), '.', ' ')), '@', 1), '_', ' '))
@@ -553,7 +542,3 @@ FROM concept_relationship_metadata a
 WHERE a.concept_id_1 = b.concept_id_1
 AND a.concept_id_2 = b.concept_id_2
 AND a.relationship_id = b.relationship_id;
-
-
---TODO @irina --fix ICD-env!!! (duplication is here)
---TODO @Masha -- add mapping source where possible

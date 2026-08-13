@@ -14,23 +14,26 @@ CREATE TABLE concept_metadata
     UNIQUE (concept_id)
 );
 
---Reused codes insertion
---HCPCS
-INSERT INTO concept_metadata (concept_id,reuse_status)
+-- Reused codes insertion (HCPCS)
+-- See: https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
+INSERT INTO concept_metadata (concept_id, reuse_status)
 SELECT DISTINCT
     c.concept_id,
-   'RF' as reuse_status
+    'RF' AS reuse_status
 FROM
-    dev_voc_metadata.reused_concepts rr--table that equal to github wiki page -- https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
+    dev_voc_metadata.reused_concepts rr
     JOIN concept c
         ON rr.concept_id = c.concept_id
-where not exists(SELECT 1
-                 from dev_voc_metadata.concept_metadata cm
-                 where (cm.concept_id)=rr.concept_id)
-and exists (SELECT 1
-                 from dev_voc_metadata.concept  с
-                 where (c.concept_id)=rr.concept_id)
-;
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM dev_voc_metadata.concept_metadata cm
+    WHERE cm.concept_id = rr.concept_id
+)
+AND EXISTS (
+    SELECT 1
+    FROM dev_voc_metadata.concept c
+    WHERE c.concept_id = rr.concept_id
+);
 -- Apparent Void from various OMOPed terminologies
 INSERT INTO concept_metadata (concept_id,concept_category)
 WITH void_pool AS (SELECT DISTINCT c.*
@@ -90,57 +93,50 @@ and exists (SELECT 1
 ;
 
 -- Metadata attribute
-
---Apparent metadata
-INSERT INTO concept_metadata (concept_id,concept_category)
-SELECT DISTINCT concept_id, 'M' as concept_category
+-- Apparent metadata
+INSERT INTO concept_metadata (concept_id, concept_category)
+SELECT DISTINCT concept_id, 'M' AS concept_category
 FROM devv5.concept
-where domain_id='Metadata'
-	ON CONFLICT ON CONSTRAINT xpk_concept_metadata
-	DO UPDATE
-	SET concept_category = concept_metadata.concept_category
-	WHERE ROW (concept_metadata.concept_category)
-	IS DISTINCT FROM
-	ROW (excluded.concept_category)
-	;
+WHERE domain_id = 'Metadata'
+ON CONFLICT ON CONSTRAINT xpk_concept_metadata
+DO UPDATE SET concept_category = concept_metadata.concept_category
+WHERE ROW (concept_metadata.concept_category) IS DISTINCT FROM ROW (excluded.concept_category);
 
 -- Attributes attribute
----Drug attributes
-INSERT INTO concept_metadata (concept_id,concept_category)
-SELECT DISTINCT concept_id, 'A' as concept_category
-    FROM devv5.concept
-where (
-concept_class_id IN (
-'AU Qualifier',
-'Supplier',
-'Trade Product',
-'Brand Name',
-'Dose Form',
-'Drug form',
-'Form',
-'Chemical Structure',
-'Pharmacokinetics',
-'Supplier'
+-- Drug attributes
+INSERT INTO concept_metadata (concept_id, concept_category)
+SELECT DISTINCT concept_id, 'A' AS concept_category
+FROM devv5.concept
+WHERE (
+    concept_class_id IN (
+        'AU Qualifier',
+        'Supplier',
+        'Trade Product',
+        'Brand Name',
+        'Dose Form',
+        'Drug form',
+        'Form',
+        'Chemical Structure',
+        'Pharmacokinetics',
+        'Supplier'
     )
-and domain_id='Drug')
---- Attributes from other domains
+    AND domain_id = 'Drug'
+)
+-- Attributes from other domains
 OR (
-concept_class_id IN (
-'LOINC Component',
-'LOINC Method',
-'LOINC Property',
-'LOINC Scale',
-'LOINC System',
-'LOINC Time')
+    concept_class_id IN (
+        'LOINC Component',
+        'LOINC Method',
+        'LOINC Property',
+        'LOINC Scale',
+        'LOINC System',
+        'LOINC Time'
     )
-OR
-    (vocabulary_id IN ('SNOMED','SNOMED Veterinary','Nebraska Lexicon','OMOP Extension')
-       and concept_class_id IN ('Qualifier Value','Attribute')
-        )
-	ON CONFLICT ON CONSTRAINT xpk_concept_metadata
-	DO UPDATE
-	SET concept_category = concept_metadata.concept_category
-	WHERE ROW (concept_metadata.concept_category)
-	IS DISTINCT FROM
-	ROW (excluded.concept_category)
-	;
+)
+OR (
+    vocabulary_id IN ('SNOMED', 'SNOMED Veterinary', 'Nebraska Lexicon', 'OMOP Extension')
+    AND concept_class_id IN ('Qualifier Value', 'Attribute')
+)
+ON CONFLICT ON CONSTRAINT xpk_concept_metadata
+DO UPDATE SET concept_category = concept_metadata.concept_category
+WHERE ROW (concept_metadata.concept_category) IS DISTINCT FROM ROW (excluded.concept_category);

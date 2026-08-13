@@ -15,13 +15,13 @@ reviewer VARCHAR(50),
 FOREIGN KEY (concept_id_1, concept_id_2, relationship_id)
 REFERENCES concept_relationship (concept_id_1, concept_id_2, relationship_id),
 CONSTRAINT chk_relationship_predicate_id
-CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch','eq', 'up', 'down')),
+CHECK (relationship_predicate_id IN ('narrowMatch','exactMatch','broadMatch')),
 CONSTRAINT xpk_concept_relationship_metadata
 UNIQUE (concept_id_1,concept_id_2,relationship_id)
 );
 
 
---Community contribution
+--1. Community contribution
 INSERT INTO concept_relationship_metadata
 SELECT DISTINCT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -35,8 +35,8 @@ SELECT DISTINCT cr.concept_id_1 as concept_id_1,
           CASE WHEN   cc.mapping_source ~* 'manual|new snomed' then 'MM_C'
          WHEN   cc.mapping_source ~* 'OMOP|OHDSI' then 'AM-lib_C'
          ELSE cc.mapping_tool end as  mapping_tool,
-       null as mapper,
-       null as reviewer
+       'CC' as mapper,
+       'MK' as reviewer
 FROM dev_voc_metadata.cc_mapping cc
 JOIN devv5.concept c ON (cc.concept_code_1, cc.vocabulary_id_1) = (c.concept_code, c.vocabulary_id)
 JOIN devv5.concept c1 ON (cc.concept_code_2, cc.vocabulary_id_2) = (c1.concept_code, c1.vocabulary_id)
@@ -52,16 +52,8 @@ DO UPDATE SET relationship_predicate_id = EXCLUDED.relationship_predicate_id,
                reviewer = EXCLUDED.reviewer
 ;
 
-UPDATE  concept_relationship_metadata
-    SEt mapping_tool='MM_U'
-where mapping_tool IN (
-'exactMatch',
-'Atlas, Databricks, and human',
-'Athena'
-    );
 
-
---ICDs
+--2. ICD-family
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
 SELECT concept_id_1,
        concept_id_2,
@@ -105,7 +97,7 @@ GROUP BY cr.concept_id_1,
 ;
 
 
---SNOMED
+--3. SNOMED
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -116,9 +108,9 @@ SELECT cr.concept_id_1 as concept_id_1,
            when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
           else m.relationship_id_predicate end as relationship_predicate_id,
        null as relationship_group,
-       m.mapping_source as mapping_source,
+       null as mapping_source,
        m.confidence::float as confidence,
-       m.mapping_tool as mapping_tool,
+       'MM_C' as mapping_tool,
        m.mapper_id as mapper,
       CASE WHEN  m.reviewer_id = 'N/A' then NULL else  m.reviewer_id END as reviewer
 FROM dev_snomed.snomed_mapped m
@@ -132,7 +124,7 @@ AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
 
---CDISC
+--4. CDISC
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
 SELECT DISTINCT
        concept_id_1,
@@ -222,7 +214,7 @@ ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
 
 
---MedDRA
+--5. MedDRA
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
 with tab_array as(
 SELECT concept_id_1,
@@ -309,7 +301,7 @@ SET mapping_source = replace(replace(mapping_source,'MEDDRA_SNOMED','RefSet:MEDD
 WHERE mapping_source like '%MEDDRA_SNOMED+SNOMED_MEDDRA%';
 
 
--- CPT4:
+--6. CPT4:
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -327,7 +319,7 @@ SELECT cr.concept_id_1 as concept_id_1,
          else m.mapping_tool end  as mapping_tool,
        m.mapper_id as mapper,
        m.reviewer_id as reviewer
-FROM dev_cancer_modifier.cpt4_mapped m
+FROM dev_cpt4.cpt4_mapped m
 JOIN devv5.concept c on (m.source_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
 JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
 JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
@@ -337,7 +329,7 @@ AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
--- HCPCS:
+--7. HCPCS:
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -365,7 +357,7 @@ AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
---CIEL
+--8. CIEL:
     INSERT INTO concept_relationship_metadata (
     concept_id_1,
     concept_id_2,
@@ -378,19 +370,19 @@ AND m.relationship_id_predicate IS NOT NULL;
     mapper,
     reviewer
 )
-SELECT
+SELECT distinct
     c.concept_id AS concept_id_1,
     target_concept_id AS concept_id_2,
     relationship_id as relationship_id,
     -- SSSOM Predicates based on Mapping Direction
     CASE
         -- EQ: Equivalent [exactMatch]
-        WHEN rule_applied ~* '^1\.01' THEN 'eq'
+        WHEN rule_applied ~* '^1\.01' THEN 'exactMatch'
         -- UP: Uphill [broadMatch]
         WHEN rule_applied ~* '^1\.02|^2\.06|^2\.10|^2\.12|^2\.14|^2\.15'
-           THEN 'up'
-    END AS relationship_predicate_id, -- returns "violates check constraint "chk_relationship_predicate_id"" but relationship_predicate_id are 'eq' and 'up'
-  NULL AS relationship_group,
+           THEN 'broadMatch'
+    END AS relationship_predicate_id,
+    NULL::INT AS relationship_group,
     'CIEL' AS mapping_source,
     1 AS confidence,
     'AM-lib_C' AS mapping_tool,
@@ -403,8 +395,32 @@ WHERE c.vocabulary_id = 'CIEL'
 AND rule_applied ~* '^1\.01|^1\.02|^2\.06|^2\.10|^2\.12|^2\.14|^2\.15'
 ;
 
+--9. Cancer Modifier metadata enrichment
+INSERT INTO concept_relationship_metadata
+SELECT cr.concept_id_1 as concept_id_1,
+       cr.concept_id_2 as concept_id_2,
+       cr.relationship_id as relationship_id,
+     CASE WHEN length(trim(m.relationship_id_predicate))=0 then null
+          when lower(trim(m.relationship_id_predicate))='eq' then 'exactMatch'
+           when lower(trim(m.relationship_id_predicate))='up' then 'broadMatch'
+           when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
+          else m.relationship_id_predicate end as relationship_predicate_id,
+       null as relationship_group,
+      null as mapping_source,  -- Add this column
+      1.0 as confidence,
+      'MM_C' as mapping_tool,
+       'Vlad Korsik' as mapper,
+       'Nemesis Health/Oncology WG' as reviewer
+FROM dev_cancer_modifier.cancer_modifier_cde m
+JOIN devv5.concept c on (m.source_concept_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
+JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
+JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
+WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
+      AND (cr.concept_id_1, cr.concept_id_2, cr.relationship_id) NOT IN (SELECT concept_id_1, concept_id_2, relationship_id FROM concept_relationship_metadata)
+AND cr.invalid_reason IS NULL
+AND m.relationship_id_predicate IS NOT NULL;
 
---Insertion of relationships that are currently not injested
+--10. Insertion of relationships that are currently not ingested
 -- Scope is limited to Valid Triples
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id,
                                            relationship_group, mapping_source, confidence, mapping_tool, mapper,
@@ -443,36 +459,8 @@ and exists (
 )
 ;
 
---issues/1073
-UPDATE concept_relationship_metadata
-    SET relationship_predicate_id='narrowMatch'
-where concept_id_1=1572266
-and concept_id_2=36717032
-;
-
---relationship_predicate_id
-UPDATE concept_relationship_metadata
-SET relationship_predicate_id = NULL 
-WHERE length(trim(relationship_predicate_id)) = 0;
-
-
---mapping_tool
-UPDATE concept_relationship_metadata
-SET mapping_tool = NULL 
-WHERE length(trim(mapping_tool)) = 0;
-
-
---relationship_predicate_id
-UPDATE concept_relationship_metadata
-SET relationship_predicate_id = NULL
-WHERE length(trim(relationship_predicate_id)) = 0;
 
 --Mapping source UPD
-UPDATE concept_relationship_metadata
-SET mapping_source = 'Community Contribution'
-WHERE mapping_tool IN ('Atlas, Databricks, and human');
-
---Mapping tool UPD
 UPDATE concept_relationship_metadata
 SET mapping_tool = 'MM_U'
 WHERE mapping_tool IN ('Atlas, Databricks, and human');
@@ -503,24 +491,6 @@ and mapper is NULL
 and reviewer is NULL
 ;
 
-UPDATE concept_relationship_metadata
-SET mapping_tool = 'MM_U',
-    mapping_source=NULL
-WHERE mapping_source ='MannualMapping'
-and mapper is NULL
-and reviewer is NULL
-;
-
-UPDATE concept_relationship_metadata
-SET mapping_tool = 'AM-lib_U'
-WHERE mapping_tool ='AM-lib_C'
-and (mapper is NOT NULL
-OR reviewer is NOT NULL)
-and relationship_predicate_id is NULL
-and confidence is NULL
-;
-
-
 --Set emails of reviewer
 UPDATE concept_relationship_metadata AS b
     SET reviewer = CASE
@@ -530,16 +500,16 @@ UPDATE concept_relationship_metadata AS b
                WHEN upper(trim(a.reviewer)) ='JC' THEN 'janice.cruz@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='OZ' or a.reviewer ilike '%zhuk%'   THEN 'oleg.zhuk@odysseusinc.com'
-               WHEN upper(trim(a.reviewer))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
+               WHEN upper(trim(a.reviewer))  IN ('OT','TO')  then 'tetiana_orlova@epam.com'
                WHEN upper(trim(a.reviewer)) ='YK'  then 'yuri.korin@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) ='IZ'  then 'irina.zherko@odysseusinc.com'
                WHEN upper(trim(a.reviewer)) IN ('AT')  then 'anton_tatur1@epam.com'
               WHEN upper(trim(a.reviewer)) IN ('VALUE:')  then 'Vocabulary Team@epam.com'
-               WHEN upper(trim(a.reviewer)) IN ('AY')  then 'aliaksand.yurchanka3@epam.com'
-               WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer like '%khitrun%' then 'maria_khitrun@epam.com'
+               WHEN upper(trim(a.reviewer)) IN ('AY')  then 'aliaksandr_yurchanka3@epam.com'
+               WHEN upper(trim(a.reviewer)) ='MK' or  a.reviewer ilike '%khitrun%' then 'maria_khitrun@epam.com'
                WHEN upper(trim(a.reviewer)) ='MR' then 'maria_rahozhkina@epam.com'
                WHEN upper(trim(a.reviewer)) ='VS'  then 'varvara_savitskaya@epam.com'
-               WHEN upper(trim(a.reviewer)) ='TS'  then 'tatsiana_skuhareuskaya@epam.com'
+               WHEN upper(trim(a.reviewer)) ='TS' or a.reviewer ilike '%skugarevskaya%'  then 'tatsiana_skuhareuskaya@epam.com'
                WHEN length(trim(a.reviewer)) = 0 then NULL
         ELSE a.reviewer
               END
@@ -550,7 +520,8 @@ and a.relationship_id=b.relationship_id;
 
 UPDATE concept_relationship_metadata
     SET reviewer = initcap(replace(split_part(reviewer,'@',1),'.',' '));
-
+UPDATE concept_relationship_metadata
+    SET reviewer = initcap(replace(split_part(reviewer,'@',1),'_',' '));
 
 
 --Set emails of mappers
@@ -562,15 +533,16 @@ UPDATE concept_relationship_metadata AS b
                WHEN upper(trim(a.mapper)) ='JC' THEN 'janice.cruz@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='VK' THEN 'vlad.korsik@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='OZ' or a.mapper ilike '%zhuk%'   THEN 'oleg.zhuk@odysseusinc.com'
-               WHEN upper(trim(a.mapper))  IN ('OT','TO')  then 'tetiana.orlova@odysseusinc.com'
+               WHEN upper(trim(a.mapper))  IN ('OT','TO')  then 'tetiana_orlova@epam.com'
                WHEN upper(trim(a.mapper)) ='YK'  then 'yuri.korin@odysseusinc.com'
                WHEN upper(trim(a.mapper)) ='IZ'  then 'irina.zherko@odysseusinc.com'
                WHEN upper(trim(a.mapper)) IN ('AT')  then 'anton.tatur@epam.com'
                WHEN upper(trim(a.mapper)) IN ('VALUE:')  then 'Vocabulary Team@epam.com'
-               WHEN upper(trim(a.mapper)) IN ('AY')  then 'aliaksand.yurchanka3@epam.com'
-               WHEN upper(trim(a.mapper)) ='MK' or  a.mapper like '%khitrun%' then 'masha.khitrun@odysseusinc.com'
-               WHEN upper(trim(a.mapper)) ='VS'  then 'varvara.savitskaya@odysseusinc.com'
-               WHEN upper(trim(a.mapper)) ='TS'  then 'tatiana.skugarevskaya@odysseusinc.com'
+               WHEN upper(trim(a.mapper)) IN ('AY')  then 'aliaksandr_yurchanka3@epam.com'
+               WHEN upper(trim(a.mapper)) ='MK' or  a.mapper ilike '%khitrun%' then 'maria_khitrun@epam.com'
+               WHEN upper(trim(a.mapper)) ='VS'  then 'varvara_savitskaya@epam.com'
+               WHEN upper(trim(a.mapper)) ='TS' or a.mapper ilike '%skugarevskaya%'  then 'tatsiana_skuhareuskaya@epam.com'
+               WHEN upper(trim(a.mapper)) ilike 'Cc' then 'OHDSI community'
                WHEN length(trim(a.mapper)) = 0 then NULL
                ELSE a.mapper
               END
@@ -581,75 +553,9 @@ and a.relationship_id=b.relationship_id;
 
 UPDATE concept_relationship_metadata
     SET mapper = initcap(replace(split_part(mapper,'@',1),'.',' '));
+UPDATE concept_relationship_metadata
+    SET mapper = initcap(replace(split_part(reviewer,'@',1),'_',' '));
 
-SELECT *
-FROM concept_relationship_metadata
-ORDER BY concept_id_1,relationship_id,concept_id_2
-;
-
---loss of concepts compared to prev release
---predictable behavior as resulted from mapping propagation and entire mapping inactivation/invalidation
-SELECT c.vocabulary_id,count(*) as row_cnt, count(DISTINCT c.concept_id) as id_cnt
-from devv5.concept_relationship_metadata crm
-JOIN devv5.concept c
-on crm.concept_id_1=c.concept_id
-where not exists (
-    SELECT 1
-    from dev_voc_metadata.concept_relationship_metadata crmt
-    where crmt.concept_id_1=crm.concept_id_1
-)
-  and crm.relationship_id IN (
-'Maps to',
-'Maps to value'
-)
-GROUP BY c.vocabulary_id
-;
-
---new CRMeta elements
-SELECT c.vocabulary_id,count(*) as row_cnt, count(DISTINCT c.concept_id) as id_cnt
-from dev_voc_metadata.concept_relationship_metadata crm
-JOIN devv5.concept c
-on crm.concept_id_1=c.concept_id
-where  not exists (
-    SELECT 1
-    from devv5.concept_relationship_metadata crmt
-    where crmt.concept_id_1=crm.concept_id_1
-      and crmt.relationship_id IN (
-'Maps to',
-'Maps to value'
-)
-)
-  and crm.relationship_id IN (
-'Maps to',
-'Maps to value'
-)
-GROUP BY c.vocabulary_id
-;
-
-
--- Cancer Modifier metadata enrichment
-INSERT INTO concept_relationship_metadata
-SELECT cr.concept_id_1 as concept_id_1,
-       cr.concept_id_2 as concept_id_2,
-       cr.relationship_id as relationship_id,
-     CASE WHEN length(trim(m.relationship_id_predicate))=0 then null
-          when lower(trim(m.relationship_id_predicate))='eq' then 'exactMatch'
-           when lower(trim(m.relationship_id_predicate))='up' then 'broadMatch'
-           when lower(trim(m.relationship_id_predicate))='down' then 'narrowMatch'
-          else m.relationship_id_predicate end as relationship_predicate_id,
-       null as relationship_group,
-      1.0 as confidence,
-      'MM_C' as mapping_tool,
-       'Vlad Korsik' as mapper,
-       'Nemesis Health/Oncology WG' as reviewer
-FROM dev_cancer_modifier.cancer_modifier_cde m
-JOIN devv5.concept c on (m.source_concept_code, m.source_vocabulary_id) = (c.concept_code, c.vocabulary_id)
-JOIN devv5.concept c1 on (m.target_concept_code, m.target_vocabulary_id) = (c1.concept_code, c1.vocabulary_id)
-JOIN devv5.concept_relationship cr on (c.concept_id, c1.concept_id, m.relationship_id) = (cr.concept_id_1, cr.concept_id_2, cr.relationship_id)
-WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
-      AND (cr.concept_id_1, cr.concept_id_2, cr.relationship_id) NOT IN (SELECT concept_id_1, concept_id_2, relationship_id FROM concept_relationship_metadata)
-AND cr.invalid_reason IS NULL
-AND m.relationship_id_predicate IS NOT NULL;
 
 --TODO @irina --fix ICD-env!!! (duplication is here)
 --TODO @Masha -- add mapping source where possible

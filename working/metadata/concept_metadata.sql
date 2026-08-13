@@ -1,11 +1,12 @@
 -- DDL:
 --DROP TABLE concept_metadata;
+TRUNCATE TABLE concept_metadata;
 CREATE TABLE concept_metadata
 (
     concept_id       int NOT NULL,
     concept_category varchar(20),
     reuse_status     varchar(20),
-    CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'J')),
+    CONSTRAINT chk_concept_category CHECK (concept_category IN ('A', 'SA', 'SC', 'M', 'V')),
     CONSTRAINT chk_reuse_status CHECK (reuse_status IS NULL OR reuse_status IN ('RF', 'RP', 'R')),
     FOREIGN KEY (concept_id)
     REFERENCES concept (concept_id),
@@ -14,7 +15,6 @@ CREATE TABLE concept_metadata
 );
 
 --Reused codes insertion
-
 --HCPCS
 INSERT INTO concept_metadata (concept_id,reuse_status)
 SELECT DISTINCT
@@ -31,9 +31,9 @@ and exists (SELECT 1
                  from dev_voc_metadata.concept  с
                  where (c.concept_id)=rr.concept_id)
 ;
--- Apparent Junk from various OMOPed terminologies
+-- Apparent Void from various OMOPed terminologies
 INSERT INTO concept_metadata (concept_id,concept_category)
-WITH JUNK_POOL AS (SELECT DISTINCT c.*
+WITH void_pool AS (SELECT DISTINCT c.*
                             FROM devv5.concept_ancestor ca
                                      JOIN devv5.concept c
                                           ON c.concept_id = ca.descendant_concept_id
@@ -49,12 +49,12 @@ WITH JUNK_POOL AS (SELECT DISTINCT c.*
                                                  ))
 
 ,
-   junk_via_rel  as (
+   void_via_rel  as (
 SELECT DISTINCT 'rel' as flag, cc.concept_id
-              , 'J' AS concept_category
+              , 'V' AS concept_category
               , cc.concept_name
               , cc.vocabulary_id
-FROM JUNK_POOL a
+FROM void_pool a
          JOIN devv5.concept_relationship cr
               ON cr.concept_id_2 = a.concept_id
                   AND cr.invalid_reason IS NULL
@@ -63,23 +63,23 @@ FROM JUNK_POOL a
               ON cc.concept_id = cr.concept_id_1
 )
 ,
-   junk_direct_rule_based  as (SELECT 'dir' as flag,cx.concept_id
-              , 'J' AS concept_category
+   void_direct_rule_based  as (SELECT 'dir' as flag,cx.concept_id
+              , 'V' AS concept_category
               , cx.concept_name
               , cx.vocabulary_id
                                FROM devv5.concept cx
                                WHERE cx.concept_name ~*
                                      'serial numb|Social.+security.+(number|identifier)|personal.+telephon|Patient.identif.+numb|patient name|patient surname'
                                  AND cx.standard_concept IS NULL
-                               and cx.concept_id NOT IN (SELECT concept_id FROM junk_via_rel))
+                               and cx.concept_id NOT IN (SELECT concept_id FROM void_via_rel))
 
 SELECT DISTINCT concept_id, concept_category
 FROM (
 SELECT flag, concept_id, concept_category, concept_name, vocabulary_id
-FROM junk_via_rel
+FROM void_via_rel
 UNION ALL
 SELECT flag, concept_id, concept_category, concept_name, vocabulary_id
-FROM junk_direct_rule_based
+FROM void_direct_rule_based
 ) as tab
 where not exists(SELECT 1
                  from dev_voc_metadata.concept_metadata cm
@@ -93,7 +93,7 @@ and exists (SELECT 1
 
 --Apparent metadata
 INSERT INTO concept_metadata (concept_id,concept_category)
-SELECT DISTINCT     concept_id, 'M' as concept_category
+SELECT DISTINCT concept_id, 'M' as concept_category
 FROM devv5.concept
 where domain_id='Metadata'
 	ON CONFLICT ON CONSTRAINT xpk_concept_metadata
@@ -104,24 +104,11 @@ where domain_id='Metadata'
 	ROW (excluded.concept_category)
 	;
 
-INSERT INTO concept_metadata (concept_id,concept_category)
-SELECT DISTINCT     concept_id, 'M' as concept_category
-FROM devv5.concept tab
-where domain_id='Metadata'
-and not exists(SELECT 1
-                 from dev_voc_metadata.concept_metadata cm
-                 where (cm.concept_id)=tab.concept_id)
-and exists (SELECT 1
-                 from dev_voc_metadata.concept xx
-                 where xx.concept_id=tab.concept_id)
-;
-
-
 -- Attributes attribute
---Drug metadata
+---Drug attributes
 INSERT INTO concept_metadata (concept_id,concept_category)
 SELECT DISTINCT concept_id, 'A' as concept_category
-FROM devv5.concept
+    FROM devv5.concept
 where (
 concept_class_id IN (
 'AU Qualifier',
@@ -136,6 +123,7 @@ concept_class_id IN (
 'Supplier'
     )
 and domain_id='Drug')
+--- Attributes from other domains
 OR (
 concept_class_id IN (
 'LOINC Component',
@@ -156,70 +144,3 @@ OR
 	IS DISTINCT FROM
 	ROW (excluded.concept_category)
 	;
-;
-
-INSERT INTO concept_metadata (concept_id,concept_category)
-SELECT DISTINCT concept_id, 'A' as concept_category
-FROM devv5.concept tab
-where ((
-concept_class_id IN (
-'AU Qualifier',
-'Supplier',
-'Trade Product',
-'Brand Name',
-'Dose Form',
-'Drug form',
-'Form',
-'Chemical Structure',
-'Pharmacokinetics',
-'Supplier'
-    )
-and domain_id='Drug')
-OR (
-concept_class_id IN (
-'LOINC Component',
-'LOINC Method',
-'LOINC Property',
-'LOINC Scale',
-'LOINC System',
-'LOINC Time')
-    )
-OR
-    (vocabulary_id IN ('SNOMED','SNOMED Veterinary','Nebraska Lexicon','OMOP Extension')
-       and concept_class_id IN ('Qualifier Value','Attribute')
-        ))
-and not exists(SELECT 1
-                 from dev_voc_metadata.concept_metadata cm
-                 where (cm.concept_id)=tab.concept_id)
-and exists (SELECT 1
-                 from dev_voc_metadata.concept xx
-                 where xx.concept_id=tab.concept_id)
-;
-
-
---NO DUPLICATES EXISTS
-SELECT (SELECT count(*)
-FROM concept_metadata) - (SELECT count(distinct concept_id)
-FROM concept_metadata);
-
---loss of concepts compared to prev release
-SELECT count(*)
-from devv5.concept_metadata cm
-where  not exists (
-    SELECT 1
-    from dev_voc_metadata.concept_metadata cmt
-    where cmt.concept_id=cm.concept_id
-)
-;
-
---Asses new IDs compared to prev release
-SELECT *
-from dev_voc_metadata.concept_metadata cm
-join concept c
-on c.concept_id=cm.concept_id
-where  not exists (
-    SELECT 1
-    from devv5.concept_metadata cmt
-    where cmt.concept_id=cm.concept_id
-)
-;

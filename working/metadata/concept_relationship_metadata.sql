@@ -21,7 +21,8 @@ CREATE TABLE concept_relationship_metadata (
 );
 
 
--- 1. Community contribution
+-- 1. Gather content for CR-metadata:
+--1.1 Community contribution:
 INSERT INTO concept_relationship_metadata
 SELECT DISTINCT
     cr.concept_id_1 AS concept_id_1,
@@ -59,7 +60,7 @@ DO UPDATE SET
     reviewer = EXCLUDED.reviewer;
 
 
--- 2. ICD-family
+--1.2. ICD-family
 INSERT INTO concept_relationship_metadata (
     concept_id_1, concept_id_2, relationship_id, relationship_predicate_id,
     relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer
@@ -119,7 +120,7 @@ FROM (
 ;
 
 
---3. SNOMED
+--1.3. SNOMED
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -146,7 +147,7 @@ AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
 
---4. CDISC
+--1.4. CDISC
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
 SELECT DISTINCT
        concept_id_1,
@@ -236,7 +237,7 @@ ORDER BY concept_id_1,relationship_id,concept_id_2
 ;
 
 
---5. MedDRA
+--1.5. MedDRA
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id, relationship_group, mapping_source, confidence, mapping_tool, mapper, reviewer)
 with tab_array as(
 SELECT concept_id_1,
@@ -323,7 +324,7 @@ SET mapping_source = replace(replace(mapping_source,'MEDDRA_SNOMED','RefSet:MEDD
 WHERE mapping_source like '%MEDDRA_SNOMED+SNOMED_MEDDRA%';
 
 
---6. CPT4:
+--1.6. CPT4:
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -351,7 +352,7 @@ AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
---7. HCPCS:
+--1.7. HCPCS:
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -379,7 +380,7 @@ AND cr.invalid_reason IS NULL
 AND m.cr_invalid_reason is null
 AND m.relationship_id_predicate IS NOT NULL;
 
---8. CIEL:
+--1.8. CIEL:
     INSERT INTO concept_relationship_metadata (
     concept_id_1,
     concept_id_2,
@@ -417,7 +418,7 @@ WHERE c.vocabulary_id = 'CIEL'
 AND rule_applied ~* '^1\.01|^1\.02|^2\.06|^2\.10|^2\.12|^2\.14|^2\.15'
 ;
 
---9. Cancer Modifier metadata enrichment
+--1.9. Cancer Modifier metadata enrichment
 INSERT INTO concept_relationship_metadata
 SELECT cr.concept_id_1 as concept_id_1,
        cr.concept_id_2 as concept_id_2,
@@ -442,7 +443,7 @@ WHERE cr.relationship_id IN ('Maps to', 'Maps to value')
 AND cr.invalid_reason IS NULL
 AND m.relationship_id_predicate IS NOT NULL;
 
---10. Insertion of relationships that are currently not ingested
+--2. Insertion of relationships that are currently not ingested
 -- Scope is limited to Valid Triples
 INSERT INTO concept_relationship_metadata (concept_id_1, concept_id_2, relationship_id, relationship_predicate_id,
                                            relationship_group, mapping_source, confidence, mapping_tool, mapper,
@@ -481,8 +482,8 @@ AND EXISTS (
 )
 ;
 
-
---Mapping source UPD
+--3. Fine fixes:
+--3.1. Mapping tool
 UPDATE concept_relationship_metadata
 SET mapping_tool = 'MM_U'
 WHERE mapping_tool IN ('Atlas, Databricks, and human');
@@ -512,6 +513,38 @@ WHERE mapping_tool ='AM-lib_C'
 and mapper is NULL
 and reviewer is NULL
 ;
+
+-- Set emails of mappers
+UPDATE concept_relationship_metadata AS b
+SET mapper = CASE
+    WHEN UPPER(TRIM(a.mapper)) = 'DB' THEN 'dmitry.buralkin@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'MS' OR a.mapper ILIKE '%salavei%' THEN 'mikita.salavei@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'JC' THEN 'janice.cruz@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'VK' THEN 'vlad.korsik@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'OZ' OR a.mapper ILIKE '%zhuk%' THEN 'oleg.zhuk@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) IN ('OT', 'TO') THEN 'tetiana_orlova@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'YK' THEN 'yuri.korin@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'IZ' THEN 'irina.zherko@odysseusinc.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'AT' THEN 'anton.tatur@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'VALUE:' THEN 'Vocabulary Team@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'AY' THEN 'aliaksandr_yurchanka3@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'MK' OR a.mapper ILIKE '%khitrun%' THEN 'maria_khitrun@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'VS' THEN 'varvara_savitskaya@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) = 'TS' OR a.mapper ILIKE '%skugarevskaya%' THEN 'tatsiana_skuhareuskaya@epam.com'
+    WHEN UPPER(TRIM(a.mapper)) ILIKE 'CC' THEN 'OHDSI community'
+    WHEN LENGTH(TRIM(a.mapper)) = 0 THEN NULL
+    ELSE a.mapper
+END
+FROM concept_relationship_metadata a
+WHERE a.concept_id_1 = b.concept_id_1
+AND a.concept_id_2 = b.concept_id_2
+AND a.relationship_id = b.relationship_id;
+
+UPDATE concept_relationship_metadata
+    SET mapper = INITCAP(REPLACE(SPLIT_PART(mapper, '@', 1), '.', ' '));
+UPDATE concept_relationship_metadata
+    SET mapper = INITCAP(REPLACE(SPLIT_PART(mapper, '@', 1), '_', ' '));
 
 -- Set emails of reviewer
 UPDATE concept_relationship_metadata AS b
@@ -546,37 +579,7 @@ UPDATE concept_relationship_metadata
     SET reviewer = INITCAP(REPLACE(SPLIT_PART(reviewer, '@', 1), '_', ' '));
 
 
--- Set emails of mappers
-UPDATE concept_relationship_metadata AS b
-SET mapper = CASE
-    WHEN UPPER(TRIM(a.mapper)) = 'DB' THEN 'dmitry.buralkin@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'EP' THEN 'yauheni.paulenkovich@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'MS' OR a.mapper ILIKE '%salavei%' THEN 'mikita.salavei@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'JC' THEN 'janice.cruz@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'VK' THEN 'vlad.korsik@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'OZ' OR a.mapper ILIKE '%zhuk%' THEN 'oleg.zhuk@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) IN ('OT', 'TO') THEN 'tetiana_orlova@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'YK' THEN 'yuri.korin@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'IZ' THEN 'irina.zherko@odysseusinc.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'AT' THEN 'anton.tatur@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'VALUE:' THEN 'Vocabulary Team@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'AY' THEN 'aliaksandr_yurchanka3@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'MK' OR a.mapper ILIKE '%khitrun%' THEN 'maria_khitrun@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'VS' THEN 'varvara_savitskaya@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) = 'TS' OR a.mapper ILIKE '%skugarevskaya%' THEN 'tatsiana_skuhareuskaya@epam.com'
-    WHEN UPPER(TRIM(a.mapper)) ILIKE 'CC' THEN 'OHDSI community'
-    WHEN LENGTH(TRIM(a.mapper)) = 0 THEN NULL
-    ELSE a.mapper
-END
-FROM concept_relationship_metadata a
-WHERE a.concept_id_1 = b.concept_id_1
-AND a.concept_id_2 = b.concept_id_2
-AND a.relationship_id = b.relationship_id;
 
-UPDATE concept_relationship_metadata
-    SET mapper = INITCAP(REPLACE(SPLIT_PART(mapper, '@', 1), '.', ' '));
-UPDATE concept_relationship_metadata
-    SET mapper = INITCAP(REPLACE(SPLIT_PART(mapper, '@', 1), '_', ' '));
 
 
 --TODO @irina --fix ICD-env!!! (duplication is here)

@@ -40,7 +40,11 @@ FROM rxn_info_sheet;
     SELECT DISTINCT * FROM qa_tests.get_summary('concept');
     SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
     ```
-13. Run scripts to collect statistics, and interpret the results:
+13. Review pack_content changes compared to prodv5:
+    ```sql
+    SELECT * FROM dev_rxnorm.get_pack_content_delta();
+    ```
+14. Run scripts to collect statistics, and interpret the results:
     ```sql
     SELECT DISTINCT * FROM qa_tests.get_domain_changes();
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
@@ -48,4 +52,4 @@ FROM rxn_info_sheet;
     SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
     SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
     ```
-14. If no problems, enjoy!
+15. If no problems, enjoy!

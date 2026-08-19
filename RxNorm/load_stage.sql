@@ -1366,44 +1366,10 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---14. Create mapping to self for fresh concepts
 ANALYZE concept_relationship_stage;
 ANALYZE concept_stage;
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT concept_code AS concept_code_1,
-	concept_code AS concept_code_2,
-	c.vocabulary_id AS vocabulary_id_1,
-	c.vocabulary_id AS vocabulary_id_2,
-	'Maps to' AS relationship_id,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM concept_stage c,
-	vocabulary v
-WHERE c.vocabulary_id = v.vocabulary_id
-	AND c.standard_concept = 'S'
-	AND NOT EXISTS -- only new mapping we don't already have
-	(
-		SELECT 1
-		FROM concept_relationship_stage i
-		WHERE c.concept_code = i.concept_code_1
-			AND c.concept_code = i.concept_code_2
-			AND c.vocabulary_id = i.vocabulary_id_1
-			AND c.vocabulary_id = i.vocabulary_id_2
-			AND i.relationship_id = 'Maps to'
-		);
-ANALYZE concept_relationship_stage;
 
---15. Do the "adoption" of children-concepts coming form newly-mapped parent entries.
+--14. Do the "adoption" of children-concepts coming form newly-mapped parent entries.
 --For Rx and RxE hierarchical reconstruction is limited to  scope of Ancestor-approved triples
 
 DO $_$
@@ -1414,8 +1380,7 @@ DO $_$
     ; 
 END $_$;
 
-
---16. Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
+--15. Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
 UPDATE concept_stage c
 SET concept_class_id = CASE
 		WHEN concept_class_id = 'Branded Drug'
@@ -1434,7 +1399,7 @@ WHERE concept_class_id IN (
 			AND r.vocabulary_id_1 = c.vocabulary_id
 		);
 
---17. Create pack_content_stage table
+--16. Create pack_content_stage table
 INSERT INTO pack_content_stage
 SELECT DISTINCT pc.pack_code AS pack_concept_code,
 	'RxNorm' AS pack_vocabulary_id,
@@ -1458,7 +1423,7 @@ FROM (
 			-- This takes a Pack name, replaces the sequence ') / ' with a semicolon for splitting, and removes the word Pack and everything thereafter (the brand name usually)
 			SELECT rxcui AS pack_code,
 				REGEXP_REPLACE(REPLACE(REPLACE(str, ') / ', ';'), '{', ''), '\) } Pack( \[.+\])?', '','g') AS pack_name
-			FROM sources.rxnconso
+			FROM sources_archive.rxnconso
 			WHERE sab = 'RXNORM'
 				AND tty LIKE '%PCK' -- Clinical (=Generic) or Branded Pack
 			) AS s0
@@ -1470,7 +1435,7 @@ JOIN (
 		r.concept_code_2 AS concept_code,
 		rx.str AS concept_name
 	FROM concept_relationship_stage r
-	JOIN sources.rxnconso rx ON rx.rxcui = r.concept_code_2 --use rxnconso to get full names
+	JOIN sources_archive.rxnconso rx ON rx.rxcui = r.concept_code_2 --use rxnconso to get full names
 		AND rx.sab = 'RXNORM'
 		AND rx.tty IN (
 			'IN',
@@ -1492,13 +1457,13 @@ JOIN (
 	) cont ON cont.concept_code_1 = pc.pack_code
 	AND pc.drug LIKE '%' || cont.concept_name || '%';-- this is where the component name is fit into the parsed drug name from the Pack string
 
---18. Run FillDrugStrengthStage
+--17. Run FillDrugStrengthStage
 DO $_$
 BEGIN
 	PERFORM dev_rxnorm.FillDrugStrengthStage();
 END $_$;
 
---19. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
+--18. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
 DO $_$
 BEGIN
 	IF CURRENT_SCHEMA = 'dev_rxnorm' /*run only if we are inside dev_rxnorm*/ THEN
@@ -1510,20 +1475,16 @@ BEGIN
 	END IF;
 END $_$;
 
---20. We need to run generic_update before small RxE clean up
+--19. We need to run generic_update before small RxE clean up
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 
---21. Run RxE clean up
+--20. Run RxE clean up
 DO $_$
 BEGIN
 	PERFORM dev_rxnorm.RxECleanUP();
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
-DO $_$
-BEGIN
-	PERFORM devv5.GenericUpdate();
-END $_$;

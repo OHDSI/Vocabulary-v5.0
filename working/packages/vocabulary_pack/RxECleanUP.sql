@@ -1,4 +1,4 @@
-CREATE or replace FUNCTION rxecleanup() RETURNS void
+CREATE or replace FUNCTION VOCABULARY_PACK.rxecleanup() RETURNS void
     LANGUAGE plpgsql
 AS
 $$
@@ -31,11 +31,9 @@ BEGIN
 	TRUNCATE TABLE drug_strength_stage;
 
 	--3. Load full list of RxNorm Extension concepts and mark RxE-vs-RxNorm duplicates as 'X'
-	--   Uses semantic name normalization (devv5.compare_custom_english) instead of
-	--   plain UPPER() match to catch decimal-zero variants and punctuation differences.
-	--   Brand Name and Supplier classes are excluded: they legitimately differ between
-	--   RxNorm and RxE and should not be auto-deprecated here.
-	INSERT INTO concept_stage
+	--   Uses semantic name normalization (devv5.compare_custom_english) to catch decimal-zero variants and punctuation differences.
+	--   Brand Name and Supplier classes are excluded
+    INSERT INTO concept_stage
 	SELECT *
 	FROM concept
 	WHERE vocabulary_id = 'RxNorm Extension';
@@ -70,8 +68,8 @@ BEGIN
 	   AND cs_p.concept_class_id = cp.concept_class_id
 	 WHERE cs.concept_id = cs_p.cs_id;
 
-	--3b. Find and mark intra-RxE duplicates (RxE concepts that are duplicates of each
-	--    other, not of RxNorm concepts).  Survivor preference order:
+	--3b. Find and mark intra-RxE duplicates (RxE concepts that are duplicates of each other, not of RxNorm concepts).
+    -- Survivor preference order:
 	--      1. Standard concept ('S') over non-standard
 	--      2. Oldest valid_start_date (the original entry)
 	--      3. Lowest concept_id (tie-break)
@@ -171,9 +169,8 @@ BEGIN
 		AND r.invalid_reason IS NULL;
 
 
-	--4.2. Add 'Concept replaced by' for 'X' concepts EXCEPT where a manual
-	--    'Maps to' (RxNorm Extension -> RxNorm) already exists in
-	--    concept_relationship_manual.  Manual overrides take precedence.
+	--4.2. Add 'Concept replaced by' for 'X' concepts EXCEPT where a manual 'Maps to' (RxNorm Extension -> RxNorm)
+    -- already exists in concept_relationship_manual.  Manual overrides take precedence.
 	INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		concept_code_2,
@@ -207,9 +204,8 @@ BEGIN
               AND crm.invalid_reason IS NULL
         );
 
-	-- 4.3. For 'X' concepts that DO have a manual 'Maps to' in
-	--     concept_relationship_manual, propagate that manual mapping instead
-	--     of the auto-generated 'Concept replaced by'.
+	-- 4.3. For 'X' concepts that DO have a manual 'Maps to' in concept_relationship_manual,
+    -- propagate that manual mapping instead of the auto-generated 'Concept replaced by'.
     INSERT INTO concept_relationship_stage (
 		concept_code_1,
 		concept_code_2,
@@ -322,6 +318,16 @@ BEGIN
 			WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
 			);
 
+	--10. Fill concept_synonym_stage
+	INSERT INTO concept_synonym_stage
+	SELECT cs.concept_id,
+		cs.concept_synonym_name,
+		c.concept_code,
+		c.vocabulary_id,
+		cs.language_concept_id
+	FROM concept_synonym cs
+	JOIN concept c ON c.concept_id = cs.concept_id
+		AND c.vocabulary_id = 'RxNorm Extension';
 
 	END;
 $$;

@@ -1,4 +1,4 @@
---- What systemic forms of GCS we are now loosing
+--- What systemic forms of GCS we are now losing
 WITH rxnorm AS (SELECT c2.*
                 FROM devv5.concept_ancestor ca
                          JOIN devv5.concept c ON c.concept_id = ca.descendant_concept_id
@@ -165,3 +165,113 @@ FROM dev_atc.concept_relationship cr
 WHERE cr.relationship_id = 'ATC - RxNorm'
   AND cr.invalid_reason IS NULL
   AND ca.ancestor_concept_id IS NULL;
+
+-- ATC/RxNorm hierarchy edges that existed in the old vocabulary but are absent in the new one.
+-- Run compare_atc_rxnorm_hierarchy_added.sql for the inverse (new edges).
+WITH old_edges AS (
+    SELECT
+        ca.ancestor_concept_id,
+        ca.descendant_concept_id,
+        ca.min_levels_of_separation,
+        a.vocabulary_id AS ancestor_vocabulary_id,
+        d.vocabulary_id AS descendant_vocabulary_id
+    FROM prodv5.concept_ancestor ca
+    JOIN prodv5.concept a ON a.concept_id = ca.ancestor_concept_id
+    JOIN prodv5.concept d ON d.concept_id = ca.descendant_concept_id
+    WHERE ca.min_levels_of_separation IN (0, 1)
+      AND a.vocabulary_id IN ('ATC')
+      AND d.vocabulary_id IN ('RxNorm')
+),
+new_edges AS (
+    SELECT
+        ca.ancestor_concept_id,
+        ca.descendant_concept_id,
+        ca.min_levels_of_separation,
+        a.vocabulary_id AS ancestor_vocabulary_id,
+        d.vocabulary_id AS descendant_vocabulary_id
+    FROM concept_ancestor ca
+    JOIN concept a ON a.concept_id = ca.ancestor_concept_id
+    JOIN concept d ON d.concept_id = ca.descendant_concept_id
+    WHERE ca.min_levels_of_separation IN (0, 1)
+      AND a.vocabulary_id IN ('ATC')
+      AND d.vocabulary_id IN ('RxNorm')
+)
+SELECT
+    o.ancestor_concept_id,
+    a_old.concept_name AS ancestor_concept_name,
+    o.ancestor_vocabulary_id,
+    o.descendant_concept_id,
+    d_old.concept_name AS descendant_concept_name,
+    o.descendant_vocabulary_id,
+    o.min_levels_of_separation
+FROM old_edges o
+LEFT JOIN new_edges n
+  ON  n.ancestor_concept_id       = o.ancestor_concept_id
+  AND n.descendant_concept_id     = o.descendant_concept_id
+  AND n.min_levels_of_separation  = o.min_levels_of_separation
+JOIN prodv5.concept a_old ON a_old.concept_id = o.ancestor_concept_id
+JOIN prodv5.concept d_old ON d_old.concept_id = o.descendant_concept_id
+WHERE n.ancestor_concept_id IS NULL
+--add your concept of interest:
+--AND o.descendant_concept_id IN (40222663, 40222660)
+ORDER BY
+    o.ancestor_vocabulary_id,
+    o.descendant_vocabulary_id,
+    o.ancestor_concept_id,
+    o.descendant_concept_id,
+    o.min_levels_of_separation;
+
+-- ATC/RxNorm hierarchy edges that are new in the new vocabulary (absent in the old one).
+-- Run compare_Atc_Rxnorm_hierarchy.sql for the inverse (lost edges).
+WITH old_edges AS (
+    SELECT
+        ca.ancestor_concept_id,
+        ca.descendant_concept_id,
+        ca.min_levels_of_separation,
+        a.vocabulary_id AS ancestor_vocabulary_id,
+        d.vocabulary_id AS descendant_vocabulary_id
+    FROM prodv5.concept_ancestor ca
+    JOIN prodv5.concept a ON a.concept_id = ca.ancestor_concept_id
+    JOIN prodv5.concept d ON d.concept_id = ca.descendant_concept_id
+    WHERE ca.min_levels_of_separation IN (0, 1)
+      AND a.vocabulary_id IN ('ATC')
+      AND d.vocabulary_id IN ('RxNorm')
+),
+new_edges AS (
+    SELECT
+        ca.ancestor_concept_id,
+        ca.descendant_concept_id,
+        ca.min_levels_of_separation,
+        a.vocabulary_id AS ancestor_vocabulary_id,
+        d.vocabulary_id AS descendant_vocabulary_id
+    FROM concept_ancestor ca
+    JOIN concept a ON a.concept_id = ca.ancestor_concept_id
+    JOIN concept d ON d.concept_id = ca.descendant_concept_id
+    WHERE ca.min_levels_of_separation IN (0, 1)
+      AND a.vocabulary_id IN ('ATC')
+      AND d.vocabulary_id IN ('RxNorm')
+)
+SELECT
+    n.ancestor_concept_id,
+    a_new.concept_name AS ancestor_concept_name,
+    n.ancestor_vocabulary_id,
+    n.descendant_concept_id,
+    d_new.concept_name AS descendant_concept_name,
+    n.descendant_vocabulary_id,
+    n.min_levels_of_separation
+FROM new_edges n
+LEFT JOIN old_edges o
+  ON  o.ancestor_concept_id       = n.ancestor_concept_id
+  AND o.descendant_concept_id     = n.descendant_concept_id
+  AND o.min_levels_of_separation  = n.min_levels_of_separation
+JOIN dev_test6.concept a_new ON a_new.concept_id = n.ancestor_concept_id
+JOIN dev_test6.concept d_new ON d_new.concept_id = n.descendant_concept_id
+WHERE o.ancestor_concept_id IS NULL
+ORDER BY
+    n.ancestor_vocabulary_id,
+    n.descendant_vocabulary_id,
+    n.ancestor_concept_id,
+    n.descendant_concept_id,
+    n.min_levels_of_separation
+
+

@@ -743,6 +743,104 @@ ORDER BY LEAST (a.valid_start_date, b.valid_start_date) DESC,
          c.concept_code
 ;
 
+--02.13 Check for drug administration preocedures not mapped to the Drug domain
+-- Adjust filters as needed
+WITH drug_patterns AS (
+  -- Administration/dosage concepts with positive patterns (Procedures only)
+  SELECT c.concept_id, c.concept_name, c.vocabulary_id, c.concept_code, c.concept_class_id, c.invalid_reason, c.domain_id
+  FROM concept c
+  WHERE c.vocabulary_id IN (:your_vocab)
+    AND c.concept_class_id IN ('HCPCS', 'CPT4', 'ICD10PCS', '4-dig billing code', 'Procedure', 'Undefined')
+    AND c.domain_id IN ('Procedure', 'Observation')
+    AND (
+      LOWER(c.concept_name) LIKE 'administration%'
+      OR LOWER(c.concept_name) LIKE '%administered through%'
+      OR LOWER(c.concept_name) LIKE '%stimulation%'
+      OR LOWER(c.concept_name) LIKE 'introduction of %'
+      OR LOWER(c.concept_name) LIKE '%vaccine%'
+      OR LOWER(c.concept_name) LIKE '%injection%'
+      OR LOWER(c.concept_name) LIKE '%intravenous%'
+      OR LOWER(c.concept_name) LIKE '%intrauterine%'
+      OR LOWER(c.concept_name) LIKE '%patch%'
+      -- Dosage patterns with word boundaries (mg, mcg, units, ml, cc, grams)
+      OR c.concept_name ~ ' (mg|mcg|µg|units?|ml|cc|grams?)( |,|\)|$)'
+    )
+    -- Exclude false positives
+    AND NOT (
+      LOWER(c.concept_name) LIKE '%removal%'
+      OR LOWER(c.concept_name) LIKE '%specimen%'
+      OR LOWER(c.concept_name) LIKE '%imaging%'
+      OR LOWER(c.concept_name) LIKE '%biopsy%'
+      OR LOWER(c.concept_name) LIKE '%culture%'
+      OR LOWER(c.concept_name) LIKE '%test%'
+      OR LOWER(c.concept_name) LIKE '%measurement%'
+      OR LOWER(c.concept_name) LIKE '%check%'
+      OR LOWER(c.concept_name) LIKE '%assessment%'
+      OR LOWER(c.concept_name) LIKE '%education%'
+      OR LOWER(c.concept_name) LIKE '%management%'
+      OR LOWER(c.concept_name) LIKE '%counselling%'
+      OR LOWER(c.concept_name) LIKE '%referral%'
+      OR LOWER(c.concept_name) LIKE '%inhibitor%'
+      OR LOWER(c.concept_name) LIKE '%analogue%'
+      OR LOWER(c.concept_name) LIKE '%not done%'
+    )
+),
+
+ingredient_brands AS (
+  -- Valid ingredients and brands from RxNorm (minimum 8 chars to avoid fragments)
+  SELECT c.concept_id, c.concept_name, c.concept_class_id
+  FROM concept c
+  WHERE (
+    (c.standard_concept = 'S'
+     AND c.concept_class_id = 'Ingredient'
+     AND c.vocabulary_id LIKE 'RxNorm%'
+     AND LENGTH(c.concept_name) > 4)  -- Increased from 4 to 8 to avoid fragments
+
+  -- Exclude common false positives
+  AND LOWER(c.concept_name) NOT IN (
+    'lutein', 'amber', 'serine', 'neral', 'ethylene', 'fiber', 'water', 'copper'
+  )
+)),
+
+properly_mapped AS (
+  -- Concepts already mapped to Drug domain
+  SELECT DISTINCT c.concept_id
+  FROM concept c
+  JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
+    AND cr.relationship_id LIKE 'Maps to%' AND cr.invalid_reason IS NULL
+  JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.domain_id = 'Drug'
+  WHERE c.vocabulary_id IN (:your_vocab)
+    AND c.concept_class_id IN ('HCPCS', 'CPT4', 'ICD10PCS', '4-dig billing code', 'Procedure', 'Undefined')
+)
+
+SELECT DISTINCT
+  c.vocabulary_id,
+  c.concept_class_id,
+  c.concept_code,
+  c.concept_name,
+  COUNT(DISTINCT ib.concept_name) as matching_ingredients_count,
+  STRING_AGG(DISTINCT ib.concept_name, ', ') as matching_ingredients
+FROM drug_patterns c
+JOIN ingredient_brands ib
+  ON (
+    -- Case-insensitive substring matching
+    POSITION(LOWER(ib.concept_name) IN LOWER(c.concept_name)) > 0
+    -- Avoid partial drug name matches (e.g., "Aspirin" in "Aspirinated")
+    -- by checking that ingredient is preceded/followed by space, comma, or punctuation
+    AND (
+      LOWER(c.concept_name) LIKE '%' || LOWER(ib.concept_name) || ' %'
+      OR LOWER(c.concept_name) LIKE '%' || LOWER(ib.concept_name) || ',%'
+      OR LOWER(c.concept_name) LIKE '%' || LOWER(ib.concept_name) || ')'
+      OR LOWER(c.concept_name) LIKE '% ' || LOWER(ib.concept_name) || '%'
+      OR LOWER(c.concept_name) LIKE LOWER(ib.concept_name) || ' %'
+      OR LOWER(c.concept_name) LIKE LOWER(ib.concept_name) || ',%'
+      OR LOWER(c.concept_name) = LOWER(ib.concept_name)
+    )
+  )
+WHERE c.concept_id NOT IN (SELECT concept_id FROM properly_mapped)
+GROUP BY c.concept_name, c.vocabulary_id, c.concept_code, c.concept_class_id
+ORDER BY c.vocabulary_id, c.concept_code;
+
 --03. Concepts have a replacement link, but miss the "Maps to" link
 -- This check controls that all replacement links are repeated with the 'Maps to' links that are used by ETL.
 SELECT DISTINCT c.vocabulary_id,

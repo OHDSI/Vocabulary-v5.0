@@ -14,26 +14,24 @@ CREATE TABLE concept_metadata
     UNIQUE (concept_id)
 );
 
--- Reused codes insertion (HCPCS)
--- See: https://github.com/OHDSI/Vocabulary-v5.0/wiki/Known-Issues-in-Vocabularies
-INSERT INTO concept_metadata (concept_id, reuse_status)
+--Reused codes insertion
+INSERT INTO concept_metadata (concept_id,reuse_status)
 SELECT DISTINCT
     c.concept_id,
-    'RF' AS reuse_status
-FROM
-    dev_voc_metadata.reused_concepts rr
+    CASE WHEN rr.old_concept_name = (SELECT concept_name FROM devv5.concept c1 WHERE c1.concept_id = rr.concept_id)
+        THEN 'RF'
+        WHEN rr.new_concept_name = (SELECT concept_name FROM devv5.concept c1 WHERE c1.concept_id = rr.concept_id)
+        THEN 'RP' END AS reuse_status
+FROM dev_voc_metadata.reused_concepts rr
     JOIN concept c
         ON rr.concept_id = c.concept_id
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM dev_voc_metadata.concept_metadata cm
-    WHERE cm.concept_id = rr.concept_id
-)
-AND EXISTS (
-    SELECT 1
-    FROM dev_voc_metadata.concept c
-    WHERE c.concept_id = rr.concept_id
-);
+where not exists(SELECT 1
+                 from dev_voc_metadata.concept_metadata cm
+                 where (cm.concept_id)=rr.concept_id)
+and exists (SELECT 1
+                 from dev_voc_metadata.concept  с
+                 where (c.concept_id)=rr.concept_id)
+;
 
 -- Apparent Void from various OMOPed terminologies
 INSERT INTO concept_metadata (concept_id,concept_category)

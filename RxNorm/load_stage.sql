@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Christian Reich, Timur Vakhitov
+* Authors: Christian Reich, Timur Vakhitov, Anton Tatur, Masha Khitrun
 * Date: 2021
 **************************************************************************/
 
@@ -1484,7 +1484,7 @@ END $_$;
 --20. Run RxE clean up
 DO $_$
 BEGIN
-	PERFORM dev_rxnorm.RxECleanUP();
+	PERFORM vocabulary_pack.RxECleanUP();
 END $_$;
 
 --21. Run generic_update for RxNorm Extension

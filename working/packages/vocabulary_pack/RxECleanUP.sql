@@ -1,5 +1,7 @@
-CREATE or replace FUNCTION VOCABULARY_PACK.rxecleanup() RETURNS void
-    LANGUAGE plpgsql
+CREATE OR REPLACE FUNCTION vocabulary_pack.RxECleanUP (
+)
+RETURNS void
+	LANGUAGE plpgsql
 AS
 $$
 

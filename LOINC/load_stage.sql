@@ -1717,8 +1717,21 @@ WITH ax_1 AS (
 	            '44506-4', --Herpes simplex virus Ab [Presence] in Cerebral spinal fluid
 	            '16942-5', --Herpes simplex virus Ab [Presence] in Serum by Immunoblot
 	            '22339-6', --Herpes simplex virus Ab [Presence] in Serum
-		        '55837-9' --Chloride [Moles/volume] in 24 hour Stool
-            )
+		        '55837-9', --Chloride [Moles/volume] in 24 hour Stool
+		        '19214-6', --Oxygen [Partial pressure] saturation adjusted to 0.5 in Arterial blood
+		        '19216-1', --Oxygen [Partial pressure] saturation adjusted to 0.5 in Venous blood
+		        '19255-9', --Oxygen [Partial pressure] adjusted to patient's actual temperature in Arterial blood
+		        '19258-3', --Oxygen [Partial pressure] adjusted to patient's actual temperature in Venous blood
+		        '19991-9', --Alveolar-arterial oxygen Partial pressure difference
+		        '53809-0', --Oxygen.alveolar - arterial [Partial pressure difference] adjusted to patient's actual temperature Respiratory system
+		        '60868-7', --Oxygen/Gas total Gas delivery system --during inspiration
+		        '2703-7', --Oxygen [Partial pressure] in Arterial blood
+		        '2705-2', --Oxygen [Partial pressure] in Venous blood
+		        '28649-2', --Oxygen [Partial pressure] in Venous cord blood
+		        '49697-6', --Oxygen [Partial pressure] adjusted to patient's actual temperature in Venous cord blood
+                '61007-1' --Oxygen arterial - venous [Volume Fraction Difference] in Blood arterial + Blood venous by Estimated
+		)
+		  AND z1.lc_name !~* 'Oxygen content|VFr/PPres|DistWidth'
 			AND z1.lc_code NOT IN (
 				SELECT ax_1_int.lc_code
 				FROM ax_1 ax_1_int
@@ -2355,7 +2368,10 @@ WITH resulting_table AS (
 							'57321000237104', --Fractional TRP (tubular reabsorption of phosphate)
 							'444264005', --Quantitative measurement of gastrin in fasting serum or plasma specimen
 						    '993431000000100', --Haemoglobin electrophoresis
-						    '392372009' --Norway spruce specific IgE antibody measurement
+						    '392372009', --Norway spruce specific IgE antibody measurement
+						    '799981000000104', --Free cortisol output measurement
+						    '2775421000000101', --Jo-1 antibody in serum semi-quantitative result
+						    '2775481000000100' --Pl-7 antibody in serum semi-quantitative result
 							)
 						AND snomed_name !~* 'C3c|C3a|C3d|C3b|C4d|C4a|C4b|C5a'
 					  AND t.loinc_code NOT IN
@@ -2707,7 +2723,8 @@ JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 	AND cs1.concept_code NOT IN ('26760-9', '70144-1', '70145-8', '20413-1', '42860-7', '70143-3',
 	                            '26760-9', '70144-1', '70145-8', '16243-8', '16542-3', '16543-1',
                                 '26856-5', '27024-9', '33282-5', '33561-2', '48942-7', '50338-3',
-                                '59160-2', '8170-3', '8176-0')
+                                '59160-2', '8170-3', '8176-0', '14158-0', '20622-7', '2142-8', '32310-5',
+	                            '83089-3', '2144-4')
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
@@ -3321,7 +3338,24 @@ SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
 	vocabulary_pack.CutConceptSynonymName(lpga.lvalue) AS synonym_name, -- long description of LOINC Group Categories
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
-FROM sources.loinc_parentgroupattributes lpga;-- table with descriptions of LOINC Group Categories
+FROM sources.loinc_parentgroupattributes lpga
+WHERE lpga.parentgroupid NOT IN ('LG51972-4',
+'LG51975-7',
+'LG51985-6',
+'LG51987-2',
+'LG51989-8',
+'LG51990-6',
+'LG51991-4',
+'LG51996-3',
+'LG51997-1',
+'LG51998-9',
+'LG51999-7',
+'LG52000-3',
+'LG52001-1',
+'LG52002-9',
+'LG52003-7',
+'LG52004-5',
+'LG52005-2');-- table with descriptions of LOINC Group Categories
 
 --33. Add Chinese language synonyms (AVOF-2231) from UMLS
 INSERT INTO concept_synonym_stage (

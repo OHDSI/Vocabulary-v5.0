@@ -1423,7 +1423,7 @@ FROM (
 			-- This takes a Pack name, replaces the sequence ') / ' with a semicolon for splitting, and removes the word Pack and everything thereafter (the brand name usually)
 			SELECT rxcui AS pack_code,
 				REGEXP_REPLACE(REPLACE(REPLACE(str, ') / ', ';'), '{', ''), '\) } Pack( \[.+\])?', '','g') AS pack_name
-			FROM sources_archive.rxnconso
+			FROM sources.rxnconso
 			WHERE sab = 'RXNORM'
 				AND tty LIKE '%PCK' -- Clinical (=Generic) or Branded Pack
 			) AS s0
@@ -1435,7 +1435,7 @@ JOIN (
 		r.concept_code_2 AS concept_code,
 		rx.str AS concept_name
 	FROM concept_relationship_stage r
-	JOIN sources_archive.rxnconso rx ON rx.rxcui = r.concept_code_2 --use rxnconso to get full names
+	JOIN sources.rxnconso rx ON rx.rxcui = r.concept_code_2 --use rxnconso to get full names
 		AND rx.sab = 'RXNORM'
 		AND rx.tty IN (
 			'IN',

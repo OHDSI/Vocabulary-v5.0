@@ -45,7 +45,7 @@ FROM (
 				AND crs_int.relationship_id = 'Has brand name'
 				AND crs_int.invalid_reason IS NULL
 			)
-		--Check if concept has anoter active attribute of same type in basic
+		--Check if concept has another active attribute of same type in basic
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship cr_int
@@ -90,7 +90,7 @@ FROM (
 				AND crs_int.relationship_id = 'RxNorm has dose form'
 				AND crs_int.invalid_reason IS NULL
 			)
-		--Check if concept has anoter active attribute of same type in basic
+		--Check if concept has another active attribute of same type in basic
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship cr_int

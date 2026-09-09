@@ -38,17 +38,6 @@ ALTER TABLE dev_snomed.snomed_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source
 --18.3.3 Truncate the 'snomed_mapped' table. Save the spreadsheet as the 'snomed_mapped table' and upload it into the working schema.
 TRUNCATE TABLE dev_snomed.snomed_mapped;
 
---Format after uploading
-UPDATE dev_snomed.snomed_mapped SET mapping_tool = NULL WHERE mapping_tool = '';
-UPDATE dev_snomed.snomed_mapped SET mapping_source = NULL WHERE mapping_source = '';
-UPDATE dev_snomed.snomed_mapped SET confidence = NULL WHERE confidence = '';
-UPDATE dev_snomed.snomed_mapped SET relationship_id_predicate = NULL WHERE relationship_id_predicate = '';
-UPDATE dev_snomed.snomed_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
-UPDATE dev_snomed.snomed_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
-UPDATE dev_snomed.snomed_mapped SET mapper_id = NULL WHERE mapper_id = '';
-UPDATE dev_snomed.snomed_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
-
-
 --18.3.4. Perform any mapping checks you have set.
 
 --18.3.6 Change concept_relationship_manual table according to snomed_mapped table.
@@ -96,16 +85,16 @@ SET valid_start_date = cr.valid_start_date,
     valid_end_date = current_date
 FROM snomed_mapped m
 JOIN concept c
-ON c.concept_code = m.source_code AND m.source_vocabulary_id = c.vocabulary_id
+    ON c.concept_code = m.source_code AND m.source_vocabulary_id = c.vocabulary_id
 JOIN concept_relationship cr
-ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
+    ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = m.relationship_id
 JOIN concept c1
-ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.target_concept_code AND c1.vocabulary_id = m.target_vocabulary_id
+    ON c1.concept_id = cr.concept_id_2 AND c1.concept_code = m.target_concept_code AND c1.vocabulary_id = m.target_vocabulary_id
 WHERE m.cr_invalid_reason IS NOT NULL
-AND crm.concept_code_1 = m.source_code AND crm.vocabulary_id_1 = m.source_vocabulary_id
-AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.target_vocabulary_id
-AND crm.relationship_id = m.relationship_id
-AND crm.invalid_reason IS NOT NULL
+    AND crm.concept_code_1 = m.source_code AND crm.vocabulary_id_1 = m.source_vocabulary_id
+    AND crm.concept_code_2 = m.target_concept_code AND crm.vocabulary_id_2 = m.target_vocabulary_id
+    AND crm.relationship_id = m.relationship_id
+    AND crm.invalid_reason IS NOT NULL
 ;
 
 --18.3.7 Create concept_mapped table and populate it with concepts that require manual changes
@@ -125,12 +114,6 @@ ALTER TABLE dev_snomed.concept_mapped ADD CONSTRAINT idx_pk_concept UNIQUE (conc
 
 -- 18.3.8 Truncate concept_mapped table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema:
 TRUNCATE TABLE concept_mapped;
-
---Format after uploading:
-UPDATE concept_mapped SET concept_name = NULL WHERE concept_name = '';
-UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
-UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
-UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
 
 --18.3.9 Change concept_manual table according to concept_mapped table.
 INSERT INTO concept_manual AS cm

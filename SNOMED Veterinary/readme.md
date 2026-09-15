@@ -100,7 +100,7 @@ and rename each file as follows.
 
 | Source file | Renamed to |
 | --- | --- |
-| `sct2_Relationship_Full_INT_YYYYMMDD.txt` | `sct2_Relationship_Full_INT.txt` |
+| `sct2_Relationship_Snapshot_INT_YYYYMMDD.txt` | `sct2_Relationship_Full_INT.txt` |
 
 #### From `Full/Refset/Language`
 

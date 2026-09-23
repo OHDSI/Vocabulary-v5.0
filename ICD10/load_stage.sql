@@ -39,30 +39,19 @@ TRUNCATE TABLE drug_strength_stage;
 --modifier classes
 DROP TABLE IF EXISTS modifier_classes;
 CREATE UNLOGGED TABLE modifier_classes AS
-SELECT s1.modifierclass_code,
-	s1.modifierclass_modifier,
-	s1.superclass_code,
-	s1.rubric_id,
-	s1.rubric_kind,
-	l.rubric_label
-FROM (
-	SELECT *
-	FROM (
-		SELECT (xpath('/ModifierClass/@code', i.xmlfield))[1]::VARCHAR modifierclass_code,
-			(xpath('/ModifierClass/@modifier', i.xmlfield))[1]::VARCHAR modifierclass_modifier,
-			(xpath('/ModifierClass/SuperClass/@code', i.xmlfield))[1]::VARCHAR superclass_code,
-			UNNEST(xpath('/ModifierClass/Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
-			UNNEST(xpath('/ModifierClass/Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-			UNNEST(xpath('/ModifierClass/Rubric', i.xmlfield)) rubric_label
-		FROM (
-			SELECT UNNEST(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
-			FROM sources.icdclaml i
-			) AS i
-		) AS s0
-	) AS s1
-LEFT JOIN LATERAL(SELECT STRING_AGG(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-		SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-		) AS s0) l ON TRUE;
+WITH xml_parsed AS (
+    SELECT UNNEST(xpath('/ClaML/ModifierClass', xmlfield)) AS xmlfield
+    FROM sources.icdclaml
+)
+SELECT
+    (xpath('/ModifierClass/@code', xmlfield))[1]::VARCHAR AS modifierclass_code,
+    (xpath('/ModifierClass/@modifier', xmlfield))[1]::VARCHAR AS modifierclass_modifier,
+    (xpath('/ModifierClass/SuperClass/@code', xmlfield))[1]::VARCHAR AS superclass_code,
+    UNNEST(xpath('/ModifierClass/Rubric/@id', xmlfield))::VARCHAR AS rubric_id,
+    UNNEST(xpath('/ModifierClass/Rubric/@kind', xmlfield))::VARCHAR AS rubric_kind,
+    STRING_AGG(LTRIM(REGEXP_REPLACE(UNNEST(xpath('//text()', UNNEST(xpath('/ModifierClass/Rubric', xmlfield)))), '\t','', 'g')), '') AS rubric_label
+FROM xml_parsed
+GROUP BY xmlfield;
 
 --classes
 DROP TABLE IF EXISTS classes;

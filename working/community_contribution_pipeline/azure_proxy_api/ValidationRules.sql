@@ -328,23 +328,6 @@ INNER JOIN concept c ON c.concept_code = t.concept_code::text
 WHERE t.concept_code IS NOT NULL
   AND TRIM(t.concept_code::text) != '';
 
--- TEMPLATE: T1
--- RULE: CONCEPT_CODE_DUPLICATE_IN_SUBMISSION
--- LEVEL: ERROR
--- FIELD: concept_code
--- MESSAGE: Duplicate concept_code within submission
-SELECT
-  t1.source_row_number,
-  'Duplicate concept_code in submission: ' || t1.concept_code::text AS validation_message,
-  'concept_code' AS field_name
-FROM {TEMP_TABLE} t1
-INNER JOIN {TEMP_TABLE} t2
-  ON LOWER(t1.concept_code::text) = LOWER(t2.concept_code::text)
-  AND t1.vocabulary_id = t2.vocabulary_id
-  AND t1.source_row_number > t2.source_row_number
-WHERE t1.concept_code IS NOT NULL
-  AND TRIM(t1.concept_code::text) != '';
-
 -- ============================================================================
 -- T2 SPECIFIC: Adding synonym(s)
 -- ============================================================================
@@ -651,24 +634,6 @@ INNER JOIN concept c ON c.concept_code = t.concept_code_1::text
   AND c.vocabulary_id = t.vocabulary_id_1
 WHERE t.concept_code_1 IS NOT NULL
   AND TRIM(t.concept_code_1::text) != '';
-
--- TEMPLATE: T4
--- RULE: CONCEPT_CODE_DUPLICATE_IN_SUBMISSION
--- LEVEL: ERROR
--- FIELD: concept_code_1
--- MESSAGE: Duplicate concept_code_1 within submission
--- OPTIONAL: true
-SELECT
-  t1.source_row_number,
-  'Duplicate concept_code_1 in submission: ' || t1.concept_code_1::text AS validation_message,
-  'concept_code_1' AS field_name
-FROM {TEMP_TABLE} t1
-INNER JOIN {TEMP_TABLE} t2
-  ON t1.concept_code_1::text = t2.concept_code_1::text
-  AND t1.vocabulary_id_1 = t2.vocabulary_id_1
-  AND t1.source_row_number > t2.source_row_number
-WHERE t1.concept_code_1 IS NOT NULL
-  AND TRIM(t1.concept_code_1::text) != '';
 
 -- ============================================================================
 -- T5 SPECIFIC: Modifying concept(s) attributes

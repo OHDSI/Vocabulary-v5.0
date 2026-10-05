@@ -208,6 +208,124 @@ WHERE c_code.concept_id IS NULL
   AND c_id.concept_id IS NULL;
 
 -- ============================================================================
+-- TRIMMED VALUE VALIDATION (whitespace check: TRIM(value) = value)
+-- ============================================================================
+
+-- TEMPLATE: T1, T4, T5
+-- RULE: TRIMMED_FIELDS_CONCEPT
+-- LEVEL: ERROR
+-- FIELD: ALL
+-- MESSAGE: Field contains leading or trailing whitespace
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field is not trimmed (contains leading/trailing whitespace): ' || field_name AS validation_message,
+  field_name
+FROM (
+  SELECT source_row_number, 'concept_name' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_name IS NOT NULL AND TRIM(concept_name::text) != concept_name::text
+  UNION ALL
+  SELECT source_row_number, 'concept_code' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_code IS NOT NULL AND TRIM(concept_code::text) != concept_code::text
+  UNION ALL
+  SELECT source_row_number, 'vocabulary_id' AS field_name FROM {TEMP_TABLE}
+  WHERE vocabulary_id IS NOT NULL AND TRIM(vocabulary_id) != vocabulary_id
+  UNION ALL
+  SELECT source_row_number, 'domain_id' AS field_name FROM {TEMP_TABLE}
+  WHERE domain_id IS NOT NULL AND TRIM(domain_id) != domain_id
+  UNION ALL
+  SELECT source_row_number, 'concept_class_id' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_class_id IS NOT NULL AND TRIM(concept_class_id) != concept_class_id
+  UNION ALL
+  SELECT source_row_number, 'synonym_name' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_class_id IS NOT NULL AND TRIM(concept_class_id) != concept_class_id
+  UNION ALL
+  SELECT source_row_number, 'relationship_id' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_class_id IS NOT NULL AND TRIM(relationship_id) != relationship_id
+) untrimmed_fields;
+
+-- TEMPLATE: T2
+-- RULE: TRIMMED_FIELDS_SYNONYM
+-- LEVEL: ERROR
+-- FIELD: ALL
+-- MESSAGE: Field contains leading or trailing whitespace
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field is not trimmed (contains leading/trailing whitespace): ' || field_name AS validation_message,
+  field_name
+FROM (
+  SELECT source_row_number, 'synonym_name' AS field_name FROM {TEMP_TABLE}
+  WHERE synonym_name IS NOT NULL AND TRIM(synonym_name::text) != synonym_name::text
+  UNION ALL
+  SELECT source_row_number, 'synonym_concept_code' AS field_name FROM {TEMP_TABLE}
+  WHERE synonym_concept_code IS NOT NULL AND TRIM(synonym_concept_code::text) != synonym_concept_code::text
+  UNION ALL
+  SELECT source_row_number, 'synonym_vocabulary_id' AS field_name FROM {TEMP_TABLE}
+  WHERE synonym_vocabulary_id IS NOT NULL AND TRIM(synonym_vocabulary_id) != synonym_vocabulary_id
+) untrimmed_fields;
+
+-- TEMPLATE: T3,T6
+-- RULE: TRIMMED_FIELDS_MAPPING
+-- LEVEL: ERROR
+-- FIELD: ALL
+-- MESSAGE: Field contains leading or trailing whitespace
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field is not trimmed (contains leading/trailing whitespace): ' || field_name AS validation_message,
+  field_name
+FROM (
+  SELECT source_row_number, 'concept_code_1' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_code_1 IS NOT NULL AND TRIM(concept_code_1::text) != concept_code_1::text
+  UNION ALL
+  SELECT source_row_number, 'vocabulary_id_1' AS field_name FROM {TEMP_TABLE}
+  WHERE vocabulary_id_1 IS NOT NULL AND TRIM(vocabulary_id_1) != vocabulary_id_1
+  UNION ALL
+  SELECT source_row_number, 'concept_code_2' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_code_2 IS NOT NULL AND TRIM(concept_code_2::text) != concept_code_2::text
+  UNION ALL
+  SELECT source_row_number, 'vocabulary_id_2' AS field_name FROM {TEMP_TABLE}
+  WHERE vocabulary_id_2 IS NOT NULL AND TRIM(vocabulary_id_2) != vocabulary_id_2
+  UNION ALL
+  SELECT source_row_number, 'relationship_id' AS field_name FROM {TEMP_TABLE}
+  WHERE relationship_id IS NOT NULL AND TRIM(relationship_id) != relationship_id
+) untrimmed_fields;
+
+-- TEMPLATE: T4
+-- RULE: TRIMMED_FIELDS_VOCABULARY
+-- LEVEL: ERROR
+-- FIELD: ALL
+-- MESSAGE: Field contains leading or trailing whitespace
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field is not trimmed (contains leading/trailing whitespace): ' || field_name AS validation_message,
+  field_name
+FROM (
+  SELECT source_row_number, 'concept_code_1' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_code_1 IS NOT NULL AND TRIM(concept_code_1::text) != concept_code_1::text
+  UNION ALL
+  SELECT source_row_number, 'concept_name_1' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_name_1 IS NOT NULL AND TRIM(concept_name_1::text) != concept_name_1::text
+  UNION ALL
+  SELECT source_row_number, 'vocabulary_id_1' AS field_name FROM {TEMP_TABLE}
+  WHERE vocabulary_id_1 IS NOT NULL AND TRIM(vocabulary_id_1) != vocabulary_id_1
+  UNION ALL
+  SELECT source_row_number, 'domain_id_1' AS field_name FROM {TEMP_TABLE}
+  WHERE vocabulary_id_1 IS NOT NULL AND TRIM(domain_id_1) != domain_id_1
+  UNION ALL
+  SELECT source_row_number, 'concept_class_id_1' AS field_name FROM {TEMP_TABLE}
+  WHERE vocabulary_id_1 IS NOT NULL AND TRIM(concept_class_id_1) != concept_class_id_1
+  UNION ALL
+  SELECT source_row_number, 'synonym_name' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_class_id IS NOT NULL AND TRIM(concept_class_id) != concept_class_id
+  UNION ALL
+  SELECT source_row_number, 'relationship_id' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_class_id IS NOT NULL AND TRIM(relationship_id) != relationship_id
+) untrimmed_fields;
+
+-- ============================================================================
 -- STRING LENGTH VALIDATION (shared across templates)
 -- ============================================================================
 

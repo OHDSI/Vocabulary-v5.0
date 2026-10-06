@@ -33,46 +33,49 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 
 10. Run [load_stage.sql]
 
-11. Perform stage tables checks (should retrieve NULL)
-```sql
- SELECT * FROM qa_tests.check_stage_tables ();
-```
-
-12. Run generic_update:
+11. Run generic_update:
 ```sql
 SELECT devv5.GenericUpdate();
 ```
 
-13. Perform QA checks (should retrieve NULL)
+12. Perform QA checks (should retrieve NULL)
 ```sql
 SELECT * FROM QA_TESTS.GET_CHECKS();
 ```
 
-14. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
+13. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
 
-15. Get_summary - changes in tables between dev-schema (current) and devv5/prodv5/any other schema
+14. Get_summary - changes in tables between dev-schema (current) and devv5/prodv5/any other schema
 
---15.1. summary (table to check, schema to compare)
-select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
+--14.1. summary (table to check, schema to compare)
+```sql
+select * from qa_tests.get_summary ('concept', 'devv5');
+```
+--14.2. summary (table to check, schema to compare)
+```sql
+select * from qa_tests.get_summary ('concept_relationship','devv5');
+```
 
---15.2. summary (table to check, schema to compare)
-select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
-
-
-16. Statistics QA checks
+15. Statistics QA checks
 --changes in tables between dev-schema (current) and devv5/prodv5/any other schema
 
---16.1. Domain changes
+--15.1. Domain changes
+```sql
 select * from qa_tests.get_domain_changes(pCompareWith=>'devv5');
-
---16.2. Newly added concepts grouped by vocabulary_id and domain
+```
+--15.2. Newly added concepts grouped by vocabulary_id and domain
+```sql
 select * from qa_tests.get_newly_concepts(pCompareWith=>'devv5');
-
---16.3. Standard concept changes
+```
+--15.3. Standard concept changes
+```sql
 select * from qa_tests.get_standard_concept_changes(pCompareWith=>'devv5');
-
---16.4. Newly added concepts and their standard concept status
+```
+--15.4. Newly added concepts and their standard concept status
+```sql
 select * from qa_tests.get_newly_concepts_standard_concept_status(pCompareWith=>'devv5');
-
---16.5. Changes of concept mapping status grouped by target domain
+```
+--15.5. Changes of concept mapping status grouped by target domain
+```sql
 select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');
+```

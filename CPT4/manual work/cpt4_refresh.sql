@@ -36,17 +36,6 @@ ALTER TABLE dev_cpt4.cpt4_mapped ADD CONSTRAINT idx_pk_mapped UNIQUE (source_cod
 --5.2.3 Truncate the 'cpt4_mapped' table. Save the spreadsheet as the 'cpt4_mapped table' and upload it into the working schema.
 TRUNCATE TABLE dev_cpt4.cpt4_mapped;
 
---Format after uploading
---Format after uploading
-UPDATE dev_cpt4.cpt4_mapped SET mapping_tool = NULL WHERE mapping_tool = '';
-UPDATE dev_cpt4.cpt4_mapped SET mapping_source = NULL WHERE mapping_source = '';
-UPDATE dev_cpt4.cpt4_mapped SET confidence = NULL WHERE confidence = '';
-UPDATE dev_cpt4.cpt4_mapped SET relationship_id_predicate = NULL WHERE relationship_id_predicate = '';
-UPDATE dev_cpt4.cpt4_mapped SET cr_invalid_reason = NULL WHERE cr_invalid_reason = '';
-UPDATE dev_cpt4.cpt4_mapped SET source_invalid_reason = NULL WHERE source_invalid_reason = '';
-UPDATE dev_cpt4.cpt4_mapped SET mapper_id = NULL WHERE mapper_id = '';
-UPDATE dev_cpt4.cpt4_mapped SET reviewer_id = NULL WHERE reviewer_id = '';
-
 --5.2.6 Change concept_relationship_manual table according to cpt4_mapped table.
 --Insert new relationships
 --Update existing relationships
@@ -122,12 +111,6 @@ ALTER TABLE dev_cpt4.concept_mapped ADD CONSTRAINT idx_pk_concept UNIQUE (concep
 
 -- 5.2.8 Truncate cm_update table. Save the spreadsheet as 'concept_mapped table' and upload it to the schema:
 TRUNCATE TABLE concept_mapped;
-
---Format after uploading:
-UPDATE concept_mapped SET concept_name = NULL WHERE concept_name = '';
-UPDATE concept_mapped SET domain_id = NULL WHERE domain_id = '';
-UPDATE concept_mapped SET concept_class_id = NULL WHERE concept_class_id = '';
-UPDATE concept_mapped SET standard_concept = NULL WHERE standard_concept = '';
 
 -- 5.2.9 Change concept_manual table according to concept_mapped table.
 INSERT INTO concept_manual AS cm

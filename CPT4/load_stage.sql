@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich, Masha Khitrun
-* Date: 2025
+* Date: 2026
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -36,6 +36,15 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Add CPT4 concepts from the source into the concept_stage using the MRCONSO table provided by UMLS  https://www.ncbi.nlm.nih.gov/books/NBK9685/table/ch03.T.concept_names_and_sources_file_mr/
+WITH tda AS ( -- Therapeutic Drug Assays have their optimal names under another tty
+    SELECT DISTINCT code
+    FROM sources.mrconso c
+         JOIN sources.mrhier m on c.cui = m.cui
+WHERE c.sab = 'CPT'
+  AND m.sab = 'CPT'
+  AND suppress = 'N'
+  AND ptr LIKE '%A23574843%'
+)
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -46,7 +55,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name, -- field with a term name from mrconso
+SELECT DISTINCT ON (scui) vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name, -- field with a term name from mrconso
 	'CPT4' AS vocabulary_id,
 	'CPT4' AS concept_class_id,
 	'S' AS standard_concept,
@@ -65,10 +74,12 @@ WHERE sab = 'CPT'
 		'O', -- All obsolete content, whether they are obsolesced by the source or by NLM
 		'Y' -- Non-obsolete content deemed suppressible during inversion
 		)
-	AND tty IN (
-		'PT', -- Designated preferred name
-		'GLP' -- Global period
-		);
+	AND (CASE WHEN scui IN (SELECT code FROM tda)
+	                THEN tty = 'ETCLIN'
+	            ELSE tty IN ('PT', -- Designated preferred name
+		                    'GLP')-- Global period
+	    END)
+;
 
 --4. Add Place of Sevice (POS) CPT terms which do not appear in patient data and used for hierarchical search
 INSERT INTO concept_stage (
@@ -414,7 +425,10 @@ SET domain_id = t1.domain_id
 FROM (
 	SELECT DISTINCT cs.concept_code,
 		CASE -- word patterns defined according to the frequency of the occurrence in the existing domains
-			WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation|endoscopy|insertion'
+			WHEN (length(cs.concept_code) > 2
+					    AND cs.concept_code LIKE '%U')
+		        THEN 'Measurement'
+		    WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation|endoscopy|insertion'
 				AND m2.tui NOT IN (
 					'T033',
 					'T034'
@@ -660,7 +674,13 @@ WHERE EXISTS (
 			AND c.invalid_reason IS NULL
 		);
 
---16. Add everything from the Manual tables
+--16. Add replacement relationships between Category III and Category I codes
+DO $_$
+    BEGIN
+        PERFORM dev_cpt4.cpt_replacements();
+END $_$;
+
+--17. Add everything from the Manual tables
 --Working with manual concepts
 DO $_$
 BEGIN
@@ -705,7 +725,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---17. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
+--18. All concepts mapped to RxNorm/RxNorm Ext./CVX should be assigned with Drug domain
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
 FROM concept_relationship_stage crs
@@ -719,5 +739,11 @@ WHERE crs.vocabulary_id_2 IN (
 	AND cs.concept_class_id <> 'CPT4 Hierarchy'
 	AND cs.concept_code = crs.concept_code_1
 	AND cs.vocabulary_id = crs.vocabulary_id_1;
+
+--19. All non-standard "zombie" concepts should be deprecated:
+UPDATE concept_stage c
+SET invalid_reason = 'D'
+WHERE c.valid_end_date < current_date
+AND c.standard_concept is null;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

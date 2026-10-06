@@ -208,7 +208,7 @@ WHERE c_code.concept_id IS NULL
   AND c_id.concept_id IS NULL;
 
 -- ============================================================================
--- TRIMMED VALUE VALIDATION (whitespace check: TRIM(value) = value)
+-- TRIMMED VALUE VALIDATION (shared across templates)
 -- ============================================================================
 
 -- TEMPLATE: T1, T4, T5
@@ -426,6 +426,59 @@ SELECT
 FROM {TEMP_TABLE}
 WHERE synonym_name IS NOT NULL
   AND LENGTH(synonym_name::text) > 1000;
+
+-- ============================================================================
+-- NON-UTF-8 / ENCODING CORRUPTION VALIDATION (shared across templates)
+-- ============================================================================
+
+-- TEMPLATE: T1,T5
+-- RULE: NON_UTF8_CHARACTERS_CONCEPT
+-- LEVEL: ERROR
+-- FIELD: ALL
+-- MESSAGE: Field contains invalid/non-UTF-8 characters
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field contains invalid characters (encoding corruption, U+FFFD): ' || field_name AS validation_message,
+  field_name
+FROM (
+  SELECT source_row_number, 'concept_name' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_name IS NOT NULL AND strpos(concept_name::text, chr(65533)) > 0
+  UNION ALL
+  SELECT source_row_number, 'synonym_name' AS field_name FROM {TEMP_TABLE}
+  WHERE synonym_name IS NOT NULL AND strpos(synonym_name::text, chr(65533)) > 0
+) bad_encoding;
+
+-- TEMPLATE: T2
+-- RULE: NON_UTF8_CHARACTERS_SYNONYM
+-- LEVEL: ERROR
+-- FIELD: synonym_name
+-- MESSAGE: Field contains invalid/non-UTF-8 characters
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field contains invalid characters (encoding corruption, U+FFFD): synonym_name' AS validation_message,
+  'synonym_name' AS field_name
+FROM {TEMP_TABLE}
+WHERE synonym_name IS NOT NULL AND strpos(synonym_name::text, chr(65533)) > 0;
+
+-- TEMPLATE: T4
+-- RULE: NON_UTF8_CHARACTERS_VOCABULARY
+-- LEVEL: ERROR
+-- FIELD: ALL
+-- MESSAGE: Field contains invalid/non-UTF-8 characters
+-- OPTIONAL: true
+SELECT
+  source_row_number,
+  'Field contains invalid characters (encoding corruption, U+FFFD): ' || field_name AS validation_message,
+  field_name
+FROM (
+  SELECT source_row_number, 'concept_name_1' AS field_name FROM {TEMP_TABLE}
+  WHERE concept_name_1 IS NOT NULL AND strpos(concept_name_1::text, chr(65533)) > 0
+  UNION ALL
+  SELECT source_row_number, 'synonym_name' AS field_name FROM {TEMP_TABLE}
+  WHERE synonym_name IS NOT NULL AND strpos(synonym_name::text, chr(65533)) > 0
+) bad_encoding;
 
 -- ============================================================================
 -- T1 SPECIFIC: Adding new non-standard concept(s)

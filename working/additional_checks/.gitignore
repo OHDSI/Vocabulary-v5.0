@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# Generated outputs
+output/
+results/
+*.xlsx
+*.~lock.*
+errorReportSql.txt
+mapping_output.csv

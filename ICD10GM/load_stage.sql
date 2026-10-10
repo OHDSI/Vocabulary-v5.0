@@ -46,7 +46,8 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT c.concept_name,
+SELECT
+    coalesce(c.concept_name, g.concept_name) as concept_name,
 	c.domain_id,
 	'ICD10GM' AS vocabulary_id,
 	c.concept_class_id,
@@ -62,17 +63,54 @@ LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10'
 	AND c.concept_class_id NOT LIKE '%Chapter%';
 
+
+--3.1 Update CM table to add new concepts and their translations (absent in CM after 01-01-2025 update)
+INSERT INTO concept_manual
+SELECT *
+from dev_icd10gm.icd10gm_newcodes
+ON CONFLICT DO NOTHING ;
+
 --4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+    PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
+
+-- --4.1 NEW Repair attributes for source rows that already existed in concept_stage
+-- -- but could not inherit attributes from ICD10 because there was no exact ICD10 match.
+-- UPDATE concept_stage cs
+-- SET
+--     concept_name = COALESCE(cm.concept_name, cs.concept_name),
+--     domain_id = COALESCE(cm.domain_id, cs.domain_id),
+--     concept_class_id = COALESCE(cm.concept_class_id, cs.concept_class_id),
+--     standard_concept = COALESCE(cm.standard_concept, cs.standard_concept),
+--     valid_start_date = COALESCE(cm.valid_start_date, cs.valid_start_date),
+--     valid_end_date = COALESCE(cm.valid_end_date, cs.valid_end_date),
+--     invalid_reason = COALESCE(cm.invalid_reason, cs.invalid_reason)
+-- FROM concept_manual cm
+-- WHERE cm.vocabulary_id = cs.vocabulary_id
+--   AND cm.concept_code = cs.concept_code
+--   AND cs.vocabulary_id = 'ICD10GM'
+--   AND (
+--       cs.concept_class_id IS NULL
+--       OR cs.domain_id IS NULL
+--       OR cs.standard_concept IS DISTINCT FROM cm.standard_concept
+--   );
+
+-- Concepts are not in concept_manual, further investigation needed
+-- Hardcode for now
+UPDATE concept_stage
+SET concept_class_id = 'ICD10 code'
+WHERE vocabulary_id = 'ICD10GM'
+  AND concept_class_id IS NULL
+;
 
 --5. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
+
 
 --6. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -87,7 +125,7 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT i.concept_code AS concept_code_1,
+SELECT DISTINCT i.concept_code AS concept_code_1,
 	c.concept_code AS concept_code_2,
 	'ICD10GM' AS vocabulary_id_1,
 	c.vocabulary_id AS vocabulary_id_2,
@@ -178,7 +216,7 @@ END $_$;
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
-	SELECT DISTINCT ON (crs.concept_code) crs.concept_code,
+	SELECT DISTINCT ON (crs.concept_code_1) crs.concept_code_1,
 		c2.domain_id
 	FROM concept_relationship_stage crs
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
@@ -191,7 +229,7 @@ FROM (
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'ICD10GM'
-	ORDER BY crs.concept_code,
+	ORDER BY crs.concept_code_1,
 		CASE c2.domain_id
 			WHEN 'Condition'
 				THEN 1
@@ -240,6 +278,25 @@ WHERE concept_code NOT IN (
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--15. Manually adding synonyms (COVID19, E-cig)
+DO $_$
+BEGIN
+    PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--16. NEW Fail fast if mandatory concept_stage fields are missing
+DO $_$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM concept_stage
+        WHERE vocabulary_id = 'ICD10GM'
+          AND concept_class_id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'ICD10GM concept_stage contains rows with NULL concept_class_id. Check source codes absent from ICD10 or missing manual concept corrections.';
+    END IF;
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

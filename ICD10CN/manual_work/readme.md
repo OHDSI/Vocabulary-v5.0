@@ -3,4 +3,4 @@
 7.2. Run the ICD_CDE_source.sql to integrate data into the ICD common data environment.
 7.3. Perform manual review and mapping. Note, that it is forbidden to delete rows from the manual file. 
 7.4. Perform manual mapping checks.
-7.5. If everything is OK, deprecate old mappings for the ICD10CM codes of interest and add fresh mappings to the concept_relationship_manual using crem_changes.sql 
+7.5. If everything is OK, deprecate old mappings for the ICD10CM codes of interest and add fresh mappings to the concept_relationship_manual using crm_changes.sql 

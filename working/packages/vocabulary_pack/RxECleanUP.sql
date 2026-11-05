@@ -127,17 +127,6 @@ BEGIN
 
 	DROP TABLE concept_replacements;
 
-	--4. Fill concept_synonym_stage for RxNorm Extension
-	INSERT INTO concept_synonym_stage
-	SELECT cs.concept_id,
-		cs.concept_synonym_name,
-		c.concept_code,
-		c.vocabulary_id,
-		cs.language_concept_id
-	FROM concept_synonym cs
-	JOIN concept c ON c.concept_id = cs.concept_id
-		AND c.vocabulary_id = 'RxNorm Extension';
-
 	--4. Work with relationships
     --4.1. Load the full list of active RxNorm Extension <-> RxNorm (RxNorm Extension) relationships
 	INSERT INTO concept_relationship_stage (

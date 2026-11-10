@@ -89,8 +89,26 @@ scope AS (
         AND c.concept_class_id NOT IN (SELECT concept_class_id FROM attr_classes)
         -- vaccines have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
         AND c.concept_name !~* '\mvaccines?\M'
-        -- herbal / allergenic extracts are excluded as well (by name)
-        AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?)\M'
+        -- herbal / allergenic extracts and herbs are excluded as well (by name)
+        AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?)\M'
+        -- biologics (immune globulins, antitoxins, antivenoms, toxoids, antigens, viruses) are excluded (by name)
+        AND c.concept_name !~* '\m(immune globulins?|immunoglobulins?|gamma globulins?|antitoxins?|antiven[io]ms?|toxoids?|antigens?|virus)\M'
+        -- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name)
+        AND NOT EXISTS (
+            SELECT 1
+            FROM drug_strength xs
+            JOIN concept xi ON xi.concept_id = xs.ingredient_concept_id
+            WHERE xs.drug_concept_id = c.concept_id
+                AND LOWER(xi.concept_name) IN (
+                    'almagate', 'botulism antitoxin triv a,b&e', 'calcium chloride, dihydration', 'calcium phosphate dibasic',
+                    'cerebral phospholipids', 'fibrinogen concentrate (human)', 'horse antihuman thymocyte gamma globulin',
+                    'hyaluronan', 'influenza b virus antigen, hong kong 330-2001', 'interferon type ii',
+                    'lymphocyte immune globulin, rabbit', 'magnesium thiosulfate', 'methylrosanilinium chloride',
+                    'milk thistle fruit', 'pancrelipase', 'pancrelipase protease', 'penicillin', 'phospholipids', 'proteins',
+                    'siberian ginseng root', 'silver preparation', 'sodium thiosulfate', 'thymocyte immunoglobulin',
+                    'turpentine oil', 'yellow-fever virus'
+                    )
+            )
         AND NOT EXISTS (
             SELECT 1
             FROM concept_ancestor va

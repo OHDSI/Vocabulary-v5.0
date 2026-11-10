@@ -27,7 +27,10 @@ If a deprecated RxNorm/RxE concept with the same signature exists, its name is r
 orphan's name by removing the dropped attribute (supplier / box / brand / quantity / dose form), keeping the RxNorm naming convention.
 
 Vaccines are out of scope (no formalized ingredients): concepts named '...vaccine...' or descending from ATC J07 / CVX are skipped.
-Herb / allergen extracts are out of scope too: concepts whose name contains the whole word extract(s), leaf, leaves or pollen(s) are skipped.
+Herb / allergen extracts are out of scope too: concepts whose name contains the whole word extract(s), leaf, leaves, pollen(s), root(s), fruit(s) or herb(s) are skipped.
+Biologics are out of scope: names with immune globulin, immunoglobulin, gamma globulin, antitoxin, antivenom/antivenin, toxoid, antigen or virus are skipped.
+A reviewed list of non-ingredients (mixtures, classes, herbs, biologics) is excluded by ingredient name (step 1).
+Deprecated ingredients without a 'Concept replaced by' that were reviewed manually are mapped to their valid RxNorm Ingredient (step 3).
 
 Orphans that cannot be fixed safely are listed in the plan with a MANUAL_* scenario and are NOT touched
 (packs, name that cannot be derived, a missing link between two RxNorm concepts, ...).
@@ -76,8 +79,26 @@ BEGIN
 			)
 		-- vaccines are excluded: they have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
 		AND c.concept_name !~* '\mvaccines?\M'
-		-- herbal / allergenic extracts are excluded as well (by name)
-		AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?)\M'
+		-- herbal / allergenic extracts and herbs are excluded as well (by name)
+		AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?)\M'
+		-- biologics (immune globulins, antitoxins, antivenoms, toxoids, antigens, viruses) are excluded (by name)
+		AND c.concept_name !~* '\m(immune globulins?|immunoglobulins?|gamma globulins?|antitoxins?|antiven[io]ms?|toxoids?|antigens?|virus)\M'
+		-- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name)
+		AND NOT EXISTS (
+			SELECT 1
+			FROM drug_strength xs
+			JOIN concept xi ON xi.concept_id = xs.ingredient_concept_id
+			WHERE xs.drug_concept_id = c.concept_id
+				AND LOWER(xi.concept_name) IN (
+					'almagate', 'botulism antitoxin triv a,b&e', 'calcium chloride, dihydration', 'calcium phosphate dibasic',
+					'cerebral phospholipids', 'fibrinogen concentrate (human)', 'horse antihuman thymocyte gamma globulin',
+					'hyaluronan', 'influenza b virus antigen, hong kong 330-2001', 'interferon type ii',
+					'lymphocyte immune globulin, rabbit', 'magnesium thiosulfate', 'methylrosanilinium chloride',
+					'milk thistle fruit', 'pancrelipase', 'pancrelipase protease', 'penicillin', 'phospholipids', 'proteins',
+					'siberian ginseng root', 'silver preparation', 'sodium thiosulfate', 'thymocyte immunoglobulin',
+					'turpentine oil', 'yellow-fever virus'
+					)
+			)
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_ancestor va
@@ -271,6 +292,30 @@ BEGIN
 		AND t.concept_class_id = o.concept_class_id
 	ORDER BY ch.id, ch.depth;
 	CREATE UNIQUE INDEX idx_rxegap_res ON rxegap_res (attr_id);
+
+	-- reviewed manual replacements of deprecated ingredients that have no 'Concept replaced by' (source name -> valid RxNorm Ingredient)
+	DELETE FROM rxegap_res
+	WHERE attr_id IN (SELECT c.concept_id FROM concept c JOIN (VALUES ('efanesoctocog alfa'), ('insulin, pork'), ('landiolol hydrochloride'),
+			('l-arginine'), ('l-alanine'), ('l-cysteine'), ('dl-methionine')) v (nm) ON LOWER(c.concept_name) = v.nm
+		WHERE c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NOT NULL);
+	INSERT INTO rxegap_res (attr_id, resolved_id)
+	SELECT a.attr_id, v.target_id
+	FROM rxegap_attr_ids a
+	JOIN concept c ON c.concept_id = a.attr_id
+		AND c.concept_class_id = 'Ingredient'
+		AND c.invalid_reason IS NOT NULL
+	JOIN (VALUES
+		('efanesoctocog alfa', 1301841), -- antihemophilic factor (recombinant), Fc-VWF-XTEN fusion protein
+		('insulin, pork', 1586346), -- insulin, regular, pork
+		('landiolol hydrochloride', 1466064), -- landiolol
+		('l-arginine', 19006410), -- arginine
+		('l-alanine', 19052489), -- alanine
+		('l-cysteine', 19010955), -- cysteine
+		('dl-methionine', 19004724) -- methionine
+		) v (nm, target_id) ON LOWER(c.concept_name) = v.nm
+	JOIN concept t ON t.concept_id = v.target_id
+		AND t.invalid_reason IS NULL
+		AND t.concept_class_id = 'Ingredient';
 
 	-- attributes without valid replacement: candidate RxE replicas (deprecated RxNorm attributes are copied as they are)
 	DROP TABLE IF EXISTS rxegap_new_attr;
@@ -626,6 +671,19 @@ BEGIN
 		) m
 	WHERE m.key = n.key
 		AND n.concept_id IS NULL;
+
+	-- Ingredient nodes: the (resolved) ingredient id IS the concept when it is a valid Ingredient.
+	-- (valid Ingredients have no drug_strength rows, so the signature match above cannot find them; without this the node
+	--  would fall through to a deprecated lookalike and replicate its name, e.g. a misspelled one)
+	UPDATE rxegap_node n
+	SET concept_id = n.ing_ids[1]
+	FROM concept c
+	WHERE n.concept_class_id = 'Ingredient'
+		AND n.concept_id IS NULL
+		AND c.concept_id = n.ing_ids[1]
+		AND c.concept_class_id = 'Ingredient'
+		AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+		AND c.invalid_reason IS NULL;
 
 	UPDATE rxegap_node n
 	SET src_concept_id = m.concept_id,

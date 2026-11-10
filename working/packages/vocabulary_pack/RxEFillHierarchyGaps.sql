@@ -24,6 +24,9 @@ Attributes are never invented: every new concept takes its attributes from the o
 If a deprecated RxNorm/RxE concept with the same signature exists, its name is replicated; otherwise the name is derived from the
 orphan's name by removing the dropped attribute (supplier / box / brand / quantity / dose form), keeping the RxNorm naming convention.
 
+Vaccines are out of scope (no formalized ingredients): concepts named '...vaccine...' or descending from ATC J07 / CVX are skipped.
+Herb / allergen extracts are out of scope too: concepts whose name contains the whole word extract(s), leaf, leaves or pollen(s) are skipped.
+
 Orphans that cannot be fixed safely are listed in the plan with a MANUAL_* scenario and are NOT touched
 (packs, name that cannot be derived, a missing link between two RxNorm concepts, ...).
 
@@ -69,6 +72,17 @@ BEGIN
 			'Clinical Drug Box', 'Branded Drug Box', 'Quant Clinical Box', 'Quant Branded Box',
 			'Marketed Product', 'Clinical Pack', 'Branded Pack', 'Clinical Pack Box', 'Branded Pack Box'
 			)
+		-- vaccines are excluded: they have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
+		AND c.concept_name !~* '\mvaccines?\M'
+		-- herbal / allergenic extracts are excluded as well (by name)
+		AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?)\M'
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_ancestor va
+			JOIN concept vc ON vc.concept_id = va.ancestor_concept_id
+				AND (vc.vocabulary_id = 'CVX' OR (vc.vocabulary_id = 'ATC' AND vc.concept_code LIKE 'J07%'))
+			WHERE va.descendant_concept_id = c.concept_id
+			)
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_ancestor ca
@@ -79,6 +93,7 @@ BEGIN
 			WHERE ca.descendant_concept_id = c.concept_id
 			);
 	CREATE UNIQUE INDEX idx_rxegap_orphan ON rxegap_orphan (concept_id);
+	RAISE NOTICE 'orphans (vaccines and extracts excluded): %', (SELECT COUNT(*) FROM rxegap_orphan);
 
 	/*****************************************
 	* 2. Class pairs and relationships (same as rl in BuildRxE / rxnorm_allowed_rel in pConceptAncestor)

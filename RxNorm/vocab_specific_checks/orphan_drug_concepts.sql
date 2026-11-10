@@ -90,7 +90,7 @@ scope AS (
         -- vaccines have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
         AND c.concept_name !~* '\mvaccines?\M'
         -- herbal / allergenic extracts and herbs are excluded as well (by name)
-        AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?)\M'
+        AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?|preparations?|venoms?)\M'
         -- biologics (immune globulins, antitoxins, antivenoms, toxoids, antigens, viruses) are excluded (by name)
         AND c.concept_name !~* '\m(immune globulins?|immunoglobulins?|gamma globulins?|antitoxins?|antiven[io]ms?|toxoids?|antigens?|virus)\M'
         -- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name)

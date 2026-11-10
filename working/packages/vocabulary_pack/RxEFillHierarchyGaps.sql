@@ -27,9 +27,10 @@ If a deprecated RxNorm/RxE concept with the same signature exists, its name is r
 orphan's name by removing the dropped attribute (supplier / box / brand / quantity / dose form), keeping the RxNorm naming convention.
 
 Vaccines are out of scope (no formalized ingredients): concepts named '...vaccine...' or descending from ATC J07 / CVX are skipped.
-Herb / allergen extracts are out of scope too: concepts whose name contains the whole word extract(s), leaf, leaves, pollen(s), root(s), fruit(s) or herb(s) are skipped.
+Herb / allergen extracts are out of scope too: concepts whose name contains the whole word extract(s), leaf, leaves, pollen(s), root(s), fruit(s), herb(s), preparation(s) or venom(s) are skipped.
 Biologics are out of scope: names with immune globulin, immunoglobulin, gamma globulin, antitoxin, antivenom/antivenin, toxoid, antigen or virus are skipped.
 A reviewed list of non-ingredients (mixtures, classes, herbs, biologics) is excluded by ingredient name (step 1).
+Concepts listed in rxe_to_deprecate (non-existent drugs, filled manually) are neither repaired nor used as parents / duplicates.
 Deprecated ingredients without a 'Concept replaced by' that were reviewed manually are mapped to their valid RxNorm Ingredient (step 3).
 
 Orphans that cannot be fixed safely are listed in the plan with a MANUAL_* scenario and are NOT touched
@@ -64,6 +65,14 @@ BEGIN
 	*****************************************/
 	PERFORM set_config('application_name', 'RxEFillHierarchyGaps step 1', FALSE);
 	RAISE NOTICE '% step 1', clock_timestamp();
+	-- review table: concepts to be deprecated (same DDL as concept_manual); filled manually, normally empty
+	CREATE TABLE IF NOT EXISTS rxe_to_deprecate (LIKE concept_manual INCLUDING ALL);
+	DROP TABLE IF EXISTS rxegap_depr;
+	CREATE UNLOGGED TABLE rxegap_depr AS
+	SELECT DISTINCT c.concept_id
+	FROM rxe_to_deprecate dp
+	JOIN concept c ON c.vocabulary_id = dp.vocabulary_id AND c.concept_code = dp.concept_code;
+	CREATE UNIQUE INDEX idx_rxegap_depr ON rxegap_depr (concept_id);
 	DROP TABLE IF EXISTS rxegap_orphan;
 	CREATE UNLOGGED TABLE rxegap_orphan AS
 	SELECT c.concept_id, c.concept_code, c.concept_name, c.concept_class_id, c.vocabulary_id
@@ -77,10 +86,12 @@ BEGIN
 			'Clinical Drug Box', 'Branded Drug Box', 'Quant Clinical Box', 'Quant Branded Box',
 			'Marketed Product', 'Clinical Pack', 'Branded Pack', 'Clinical Pack Box', 'Branded Pack Box'
 			)
+		-- concepts listed for deprecation (non-existent drugs reviewed manually) are not repaired
+		AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = c.concept_id)
 		-- vaccines are excluded: they have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
 		AND c.concept_name !~* '\mvaccines?\M'
 		-- herbal / allergenic extracts and herbs are excluded as well (by name)
-		AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?)\M'
+		AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?|preparations?|venoms?)\M'
 		-- biologics (immune globulins, antitoxins, antivenoms, toxoids, antigens, viruses) are excluded (by name)
 		AND c.concept_name !~* '\m(immune globulins?|immunoglobulins?|gamma globulins?|antitoxins?|antiven[io]ms?|toxoids?|antigens?|virus)\M'
 		-- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name)
@@ -339,7 +350,8 @@ BEGIN
 		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS norm
 	FROM concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-		AND c.invalid_reason IS NULL;
+		AND c.invalid_reason IS NULL
+		AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = c.concept_id);
 	CREATE INDEX idx_rxegap_uname ON rxegap_uname (concept_class_id, norm);
 	ANALYZE rxegap_uname;
 
@@ -563,18 +575,18 @@ BEGIN
 		SELECT c.key, c.concept_class_id, 'BS', NULL, c.ing_ids, c.comps, c.df, c.q, c.bn, 0, c.mf,
 			NULLIF(REPLACE(c.name, ' Box of ' || c.bs, ''), c.name)
 		FROM rxegap_node c
-		WHERE c.depth = iter AND c.bs <> 0
+		WHERE c.depth = iter AND c.bs <> 0 AND c.concept_class_id <> 'Marketed Product' -- a Marketed Product only loses its supplier
 		UNION ALL
 		SELECT c.key, c.concept_class_id, 'Q', NULL, c.ing_ids, c.comps, c.df, '', c.bn, c.bs, c.mf,
 			NULLIF(REGEXP_REPLACE(c.name, '^[0-9]*\.?[0-9]+ [^ ]+ ', ''), c.name)
 		FROM rxegap_node c
-		WHERE c.depth = iter AND c.q <> ''
+		WHERE c.depth = iter AND c.q <> '' AND c.concept_class_id <> 'Marketed Product'
 		UNION ALL
 		SELECT c.key, c.concept_class_id, 'BN', NULL, c.ing_ids, c.comps, c.df, c.q, 0, c.bs, c.mf,
 			NULLIF(REPLACE(c.name, ' [' || bn.name || ']', ''), c.name)
 		FROM rxegap_node c
 		JOIN rxegap_attrname bn ON bn.id = c.bn
-		WHERE c.depth = iter AND c.bn <> 0;
+		WHERE c.depth = iter AND c.bn <> 0 AND c.concept_class_id <> 'Marketed Product';
 
 		-- Drug -> Drug Form (ingredients + dose form [+ brand])
 		INSERT INTO rxegap_cand
@@ -667,6 +679,7 @@ BEGIN
 			(ARRAY_AGG(a.concept_id ORDER BY (a.vocabulary_id = 'RxNorm') DESC, a.concept_id))[1] AS concept_id
 		FROM rxegap_attr a
 		WHERE a.invalid_reason IS NULL
+			AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = a.concept_id)
 		GROUP BY 1
 		) m
 	WHERE m.key = n.key
@@ -1127,7 +1140,7 @@ BEGIN
 	PERFORM vocabulary_pack.DeprecateWrongMAPSTO();
 
 	-- clean up
-	DROP TABLE rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_attr,
+	DROP TABLE rxegap_depr, rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_attr,
 		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_edge_x,
 		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref;
 END;

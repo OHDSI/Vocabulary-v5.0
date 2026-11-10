@@ -18,7 +18,7 @@ Scenarios handled:
 
 No-duplicates guarantees for newly created RxNorm Extension concepts:
  - signature match: ingredients+strengths, dose form, quantity, brand name, box size, supplier (+ class) against all valid RxNorm/RxE concepts
- - name match: same concept_class_id and same compare_custom_english() name (after 'Injectable Solution' -> 'Injection', as in RxECleanUP)
+ - name match: same concept_class_id and same compare_custom_english() name (after 'Inhalant' -> 'Inhalation', as in RxECleanUP; 'Injection' and 'Injectable Solution' are kept separate)
  - within the run: nodes needed by several orphans are created once
 Attributes are never invented: every new concept takes its attributes from the orphan (drug_strength, dose form, brand name, supplier).
 If a deprecated RxNorm/RxE concept with the same signature exists, its name is replicated; otherwise the name is derived from the
@@ -182,7 +182,7 @@ BEGIN
 	SELECT c.concept_id AS attr_id,
 		c.concept_name,
 		c.concept_class_id,
-		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInjectable Solution\M', 'Injection', 'gi')) AS norm,
+		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS norm,
 		NULL::INT AS dup_of -- existing valid concept with the same name and class
 	FROM rxegap_attr_ids a
 	JOIN concept c ON c.concept_id = a.attr_id
@@ -195,7 +195,7 @@ BEGIN
 	SELECT c.concept_id,
 		c.concept_class_id,
 		c.vocabulary_id,
-		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInjectable Solution\M', 'Injection', 'gi')) AS norm
+		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS norm
 	FROM concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND c.invalid_reason IS NULL;
@@ -230,7 +230,7 @@ BEGIN
 	FROM rxegap_attr_ids a
 	LEFT JOIN concept c ON c.concept_id = a.attr_id
 	LEFT JOIN rxegap_new_attr k ON k.concept_class_id = c.concept_class_id
-		AND k.norm = dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInjectable Solution\M', 'Injection', 'gi'))
+		AND k.norm = dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi'))
 	WHERE NOT EXISTS (SELECT 1 FROM rxegap_res r WHERE r.attr_id = a.attr_id);
 
 	/*****************************************
@@ -587,7 +587,7 @@ BEGIN
 
 	-- duplicate guard by name (same rule as RxECleanUP)
 	UPDATE rxegap_node
-	SET norm = dev_rxnorm.compare_custom_english(REGEXP_REPLACE(name, '\mInjectable Solution\M', 'Injection', 'gi'))
+	SET norm = dev_rxnorm.compare_custom_english(REGEXP_REPLACE(name, '\mInhalant\M', 'Inhalation', 'gi'))
 	WHERE concept_id IS NULL
 		AND name IS NOT NULL;
 

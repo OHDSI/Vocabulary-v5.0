@@ -34,8 +34,8 @@ BEGIN
 
 	--3. Load full list of RxNorm Extension concepts and mark RxE-vs-RxNorm duplicates as 'X'
 	--   Uses semantic name normalization (devv5.compare_custom_english) to catch decimal-zero variants and punctuation differences.
-	--   'Injectable Solution' is first rewritten to 'Injection' so that e.g. 'tirzepatide 20 MG/ML Injectable Solution'
-	--   and 'tirzepatide 20 MG/ML Injection' are treated as duplicates.
+	--   'Inhalant' is first rewritten to 'Inhalation' (e.g. 'X Inhalant Powder' = 'X Inhalation Powder').
+	--   'Injection' and 'Injectable Solution' are NOT merged: RxNorm treats them as separate forms.
 	--   Brand Name and Supplier classes are excluded
     INSERT INTO concept_stage
 	SELECT *
@@ -46,7 +46,7 @@ BEGIN
 		SELECT
 			cs.concept_id  AS cs_id,
 			cs.concept_class_id,
-			dev_rxnorm.compare_custom_english(REGEXP_REPLACE(cs.concept_name, '\mInjectable Solution\M', 'Injection', 'gi')) AS cs_vector
+			dev_rxnorm.compare_custom_english(REGEXP_REPLACE(cs.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS cs_vector
 		FROM concept_stage cs
 		WHERE cs.invalid_reason IS NULL
 		  AND cs.concept_class_id NOT IN ('Brand Name', 'Supplier')
@@ -55,7 +55,7 @@ BEGIN
 		SELECT
 			c.concept_id   AS c_id,
 			c.concept_class_id,
-			dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInjectable Solution\M', 'Injection', 'gi')) AS c_vector
+			dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS c_vector
 		FROM concept c
 		WHERE c.invalid_reason IS NULL
 		  AND c.vocabulary_id = 'RxNorm'
@@ -87,7 +87,7 @@ BEGIN
 			concept_class_id                                  AS cs_cc_id,
 			COALESCE(standard_concept, '')                    AS standard_concept,
 			valid_start_date,
-			dev_rxnorm.compare_custom_english(REGEXP_REPLACE(concept_name, '\mInjectable Solution\M', 'Injection', 'gi'))        AS normalized_name
+			dev_rxnorm.compare_custom_english(REGEXP_REPLACE(concept_name, '\mInhalant\M', 'Inhalation', 'gi'))        AS normalized_name
 		FROM concept_stage
 		WHERE invalid_reason IS NULL
 		  AND concept_class_id NOT IN ('Brand Name', 'Supplier')

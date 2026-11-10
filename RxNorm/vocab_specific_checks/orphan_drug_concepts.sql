@@ -87,6 +87,17 @@ scope AS (
         AND c.invalid_reason IS NULL
         AND c.concept_class_id <> 'Ingredient'
         AND c.concept_class_id NOT IN (SELECT concept_class_id FROM attr_classes)
+        -- vaccines have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
+        AND c.concept_name !~* '\mvaccines?\M'
+        -- herbal / allergenic extracts are excluded as well (by name)
+        AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?)\M'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM concept_ancestor va
+            JOIN concept vc ON vc.concept_id = va.ancestor_concept_id
+                AND (vc.vocabulary_id = 'CVX' OR (vc.vocabulary_id = 'ATC' AND vc.concept_code LIKE 'J07%'))
+            WHERE va.descendant_concept_id = c.concept_id
+            )
 ),
 
 -- orphans: no valid Ingredient among the ancestors

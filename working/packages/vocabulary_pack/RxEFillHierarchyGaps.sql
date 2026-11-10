@@ -21,6 +21,8 @@ No-duplicates guarantees for newly created RxNorm Extension concepts:
  - name match: same concept_class_id and same compare_custom_english() name (after 'Inhalant' -> 'Inhalation', as in RxECleanUP; 'Injection' and 'Injectable Solution' are kept separate)
  - within the run: nodes needed by several orphans are created once
 Attributes are never invented: every new concept takes its attributes from the orphan (drug_strength, dose form, brand name, supplier).
+Orphans have often lost these attribute links while the name still carries them: they are restored from the name (exact match with an
+existing Dose Form / Brand Name / Supplier concept, see step 2b), listed in rxe_gap_attr_link and written for the orphan in the real run.
 If a deprecated RxNorm/RxE concept with the same signature exists, its name is replicated; otherwise the name is derived from the
 orphan's name by removing the dropped attribute (supplier / box / brand / quantity / dose form), keeping the RxNorm naming convention.
 
@@ -136,6 +138,83 @@ BEGIN
 	) AS t (parent_class, rel, child_class);
 
 	/*****************************************
+	* 2b. Orphans have often lost their attribute links (dose form, brand name, supplier) while the name still carries them.
+	*     Restore them from the name: dose form = longest Dose Form name that ends the name (before [brand] / Box of N / by supplier),
+	*     brand name = text in [...], supplier = text after ' by '. Only exact (case-insensitive) matches with an existing
+	*     Dose Form / Brand Name / Supplier concept are accepted; valid concepts are preferred, an invalid one is resolved in step 3.
+	*     'Inhalant' = 'Inhalation' for dose forms. Nothing is invented: no match -> no link.
+	*****************************************/
+	PERFORM set_config('application_name', 'RxEFillHierarchyGaps step 2b', FALSE);
+	RAISE NOTICE '% step 2b', clock_timestamp();
+	DROP TABLE IF EXISTS rxegap_attrdict;
+	CREATE UNLOGGED TABLE rxegap_attrdict AS
+	SELECT c.concept_id,
+		c.concept_class_id,
+		c.vocabulary_id,
+		c.invalid_reason,
+		LOWER(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS nm,
+		-- supplier name as it is written in RxE concept names (same shortening as BuildRxE)
+		LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.concept_name,
+			' Ltd', ''), ' Plc', ''), ' UK', ''), ' (UK)', ''), ' Pharmaceuticals', ''), ' Pharma', ''), ' GmbH', ''), 'Laboratories', '')) AS nm2
+	FROM concept c
+	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+		AND c.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier');
+	CREATE INDEX idx_rxegap_attrdict ON rxegap_attrdict (concept_class_id, nm);
+
+	DROP TABLE IF EXISTS rxegap_infer;
+	CREATE UNLOGGED TABLE rxegap_infer AS
+	WITH o AS (
+		SELECT o.concept_id,
+			o.concept_class_id,
+			LOWER(REGEXP_REPLACE(
+				REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(o.concept_name, ' by [^\]]*$', ''), ' Box of [0-9]+$', ''), ' \[[^\]]+\]$', ''),
+				'\mInhalant\M', 'Inhalation', 'gi')) AS base,
+			LOWER(SUBSTRING(o.concept_name FROM ' by ([^\]]+)$')) AS sup,
+			LOWER(SUBSTRING(o.concept_name FROM '\[([^\]]+)\]')) AS brand
+		FROM rxegap_orphan o
+		WHERE o.concept_class_id NOT LIKE '%Pack%'
+		)
+	SELECT DISTINCT ON (x.orphan_id, x.kind) x.orphan_id, x.kind, x.rel, x.attr_id, NULL::INT AS resolved_id
+	FROM (
+		SELECT y.*, COUNT(*) OVER (PARTITION BY y.orphan_id, y.kind) AS cnt
+		FROM (
+		-- dose form (not for Comps)
+		SELECT o.concept_id AS orphan_id, 'DF' AS kind, cDF_REL AS rel, d.concept_id AS attr_id, LENGTH(d.nm) AS len, d.invalid_reason, d.vocabulary_id, TRUE AS exact
+		FROM o
+		JOIN rxegap_attrdict d ON d.concept_class_id = 'Dose Form'
+			AND RIGHT(o.base, LENGTH(d.nm) + 1) = ' ' || d.nm
+		WHERE o.concept_class_id NOT IN ('Clinical Drug Comp', 'Branded Drug Comp')
+		UNION ALL
+		-- brand name (Branded classes)
+		SELECT o.concept_id, 'BN', cBN_REL, d.concept_id, 0, d.invalid_reason, d.vocabulary_id, TRUE
+		FROM o
+		JOIN rxegap_attrdict d ON d.concept_class_id = 'Brand Name'
+			AND d.nm = o.brand
+		WHERE o.concept_class_id LIKE '%Branded%' OR o.concept_class_id = 'Marketed Product'
+		UNION ALL
+		-- supplier (Marketed Product)
+		-- (exact name, or the shortened name; a shortened match is accepted only when it is unambiguous)
+		SELECT o.concept_id, 'MF', cMF_REL, d.concept_id, 0, d.invalid_reason, d.vocabulary_id, (d.nm = o.sup)
+		FROM o
+		JOIN rxegap_attrdict d ON d.concept_class_id = 'Supplier'
+			AND (d.nm = o.sup OR d.nm2 = o.sup)
+		WHERE o.concept_class_id = 'Marketed Product'
+		) y
+		) x
+	WHERE (x.exact OR x.cnt = 1)
+		AND NOT EXISTS ( -- only what the orphan does not have yet
+			SELECT 1
+			FROM concept_relationship r
+			JOIN concept t ON t.concept_id = r.concept_id_2
+				AND t.concept_class_id = CASE x.kind WHEN 'DF' THEN 'Dose Form' WHEN 'BN' THEN 'Brand Name' ELSE 'Supplier' END
+			WHERE r.concept_id_1 = x.orphan_id
+				AND r.relationship_id = x.rel
+				AND r.invalid_reason IS NULL
+			)
+	ORDER BY x.orphan_id, x.kind, x.exact DESC, x.len DESC, (x.invalid_reason IS NULL) DESC, (x.vocabulary_id = 'RxNorm') DESC, x.attr_id;
+	RAISE NOTICE 'attribute links inferred from names: %', (SELECT COUNT(*) FROM rxegap_infer);
+
+	/*****************************************
 	* 3. Attribute resolution: invalid ingredient / dose form / brand name / supplier -> valid replacement
 	*    (follow 'Concept replaced by'); if there is none, the attribute is replicated in RxE.
 	*****************************************/
@@ -153,6 +232,8 @@ BEGIN
 	DROP TABLE IF EXISTS rxegap_attr_ids;
 	CREATE UNLOGGED TABLE rxegap_attr_ids AS
 	SELECT DISTINCT ingredient_concept_id AS attr_id FROM rxegap_ds_raw
+	UNION
+	SELECT attr_id FROM rxegap_infer
 	UNION
 	SELECT DISTINCT r.concept_id_2
 	FROM concept_relationship r
@@ -332,6 +413,18 @@ BEGIN
 			);
 	-- Comps and Forms keep the strength token, but Forms/Ingredients have none: tokens are already '' there
 	CREATE UNIQUE INDEX idx_rxegap_attr ON rxegap_attr (concept_id);
+
+	-- inferred attributes (2b): resolved like the others, then applied where the orphan has no link
+	UPDATE rxegap_infer i
+	SET resolved_id = COALESCE(rs.resolved_id, i.attr_id)
+	FROM rxegap_res rs
+	WHERE rs.attr_id = i.attr_id;
+
+	UPDATE rxegap_attr a
+	SET df = CASE WHEN a.df = 0 THEN COALESCE((SELECT i.resolved_id FROM rxegap_infer i WHERE i.orphan_id = a.concept_id AND i.kind = 'DF'), 0) ELSE a.df END,
+		bn = CASE WHEN a.bn = 0 THEN COALESCE((SELECT i.resolved_id FROM rxegap_infer i WHERE i.orphan_id = a.concept_id AND i.kind = 'BN'), 0) ELSE a.bn END,
+		mf = CASE WHEN a.mf = 0 THEN COALESCE((SELECT i.resolved_id FROM rxegap_infer i WHERE i.orphan_id = a.concept_id AND i.kind = 'MF'), 0) ELSE a.mf END
+	WHERE a.concept_id IN (SELECT orphan_id FROM rxegap_infer);
 
 	-- attribute names (existing or virtual)
 	DROP TABLE IF EXISTS rxegap_attrname;
@@ -688,7 +781,8 @@ BEGIN
 			o.vocabulary_id AS orphan_vocabulary_id,
 			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.canon_key IS NULL AND n.name IS NOT NULL) AS nodes_to_create,
 			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.name IS NULL) AS nodes_unresolved,
-			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.canon_key IS NULL AND n.concept_class_id = 'Ingredient') AS ingredient_to_create
+			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.canon_key IS NULL AND n.concept_class_id = 'Ingredient') AS ingredient_to_create,
+			COUNT(*) FILTER (WHERE n.concept_class_id = 'Ingredient') AS ingredient_nodes
 		FROM rxegap_orphan o
 		LEFT JOIN rxegap_member m ON m.orphan_id = o.concept_id
 		LEFT JOIN rxegap_node n ON n.key = m.key
@@ -708,6 +802,8 @@ BEGIN
 			WHEN i.orphan_class LIKE '%Pack%' THEN 'MANUAL_PACK'
 			WHEN NOT EXISTS (SELECT 1 FROM rxegap_seed s WHERE s.orphan_id = i.orphan_concept_id) THEN 'MANUAL_NO_DRUG_STRENGTH'
 			WHEN i.nodes_unresolved > 0 THEN 'MANUAL_NAME_NOT_DERIVED'
+			-- the chain never reaches an Ingredient (e.g. no dose form could be found): rebuilding concept_ancestor would not help
+			WHEN i.ingredient_nodes = 0 THEN 'MANUAL_NO_INGREDIENT_PATH'
 			WHEN COALESCE(e.links_rxn_rxn, 0) > 0 THEN 'MANUAL_RXN_RXN_LINK'
 			WHEN i.ingredient_to_create > 0 THEN 'CREATE_INGREDIENT'
 			WHEN i.nodes_to_create > 0 THEN 'CREATE_NODES'
@@ -719,6 +815,25 @@ BEGIN
 		COALESCE(e.links_rxn_rxn, 0) AS links_rxn_rxn
 	FROM info i
 	LEFT JOIN edges e ON e.orphan_id = i.orphan_concept_id;
+
+	-- review table: attribute links restored on the orphans themselves (from the names, step 2b)
+	DROP TABLE IF EXISTS rxe_gap_attr_link;
+	CREATE TABLE rxe_gap_attr_link AS
+	SELECT i.orphan_id AS orphan_concept_id,
+		o.concept_name AS orphan_concept_name,
+		p.scenario,
+		i.kind,
+		i.rel AS relationship_id,
+		i.attr_id AS inferred_attr_id,
+		ai.concept_name AS inferred_attr_name,
+		ai.invalid_reason AS inferred_attr_invalid_reason,
+		i.resolved_id,
+		ar.concept_name AS resolved_attr_name
+	FROM rxegap_infer i
+	JOIN concept o ON o.concept_id = i.orphan_id
+	JOIN concept ai ON ai.concept_id = i.attr_id
+	JOIN concept ar ON ar.concept_id = i.resolved_id
+	JOIN rxe_gap_plan p ON p.orphan_concept_id = i.orphan_id;
 
 	-- needed nodes: closure of the repairable orphans
 	DROP TABLE IF EXISTS rxegap_needed;
@@ -895,6 +1010,25 @@ BEGIN
 	WHERE nc.kind = 'node'
 		AND v.attr_id <> 0;
 
+	-- attribute links restored on the orphans (dose form, brand name, supplier; + reverse), never RxNorm-RxNorm
+	INSERT INTO concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+	SELECT DISTINCT o.concept_code, att.concept_code, o.vocabulary_id, att.vocabulary_id, i.rel, CURRENT_DATE, cEND, NULL
+	FROM rxegap_infer i
+	JOIN rxe_gap_plan p ON p.orphan_concept_id = i.orphan_id
+		AND p.scenario IN ('CREATE_INGREDIENT', 'CREATE_NODES', 'REPAIR_LINK_ONLY', 'ANCESTOR_REBUILD_ONLY')
+	JOIN concept o ON o.concept_id = i.orphan_id
+	JOIN rxegap_ref att ON att.ref = 'i' || i.resolved_id
+	WHERE (o.vocabulary_id, att.vocabulary_id) <> ('RxNorm', 'RxNorm')
+	UNION
+	SELECT DISTINCT att.concept_code, o.concept_code, att.vocabulary_id, o.vocabulary_id, r.reverse_relationship_id, CURRENT_DATE, cEND, NULL
+	FROM rxegap_infer i
+	JOIN rxe_gap_plan p ON p.orphan_concept_id = i.orphan_id
+		AND p.scenario IN ('CREATE_INGREDIENT', 'CREATE_NODES', 'REPAIR_LINK_ONLY', 'ANCESTOR_REBUILD_ONLY')
+	JOIN concept o ON o.concept_id = i.orphan_id
+	JOIN rxegap_ref att ON att.ref = 'i' || i.resolved_id
+	JOIN relationship r ON r.relationship_id = i.rel
+	WHERE (o.vocabulary_id, att.vocabulary_id) <> ('RxNorm', 'RxNorm');
+
 	-- drug_strength_stage for new Comp / Drug / Quant / Box / Marketed Product nodes,
 	-- derived from the drug_strength of the representative orphan (units and values are never invented)
 	INSERT INTO drug_strength_stage (drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id,
@@ -935,7 +1069,7 @@ BEGIN
 	PERFORM vocabulary_pack.DeprecateWrongMAPSTO();
 
 	-- clean up
-	DROP TABLE rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_attr,
+	DROP TABLE rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_attr,
 		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_edge_x,
 		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref;
 END;

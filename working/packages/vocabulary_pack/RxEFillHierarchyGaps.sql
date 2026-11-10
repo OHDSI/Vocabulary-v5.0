@@ -41,7 +41,7 @@ Usage:
 DECLARE
 	cDF_REL CONSTANT TEXT := (SELECT reverse_relationship_id FROM relationship WHERE relationship_id = 'RxNorm dose form of');
 	cBN_REL CONSTANT TEXT := (SELECT reverse_relationship_id FROM relationship WHERE relationship_id = 'Brand name of');
-	cMF_REL CONSTANT TEXT := 'Has Supplier';
+	cMF_REL CONSTANT TEXT := COALESCE((SELECT reverse_relationship_id FROM relationship WHERE relationship_id = 'Supplier of'), 'Has supplier');
 	cEND CONSTANT DATE := TO_DATE('20991231', 'yyyymmdd');
 	iter INT := 0;
 	n INT;
@@ -570,6 +570,9 @@ BEGIN
 			WHEN n.concept_class_id = 'Ingredient'
 				AND n.name ~ '\[|Box of'
 				THEN 'attributes in an ingredient name'
+			WHEN n.concept_class_id <> 'Marketed Product'
+				AND n.name ~ ' by [^\]]*$'
+				THEN 'supplier in a non-marketed name'
 			END AS reason
 		) v
 	WHERE n.concept_id IS NULL

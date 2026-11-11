@@ -186,8 +186,8 @@ BEGIN
 		c.invalid_reason,
 		LOWER(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS nm,
 		-- supplier name as it is written in RxE concept names (same shortening as BuildRxE)
-		LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.concept_name,
-			' Ltd', ''), ' Plc', ''), ' UK', ''), ' (UK)', ''), ' Pharmaceuticals', ''), ' Pharma', ''), ' GmbH', ''), 'Laboratories', '')) AS nm2
+		LOWER(TRIM(REGEXP_REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.concept_name,
+			' Ltd', ''), ' Plc', ''), ' UK', ''), ' (UK)', ''), ' Pharmaceuticals', ''), ' Pharma', ''), ' GmbH', ''), 'Laboratories', ''), '\s+', ' ', 'g'))) AS nm2
 	FROM concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND c.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier');
@@ -208,7 +208,7 @@ BEGIN
 		)
 	SELECT DISTINCT ON (x.orphan_id, x.kind) x.orphan_id, x.kind, x.rel, x.attr_id, NULL::INT AS resolved_id
 	FROM (
-		SELECT y.*, COUNT(*) OVER (PARTITION BY y.orphan_id, y.kind) AS cnt
+		SELECT y.*, COUNT(*) OVER (PARTITION BY y.orphan_id, y.kind, (y.invalid_reason IS NULL)) AS cnt -- ambiguity is counted among valid / among invalid candidates separately
 		FROM (
 		-- dose form (not for Comps)
 		SELECT o.concept_id AS orphan_id, 'DF' AS kind, cDF_REL AS rel, d.concept_id AS attr_id, LENGTH(d.nm) AS len, d.invalid_reason, d.vocabulary_id, TRUE AS exact

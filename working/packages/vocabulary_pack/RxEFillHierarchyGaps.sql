@@ -583,7 +583,7 @@ BEGIN
 		WHERE c.depth = iter AND c.q <> '' AND c.concept_class_id <> 'Marketed Product'
 		UNION ALL
 		SELECT c.key, c.concept_class_id, 'BN', NULL, c.ing_ids, c.comps, c.df, c.q, 0, c.bs, c.mf,
-			NULLIF(REPLACE(c.name, ' [' || bn.name || ']', ''), c.name)
+			NULLIF(REGEXP_REPLACE(c.name, ' \[[^\]]*\]', ''), c.name)
 		FROM rxegap_node c
 		JOIN rxegap_attrname bn ON bn.id = c.bn
 		WHERE c.depth = iter AND c.bn <> 0 AND c.concept_class_id <> 'Marketed Product'
@@ -597,7 +597,7 @@ BEGIN
 			0, '', 0, 0, 0,
 			(
 				SELECT seg
-				FROM REGEXP_SPLIT_TO_TABLE(REPLACE(c.name, COALESCE(' [' || bn.name || ']', ''), ''), ' / ') AS seg
+				FROM REGEXP_SPLIT_TO_TABLE(REGEXP_REPLACE(c.name, ' \[[^\]]*\]', ''), ' / ') AS seg
 				JOIN rxegap_attrname ing ON ing.id = SPLIT_PART(t.tok, '~', 1)::INT
 				WHERE LOWER(seg) LIKE LOWER(ing.name) || ' %'
 				LIMIT 1
@@ -641,7 +641,7 @@ BEGIN
 		CROSS JOIN LATERAL UNNEST(c.comps) AS t (tok)
 		JOIN rxegap_attrname dfn ON dfn.id = c.df
 		LEFT JOIN rxegap_attrname bn ON bn.id = NULLIF(c.bn, 0)
-		CROSS JOIN LATERAL (SELECT REPLACE(c.name, COALESCE(' [' || bn.name || ']', ''), '') AS nm) base
+		CROSS JOIN LATERAL (SELECT REGEXP_REPLACE(REGEXP_REPLACE(c.name, ' \[[^\]]*\]', ''), '\mInhalant\M', 'Inhalation', 'g') AS nm) base -- brand stripped whatever its spelling; Inhalant = Inhalation
 		WHERE c.depth = iter AND c.concept_class_id = 'Clinical Drug' AND c.df <> 0;
 
 		-- Branded Drug -> Branded Drug Comp: ONE comp with all ingredients (multi-ingredient, e.g. 'abacavir 60 MG / dolutegravir 5 MG / lamivudine 30 MG [Triumeq]')
@@ -655,7 +655,7 @@ BEGIN
 		FROM rxegap_node c
 		JOIN rxegap_attrname dfn ON dfn.id = c.df
 		LEFT JOIN rxegap_attrname bn ON bn.id = NULLIF(c.bn, 0)
-		CROSS JOIN LATERAL (SELECT REPLACE(c.name, COALESCE(' [' || bn.name || ']', ''), '') AS nm) base
+		CROSS JOIN LATERAL (SELECT REGEXP_REPLACE(REGEXP_REPLACE(c.name, ' \[[^\]]*\]', ''), '\mInhalant\M', 'Inhalation', 'g') AS nm) base -- brand stripped whatever its spelling; Inhalant = Inhalation
 		WHERE c.depth = iter AND c.concept_class_id = 'Branded Drug' AND c.df <> 0;
 
 		-- Comp / Form -> Ingredient

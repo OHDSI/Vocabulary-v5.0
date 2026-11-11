@@ -226,10 +226,13 @@ BEGIN
 		UNION ALL
 		-- supplier (Marketed Product)
 		-- (exact name, or the shortened name; a shortened match is accepted only when it is unambiguous)
-		SELECT o.concept_id, 'MF', cMF_REL, d.concept_id, 0, d.invalid_reason, d.vocabulary_id, (d.nm = o.sup)
+		-- (reviewed choice for an ambiguous shortened name: the supplier used by more drugs wins)
+		SELECT o.concept_id, 'MF', cMF_REL, d.concept_id, 0, d.invalid_reason, d.vocabulary_id, (d.nm = o.sup OR pick.id IS NOT NULL)
 		FROM o
+		LEFT JOIN (VALUES ('altan', 40755723)) pick (nm, id) ON pick.nm = o.sup -- Altan Pharma Ltd (RxE, 38 drugs) over Altan Pharma (RxE, 29 drugs)
 		JOIN rxegap_attrdict d ON d.concept_class_id = 'Supplier'
 			AND (d.nm = o.sup OR d.nm2 = o.sup)
+			AND (pick.id IS NULL OR d.concept_id = pick.id)
 		WHERE o.concept_class_id = 'Marketed Product'
 		) y
 		) x
@@ -327,6 +330,16 @@ BEGIN
 	JOIN concept t ON t.concept_id = v.target_id
 		AND t.invalid_reason IS NULL
 		AND t.concept_class_id = 'Ingredient';
+
+	-- reviewed remapping of valid but NON-standard Ingredients to the standard Ingredient (pConceptAncestor goes only through standard ones):
+	-- 'human menopausal gonadotrophin' (36879180) and 'Menotrophin' (36878699) -> MENOTROPINS (36852653)
+	DELETE FROM rxegap_res WHERE attr_id IN (36879180, 36878699);
+	INSERT INTO rxegap_res (attr_id, resolved_id)
+	SELECT a.attr_id, 36852653
+	FROM rxegap_attr_ids a
+	JOIN concept c ON c.concept_id = a.attr_id AND c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NULL
+	JOIN concept t ON t.concept_id = 36852653 AND t.concept_class_id = 'Ingredient' AND t.invalid_reason IS NULL AND t.standard_concept = 'S'
+	WHERE a.attr_id IN (36879180, 36878699);
 
 	-- attributes without valid replacement: candidate RxE replicas (deprecated RxNorm attributes are copied as they are)
 	DROP TABLE IF EXISTS rxegap_new_attr;

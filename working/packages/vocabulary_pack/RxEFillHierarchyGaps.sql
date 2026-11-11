@@ -782,6 +782,8 @@ BEGIN
 			WHEN n.concept_class_id = 'Ingredient'
 				AND n.name ~ '\[|Box of'
 				THEN 'attributes in an ingredient name'
+			WHEN n.name LIKE '%...%'
+				THEN 'truncated name (contains ...): ingredients and strengths are incomplete'
 			WHEN n.concept_class_id <> 'Marketed Product'
 				AND n.name ~ ' by [^\]]*$'
 				THEN 'supplier in a non-marketed name'

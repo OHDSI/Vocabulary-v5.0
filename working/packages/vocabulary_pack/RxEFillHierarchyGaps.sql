@@ -836,6 +836,23 @@ BEGIN
 	*****************************************/
 	PERFORM set_config('application_name', 'RxEFillHierarchyGaps step 7', FALSE);
 	RAISE NOTICE '% step 7', clock_timestamp();
+	-- nodes that are existing healthy concepts (not orphans, already below a valid Ingredient): the closure stops there,
+	-- everything above them is already in place and must neither be created nor linked
+	DROP TABLE IF EXISTS rxegap_healthy;
+	CREATE UNLOGGED TABLE rxegap_healthy AS
+	SELECT n.key
+	FROM rxegap_node n
+	WHERE n.concept_id IS NOT NULL
+		AND NOT EXISTS (SELECT 1 FROM rxegap_orphan o WHERE o.concept_id = n.concept_id)
+		AND EXISTS (
+			SELECT 1
+			FROM concept_ancestor ca
+			JOIN concept i ON i.concept_id = ca.ancestor_concept_id
+			WHERE ca.descendant_concept_id = n.concept_id
+				AND i.concept_class_id = 'Ingredient'
+				AND i.invalid_reason IS NULL);
+	CREATE UNIQUE INDEX idx_rxegap_healthy ON rxegap_healthy (key);
+
 	-- closure of every orphan over the edges
 	DROP TABLE IF EXISTS rxegap_member;
 	CREATE UNLOGGED TABLE rxegap_member AS
@@ -845,6 +862,7 @@ BEGIN
 		SELECT cl.orphan_id, e.parent_key
 		FROM cl
 		JOIN rxegap_edge e ON e.child_key = cl.key
+		WHERE NOT EXISTS (SELECT 1 FROM rxegap_healthy h WHERE h.key = cl.key)
 		)
 	SELECT DISTINCT orphan_id, key FROM cl;
 	CREATE INDEX idx_rxegap_member ON rxegap_member (orphan_id, key);
@@ -865,6 +883,18 @@ BEGIN
 					WHERE r.concept_id_1 = pn.concept_id AND r.concept_id_2 = cn.concept_id
 						AND r.relationship_id = rl.rel AND r.invalid_reason IS NULL)
 				THEN 'EXISTS'
+			-- the child is an existing healthy concept (not an orphan, already below a valid Ingredient): nothing above it needs repair.
+			-- Its own parents may legitimately differ from the derived ones (e.g. a salt-form Comp instead of the base-ingredient Comp)
+			WHEN cn.concept_id IS NOT NULL
+				AND NOT EXISTS (SELECT 1 FROM rxegap_orphan o WHERE o.concept_id = cn.concept_id)
+				AND EXISTS (
+					SELECT 1
+					FROM concept_ancestor ca
+					JOIN concept i ON i.concept_id = ca.ancestor_concept_id
+					WHERE ca.descendant_concept_id = cn.concept_id
+						AND i.concept_class_id = 'Ingredient'
+						AND i.invalid_reason IS NULL)
+				THEN 'HEALTHY'
 			WHEN cn.concept_id IS NOT NULL AND pn.concept_id IS NOT NULL
 				AND (SELECT vocabulary_id FROM concept WHERE concept_id = cn.concept_id) = 'RxNorm'
 				AND (SELECT vocabulary_id FROM concept WHERE concept_id = pn.concept_id) = 'RxNorm'
@@ -888,10 +918,11 @@ BEGIN
 			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.canon_key IS NULL AND n.name IS NOT NULL) AS nodes_to_create,
 			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.name IS NULL) AS nodes_unresolved,
 			COUNT(*) FILTER (WHERE n.concept_id IS NULL AND n.canon_key IS NULL AND n.concept_class_id = 'Ingredient') AS ingredient_to_create,
-			COUNT(*) FILTER (WHERE n.concept_class_id = 'Ingredient') AS ingredient_nodes
+			COUNT(*) FILTER (WHERE n.concept_class_id = 'Ingredient' OR h.key IS NOT NULL) AS ingredient_nodes -- a healthy node already reaches an Ingredient
 		FROM rxegap_orphan o
 		LEFT JOIN rxegap_member m ON m.orphan_id = o.concept_id
 		LEFT JOIN rxegap_node n ON n.key = m.key
+		LEFT JOIN rxegap_healthy h ON h.key = n.key
 		GROUP BY o.concept_id, o.concept_code, o.concept_name, o.concept_class_id, o.vocabulary_id
 		),
 	edges AS (
@@ -1176,7 +1207,7 @@ BEGIN
 
 	-- clean up
 	DROP TABLE rxegap_depr, rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_attr,
-		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_edge_x,
+		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_healthy, rxegap_edge_x,
 		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref;
 END;
 $BODY$;

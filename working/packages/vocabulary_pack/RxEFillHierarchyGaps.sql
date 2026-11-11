@@ -331,16 +331,6 @@ BEGIN
 		AND t.invalid_reason IS NULL
 		AND t.concept_class_id = 'Ingredient';
 
-	-- reviewed remapping of valid but NON-standard Ingredients to the standard Ingredient (pConceptAncestor goes only through standard ones):
-	-- 'human menopausal gonadotrophin' (36879180) and 'Menotrophin' (36878699) -> MENOTROPINS (36852653)
-	DELETE FROM rxegap_res WHERE attr_id IN (36879180, 36878699);
-	INSERT INTO rxegap_res (attr_id, resolved_id)
-	SELECT a.attr_id, 36852653
-	FROM rxegap_attr_ids a
-	JOIN concept c ON c.concept_id = a.attr_id AND c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NULL
-	JOIN concept t ON t.concept_id = 36852653 AND t.concept_class_id = 'Ingredient' AND t.invalid_reason IS NULL AND t.standard_concept = 'S'
-	WHERE a.attr_id IN (36879180, 36878699);
-
 	-- attributes without valid replacement: candidate RxE replicas (deprecated RxNorm attributes are copied as they are)
 	DROP TABLE IF EXISTS rxegap_new_attr;
 	CREATE UNLOGGED TABLE rxegap_new_attr AS

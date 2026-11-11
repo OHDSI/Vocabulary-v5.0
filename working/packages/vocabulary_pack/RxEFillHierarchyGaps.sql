@@ -784,6 +784,8 @@ BEGIN
 				THEN 'attributes in an ingredient name'
 			WHEN n.name LIKE '%...%'
 				THEN 'truncated name (contains ...): ingredients and strengths are incomplete'
+			WHEN LENGTH(n.name) > 255
+				THEN 'name longer than 255 characters (concept_name limit)'
 			WHEN n.concept_class_id <> 'Marketed Product'
 				AND n.name ~ ' by [^\]]*$'
 				THEN 'supplier in a non-marketed name'

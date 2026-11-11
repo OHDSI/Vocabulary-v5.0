@@ -586,7 +586,26 @@ BEGIN
 			NULLIF(REPLACE(c.name, ' [' || bn.name || ']', ''), c.name)
 		FROM rxegap_node c
 		JOIN rxegap_attrname bn ON bn.id = c.bn
-		WHERE c.depth = iter AND c.bn <> 0 AND c.concept_class_id <> 'Marketed Product';
+		WHERE c.depth = iter AND c.bn <> 0 AND c.concept_class_id <> 'Marketed Product'
+			AND NOT (c.concept_class_id = 'Branded Drug Comp' AND CARDINALITY(c.comps) > 1); -- multi-ingredient BDC is split below
+
+		-- multi-ingredient Branded Drug Comp -> one single-ingredient Clinical Drug Comp per ingredient (as RxNorm: 'Tradename of')
+		INSERT INTO rxegap_cand
+		SELECT c.key, c.concept_class_id, 'BN', 'Clinical Drug Comp',
+			ARRAY[SPLIT_PART(t.tok, '~', 1)::INT],
+			ARRAY[t.tok],
+			0, '', 0, 0, 0,
+			(
+				SELECT seg
+				FROM REGEXP_SPLIT_TO_TABLE(REPLACE(c.name, COALESCE(' [' || bn.name || ']', ''), ''), ' / ') AS seg
+				JOIN rxegap_attrname ing ON ing.id = SPLIT_PART(t.tok, '~', 1)::INT
+				WHERE LOWER(seg) LIKE LOWER(ing.name) || ' %'
+				LIMIT 1
+			)
+		FROM rxegap_node c
+		CROSS JOIN LATERAL UNNEST(c.comps) AS t (tok)
+		LEFT JOIN rxegap_attrname bn ON bn.id = NULLIF(c.bn, 0)
+		WHERE c.depth = iter AND c.concept_class_id = 'Branded Drug Comp' AND CARDINALITY(c.comps) > 1;
 
 		-- Drug -> Drug Form (ingredients + dose form [+ brand])
 		INSERT INTO rxegap_cand
@@ -623,7 +642,21 @@ BEGIN
 		JOIN rxegap_attrname dfn ON dfn.id = c.df
 		LEFT JOIN rxegap_attrname bn ON bn.id = NULLIF(c.bn, 0)
 		CROSS JOIN LATERAL (SELECT REPLACE(c.name, COALESCE(' [' || bn.name || ']', ''), '') AS nm) base
-		WHERE c.depth = iter AND c.concept_class_id IN ('Clinical Drug', 'Branded Drug') AND c.df <> 0;
+		WHERE c.depth = iter AND c.concept_class_id = 'Clinical Drug' AND c.df <> 0;
+
+		-- Branded Drug -> Branded Drug Comp: ONE comp with all ingredients (multi-ingredient, e.g. 'abacavir 60 MG / dolutegravir 5 MG / lamivudine 30 MG [Triumeq]')
+		INSERT INTO rxegap_cand
+		SELECT c.key, c.concept_class_id, 'COMP', 'Branded Drug Comp',
+			c.ing_ids, c.comps,
+			0, '', c.bn, 0, 0,
+			CASE WHEN RIGHT(base.nm, LENGTH(' ' || dfn.name)) = ' ' || dfn.name
+				THEN LEFT(base.nm, LENGTH(base.nm) - LENGTH(' ' || dfn.name)) || COALESCE(' [' || bn.name || ']', '')
+				END
+		FROM rxegap_node c
+		JOIN rxegap_attrname dfn ON dfn.id = c.df
+		LEFT JOIN rxegap_attrname bn ON bn.id = NULLIF(c.bn, 0)
+		CROSS JOIN LATERAL (SELECT REPLACE(c.name, COALESCE(' [' || bn.name || ']', ''), '') AS nm) base
+		WHERE c.depth = iter AND c.concept_class_id = 'Branded Drug' AND c.df <> 0;
 
 		-- Comp / Form -> Ingredient
 		INSERT INTO rxegap_cand

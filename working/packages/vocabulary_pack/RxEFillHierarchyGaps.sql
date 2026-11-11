@@ -127,7 +127,7 @@ BEGIN
 			WHERE ca.descendant_concept_id = c.concept_id
 			);
 	CREATE UNIQUE INDEX idx_rxegap_orphan ON rxegap_orphan (concept_id);
-	RAISE NOTICE 'orphans (vaccines and extracts excluded): %', (SELECT COUNT(*) FROM rxegap_orphan);
+	RAISE NOTICE 'orphans (excluded: vaccines, biologics, herbs/extracts/preparations/venoms, reviewed ingredient list, rxe_to_deprecate): %', (SELECT COUNT(*) FROM rxegap_orphan);
 
 	/*****************************************
 	* 2. Class pairs and relationships (same as rl in BuildRxE / rxnorm_allowed_rel in pConceptAncestor)

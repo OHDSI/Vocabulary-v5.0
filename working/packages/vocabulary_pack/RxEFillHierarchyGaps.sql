@@ -389,6 +389,23 @@ BEGIN
 		AND k.norm = dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi'))
 	WHERE NOT EXISTS (SELECT 1 FROM rxegap_res r WHERE r.attr_id = a.attr_id);
 
+	-- a valid RxE Brand Name that has a same-named valid RxNorm Brand Name is the same brand (e.g. RxE and RxNorm 'Andembry'):
+	-- resolve it to the RxNorm one, so that signatures of RxE concepts match RxNorm Comps/Drugs and those are reused instead of duplicated
+	UPDATE rxegap_res rs
+	SET resolved_id = pick.concept_id
+	FROM rxegap_uname cur
+	JOIN (
+		SELECT norm, MIN(concept_id) AS concept_id
+		FROM rxegap_uname
+		WHERE concept_class_id = 'Brand Name'
+			AND vocabulary_id = 'RxNorm'
+		GROUP BY norm
+		) pick ON pick.norm = cur.norm
+	WHERE cur.concept_id = rs.resolved_id
+		AND cur.concept_class_id = 'Brand Name'
+		AND cur.vocabulary_id = 'RxNorm Extension'
+		AND pick.concept_id <> rs.resolved_id;
+
 	/*****************************************
 	* 4. Attribute table for every RxNorm/RxE hierarchy concept (valid and invalid: invalid ones are replica sources)
 	*****************************************/

@@ -30,6 +30,8 @@ Vaccines are out of scope (no formalized ingredients): concepts named '...vaccin
 Herb / allergen extracts are out of scope too: concepts whose name contains the whole word extract(s), leaf, leaves, pollen(s), root(s), fruit(s), herb(s), preparation(s) or venom(s) are skipped.
 Biologics are out of scope: names with immune globulin, immunoglobulin, gamma globulin, antitoxin, antivenom/antivenin, toxoid, antigen or virus are skipped.
 A reviewed list of non-ingredients (mixtures, classes, herbs, biologics) is excluded by ingredient name (step 1).
+Branded Drug Comp / Branded Drug Form orphans are handled like drug-level ones: the closure drops the brand (-> Clinical Drug Comp / Form, matched by signature or created),
+then links to the Ingredient; a multi-ingredient Branded Drug Comp is split into single-ingredient Clinical Drug Comps.
 Concepts listed in rxe_to_deprecate (non-existent drugs, filled manually) are neither repaired nor used as parents / duplicates.
 Deprecated ingredients without a 'Concept replaced by' that were reviewed manually are mapped to their valid RxNorm Ingredient (step 3).
 
@@ -73,6 +75,18 @@ BEGIN
 	FROM rxe_to_deprecate dp
 	JOIN concept c ON c.vocabulary_id = dp.vocabulary_id AND c.concept_code = dp.concept_code;
 	CREATE UNIQUE INDEX idx_rxegap_depr ON rxegap_depr (concept_id);
+	-- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name); used for drug-level orphans (by drug_strength) and for Branded Drug Forms (by their children)
+	DROP TABLE IF EXISTS rxegap_excl_ing;
+	CREATE UNLOGGED TABLE rxegap_excl_ing AS
+	SELECT UNNEST(ARRAY[
+		'almagate', 'botulism antitoxin triv a,b&e', 'calcium chloride, dihydration', 'calcium phosphate dibasic',
+		'cerebral phospholipids', 'fibrinogen concentrate (human)', 'horse antihuman thymocyte gamma globulin',
+		'hyaluronan', 'influenza b virus antigen, hong kong 330-2001', 'interferon type ii',
+		'lymphocyte immune globulin, rabbit', 'magnesium thiosulfate', 'methylrosanilinium chloride',
+		'milk thistle fruit', 'pancrelipase', 'pancrelipase protease', 'penicillin', 'phospholipids', 'proteins',
+		'siberian ginseng root', 'silver preparation', 'sodium thiosulfate', 'thymocyte immunoglobulin',
+		'turpentine oil', 'yellow-fever virus'
+		]) AS nm;
 	DROP TABLE IF EXISTS rxegap_orphan;
 	CREATE UNLOGGED TABLE rxegap_orphan AS
 	SELECT c.concept_id, c.concept_code, c.concept_name, c.concept_class_id, c.vocabulary_id
@@ -84,12 +98,14 @@ BEGIN
 		AND c.concept_class_id IN (
 			'Clinical Drug', 'Branded Drug', 'Quant Clinical Drug', 'Quant Branded Drug',
 			'Clinical Drug Box', 'Branded Drug Box', 'Quant Clinical Box', 'Quant Branded Box',
-			'Marketed Product', 'Clinical Pack', 'Branded Pack', 'Clinical Pack Box', 'Branded Pack Box'
+			'Marketed Product', 'Clinical Pack', 'Branded Pack', 'Clinical Pack Box', 'Branded Pack Box',
+			-- Branded Drug Comp / Form orphans: their link to the Clinical Drug Comp / Form (or Ingredient) usually points to a deprecated concept
+			'Branded Drug Comp', 'Branded Drug Form'
 			)
 		-- concepts listed for deprecation (non-existent drugs reviewed manually) are not repaired
 		AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = c.concept_id)
 		-- vaccines are excluded: they have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
-		AND c.concept_name !~* '\mvaccines?\M'
+		AND c.concept_name !~* '\mvacc(ines?)?\M'
 		-- herbal / allergenic extracts and herbs are excluded as well (by name)
 		AND c.concept_name !~* '\m(extracts?|leaf|leaves|pollens?|roots?|fruits?|herbs?|preparations?|venoms?)\M'
 		-- biologics (immune globulins, antitoxins, antivenoms, toxoids, antigens, viruses) are excluded (by name)
@@ -100,15 +116,7 @@ BEGIN
 			FROM drug_strength xs
 			JOIN concept xi ON xi.concept_id = xs.ingredient_concept_id
 			WHERE xs.drug_concept_id = c.concept_id
-				AND LOWER(xi.concept_name) IN (
-					'almagate', 'botulism antitoxin triv a,b&e', 'calcium chloride, dihydration', 'calcium phosphate dibasic',
-					'cerebral phospholipids', 'fibrinogen concentrate (human)', 'horse antihuman thymocyte gamma globulin',
-					'hyaluronan', 'influenza b virus antigen, hong kong 330-2001', 'interferon type ii',
-					'lymphocyte immune globulin, rabbit', 'magnesium thiosulfate', 'methylrosanilinium chloride',
-					'milk thistle fruit', 'pancrelipase', 'pancrelipase protease', 'penicillin', 'phospholipids', 'proteins',
-					'siberian ginseng root', 'silver preparation', 'sodium thiosulfate', 'thymocyte immunoglobulin',
-					'turpentine oil', 'yellow-fever virus'
-					)
+				AND LOWER(xi.concept_name) IN (SELECT nm FROM rxegap_excl_ing)
 			)
 		AND NOT EXISTS (
 			SELECT 1
@@ -456,6 +464,62 @@ BEGIN
 		) s;
 	CREATE INDEX idx_rxegap_ds ON rxegap_ds (drug_concept_id);
 
+	-- orphan Branded Drug Forms without drug_strength rows: ingredients of their valid child Branded Drugs (only when all children agree)
+	-- (built apart and analyzed, a join of the big concept_relationship with fresh tables inside rxegap_attr gets a bad plan)
+	ANALYZE rxegap_orphan;
+	ANALYZE rxegap_ds;
+	DROP TABLE IF EXISTS rxegap_form_orphan;
+	CREATE UNLOGGED TABLE rxegap_form_orphan AS
+	SELECT o.concept_id
+	FROM rxegap_orphan o
+	WHERE o.concept_class_id = 'Branded Drug Form'
+		AND NOT EXISTS (SELECT 1 FROM rxegap_ds s WHERE s.drug_concept_id = o.concept_id);
+	CREATE UNIQUE INDEX idx_rxegap_form_orphan ON rxegap_form_orphan (concept_id);
+	ANALYZE rxegap_form_orphan;
+	DROP TABLE IF EXISTS rxegap_form_child;
+	CREATE UNLOGGED TABLE rxegap_form_child AS
+	SELECT DISTINCT fo.concept_id AS form_id, r.concept_id_2 AS child_id
+	FROM rxegap_form_orphan fo
+	JOIN concept_relationship r ON r.concept_id_1 = fo.concept_id
+		AND r.relationship_id = 'RxNorm inverse is a'
+		AND r.invalid_reason IS NULL
+	JOIN concept dc ON dc.concept_id = r.concept_id_2
+		AND dc.concept_class_id = 'Branded Drug'
+		AND dc.invalid_reason IS NULL
+		AND dc.standard_concept = 'S';
+	CREATE INDEX idx_rxegap_form_child ON rxegap_form_child (child_id);
+	ANALYZE rxegap_form_child;
+	DROP TABLE IF EXISTS rxegap_form_ing;
+	CREATE UNLOGGED TABLE rxegap_form_ing AS
+	SELECT x.form_id,
+		x.ing_ids,
+		(SELECT ARRAY_AGG(i || '~' ORDER BY i) FROM UNNEST(x.ing_ids) i) AS comps
+	FROM (
+		SELECT fc.form_id,
+			MIN(ch.ing_ids::TEXT)::INT[] AS ing_ids
+		FROM rxegap_form_child fc
+		JOIN (
+			SELECT s.drug_concept_id, ARRAY_AGG(DISTINCT s.ing_id ORDER BY s.ing_id) AS ing_ids
+			FROM rxegap_ds s
+			WHERE s.drug_concept_id IN (SELECT child_id FROM rxegap_form_child)
+			GROUP BY s.drug_concept_id
+			) ch ON ch.drug_concept_id = fc.child_id
+		GROUP BY fc.form_id
+		HAVING COUNT(DISTINCT ch.ing_ids::TEXT) = 1
+		) x;
+	-- Branded Drug Forms have no drug_strength of their own: the reviewed ingredient exclusion applies to the ingredients derived from the children
+	DELETE FROM rxegap_orphan o
+	USING rxegap_form_ing fi
+	WHERE fi.form_id = o.concept_id
+		AND EXISTS (
+			SELECT 1
+			FROM UNNEST(fi.ing_ids) i
+			JOIN concept xi ON xi.concept_id = i
+			WHERE LOWER(xi.concept_name) IN (SELECT nm FROM rxegap_excl_ing)
+			);
+	DELETE FROM rxegap_form_ing fi
+	WHERE NOT EXISTS (SELECT 1 FROM rxegap_orphan o WHERE o.concept_id = fi.form_id);
+
 	DROP TABLE IF EXISTS rxegap_attr;
 	CREATE UNLOGGED TABLE rxegap_attr AS
 	SELECT c.concept_id,
@@ -481,7 +545,11 @@ BEGIN
 			MAX(bs) AS bs
 		FROM rxegap_ds
 		GROUP BY drug_concept_id
-		) d ON d.drug_concept_id = c.concept_id
+		UNION ALL
+			-- orphan Branded Drug Forms without drug_strength rows: ingredients of their valid child Branded Drugs (only when all children agree)
+			SELECT fi.form_id, fi.ing_ids, fi.comps, '', 0
+			FROM rxegap_form_ing fi
+			) d ON d.drug_concept_id = c.concept_id
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND c.concept_class_id IN (
 			'Ingredient', 'Clinical Drug Comp', 'Branded Drug Comp', 'Clinical Drug Form', 'Branded Drug Form',
@@ -1228,7 +1296,7 @@ BEGIN
 	PERFORM vocabulary_pack.DeprecateWrongMAPSTO();
 
 	-- clean up
-	DROP TABLE rxegap_depr, rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_attr,
+	DROP TABLE rxegap_depr, rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_form_orphan, rxegap_form_child, rxegap_form_ing, rxegap_excl_ing, rxegap_attr,
 		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_healthy, rxegap_edge_x,
 		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref;
 END;

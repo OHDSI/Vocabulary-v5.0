@@ -85,7 +85,7 @@ BEGIN
 		'lymphocyte immune globulin, rabbit', 'magnesium thiosulfate', 'methylrosanilinium chloride',
 		'milk thistle fruit', 'pancrelipase', 'pancrelipase protease', 'penicillin', 'phospholipids', 'proteins',
 		'siberian ginseng root', 'silver preparation', 'sodium thiosulfate', 'thymocyte immunoglobulin',
-		'turpentine oil', 'yellow-fever virus'
+		'turpentine oil', 'yellow-fever virus', 'rabbit anti-human t-lymphocyte globulin'
 		]) AS nm;
 	DROP TABLE IF EXISTS rxegap_orphan;
 	CREATE UNLOGGED TABLE rxegap_orphan AS
@@ -318,14 +318,14 @@ BEGIN
 	-- reviewed manual replacements of deprecated ingredients that have no 'Concept replaced by' (source name -> valid RxNorm Ingredient)
 	DELETE FROM rxegap_res
 	WHERE attr_id IN (SELECT c.concept_id FROM concept c JOIN (VALUES ('efanesoctocog alfa'), ('insulin, pork'), ('landiolol hydrochloride'),
-			('l-arginine'), ('l-alanine'), ('l-cysteine'), ('dl-methionine')) v (nm) ON LOWER(c.concept_name) = v.nm
-		WHERE c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NOT NULL);
+			('l-arginine'), ('l-alanine'), ('l-cysteine'), ('dl-methionine'), ('l-glutamine'), ('glycopyrrolate'), ('doxorubicin liposome'), ('amphotericin b liposomal'), ('lacticaseibacillus rhamnosus gg'), ('colistimethate')) v (nm) ON LOWER(c.concept_name) = v.nm
+		WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND ((c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NOT NULL) OR c.concept_class_id = 'Precise Ingredient'));
 	INSERT INTO rxegap_res (attr_id, resolved_id)
 	SELECT a.attr_id, v.target_id
 	FROM rxegap_attr_ids a
 	JOIN concept c ON c.concept_id = a.attr_id
-		AND c.concept_class_id = 'Ingredient'
-		AND c.invalid_reason IS NOT NULL
+		AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+		AND ((c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NOT NULL) OR c.concept_class_id = 'Precise Ingredient') -- a deprecated Ingredient or a Precise Ingredient (salt/form of the valid Ingredient)
 	JOIN (VALUES
 		('efanesoctocog alfa', 1301841), -- antihemophilic factor (recombinant), Fc-VWF-XTEN fusion protein
 		('insulin, pork', 1586346), -- insulin, regular, pork
@@ -333,7 +333,13 @@ BEGIN
 		('l-arginine', 19006410), -- arginine
 		('l-alanine', 19052489), -- alanine
 		('l-cysteine', 19010955), -- cysteine
-		('dl-methionine', 19004724) -- methionine
+		('dl-methionine', 19004724), -- methionine
+		('l-glutamine', 19060985), -- glutamine
+		('glycopyrrolate', 45775571), -- glycopyrronium
+		('doxorubicin liposome', 902725), -- Doxorubicin pegylated liposomal
+		('amphotericin b liposomal', 1717240), -- amphotericin B
+		('lacticaseibacillus rhamnosus gg', 19000811), -- Lacticaseibacillus rhamnosus
+		('colistimethate', 901845) -- colistin
 		) v (nm, target_id) ON LOWER(c.concept_name) = v.nm
 	JOIN concept t ON t.concept_id = v.target_id
 		AND t.invalid_reason IS NULL

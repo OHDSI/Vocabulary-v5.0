@@ -159,7 +159,10 @@ BEGIN
         OR (c1.vocabulary_id = 'RxNorm'           AND c2.vocabulary_id = 'RxNorm Extension')
         OR (c1.vocabulary_id = 'RxNorm Extension' AND c2.vocabulary_id = 'RxNorm Extension')
     )
-		AND r.invalid_reason IS NULL;
+		AND r.invalid_reason IS NULL
+		-- direct relationships only (like concept_relationship_manual): GenericUpdate adds the reverse ones itself,
+		-- an explicit valid reverse row in the stage would override a manual deprecation of the direct row
+		AND r.relationship_id IN (SELECT DISTINCT devv5.GetPrimaryRelationshipID(rel.relationship_id) FROM relationship rel);
 
 
 	--4.2. Add 'Concept replaced by' for 'X' concepts EXCEPT where a manual 'Maps to' (RxNorm Extension -> RxNorm)
@@ -310,6 +313,12 @@ BEGIN
 				AND v2.latest_update IS NOT NULL
 			WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
 			);
+
+	--9.1. Restore the drug hierarchy for orphans (all manual changes are already in the stage); appends to the stage
+	DO $_$
+	BEGIN
+		PERFORM vocabulary_pack.RxEFillHierarchyGaps(pDryRun => FALSE, pAppend => TRUE);
+	END $_$;
 
 	--10. Fill concept_synonym_stage
 	INSERT INTO concept_synonym_stage

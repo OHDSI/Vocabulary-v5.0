@@ -1,5 +1,6 @@
 CREATE OR REPLACE FUNCTION vocabulary_pack.RxEFillHierarchyGaps (
-	pDryRun BOOLEAN DEFAULT TRUE
+	pDryRun BOOLEAN DEFAULT TRUE,
+	pAppend BOOLEAN DEFAULT FALSE
 )
 RETURNS void
 	LANGUAGE plpgsql
@@ -45,6 +46,13 @@ Usage:
     SELECT * FROM rxe_gap_plan ORDER BY scenario, orphan_class, orphan_concept_id;
  3. real run - fills the stage tables (they are truncated first, like RxECleanUP):
     DO $_$ BEGIN PERFORM vocabulary_pack.RxEFillHierarchyGaps(pDryRun=>FALSE); END $_$;
+ 3b. inside RxECleanUP (after step 9, i.e. after all manual changes are applied to the stage):
+    PERFORM vocabulary_pack.RxEFillHierarchyGaps(pDryRun=>FALSE, pAppend=>TRUE);
+    pAppend: the stage tables are NOT truncated and SetLatestUpdate is NOT called; the new rows are added to the stage.
+    The tool works on its own copies rxegap_concept / rxegap_cr (= base, plus concept_stage / concept_relationship_stage in append mode):
+    concepts deprecated in the stage are not used as parents, links created in the stage count as existing,
+    concepts created in the stage are known (no duplicates). concept_ancestor and drug_strength are read from the base, so
+    "healthy / orphan" status reflects the last concept_ancestor build (orphans caused by deprecations of this very run are repaired in the next run).
  4. devv5.GenericUpdate(); then vocabulary_pack.pConceptAncestor(); then re-run RxNorm/vocab_specific_checks/orphan_drug_concepts.sql
  Review tables stay in the current schema until the next run.
 */
@@ -63,6 +71,78 @@ BEGIN
 	END IF;
 
 	/*****************************************
+	* 0. Working copies of concept and concept_relationship (rxegap_concept, rxegap_cr)
+	*    The whole tool reads only these two tables, never concept / concept_relationship directly.
+	*    Standalone run: a copy of the base tables.
+	*    pAppend (inside RxECleanUP): base + stage, i.e. the state after all manual changes were applied to the stage:
+	*      - concepts changed in concept_stage (deprecations, replacements) are updated,
+	*      - concepts created in concept_stage are added (negative temporary concept_id),
+	*      - relationships of concept_relationship_stage are applied in both directions.
+	*****************************************/
+	RAISE NOTICE '% step 0 (working copies)', clock_timestamp();
+	DROP TABLE IF EXISTS rxegap_concept;
+	DROP TABLE IF EXISTS rxegap_cr;
+	CREATE UNLOGGED TABLE rxegap_concept AS
+	SELECT * FROM concept WHERE vocabulary_id IN ('RxNorm', 'RxNorm Extension', 'CVX', 'ATC');
+	CREATE UNIQUE INDEX idx_rxegap_concept ON rxegap_concept (concept_id);
+	CREATE INDEX idx_rxegap_concept_code ON rxegap_concept (vocabulary_id, concept_code);
+	CREATE UNLOGGED TABLE rxegap_cr AS
+	SELECT r.* FROM concept_relationship r JOIN rxegap_concept c ON c.concept_id = r.concept_id_1;
+
+	IF pAppend THEN
+		-- concepts changed in the stage
+		UPDATE rxegap_concept c
+		SET concept_name = COALESCE(cs.concept_name, c.concept_name),
+			domain_id = COALESCE(cs.domain_id, c.domain_id),
+			concept_class_id = COALESCE(cs.concept_class_id, c.concept_class_id),
+			standard_concept = cs.standard_concept,
+			valid_start_date = COALESCE(cs.valid_start_date, c.valid_start_date),
+			valid_end_date = COALESCE(cs.valid_end_date, c.valid_end_date),
+			invalid_reason = cs.invalid_reason
+		FROM concept_stage cs
+		WHERE cs.concept_code = c.concept_code AND cs.vocabulary_id = c.vocabulary_id;
+
+		-- concepts created in the stage
+		INSERT INTO rxegap_concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+		SELECT -ROW_NUMBER() OVER (ORDER BY cs.vocabulary_id, cs.concept_code), cs.concept_name, cs.domain_id, cs.vocabulary_id, cs.concept_class_id,
+			cs.standard_concept, cs.concept_code, cs.valid_start_date, cs.valid_end_date, cs.invalid_reason
+		FROM concept_stage cs
+		WHERE cs.vocabulary_id IN ('RxNorm', 'RxNorm Extension', 'CVX', 'ATC')
+			AND NOT EXISTS (SELECT 1 FROM rxegap_concept c WHERE c.vocabulary_id = cs.vocabulary_id AND c.concept_code = cs.concept_code);
+
+		-- stage relationships in both directions (the forward row wins over the generated reverse one)
+		CREATE TEMP TABLE rxegap_stg AS
+		SELECT DISTINCT ON (id1, id2, rel) id1, id2, rel, valid_start_date, valid_end_date, invalid_reason
+		FROM (
+			SELECT a.concept_id AS id1, b.concept_id AS id2, crs.relationship_id AS rel, crs.valid_start_date, crs.valid_end_date, crs.invalid_reason, 1 AS ord
+			FROM concept_relationship_stage crs
+			JOIN rxegap_concept a ON a.vocabulary_id = crs.vocabulary_id_1 AND a.concept_code = crs.concept_code_1
+			JOIN rxegap_concept b ON b.vocabulary_id = crs.vocabulary_id_2 AND b.concept_code = crs.concept_code_2
+			UNION ALL
+			SELECT b.concept_id, a.concept_id, rr.reverse_relationship_id, crs.valid_start_date, crs.valid_end_date, crs.invalid_reason, 2
+			FROM concept_relationship_stage crs
+			JOIN rxegap_concept a ON a.vocabulary_id = crs.vocabulary_id_1 AND a.concept_code = crs.concept_code_1
+			JOIN rxegap_concept b ON b.vocabulary_id = crs.vocabulary_id_2 AND b.concept_code = crs.concept_code_2
+			JOIN relationship rr ON rr.relationship_id = crs.relationship_id
+			) s
+		ORDER BY id1, id2, rel, ord;
+		CREATE UNIQUE INDEX idx_rxegap_cr ON rxegap_cr (concept_id_1, concept_id_2, relationship_id);
+		UPDATE rxegap_cr r
+		SET valid_start_date = s.valid_start_date, valid_end_date = s.valid_end_date, invalid_reason = s.invalid_reason
+		FROM rxegap_stg s
+		WHERE r.concept_id_1 = s.id1 AND r.concept_id_2 = s.id2 AND r.relationship_id = s.rel;
+		INSERT INTO rxegap_cr (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+		SELECT s.id1, s.id2, s.rel, s.valid_start_date, s.valid_end_date, s.invalid_reason
+		FROM rxegap_stg s
+		WHERE NOT EXISTS (SELECT 1 FROM rxegap_cr r WHERE r.concept_id_1 = s.id1 AND r.concept_id_2 = s.id2 AND r.relationship_id = s.rel);
+		DROP TABLE rxegap_stg;
+	END IF;
+	CREATE INDEX IF NOT EXISTS idx_rxegap_cr1 ON rxegap_cr (concept_id_1, relationship_id);
+	CREATE INDEX IF NOT EXISTS idx_rxegap_cr2 ON rxegap_cr (concept_id_2, relationship_id);
+	ANALYZE rxegap_concept;
+	ANALYZE rxegap_cr;
+
+	/*****************************************
 	* 1. Orphans (standard drug concepts without a valid Ingredient ancestor)
 	*****************************************/
 	PERFORM set_config('application_name', 'RxEFillHierarchyGaps step 1', FALSE);
@@ -73,7 +153,7 @@ BEGIN
 	CREATE UNLOGGED TABLE rxegap_depr AS
 	SELECT DISTINCT c.concept_id
 	FROM rxe_to_deprecate dp
-	JOIN concept c ON c.vocabulary_id = dp.vocabulary_id AND c.concept_code = dp.concept_code;
+	JOIN rxegap_concept c ON c.vocabulary_id = dp.vocabulary_id AND c.concept_code = dp.concept_code;
 	CREATE UNIQUE INDEX idx_rxegap_depr ON rxegap_depr (concept_id);
 	-- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name); used for drug-level orphans (by drug_strength) and for Branded Drug Forms (by their children)
 	DROP TABLE IF EXISTS rxegap_excl_ing;
@@ -90,7 +170,7 @@ BEGIN
 	DROP TABLE IF EXISTS rxegap_orphan;
 	CREATE UNLOGGED TABLE rxegap_orphan AS
 	SELECT c.concept_id, c.concept_code, c.concept_name, c.concept_class_id, c.vocabulary_id
-	FROM concept c
+	FROM rxegap_concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND c.domain_id = 'Drug'
 		AND c.standard_concept = 'S'
@@ -114,25 +194,41 @@ BEGIN
 		AND NOT EXISTS (
 			SELECT 1
 			FROM drug_strength xs
-			JOIN concept xi ON xi.concept_id = xs.ingredient_concept_id
+			JOIN rxegap_concept xi ON xi.concept_id = xs.ingredient_concept_id
 			WHERE xs.drug_concept_id = c.concept_id
 				AND LOWER(xi.concept_name) IN (SELECT nm FROM rxegap_excl_ing)
 			)
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_ancestor va
-			JOIN concept vc ON vc.concept_id = va.ancestor_concept_id
+			JOIN rxegap_concept vc ON vc.concept_id = va.ancestor_concept_id
 				AND (vc.vocabulary_id = 'CVX' OR (vc.vocabulary_id = 'ATC' AND vc.concept_code LIKE 'J07%'))
 			WHERE va.descendant_concept_id = c.concept_id
 			)
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_ancestor ca
-			JOIN concept ing ON ing.concept_id = ca.ancestor_concept_id
+			JOIN rxegap_concept ing ON ing.concept_id = ca.ancestor_concept_id
 				AND ing.concept_class_id = 'Ingredient'
 				AND ing.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 				AND ing.invalid_reason IS NULL
 			WHERE ca.descendant_concept_id = c.concept_id
+			)
+		-- a valid link to a valid parent that itself sits below a valid Ingredient already puts the concept in the hierarchy
+		-- (e.g. a manual link from concept_relationship_manual that concept_ancestor does not reflect yet): not an orphan
+		AND NOT EXISTS (
+			SELECT 1
+			FROM rxegap_cr r
+			JOIN rxegap_concept p ON p.concept_id = r.concept_id_2
+				AND p.invalid_reason IS NULL
+			JOIN concept_ancestor pa ON pa.descendant_concept_id = p.concept_id
+			JOIN rxegap_concept pi ON pi.concept_id = pa.ancestor_concept_id
+				AND pi.concept_class_id = 'Ingredient'
+				AND pi.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+				AND pi.invalid_reason IS NULL
+			WHERE r.concept_id_1 = c.concept_id
+				AND r.relationship_id IN ('RxNorm is a', 'Consists of')
+				AND r.invalid_reason IS NULL
 			);
 	CREATE UNIQUE INDEX idx_rxegap_orphan ON rxegap_orphan (concept_id);
 	RAISE NOTICE 'orphans (excluded: vaccines, biologics, herbs/extracts/preparations/venoms, reviewed ingredient list, rxe_to_deprecate): %', (SELECT COUNT(*) FROM rxegap_orphan);
@@ -196,7 +292,7 @@ BEGIN
 		-- supplier name as it is written in RxE concept names (same shortening as BuildRxE)
 		LOWER(TRIM(REGEXP_REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(c.concept_name,
 			' Ltd', ''), ' Plc', ''), ' UK', ''), ' (UK)', ''), ' Pharmaceuticals', ''), ' Pharma', ''), ' GmbH', ''), 'Laboratories', ''), '\s+', ' ', 'g'))) AS nm2
-	FROM concept c
+	FROM rxegap_concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND c.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier');
 	CREATE INDEX idx_rxegap_attrdict ON rxegap_attrdict (concept_class_id, nm);
@@ -247,8 +343,8 @@ BEGIN
 	WHERE (x.exact OR x.cnt = 1)
 		AND NOT EXISTS ( -- only what the orphan does not have yet
 			SELECT 1
-			FROM concept_relationship r
-			JOIN concept t ON t.concept_id = r.concept_id_2
+			FROM rxegap_cr r
+			JOIN rxegap_concept t ON t.concept_id = r.concept_id_2
 				AND t.concept_class_id = CASE x.kind WHEN 'DF' THEN 'Dose Form' WHEN 'BN' THEN 'Brand Name' ELSE 'Supplier' END
 			WHERE r.concept_id_1 = x.orphan_id
 				AND r.relationship_id = x.rel
@@ -267,7 +363,7 @@ BEGIN
 	CREATE UNLOGGED TABLE rxegap_ds_raw AS
 	SELECT ds.*
 	FROM drug_strength ds
-	JOIN concept d ON d.concept_id = ds.drug_concept_id
+	JOIN rxegap_concept d ON d.concept_id = ds.drug_concept_id
 		AND d.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
 	-- (rows of deprecated concepts are kept on purpose: they are the source for replicas)
 	CREATE INDEX idx_rxegap_ds_raw ON rxegap_ds_raw (drug_concept_id);
@@ -279,8 +375,8 @@ BEGIN
 	SELECT attr_id FROM rxegap_infer
 	UNION
 	SELECT DISTINCT r.concept_id_2
-	FROM concept_relationship r
-	JOIN concept d ON d.concept_id = r.concept_id_1
+	FROM rxegap_cr r
+	JOIN rxegap_concept d ON d.concept_id = r.concept_id_1
 		AND d.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND d.concept_class_id IN (
 			'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug', 'Branded Drug', 'Quant Clinical Drug', 'Quant Branded Drug',
@@ -298,8 +394,8 @@ BEGIN
 		UNION ALL
 		SELECT ch.id, r.concept_id_2, ch.depth + 1
 		FROM chain ch
-		JOIN concept c ON c.concept_id = ch.cur AND c.invalid_reason IS NOT NULL
-		JOIN concept_relationship r ON r.concept_id_1 = ch.cur
+		JOIN rxegap_concept c ON c.concept_id = ch.cur AND c.invalid_reason IS NOT NULL
+		JOIN rxegap_cr r ON r.concept_id_1 = ch.cur
 			AND r.relationship_id = 'Concept replaced by'
 			AND r.invalid_reason IS NULL
 		WHERE ch.depth < 10
@@ -307,8 +403,8 @@ BEGIN
 	SELECT DISTINCT ON (ch.id) ch.id AS attr_id,
 		ch.cur AS resolved_id
 	FROM chain ch
-	JOIN concept o ON o.concept_id = ch.id
-	JOIN concept t ON t.concept_id = ch.cur
+	JOIN rxegap_concept o ON o.concept_id = ch.id
+	JOIN rxegap_concept t ON t.concept_id = ch.cur
 		AND t.invalid_reason IS NULL
 		AND t.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND t.concept_class_id = o.concept_class_id
@@ -317,13 +413,13 @@ BEGIN
 
 	-- reviewed manual replacements of deprecated ingredients that have no 'Concept replaced by' (source name -> valid RxNorm Ingredient)
 	DELETE FROM rxegap_res
-	WHERE attr_id IN (SELECT c.concept_id FROM concept c JOIN (VALUES ('efanesoctocog alfa'), ('insulin, pork'), ('landiolol hydrochloride'),
+	WHERE attr_id IN (SELECT c.concept_id FROM rxegap_concept c JOIN (VALUES ('efanesoctocog alfa'), ('insulin, pork'), ('landiolol hydrochloride'),
 			('l-arginine'), ('l-alanine'), ('l-cysteine'), ('dl-methionine'), ('l-glutamine'), ('glycopyrrolate'), ('doxorubicin liposome'), ('amphotericin b liposomal'), ('lacticaseibacillus rhamnosus gg'), ('colistimethate')) v (nm) ON LOWER(c.concept_name) = v.nm
 		WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND ((c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NOT NULL) OR c.concept_class_id = 'Precise Ingredient'));
 	INSERT INTO rxegap_res (attr_id, resolved_id)
 	SELECT a.attr_id, v.target_id
 	FROM rxegap_attr_ids a
-	JOIN concept c ON c.concept_id = a.attr_id
+	JOIN rxegap_concept c ON c.concept_id = a.attr_id
 		AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND ((c.concept_class_id = 'Ingredient' AND c.invalid_reason IS NOT NULL) OR c.concept_class_id = 'Precise Ingredient') -- a deprecated Ingredient or a Precise Ingredient (salt/form of the valid Ingredient)
 	JOIN (VALUES
@@ -341,7 +437,7 @@ BEGIN
 		('lacticaseibacillus rhamnosus gg', 19000811), -- Lacticaseibacillus rhamnosus
 		('colistimethate', 901845) -- colistin
 		) v (nm, target_id) ON LOWER(c.concept_name) = v.nm
-	JOIN concept t ON t.concept_id = v.target_id
+	JOIN rxegap_concept t ON t.concept_id = v.target_id
 		AND t.invalid_reason IS NULL
 		AND t.concept_class_id = 'Ingredient';
 
@@ -354,7 +450,7 @@ BEGIN
 		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS norm,
 		NULL::INT AS dup_of -- existing valid concept with the same name and class
 	FROM rxegap_attr_ids a
-	JOIN concept c ON c.concept_id = a.attr_id
+	JOIN rxegap_concept c ON c.concept_id = a.attr_id
 		AND c.concept_class_id IN ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
 	WHERE NOT EXISTS (SELECT 1 FROM rxegap_res r WHERE r.attr_id = a.attr_id);
 
@@ -365,7 +461,7 @@ BEGIN
 		c.concept_class_id,
 		c.vocabulary_id,
 		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS norm
-	FROM concept c
+	FROM rxegap_concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 		AND c.invalid_reason IS NULL
 		AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = c.concept_id);
@@ -398,7 +494,7 @@ BEGIN
 	SELECT a.attr_id,
 		COALESCE(k.attr_id, a.attr_id)
 	FROM rxegap_attr_ids a
-	LEFT JOIN concept c ON c.concept_id = a.attr_id
+	LEFT JOIN rxegap_concept c ON c.concept_id = a.attr_id
 	LEFT JOIN rxegap_new_attr k ON k.concept_class_id = c.concept_class_id
 		AND k.norm = dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi'))
 	WHERE NOT EXISTS (SELECT 1 FROM rxegap_res r WHERE r.attr_id = a.attr_id);
@@ -486,10 +582,10 @@ BEGIN
 	CREATE UNLOGGED TABLE rxegap_form_child AS
 	SELECT DISTINCT fo.concept_id AS form_id, r.concept_id_2 AS child_id
 	FROM rxegap_form_orphan fo
-	JOIN concept_relationship r ON r.concept_id_1 = fo.concept_id
+	JOIN rxegap_cr r ON r.concept_id_1 = fo.concept_id
 		AND r.relationship_id = 'RxNorm inverse is a'
 		AND r.invalid_reason IS NULL
-	JOIN concept dc ON dc.concept_id = r.concept_id_2
+	JOIN rxegap_concept dc ON dc.concept_id = r.concept_id_2
 		AND dc.concept_class_id = 'Branded Drug'
 		AND dc.invalid_reason IS NULL
 		AND dc.standard_concept = 'S';
@@ -520,7 +616,7 @@ BEGIN
 		AND EXISTS (
 			SELECT 1
 			FROM UNNEST(fi.ing_ids) i
-			JOIN concept xi ON xi.concept_id = i
+			JOIN rxegap_concept xi ON xi.concept_id = i
 			WHERE LOWER(xi.concept_name) IN (SELECT nm FROM rxegap_excl_ing)
 			);
 	DELETE FROM rxegap_form_ing fi
@@ -539,10 +635,10 @@ BEGIN
 		d.comps,
 		COALESCE(d.q, '') AS q,
 		COALESCE(d.bs, 0) AS bs,
-		COALESCE((SELECT COALESCE(rs.resolved_id, r.concept_id_2) FROM concept_relationship r JOIN concept t ON t.concept_id = r.concept_id_2 AND t.concept_class_id = 'Dose Form' LEFT JOIN rxegap_res rs ON rs.attr_id = r.concept_id_2 WHERE r.concept_id_1 = c.concept_id AND r.relationship_id = cDF_REL AND r.invalid_reason IS NULL ORDER BY r.concept_id_2 LIMIT 1), 0) AS df,
-		COALESCE((SELECT COALESCE(rs.resolved_id, r.concept_id_2) FROM concept_relationship r JOIN concept t ON t.concept_id = r.concept_id_2 AND t.concept_class_id = 'Brand Name' LEFT JOIN rxegap_res rs ON rs.attr_id = r.concept_id_2 WHERE r.concept_id_1 = c.concept_id AND r.relationship_id = cBN_REL AND r.invalid_reason IS NULL ORDER BY r.concept_id_2 LIMIT 1), 0) AS bn,
-		COALESCE((SELECT COALESCE(rs.resolved_id, r.concept_id_2) FROM concept_relationship r JOIN concept t ON t.concept_id = r.concept_id_2 AND t.concept_class_id = 'Supplier' LEFT JOIN rxegap_res rs ON rs.attr_id = r.concept_id_2 WHERE r.concept_id_1 = c.concept_id AND r.relationship_id = cMF_REL AND r.invalid_reason IS NULL ORDER BY r.concept_id_2 LIMIT 1), 0) AS mf
-	FROM concept c
+		COALESCE((SELECT COALESCE(rs.resolved_id, r.concept_id_2) FROM rxegap_cr r JOIN rxegap_concept t ON t.concept_id = r.concept_id_2 AND t.concept_class_id = 'Dose Form' LEFT JOIN rxegap_res rs ON rs.attr_id = r.concept_id_2 WHERE r.concept_id_1 = c.concept_id AND r.relationship_id = cDF_REL AND r.invalid_reason IS NULL ORDER BY r.concept_id_2 LIMIT 1), 0) AS df,
+		COALESCE((SELECT COALESCE(rs.resolved_id, r.concept_id_2) FROM rxegap_cr r JOIN rxegap_concept t ON t.concept_id = r.concept_id_2 AND t.concept_class_id = 'Brand Name' LEFT JOIN rxegap_res rs ON rs.attr_id = r.concept_id_2 WHERE r.concept_id_1 = c.concept_id AND r.relationship_id = cBN_REL AND r.invalid_reason IS NULL ORDER BY r.concept_id_2 LIMIT 1), 0) AS bn,
+		COALESCE((SELECT COALESCE(rs.resolved_id, r.concept_id_2) FROM rxegap_cr r JOIN rxegap_concept t ON t.concept_id = r.concept_id_2 AND t.concept_class_id = 'Supplier' LEFT JOIN rxegap_res rs ON rs.attr_id = r.concept_id_2 WHERE r.concept_id_1 = c.concept_id AND r.relationship_id = cMF_REL AND r.invalid_reason IS NULL ORDER BY r.concept_id_2 LIMIT 1), 0) AS mf
+	FROM rxegap_concept c
 	JOIN (
 		SELECT drug_concept_id,
 			ARRAY_AGG(DISTINCT ing_id ORDER BY ing_id) AS ing_ids,
@@ -581,7 +677,7 @@ BEGIN
 	DROP TABLE IF EXISTS rxegap_attrname;
 	CREATE UNLOGGED TABLE rxegap_attrname AS
 	SELECT c.concept_id AS id, c.concept_name AS name
-	FROM concept c
+	FROM rxegap_concept c
 	WHERE c.concept_id IN (SELECT resolved_id FROM rxegap_res);
 	CREATE UNIQUE INDEX idx_rxegap_attrname ON rxegap_attrname (id);
 
@@ -817,7 +913,7 @@ BEGIN
 	--  would fall through to a deprecated lookalike and replicate its name, e.g. a misspelled one)
 	UPDATE rxegap_node n
 	SET concept_id = n.ing_ids[1]
-	FROM concept c
+	FROM rxegap_concept c
 	WHERE n.concept_class_id = 'Ingredient'
 		AND n.concept_id IS NULL
 		AND c.concept_id = n.ing_ids[1]
@@ -943,7 +1039,7 @@ BEGIN
 		AND EXISTS (
 			SELECT 1
 			FROM concept_ancestor ca
-			JOIN concept i ON i.concept_id = ca.ancestor_concept_id
+			JOIN rxegap_concept i ON i.concept_id = ca.ancestor_concept_id
 			WHERE ca.descendant_concept_id = n.concept_id
 				AND i.concept_class_id = 'Ingredient'
 				AND i.invalid_reason IS NULL);
@@ -975,7 +1071,7 @@ BEGIN
 		rl.rel,
 		CASE
 			WHEN cn.concept_id IS NOT NULL AND pn.concept_id IS NOT NULL AND EXISTS (
-					SELECT 1 FROM concept_relationship r
+					SELECT 1 FROM rxegap_cr r
 					WHERE r.concept_id_1 = pn.concept_id AND r.concept_id_2 = cn.concept_id
 						AND r.relationship_id = rl.rel AND r.invalid_reason IS NULL)
 				THEN 'EXISTS'
@@ -986,14 +1082,14 @@ BEGIN
 				AND EXISTS (
 					SELECT 1
 					FROM concept_ancestor ca
-					JOIN concept i ON i.concept_id = ca.ancestor_concept_id
+					JOIN rxegap_concept i ON i.concept_id = ca.ancestor_concept_id
 					WHERE ca.descendant_concept_id = cn.concept_id
 						AND i.concept_class_id = 'Ingredient'
 						AND i.invalid_reason IS NULL)
 				THEN 'HEALTHY'
 			WHEN cn.concept_id IS NOT NULL AND pn.concept_id IS NOT NULL
-				AND (SELECT vocabulary_id FROM concept WHERE concept_id = cn.concept_id) = 'RxNorm'
-				AND (SELECT vocabulary_id FROM concept WHERE concept_id = pn.concept_id) = 'RxNorm'
+				AND (SELECT vocabulary_id FROM rxegap_concept WHERE concept_id = cn.concept_id) = 'RxNorm'
+				AND (SELECT vocabulary_id FROM rxegap_concept WHERE concept_id = pn.concept_id) = 'RxNorm'
 				THEN 'RXN_RXN'
 			ELSE 'NEW'
 			END AS status
@@ -1063,9 +1159,9 @@ BEGIN
 		i.resolved_id,
 		ar.concept_name AS resolved_attr_name
 	FROM rxegap_infer i
-	JOIN concept o ON o.concept_id = i.orphan_id
-	JOIN concept ai ON ai.concept_id = i.attr_id
-	JOIN concept ar ON ar.concept_id = i.resolved_id
+	JOIN rxegap_concept o ON o.concept_id = i.orphan_id
+	JOIN rxegap_concept ai ON ai.concept_id = i.attr_id
+	JOIN rxegap_concept ar ON ar.concept_id = i.resolved_id
 	JOIN rxe_gap_plan p ON p.orphan_concept_id = i.orphan_id;
 
 	-- needed nodes: closure of the repairable orphans
@@ -1109,6 +1205,7 @@ BEGIN
 	*****************************************/
 	PERFORM set_config('application_name', 'RxEFillHierarchyGaps step 8', FALSE);
 	RAISE NOTICE '% step 8', clock_timestamp();
+	IF NOT pAppend THEN
 	PERFORM vocabulary_pack.SetLatestUpdate(
 		pVocabularyName => 'RxNorm Extension',
 		pVocabularyDate => CURRENT_DATE,
@@ -1121,9 +1218,10 @@ BEGIN
 	TRUNCATE TABLE concept_synonym_stage;
 	TRUNCATE TABLE pack_content_stage;
 	TRUNCATE TABLE drug_strength_stage;
+	END IF;
 
 	SELECT COALESCE(MAX(REPLACE(concept_code, 'OMOP', '')::INT4), 0) INTO iMaxOmop
-	FROM concept
+	FROM rxegap_concept
 	WHERE concept_code ~ '^OMOP[0-9]+$';
 
 	-- codes for new concepts: attributes first, then nodes (deepest levels first)
@@ -1142,7 +1240,7 @@ BEGIN
 	CREATE UNLOGGED TABLE rxegap_std AS
 	SELECT concept_class_id,
 		NULLIF(MODE() WITHIN GROUP (ORDER BY COALESCE(standard_concept, '-')), '-') AS standard_concept
-	FROM concept
+	FROM rxegap_concept
 	WHERE vocabulary_id = 'RxNorm'
 		AND invalid_reason IS NULL
 		AND domain_id = 'Drug'
@@ -1168,7 +1266,7 @@ BEGIN
 	CREATE UNLOGGED TABLE rxegap_ref AS
 	SELECT 'n' || n.key AS ref, c.concept_code, c.vocabulary_id, c.concept_class_id
 	FROM rxegap_node n
-	JOIN concept c ON c.concept_id = n.concept_id
+	JOIN rxegap_concept c ON c.concept_id = n.concept_id
 	UNION ALL
 	SELECT 'n' || n.key, cs.concept_code, cs.vocabulary_id, cs.concept_class_id
 	FROM rxegap_node n
@@ -1177,7 +1275,7 @@ BEGIN
 	WHERE n.concept_id IS NULL
 	UNION ALL
 	SELECT 'i' || c.concept_id, c.concept_code, c.vocabulary_id, c.concept_class_id
-	FROM concept c
+	FROM rxegap_concept c
 	WHERE c.concept_id IN (SELECT resolved_id FROM rxegap_res)
 		AND c.concept_id NOT IN (SELECT attr_id FROM rxegap_new_attr) -- virtual attributes are replicated, not referenced
 	UNION ALL
@@ -1216,7 +1314,8 @@ BEGIN
 	JOIN rxegap_ref b ON b.ref = 'n' || x.child_key
 	JOIN relationship r ON r.relationship_id = x.rel
 	WHERE x.status = 'NEW'
-		AND (a.vocabulary_id, b.vocabulary_id) <> ('RxNorm', 'RxNorm');
+		AND (a.vocabulary_id, b.vocabulary_id) <> ('RxNorm', 'RxNorm')
+	ON CONFLICT DO NOTHING;
 
 	-- attribute links of the NEW concepts: dose form, brand name, supplier (+ reverse)
 	INSERT INTO concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -1241,7 +1340,8 @@ BEGIN
 	JOIN relationship r ON r.relationship_id = v.rel
 	JOIN rxegap_ref att ON att.ref = 'i' || v.attr_id
 	WHERE nc.kind = 'node'
-		AND v.attr_id <> 0;
+		AND v.attr_id <> 0
+	ON CONFLICT DO NOTHING;
 
 	-- attribute links restored on the orphans (dose form, brand name, supplier; + reverse), never RxNorm-RxNorm
 	INSERT INTO concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -1249,7 +1349,7 @@ BEGIN
 	FROM rxegap_infer i
 	JOIN rxe_gap_plan p ON p.orphan_concept_id = i.orphan_id
 		AND p.scenario IN ('CREATE_INGREDIENT', 'CREATE_NODES', 'REPAIR_LINK_ONLY', 'ANCESTOR_REBUILD_ONLY')
-	JOIN concept o ON o.concept_id = i.orphan_id
+	JOIN rxegap_concept o ON o.concept_id = i.orphan_id
 	JOIN rxegap_ref att ON att.ref = 'i' || i.resolved_id
 	WHERE (o.vocabulary_id, att.vocabulary_id) <> ('RxNorm', 'RxNorm')
 	UNION
@@ -1257,10 +1357,11 @@ BEGIN
 	FROM rxegap_infer i
 	JOIN rxe_gap_plan p ON p.orphan_concept_id = i.orphan_id
 		AND p.scenario IN ('CREATE_INGREDIENT', 'CREATE_NODES', 'REPAIR_LINK_ONLY', 'ANCESTOR_REBUILD_ONLY')
-	JOIN concept o ON o.concept_id = i.orphan_id
+	JOIN rxegap_concept o ON o.concept_id = i.orphan_id
 	JOIN rxegap_ref att ON att.ref = 'i' || i.resolved_id
 	JOIN relationship r ON r.relationship_id = i.rel
-	WHERE (o.vocabulary_id, att.vocabulary_id) <> ('RxNorm', 'RxNorm');
+	WHERE (o.vocabulary_id, att.vocabulary_id) <> ('RxNorm', 'RxNorm')
+	ON CONFLICT DO NOTHING;
 
 	-- drug_strength_stage for new Comp / Drug / Quant / Box / Marketed Product nodes,
 	-- derived from the drug_strength of the representative orphan (units and values are never invented)
@@ -1304,6 +1405,6 @@ BEGIN
 	-- clean up
 	DROP TABLE rxegap_depr, rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_form_orphan, rxegap_form_child, rxegap_form_ing, rxegap_excl_ing, rxegap_attr,
 		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_healthy, rxegap_edge_x,
-		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref;
+		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref, rxegap_concept, rxegap_cr;
 END;
 $BODY$;

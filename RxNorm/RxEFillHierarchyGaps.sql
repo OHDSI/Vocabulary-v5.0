@@ -33,7 +33,8 @@ Biologics are out of scope: names with immune globulin, immunoglobulin, gamma gl
 A reviewed list of non-ingredients (mixtures, classes, herbs, biologics) is excluded by ingredient name (step 1).
 Branded Drug Comp / Branded Drug Form orphans are handled like drug-level ones: the closure drops the brand (-> Clinical Drug Comp / Form, matched by signature or created),
 then links to the Ingredient; a multi-ingredient Branded Drug Comp is split into single-ingredient Clinical Drug Comps.
-Concepts listed in rxe_to_deprecate (non-existent drugs, filled manually) are neither repaired nor used as parents / duplicates.
+Manual deprecations are not looked up here: inside RxECleanUP (pAppend) they are already in the stage (step 5) and therefore deprecated in the working copy rxegap_concept;
+a standalone run sees the base tables only, so apply the manual changes and GenericUpdate before it.
 Deprecated ingredients without a 'Concept replaced by' that were reviewed manually are mapped to their valid RxNorm Ingredient (step 3).
 
 Orphans that cannot be fixed safely are listed in the plan with a MANUAL_* scenario and are NOT touched
@@ -147,14 +148,6 @@ BEGIN
 	*****************************************/
 	PERFORM set_config('application_name', 'RxEFillHierarchyGaps step 1', FALSE);
 	RAISE NOTICE '% step 1', clock_timestamp();
-	-- review table: concepts to be deprecated (same DDL as concept_manual); filled manually, normally empty
-	CREATE TABLE IF NOT EXISTS rxe_to_deprecate (LIKE concept_manual INCLUDING ALL);
-	DROP TABLE IF EXISTS rxegap_depr;
-	CREATE UNLOGGED TABLE rxegap_depr AS
-	SELECT DISTINCT c.concept_id
-	FROM rxe_to_deprecate dp
-	JOIN rxegap_concept c ON c.vocabulary_id = dp.vocabulary_id AND c.concept_code = dp.concept_code;
-	CREATE UNIQUE INDEX idx_rxegap_depr ON rxegap_depr (concept_id);
 	-- ingredients that are not true ingredients / biologics / herbs / mixtures (reviewed list, by ingredient name); used for drug-level orphans (by drug_strength) and for Branded Drug Forms (by their children)
 	DROP TABLE IF EXISTS rxegap_excl_ing;
 	CREATE UNLOGGED TABLE rxegap_excl_ing AS
@@ -182,8 +175,6 @@ BEGIN
 			-- Branded Drug Comp / Form orphans: their link to the Clinical Drug Comp / Form (or Ingredient) usually points to a deprecated concept
 			'Branded Drug Comp', 'Branded Drug Form'
 			)
-		-- concepts listed for deprecation (non-existent drugs reviewed manually) are not repaired
-		AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = c.concept_id)
 		-- vaccines are excluded: they have no formalized ingredients (by name, or by ancestry in ATC J07 / CVX)
 		AND c.concept_name !~* '\mvacc(ines?)?\M'
 		-- herbal / allergenic extracts and herbs are excluded as well (by name)
@@ -231,7 +222,7 @@ BEGIN
 				AND r.invalid_reason IS NULL
 			);
 	CREATE UNIQUE INDEX idx_rxegap_orphan ON rxegap_orphan (concept_id);
-	RAISE NOTICE 'orphans (excluded: vaccines, biologics, herbs/extracts/preparations/venoms, reviewed ingredient list, rxe_to_deprecate): %', (SELECT COUNT(*) FROM rxegap_orphan);
+	RAISE NOTICE 'orphans (excluded: vaccines, biologics, herbs/extracts/preparations/venoms, reviewed ingredient list): %', (SELECT COUNT(*) FROM rxegap_orphan);
 
 	/*****************************************
 	* 2. Class pairs and relationships (same as rl in BuildRxE / rxnorm_allowed_rel in pConceptAncestor)
@@ -463,8 +454,7 @@ BEGIN
 		dev_rxnorm.compare_custom_english(REGEXP_REPLACE(c.concept_name, '\mInhalant\M', 'Inhalation', 'gi')) AS norm
 	FROM rxegap_concept c
 	WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-		AND c.invalid_reason IS NULL
-		AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = c.concept_id);
+		AND c.invalid_reason IS NULL;
 	CREATE INDEX idx_rxegap_uname ON rxegap_uname (concept_class_id, norm);
 	ANALYZE rxegap_uname;
 
@@ -902,7 +892,6 @@ BEGIN
 			(ARRAY_AGG(a.concept_id ORDER BY (a.vocabulary_id = 'RxNorm') DESC, a.concept_id))[1] AS concept_id
 		FROM rxegap_attr a
 		WHERE a.invalid_reason IS NULL
-			AND NOT EXISTS (SELECT 1 FROM rxegap_depr dp WHERE dp.concept_id = a.concept_id)
 		GROUP BY 1
 		) m
 	WHERE m.key = n.key
@@ -1403,7 +1392,7 @@ BEGIN
 	PERFORM vocabulary_pack.DeprecateWrongMAPSTO();
 
 	-- clean up
-	DROP TABLE rxegap_depr, rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_form_orphan, rxegap_form_child, rxegap_form_ing, rxegap_excl_ing, rxegap_attr,
+	DROP TABLE rxegap_infer, rxegap_attrdict, rxegap_orphan, rxegap_rl, rxegap_ds_raw, rxegap_attr_ids, rxegap_res, rxegap_new_attr, rxegap_ds, rxegap_form_orphan, rxegap_form_child, rxegap_form_ing, rxegap_excl_ing, rxegap_attr,
 		rxegap_attrname, rxegap_node, rxegap_edge, rxegap_cand, rxegap_seed, rxegap_uname, rxegap_member, rxegap_healthy, rxegap_edge_x,
 		rxegap_needed, rxegap_code, rxegap_std, rxegap_ref, rxegap_concept, rxegap_cr;
 END;

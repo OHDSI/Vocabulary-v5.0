@@ -205,21 +205,32 @@ BEGIN
 				AND ing.invalid_reason IS NULL
 			WHERE ca.descendant_concept_id = c.concept_id
 			)
-		-- a valid link to a valid parent that itself sits below a valid Ingredient already puts the concept in the hierarchy
-		-- (e.g. a manual link from concept_relationship_manual that concept_ancestor does not reflect yet): not an orphan
+		-- a concept that concept_ancestor does not know yet (loaded after the last concept_ancestor build, e.g. by the RxNorm
+		-- load_stage + GenericUpdate that precede RxECleanUP) cannot be judged here; it is checked in the next run
+		AND (c.concept_id < 0 OR EXISTS (SELECT 1 FROM concept_ancestor x WHERE x.descendant_concept_id = c.concept_id))
+		-- a valid link to a valid parent that is already in the hierarchy puts the concept in the hierarchy as well:
+		-- the parent sits below a valid Ingredient (e.g. a manual link from concept_relationship_manual that concept_ancestor
+		-- does not reflect yet) or the parent is new for concept_ancestor (see above): not an orphan
 		AND NOT EXISTS (
 			SELECT 1
 			FROM rxegap_cr r
 			JOIN rxegap_concept p ON p.concept_id = r.concept_id_2
 				AND p.invalid_reason IS NULL
-			JOIN concept_ancestor pa ON pa.descendant_concept_id = p.concept_id
-			JOIN rxegap_concept pi ON pi.concept_id = pa.ancestor_concept_id
-				AND pi.concept_class_id = 'Ingredient'
-				AND pi.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-				AND pi.invalid_reason IS NULL
 			WHERE r.concept_id_1 = c.concept_id
 				AND r.relationship_id IN ('RxNorm is a', 'Consists of')
 				AND r.invalid_reason IS NULL
+				AND (
+					EXISTS (
+						SELECT 1
+						FROM concept_ancestor pa
+						JOIN rxegap_concept pi ON pi.concept_id = pa.ancestor_concept_id
+							AND pi.concept_class_id = 'Ingredient'
+							AND pi.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+							AND pi.invalid_reason IS NULL
+						WHERE pa.descendant_concept_id = p.concept_id
+						)
+					OR (p.concept_id > 0 AND NOT EXISTS (SELECT 1 FROM concept_ancestor x WHERE x.descendant_concept_id = p.concept_id))
+					)
 			);
 	CREATE UNIQUE INDEX idx_rxegap_orphan ON rxegap_orphan (concept_id);
 	RAISE NOTICE 'orphans (excluded: vaccines, biologics, herbs/extracts/preparations/venoms, reviewed ingredient list): %', (SELECT COUNT(*) FROM rxegap_orphan);
